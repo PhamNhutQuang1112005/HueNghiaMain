@@ -437,7 +437,7 @@
    (22% dư so với nhu cầu thực tế của 1 dòng địa chỉ) để phần còn lại dồn thêm cho Ghi chú, không cần
    khai width riêng cho .pax-col-note (vẫn tự động nhận đúng phần dư tăng thêm). */
 .pax-table--transship .pax-col-address {
-  width: 15%;
+  width: 19%;
 }
 
 /* Riêng bảng "Trung chuyển trả" (.pax-table--transship-dropoff) — không có cột Tài xế nên đỡ chật hơn

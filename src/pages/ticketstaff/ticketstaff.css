@@ -1008,6 +1008,86 @@
 .ts-status-badge.blue { background: #EAF2FE; color: #2563eb; }
 .ts-status-badge.done { background: var(--surface-2); color: var(--text-sub); }
 
+/* ===== Thanh lọc select dùng chung cho các tab: Hành khách / Trung chuyển / Rước đường ===== */
+/* Thanh công cụ 1 hàng phẳng, canh ĐÁY: các ô lọc (.filter-field, 08-phoi-management.css) giãn đều chia
+   nhau bề ngang còn lại, rồi "Bỏ lọc" + "In danh sách" đứng liền nhau ở cuối hàng — đáy select / 2 nút
+   thẳng một hàng. */
+.rs-toolbar {
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+/* Các ô lọc giãn đều nhau (flex-grow) lấp kín bề ngang còn lại dù tab có 3 hay 4 ô — trần max-width
+   rộng để 3 ô vẫn phủ hết hàng, không để trống 1 khoảng bên phải; select width:100% + min-width:0 để
+   nội dung dài bị cắt gọn trong ô thay vì kéo giãn ô. */
+.rs-toolbar .filter-field {
+  flex: 1 1 180px;
+  min-width: 150px;
+  max-width: 320px;
+  gap: 3px;
+}
+.rs-toolbar .filter-field label {
+  font-size: 10px;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-toolbar .filter-field select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  font-size: 12px;
+}
+/* "Bỏ lọc" — nút phụ trung tính (viền xám, chữ xám) cho cân với nút đỏ "In danh sách" bên cạnh, thay
+   cho kiểu link chữ đỏ thừa kế từ .pax-filter-clear. */
+.rs-toolbar .rs-filter-clear {
+  flex: 0 0 auto;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--border-gray);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rs-toolbar .rs-filter-clear:hover {
+  color: var(--text-main);
+  border-color: var(--text-sub);
+}
+.rs-toolbar .rs-print-btn {
+  flex: 0 0 auto;
+  height: 34px;
+}
+#zone3Roadside .pax-col-paid .ts-status-badge { cursor: default; }
+#zone3Roadside .pax-col-paid .ts-status-badge:hover { filter: none; }
+
+/* Bảng 11 cột — chia lại tỉ lệ cho cân đối, chừa đủ chỗ cho cột Ghi chú (không khai width, tự nhận
+   phần còn lại). .pax-table là table-layout:fixed nên width khai ở đây được tôn trọng tuyệt đối. */
+/* Thu bớt padding ngang th/td (12px → 6px) để cột hẹp vẫn đủ chỗ chứa nội dung / tên cột 1 dòng. */
+.pax-table--roadside thead th,
+.pax-table--roadside tbody td {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+/* Mọi tên cột nằm 1 dòng — không để "TRẠNG THÁI" / "SỐ GHẾ" / "THÀNH TIỀN" bị bẻ xuống dòng. */
+.pax-table--roadside thead th { white-space: nowrap; }
+.pax-table--roadside .pax-col-stt    { width: 40px; }
+.pax-table--roadside .pax-col-name   { width: 12%; }
+.pax-table--roadside .pax-col-phone  { width: 9%; }
+.pax-table--roadside .pax-col-stop   { width: 10%; }
+.pax-table--roadside .pax-col-pickup { width: 14%; }
+.pax-table--roadside .pax-col-sl     { width: 3.5%; }
+.pax-table--roadside .pax-col-vt     { width: 7%; }
+.pax-table--roadside .pax-col-total  { width: 9%; }
+.pax-table--roadside .pax-col-paid   { width: 9%; }
+
 /* Cột checkbox thêm vào 2 bảng "Trung chuyển đón/trả" (zone3Transship, tab Trung chuyển trong booking
    view) — CHỈ hiện cho role trung chuyển: mặc định ẩn (display:none), JS gắn class "ts-dispatch-role"
    lên #zone3Transship khi role = shuttle_dispatch (xem tsApplyRoleUI() ticketstaff.js) mới hiện. Chọn
@@ -1015,7 +1095,9 @@
    shuttle.html trông (16px, tick màu đỏ). */
 .pax-table--transship th.pax-col-check,
 .pax-table--transship td.pax-col-check {
-  width: 40px;
+  width: 44px;
+  padding-left: 0;
+  padding-right: 0;
   text-align: center;
   vertical-align: middle;
 }
@@ -1024,6 +1106,12 @@
   height: 16px;
   accent-color: var(--red);
   cursor: pointer;
+}
+/* Checkbox nằm CHÍNH GIỮA ô — block + margin auto để không lệ thuộc text-align/khoảng trắng quanh input. */
+.pax-table--transship th.pax-col-check input[type="checkbox"],
+.pax-table--transship td.pax-col-check input[type="checkbox"] {
+  display: block;
+  margin: 0 auto;
 }
 .ts-check-col {
   display: none;

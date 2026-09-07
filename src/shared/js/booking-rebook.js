@@ -428,7 +428,8 @@ function toggleDirection(dir) {
 }
 
 function togglePaxFilter() {
-  document.getElementById('paxFilterDropdown').classList.toggle('open');
+  const dd = document.getElementById('paxFilterDropdown');
+  if (dd) dd.classList.toggle('open');
 }
 
 function toggleRebookSeat(code, tripId) {
@@ -474,6 +475,17 @@ function updatePassengerTabCount() {
   const transSection = document.getElementById('zone3Transship');
   if (transSection && transSection.style.display !== 'none') {
     renderTransshipTables();
+  }
+
+  // Tab "Rước đường" (chỉ có ở ticketstaff) — cập nhật số đếm + render lại nếu đang mở.
+  const roadsideTabCntEl = document.getElementById('roadsideTabCnt');
+  if (roadsideTabCntEl) {
+    const roadsideCount = grouped.filter(g => g.main.guestType === 'Rước đường').length;
+    roadsideTabCntEl.textContent = `(${roadsideCount})`;
+  }
+  const roadsideSection = document.getElementById('zone3Roadside');
+  if (roadsideSection && roadsideSection.style.display !== 'none' && typeof renderRoadsideTable === 'function') {
+    renderRoadsideTable();
   }
 }
 
@@ -547,6 +559,24 @@ function updateTransferHint() {
       const canCancel = selectionMode === 'transfer' && sourceSeats.length > 0;
       cancelBtn.style.display = canCancel ? '' : 'none';
     }
+  }
+  // Nút "Đặt thêm cho nhóm" (chỉ có ở ticketstaff) — hiện khi đang chọn ghế kiểu "chuyển ghế", nguồn là
+  // ĐÚNG 1 ghế đã đặt thuộc 1 VÉ NHÓM (>=2 ghế cùng số vé) ở đúng chuyến đang xem, và đã chọn >=1 ghế
+  // trống. Bấm nút này copy thông tin khách của ghế nhóm sang các ghế trống, giữ chung số vé.
+  const groupAddBtn = document.getElementById('stickyGroupAddBtn');
+  if (groupAddBtn) {
+    let canGroupAdd = false;
+    if (selectionMode === 'transfer' && !transferSourceCancelId
+        && selectedSourceSeats.length === 1 && selectedTargetSeats.length >= 1
+        && transferSourceTripId === currentTripId
+        && (transferTargetTripId || currentTripId) === currentTripId) {
+      const src = findSeatInTrip(currentTripId, selectedSourceSeats[0]);
+      if (src && src.ticketNo && OCCUPIED_STATES.includes(src.state)) {
+        const groupPool = [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats];
+        canGroupAdd = groupPool.filter(s => s.ticketNo === src.ticketNo).length >= 2;
+      }
+    }
+    groupAddBtn.style.display = canGroupAdd ? '' : 'none';
   }
   updateTransferBarVisibility();
 }

@@ -487,6 +487,12 @@ function cancelledSeatCard(seat) {
 }
 
 function clearPaxFilter() {
+  // Thanh lọc mới dùng <select> (Trạm đi / Trạm đến / Thanh toán) — reset về "" rồi render lại.
+  // Vẫn bỏ tick các checkbox cũ nếu còn (tương thích ngược với callcenter.html chưa đổi thanh lọc).
+  ['pxFilterFirstStop', 'pxFilterLastStop', 'pxFilterPaid'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   document.querySelectorAll('.pax-filter-opt input').forEach(cb => cb.checked = false);
   renderPassengerList();
 }

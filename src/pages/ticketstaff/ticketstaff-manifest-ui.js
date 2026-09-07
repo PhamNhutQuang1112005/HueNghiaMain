@@ -103,6 +103,10 @@ function openDepartModal() {
   const advanceInput = document.getElementById('departAdvanceInput');
   if (advanceInput) advanceInput.value = '0';
 
+  // Mặc định KHÔNG in kèm danh sách rước đường — nhân viên tự tick nếu cần.
+  const roadsideChk = document.getElementById('departPrintRoadside');
+  if (roadsideChk) roadsideChk.checked = false;
+
   document.getElementById('departModal').classList.add('open');
 }
 
@@ -115,12 +119,15 @@ function confirmDepart() {
   tsCreateManifestForCurrentTrip(advanceAmount);
   saveSeatBank();
 
+  // Có in kèm "Danh sách rước đường" vào phơi hay không — theo ô checkbox trong modal Khởi hành xe.
+  const includeRoadside = !!((document.getElementById('departPrintRoadside') || {}).checked);
+
   closeModal('departModal');
   renderTripLifecycleUI();
   showToast('Xe đã khởi hành, đã tạo phơi cho chuyến ' + (document.getElementById('tripTitle') ? document.getElementById('tripTitle').textContent.trim() : ''));
   // Khởi hành xe xong thì in luôn "Phơi xe giao theo chuyến" — nhân viên không cần vào lại "Xem phơi"
   // rồi bấm "In phơi" thêm 1 bước nữa.
-  printManifestView(tripId);
+  printManifestView(tripId, { includeRoadside });
 }
 
 /* ===================== 3. RE-OPEN ===================== */
@@ -206,6 +213,9 @@ function openViolationModalFromManifest() {
 }
 
 function tsOpenManifestModalWithBody(html) {
+  // Mặc định KHÔNG in kèm danh sách rước đường — nhân viên tự tick ở thanh nút nếu cần.
+  const roadsideChk = document.getElementById('manifestPrintRoadside');
+  if (roadsideChk) roadsideChk.checked = false;
   document.getElementById('manifestViewBody').innerHTML = html;
   document.getElementById('manifestViewModal').classList.add('open');
 }
@@ -215,7 +225,13 @@ function tsOpenManifestModalWithBody(html) {
 // (tripInfo/totals/denomBreakdown truyền vào từ manifest đã lưu, hoặc tính "sống" trước khi tạo).
 // Thứ tự: Thông tin chuyến → Chi tiết mệnh giá (kèm Đã thu/Chưa thu/Vé trạm/Khách rước đường ở cuối bảng,
 // xem tsRenderDenominationTableHtml) → Danh sách rước đường (chi tiết từng khách Rước đường).
-function tsRenderManifestCoreSectionsHtml(tripInfo, totals, templateKey, denomBreakdown) {
+function tsRenderManifestCoreSectionsHtml(tripInfo, totals, templateKey, denomBreakdown, opts) {
+  // opts.hideRoadside: bỏ khối "Danh sách rước đường" khỏi giao diện (modal Khởi hành xe không cần
+  // hiển thị danh sách này nữa — nhân viên chỉ chọn IN kèm qua ô checkbox).
+  const roadsideBlock = (opts && opts.hideRoadside)
+    ? ''
+    : `<div class="pv-detail-title">Danh sách rước đường</div>
+    ${tsRenderRoadsideListTableHtml(totals ? totals.roadsideList : null)}`;
   return `
     <div class="manifest-section-title">Thông tin chuyến</div>
     ${tsRenderTripInfoHtml(tripInfo)}
@@ -223,8 +239,7 @@ function tsRenderManifestCoreSectionsHtml(tripInfo, totals, templateKey, denomBr
     <div class="pv-detail-title">Chi tiết mệnh giá</div>
     ${tsRenderDenominationTableHtml(denomBreakdown, templateKey, totals, tripInfo.advanceAmount)}
 
-    <div class="pv-detail-title">Danh sách rước đường</div>
-    ${tsRenderRoadsideListTableHtml(totals ? totals.roadsideList : null)}
+    ${roadsideBlock}
   `;
 }
 
@@ -321,7 +336,7 @@ function tsRenderManifestFullHtml(tripId) {
     createdAt: manifest.createdAt,
     metaLabel: 'Tạo phơi lúc',
     advanceAmount: manifest.advanceAmount
-  }, totals, templateKey, denomBreakdown);
+  }, totals, templateKey, denomBreakdown, { hideRoadside: true });
 
   // Bỏ khối "Diễn biến phơi" (timeline Phơi gốc → từng lần Re-open → Tổng hiện tại) theo yêu cầu — chỉ
   // còn "Lịch sử Re-open" khi đã có ít nhất 1 lần Re-open.
@@ -361,7 +376,7 @@ function tsRenderDepartPreviewHtml(tripId) {
     createdAt: new Date().toISOString(),
     metaLabel: 'Dự kiến tạo phơi lúc',
     advanceAmount: undefined
-  }, totals, templateKey, denomBreakdown);
+  }, totals, templateKey, denomBreakdown, { hideRoadside: true });
 }
 
 /* ===================== 4b. IN PHƠI (mẫu phơi giấy — KHÁC layout web, CÙNG data) ===================== */
@@ -441,7 +456,10 @@ const TS_MANIFEST_PRINT_STYLE = `
 // từng mục y hệt modal "Xem phơi"/"Khởi hành xe" trên web (Thông tin chuyến → Chi tiết mệnh giá → Tóm
 // tắt → Danh sách rước đường) — không phải bản rút gọn riêng như trước.
 // templateKey hiện chỉ có "saigon" — tsGetPrintTemplateKey() là điểm mở rộng khi có mẫu khu vực khác.
-function buildManifestPrintHtml(tripId) {
+function buildManifestPrintHtml(tripId, opts) {
+  // Mặc định (nút "In phơi" ở modal Xem phơi, không truyền opts) vẫn in kèm danh sách rước đường như cũ;
+  // luồng Khởi hành xe truyền opts.includeRoadside theo ô checkbox trong modal.
+  const includeRoadside = !opts || opts.includeRoadside !== false;
   const manifest = getManifest(tripId);
   if (!manifest) return '';
   const totals = tsGetManifestCurrentTotals(tripId);
@@ -551,8 +569,8 @@ function buildManifestPrintHtml(tripId) {
       <div class="pm-summary-grand"><span>Tổng tiền</span><b>${tsFormatMoney(totals.totalAmount)}</b></div>
     </div>
 
-    <div class="pm-section-title">Danh sách rước đường</div>
-    ${roadsideHtml}
+    ${includeRoadside ? `<div class="pm-section-title">Danh sách rước đường</div>
+    ${roadsideHtml}` : ''}
   </div>
   <script>
     window.onload = function () { setTimeout(function () { window.print(); }, 400); };
@@ -563,12 +581,17 @@ function buildManifestPrintHtml(tripId) {
 
 // Nút "In phơi" trong modal Xem phơi — mở cửa sổ mới, KHÔNG in nguyên trang web hiện tại (không sidebar/
 // header/modal), giống đúng quy ước in vé lẻ đã có (printTicketsSeparately ở ticketstaff.js).
-function printManifestView(tripId) {
+function printManifestView(tripId, opts) {
   tripId = tripId || currentTripId;
   if (!tripId) return;
   const manifest = getManifest(tripId);
   if (!manifest) { showToast('Chuyến này chưa tạo phơi'); return; }
-  const printHtml = buildManifestPrintHtml(tripId);
+  // Không truyền opts (nút "In phơi" ở modal Xem phơi) → lấy theo ô checkbox trong modal đó.
+  if (!opts) {
+    const chk = document.getElementById('manifestPrintRoadside');
+    opts = { includeRoadside: !!(chk && chk.checked) };
+  }
+  const printHtml = buildManifestPrintHtml(tripId, opts);
   const printWin = window.open('', '_blank', 'width=900,height=700');
   if (printWin) {
     printWin.document.open();
@@ -1063,6 +1086,16 @@ function tsEsc(str) {
     window.confirmSelectionAction = function () {
       if (tsIsSellingLocked(currentTripId)) { showToast(lockMsg); return; }
       return originalConfirmSelectionAction();
+    };
+  }
+
+  // "Đặt thêm cho nhóm" trên thanh chọn ghế — cũng ghi vé mới lên sơ đồ nên phải khóa khi chuyến đã
+  // khởi hành / đóng Re-open, giống confirmSelectionAction ở trên.
+  const originalConfirmAddToGroup = window.confirmAddToGroup;
+  if (typeof originalConfirmAddToGroup === 'function') {
+    window.confirmAddToGroup = function () {
+      if (tsIsSellingLocked(currentTripId)) { showToast(lockMsg); return; }
+      return originalConfirmAddToGroup();
     };
   }
 

@@ -12,18 +12,18 @@
 <!-- booking-ui.css (5139 dòng) đã tách theo banner Zone thành các mảnh liền mạch trong
      ../shared/css/booking-ui/ — NẠP ĐÚNG THỨ TỰ 01→11 (chính là thứ tự dòng của file gốc)
      để cascade/specificity không đổi. Xem ../shared/css/booking-ui/README.md. -->
-<link rel="stylesheet" href="../shared/css/booking-ui/01-base-layout.css?v=108">
-<link rel="stylesheet" href="../shared/css/booking-ui/02-zone1.css?v=109">
-<link rel="stylesheet" href="../shared/css/booking-ui/03-right-column.css?v=109">
+<link rel="stylesheet" href="../shared/css/booking-ui/01-base-layout.css?v=110">
+<link rel="stylesheet" href="../shared/css/booking-ui/02-zone1.css?v=112">
+<link rel="stylesheet" href="../shared/css/booking-ui/03-right-column.css?v=112">
 <link rel="stylesheet" href="../shared/css/booking-ui/04-overlay-modals.css?v=108">
-<link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=108">
+<link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=109">
 <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109">
 <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108">
 <link rel="stylesheet" href="../shared/css/booking-ui/08-phoi-management.css?v=108">
-<link rel="stylesheet" href="../shared/css/booking-ui/09-rebook-modal.css?v=109">
+<link rel="stylesheet" href="../shared/css/booking-ui/09-rebook-modal.css?v=110">
 <link rel="stylesheet" href="../shared/css/booking-ui/10-customer-history-seatmap.css?v=108">
 <link rel="stylesheet" href="../shared/css/booking-ui/11-responsive.css?v=108">
-<link rel="stylesheet" href="ticketstaff/ticketstaff.css?v=100">
+<link rel="stylesheet" href="ticketstaff/ticketstaff.css?v=111">
 </head>
 <body>
 
@@ -306,8 +306,8 @@
         <span class="tab-item active" id="tabSeatmapItem" data-action="switchTab" data-args='["seatmap", "__this__"]'>Sơ đồ ghế</span>
         <span class="tab-item" data-action="switchTab" data-args='["passengers", "__this__"]'>Hành khách <span class="cnt" id="passengerTabCnt">(24)</span></span>
         <span class="tab-item" id="tabTransshipItem" data-action="switchTab" data-args='["transship", "__this__"]'>Trung chuyển <span class="cnt" id="transshipTabCnt">(0 | 0)</span></span>
+        <span class="tab-item" id="tabRoadsideItem" data-action="switchTab" data-args='["roadside", "__this__"]'>Rước đường <span class="cnt" id="roadsideTabCnt">(0)</span></span>
         <span class="tab-item" data-action="switchTab" data-args='["cancelled", "__this__"]'>Ghế hủy <span class="cnt" id="cancelledTabCnt">(0)</span></span>
-        <span class="tab-item">Thống kê</span>
       </nav>
 
       <!-- ZONE 3 -->
@@ -348,42 +348,28 @@
 
       <!-- ZONE 3B: DANH SÁCH HÀNH KHÁCH -->
       <section class="zone3 passenger-view" id="zone3Passengers" style="display:none;">
-        <div class="pax-toolbar">
-          <div class="pax-toolbar-left">
-            <div class="pax-filter-wrap">
-              <button class="btn btn-secondary" id="paxFilterBtn" data-action="togglePaxFilter">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"/></svg>
-                Lọc
-                <span class="pax-filter-count" id="paxFilterCount" style="display:none;"></span>
-              </button>
-              <div class="pax-filter-dropdown" id="paxFilterDropdown">
-                <div class="pax-filter-group">
-                  <div class="pax-filter-title">Thanh toán</div>
-                  <label class="pax-filter-opt"><input type="checkbox" value="paid" data-change-action="renderPassengerList"> Đã thu</label>
-                  <label class="pax-filter-opt"><input type="checkbox" value="debt" data-change-action="renderPassengerList"> Còn nợ</label>
-                </div>
-                <div class="pax-filter-group">
-                  <div class="pax-filter-title">Vị trí</div>
-                  <label class="pax-filter-opt"><input type="checkbox" value="down" data-change-action="renderPassengerList"> Tầng dưới</label>
-                  <label class="pax-filter-opt"><input type="checkbox" value="up" data-change-action="renderPassengerList"> Tầng trên</label>
-                </div>
-                <div class="pax-filter-actions">
-                  <button class="pax-filter-clear" data-action="clearPaxFilter">Bỏ lọc</button>
-                </div>
-              </div>
-            </div>
-            <span class="pax-toolbar-hint" id="paxResultHint"></span>
+        <div class="pax-toolbar rs-toolbar">
+          <div class="filter-field">
+            <label>Trạm đi</label>
+            <select id="pxFilterFirstStop" data-change-action="renderPassengerList"><option value="">Tất cả trạm đi</option></select>
           </div>
-          <div class="pax-toolbar-actions">
-            <button class="btn btn-secondary btn-action-red" data-action="showToast" data-args='["Đang in danh sách hành khách..."]'>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-              In danh sách
-            </button>
-            <button class="btn btn-secondary btn-action-red" data-action="showToast" data-args='["Đang xuất file Excel..."]'>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
-              Xuất Excel
-            </button>
+          <div class="filter-field">
+            <label>Trạm đến</label>
+            <select id="pxFilterLastStop" data-change-action="renderPassengerList"><option value="">Tất cả trạm đến</option></select>
           </div>
+          <div class="filter-field">
+            <label>Thanh toán</label>
+            <select id="pxFilterPaid" data-change-action="renderPassengerList">
+              <option value="">Tất cả</option>
+              <option value="paid">Đã thu</option>
+              <option value="debt">Còn nợ</option>
+            </select>
+          </div>
+          <button type="button" class="pax-filter-clear rs-filter-clear" data-action="clearPaxFilter">Bỏ lọc</button>
+          <button type="button" class="btn btn-secondary btn-action-red rs-print-btn" data-action="showToast" data-args='["Đang in danh sách hành khách..."]'>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            In danh sách
+          </button>
         </div>
 
         <div class="pax-table-wrap">
@@ -409,6 +395,25 @@
 
       <!-- ZONE 3C: TRUNG CHUYỂN VIEW -->
       <section class="zone3 passenger-view" id="zone3Transship" style="display:none; flex-direction:column; gap:20px; padding:16px 20px;">
+        <div class="pax-toolbar rs-toolbar">
+          <div class="filter-field">
+            <label>Trạng thái</label>
+            <select id="tsFilterStatus" data-change-action="renderTransshipTables"><option value="">Tất cả trạng thái</option></select>
+          </div>
+          <div class="filter-field">
+            <label>Địa chỉ đón</label>
+            <select id="tsFilterPickup" data-change-action="renderTransshipTables"><option value="">Tất cả địa chỉ đón</option></select>
+          </div>
+          <div class="filter-field">
+            <label>Địa chỉ trả</label>
+            <select id="tsFilterDropoff" data-change-action="renderTransshipTables"><option value="">Tất cả địa chỉ trả</option></select>
+          </div>
+          <button type="button" class="pax-filter-clear rs-filter-clear" data-action="clearTransshipFilter">Bỏ lọc</button>
+          <button type="button" class="btn btn-secondary btn-action-red rs-print-btn" data-action="printTransshipList">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            In danh sách
+          </button>
+        </div>
         <!-- BẢNG 1: DANH SÁCH TRUNG CHUYỂN ĐÓN -->
         <div class="transship-block">
           <div class="transship-block-header">
@@ -424,7 +429,7 @@
                 <tr>
                   <th class="pax-col-stt">STT</th>
                   <th class="pax-col-driver">Tài xế</th>
-                  <th class="pax-col-address ch-th-filterable"><div class="ch-th-content"><span>Địa chỉ đón</span><button type="button" class="ch-col-filter-btn" id="tsColFilterBtn-pickup-station" data-action="tsOpenColumnFilter" data-args='["pickup","station","__this__"]' title="Lọc theo trạm đi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button></div></th>
+                  <th class="pax-col-address">Địa chỉ đón</th>
                   <th class="pax-col-sl">SL</th>
                   <th class="pax-col-vt">Vị trí</th>
                   <th class="pax-col-name">Họ và tên</th>
@@ -454,7 +459,7 @@
               <thead>
                 <tr>
                   <th class="pax-col-stt">STT</th>
-                  <th class="pax-col-address ch-th-filterable"><div class="ch-th-content"><span>Địa chỉ đón/trả</span><button type="button" class="ch-col-filter-btn" id="tsColFilterBtn-dropoff-station" data-action="tsOpenColumnFilter" data-args='["dropoff","station","__this__"]' title="Lọc theo trạm đến"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button></div></th>
+                  <th class="pax-col-address">Địa chỉ đón/trả</th>
                   <th class="pax-col-sl">SL</th>
                   <th class="pax-col-vt">Vị trí</th>
                   <th class="pax-col-name">Họ và tên</th>
@@ -471,18 +476,6 @@
         </div>
       </section>
 
-      <!-- Popover filter kiểu Excel DÙNG CHUNG cho MỌI cột có thể lọc ở 2 bảng Trung chuyển đón/trả (nút
-           .ch-col-filter-btn trong <th>, xem tsOpenColumnFilter() trong ticketstaff.js) — 1 popover duy
-           nhất, định vị lại (top/left) + đổ lại danh sách giá trị mỗi lần bấm nút lọc của 1 cột khác nhau,
-           thay vì tạo 19 popover tĩnh riêng cho từng cột. -->
-      <div class="ch-excel-filter-popover" id="tsColFilterPopover" style="display:none;">
-        <input type="text" class="ch-popover-search" id="tsColFilterSearch" placeholder="Tìm giá trị..." data-input-action="tsColFilterSearchInput" data-args='["__this_value__"]'>
-        <div class="ch-popover-list" id="tsColFilterList"></div>
-        <div class="ch-popover-actions">
-          <button type="button" class="ch-popover-btn clear" data-action="tsColFilterClear">Xoá lọc</button>
-          <button type="button" class="ch-popover-btn apply" data-action="tsColFilterApply">Áp dụng</button>
-        </div>
-      </div>
 
       <!-- Thanh nổi chọn khách trung chuyển để in vé (role trung chuyển, tab Trung chuyển) — cùng kiểu
            .sticky-actions với thanh "Chuyển ghế" ở tab Hành khách, id riêng để không đụng nhau. -->
@@ -531,6 +524,58 @@
         </div>
       </section>
 
+      <!-- ZONE 3E: DANH SÁCH KHÁCH RƯỚC ĐƯỜNG VIEW -->
+      <section class="zone3 passenger-view" id="zone3Roadside" style="display:none;">
+        <div class="pax-toolbar rs-toolbar">
+          <div class="filter-field">
+            <label>Điểm rước</label>
+            <select id="rsFilterPickup" data-change-action="renderRoadsideTable"><option value="">Tất cả điểm rước</option></select>
+          </div>
+          <div class="filter-field">
+            <label>Trạm đi</label>
+            <select id="rsFilterFirstStop" data-change-action="renderRoadsideTable"><option value="">Tất cả trạm đi</option></select>
+          </div>
+          <div class="filter-field">
+            <label>Trạm đến</label>
+            <select id="rsFilterLastStop" data-change-action="renderRoadsideTable"><option value="">Tất cả trạm đến</option></select>
+          </div>
+          <div class="filter-field">
+            <label>Thanh toán</label>
+            <select id="rsFilterPaid" data-change-action="renderRoadsideTable">
+              <option value="">Tất cả</option>
+              <option value="paid">Đã thu</option>
+              <option value="debt">Còn nợ</option>
+            </select>
+          </div>
+          <button type="button" class="pax-filter-clear rs-filter-clear" data-action="clearRoadsideFilter">Bỏ lọc</button>
+          <button type="button" class="btn btn-secondary btn-action-red rs-print-btn" data-action="printRoadsideList">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            In danh sách
+          </button>
+        </div>
+
+        <div class="pax-table-wrap">
+          <table class="pax-table pax-table--grid pax-table--roadside">
+            <thead>
+              <tr>
+                <th class="pax-col-stt">STT</th>
+                <th class="pax-col-name">Họ và tên</th>
+                <th class="pax-col-phone">SĐT</th>
+                <th class="pax-col-stop">Trạm đi</th>
+                <th class="pax-col-stop">Trạm đến</th>
+                <th class="pax-col-pickup">Điểm rước</th>
+                <th class="pax-col-sl">SL</th>
+                <th class="pax-col-vt">Số ghế</th>
+                <th class="pax-col-total">Thành tiền</th>
+                <th class="pax-col-paid">Trạng thái</th>
+                <th class="pax-col-note">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="roadsideTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- CUSTOMER HISTORY VIEW -->
       <section class="customer-history-view" id="customerHistoryView" style="display:none;">
         <div class="ch-body" id="chBody">
@@ -557,6 +602,13 @@
           <button class="btn btn-secondary" id="stickyActionBtn" type="button" data-action="confirmSelectionAction">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3v18"/><path d="m21 7-4-4-4 4"/><path d="M7 21V3"/><path d="m3 17 4 4 4-4"/></svg>
             Chuyển ghế
+          </button>
+          <!-- Chỉ hiện khi nguồn là ĐÚNG 1 ghế thuộc 1 vé nhóm (>=2 ghế cùng số vé) + đã chọn >=1 ghế
+               trống cùng chuyến — xem updateTransferHint() ở js/shared/booking-rebook.js. Copy toàn bộ
+               thông tin khách của ghế nhóm sang ghế trống, giữ chung số vé, KHÔNG xoá ghế nguồn. -->
+          <button class="btn btn-secondary" id="stickyGroupAddBtn" type="button" data-action="confirmAddToGroup" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
+            Đặt thêm cho nhóm
           </button>
         </div>
       </div>
@@ -754,6 +806,12 @@
           </svg>
           Tạo phơi xe
         </button>
+        <button class="btn btn-primary" id="btnCreateTemplate" data-action="openTemplateModal" style="display:none; height: 35px; border-radius: var(--radius-md); padding: 0 14px; font-size: 12.5px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" style="width: 14px; height: 14px;">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Tạo phơi mẫu
+        </button>
       </div>
 
       <div class="grid-wrap" style="flex: 1; overflow: auto; padding: 16px 20px 20px;">
@@ -782,6 +840,7 @@
             <label for="bulkTplToDate">Đến ngày</label>
             <input type="date" id="bulkTplToDate">
           </div>
+          <button class="btn btn-secondary" id="bulkSelectAllBtn" type="button" data-action="toggleSelectAllTemplates">Chọn tất cả</button>
           <button class="btn btn-secondary" type="button" data-action="toggleBulkTemplateMode">Hủy</button>
           <button class="btn btn-primary" id="bulkTemplateCreateBtn" type="button" data-action="confirmBulkFromTemplates" disabled>Tạo hàng loạt</button>
         </div>
@@ -1511,6 +1570,10 @@
         <label for="departAdvanceInput">Tiền rước đường dự kiến (đ)</label>
         <input type="number" id="departAdvanceInput" min="0" step="10000" placeholder="0" value="0">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="departPrintRoadside" style="width:16px;height:16px;accent-color:var(--red);flex:0 0 auto;">
+        In kèm danh sách rước đường vào phơi
+      </label>
       <div class="warn-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
         Sau khi xác nhận, chuyến xe sẽ khoá bán vé thông thường và tạo phơi — số liệu gốc không thể sửa lại, mọi phát sinh sau đó phải qua Re-open.
@@ -1649,6 +1712,10 @@
     <h3>Phơi chuyến xe</h3>
     <div id="manifestViewBody" class="manifest-modal-body"></div>
     <div class="modal-actions">
+      <label style="display:flex;align-items:center;gap:8px;margin-right:auto;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="manifestPrintRoadside" style="width:16px;height:16px;accent-color:var(--red);flex:0 0 auto;">
+        In kèm danh sách rước đường
+      </label>
       <button class="btn btn-secondary" data-action="closeModal" data-args='["manifestViewModal"]'>Đóng</button>
       <button class="btn btn-secondary" data-action="printManifestView">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -1956,7 +2023,7 @@
           </div>
         </div>
         <div class="modal-row">
-          <div class="form-group flex-1">
+          <div class="form-group flex-1" id="tripDateGroup">
             <label for="tripDate">Ngày khởi hành <span class="required">*</span></label>
             <input type="date" id="tripDate" required>
           </div>
@@ -2031,7 +2098,7 @@
 <script src="../shared/js/constants.js?v=5"></script>
 <script src="../data/sample-seat-pool.js?v=3"></script>
 <script src="../data/sample-customer-history.js?v=3"></script>
-<script src="../data/sample-trip-templates.js?v=3"></script>
+<script src="../data/sample-trip-templates.js?v=4"></script>
 <script src="../shared/js/seat-bank.js?v=3"></script>
 <script src="../auth/session.js?v=1"></script>
 <script src="../auth/permissions.js?v=1"></script>
@@ -2043,18 +2110,18 @@
 <!-- booking.js (2028 dòng) tách theo banner: history → combobox → rebook+misc.
      NẠP ĐÚNG THỨ TỰ; các mảnh dùng chung biến/hàm global như khi còn 1 file.
      Xem ../shared/js/README-booking.md. -->
-<script src="../shared/js/booking.js?v=53"></script>
+<script src="../shared/js/booking.js?v=54"></script>
 <script src="../shared/js/booking-combobox.js?v=3"></script>
-<script src="../shared/js/booking-rebook.js?v=8"></script>
+<script src="../shared/js/booking-rebook.js?v=11"></script>
 <!-- ticketstaff.js (5264 dòng) tách theo banner: phần chính (đặt vé/ghế/phơi) →
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=138"></script>
+<script src="ticketstaff/ticketstaff.js?v=144"></script>
 <script src="ticketstaff/ticketstaff-account.js?v=3"></script>
 <script src="ticketstaff/ticketstaff-pickup.js?v=16"></script>
 <script src="ticketstaff/ticketstaff-manifest-core.js?v=7"></script>
-<script src="ticketstaff/ticketstaff-manifest-ui.js?v=39"></script>
+<script src="ticketstaff/ticketstaff-manifest-ui.js?v=42"></script>
 <script src="../shared/js/events.js?v=3"></script>
 </body>
 </html>
