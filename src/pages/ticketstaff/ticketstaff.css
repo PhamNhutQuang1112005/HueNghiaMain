@@ -1218,6 +1218,18 @@
   display: none;
 }
 
+/* Chuyến chưa tạo phơi: phân biệt Chưa/Đã chỉ định xe (màu khớp badge cùng trạng thái ở thẻ danh sách
+   Phơi xe — .status-badge.chua-chi-dinh / .da-chi-dinh). "Đang bán" dùng lại .status-selling bên dưới. */
+.trip-status-badge.status-chua-chi-dinh {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+.trip-status-badge.status-da-chi-dinh {
+  background: #EFF4FF;
+  color: #1D4ED8;
+}
+
 .trip-status-badge.status-selling {
   background: #DCFCE7;
   color: #15803D;

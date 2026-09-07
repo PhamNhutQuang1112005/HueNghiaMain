@@ -146,14 +146,51 @@ function normalizeTemplateTrips(list) {
   return list;
 }
 
+// ===== Trạng thái hiển thị THỐNG NHẤT cho 1 chuyến =====
+// Dùng CHUNG cho thẻ danh sách Phơi xe (applyFilters) và badge Zone 2 (renderTripLifecycleUI) để 2 nơi
+// luôn hiện đúng cùng 1 trạng thái. Suy từ: đã hủy → vòng đời phơi (khởi hành/Re-open/kết ca) → chưa
+// tạo phơi thì theo biển số + vé đã bán. KHÔNG đọc thẳng t.status (chuỗi lưu sẵn, dễ lệch thực tế).
+const TRIP_DISPLAY_STATUS = {
+  'chua-chi-dinh':  { label: 'Chưa chỉ định xe', phoi: 'chua-chi-dinh', zone2: 'status-chua-chi-dinh' },
+  'da-chi-dinh':    { label: 'Đã chỉ định xe',   phoi: 'da-chi-dinh',   zone2: 'status-da-chi-dinh' },
+  'dang-ban':       { label: 'Đang bán',         phoi: 'dang-ban',      zone2: 'status-selling' },
+  'da-khoi-hanh':   { label: 'Đã khởi hành',     phoi: 'da-khoi-hanh',  zone2: 'status-departed' },
+  'dang-reopen':    { label: 'Đang Re-open',     phoi: 'da-khoi-hanh',  zone2: 'status-reopen' },
+  'da-dong-reopen': { label: 'Đã đóng Re-open',  phoi: 'da-khoi-hanh',  zone2: 'status-reopen_closed' },
+  'da-ket-ca':      { label: 'Đã kết ca',        phoi: 'da-khoi-hanh',  zone2: 'status-manifest_closed' },
+  'da-huy':         { label: 'Đã hủy',           phoi: 'da-huy',        zone2: 'status-departed' }
+};
+
+function tripDisplayStatusKey(tripId) {
+  const trip = (Array.isArray(allTripsMeta) ? allTripsMeta : []).find(t => t && t.id === tripId);
+  if (trip && trip.status === 'Đã hủy') return 'da-huy';
+  const life = (typeof getTripLifecycleStatus === 'function') ? getTripLifecycleStatus(tripId) : 'SELLING';
+  if (life === 'DEPARTED') return 'da-khoi-hanh';
+  if (life === 'REOPEN') return 'dang-reopen';
+  if (life === 'REOPEN_CLOSED') return 'da-dong-reopen';
+  if (life === 'MANIFEST_CLOSED') return 'da-ket-ca';
+  // SELLING = chưa tạo phơi → suy từ biển số + vé đã bán.
+  const bank = (typeof tripSeatBank === 'object' && tripSeatBank) ? tripSeatBank[tripId] : null;
+  const plate = (bank && bank.plate) || (trip && trip.plate) || '';
+  if (!plate) return 'chua-chi-dinh';
+  const seats = bank ? [...(bank.down || []), ...(bank.up || []), ...(bank.subSeats || []), ...(bank.extraSeats || [])] : [];
+  const hasSales = seats.some(s => s && ['sold', 'hold', 'free', 'cargo'].includes(s.state));
+  return hasSales ? 'dang-ban' : 'da-chi-dinh';
+}
+
 function loadAllTrips() {
   const saved = TripService.getRawString();
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Di trú 1 lần: phơi seed id 1..10 từng bị đánh dấu isTemplate nhầm — chúng là CHUYẾN THẬT
+        // (có sơ đồ ghế demo), chỉ id 11..14 mới là phơi mẫu. Gỡ cờ để chúng hiện lại ở Zone 1 /
+        // danh sách phơi thường như trước.
+        const REAL_SEED_TRIP_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
         parsed.forEach((t, idx) => {
           if (!t.date || t.date === '2026-07-29') t.date = todayStr;
+          if (t.isTemplate && REAL_SEED_TRIP_IDS.indexOf(String(t.id)) !== -1) delete t.isTemplate;
           // Phơi cũ nạp từ trước khi có createdAt (seed/mẫu) không có mốc thời gian tạo thật — gán tạm
           // theo thứ tự trong mảng (số rất nhỏ so với Date.now()) để phơi tạo thật sự sau này luôn nổi
           // lên đầu danh sách (xem applyFilters), còn phơi cũ vẫn giữ đúng thứ tự tương đối với nhau.
@@ -197,10 +234,12 @@ function tripDirectionId(route) {
 }
 
 // Gom allTripsMeta theo id hướng — { [dirId]: [...] } — dùng lại sau mỗi lần allTripsMeta đổi.
+// KHÔNG gồm "phơi mẫu" (isTemplate): mẫu chỉ là bản thiết kế để nhân bản hàng loạt, không phải chuyến
+// thật — nên không hiện ở Zone 1 lẫn danh sách phơi thường, để 2 nơi đó luôn nhất quán với nhau.
 function refreshTripMetaFilters() {
   tripsByDirection = {};
   allTripsMeta.forEach(t => {
-    if (!t || !t.route || t.status === 'Đã hủy') return;
+    if (!t || !t.route || t.status === 'Đã hủy' || t.isTemplate) return;
     const id = tripDirectionId(t.route);
     (tripsByDirection[id] = tripsByDirection[id] || []).push(t);
   });
@@ -3922,10 +3961,16 @@ function applyFilters() {
     // mẫu do các bộ lọc đó vốn để tìm phơi thật, không áp dụng được cho danh sách mẫu.
     if (phoiBulkMode) return t.isTemplate && t.status !== 'Đã hủy';
 
+    // Ngoài chế độ chọn hàng loạt: KHÔNG hiện "phơi mẫu" trong danh sách phơi thường — danh sách này
+    // phải trùng đúng tập chuyến hiện ở Zone 1 (refreshTripMetaFilters cũng đã loại isTemplate).
+    if (t.isTemplate) return false;
+
+    const bankMeta = (typeof tripSeatBank === 'object' && tripSeatBank) ? tripSeatBank[t.id] : null;
     const timeStr = t.time || '';
     const routeStr = t.route || '';
-    const plateStr = t.plate || '';
-    const vehicleTypeStr = t.vehicleType || '';
+    // Tìm theo biển số / loại xe: ưu tiên giá trị THỰC ở sơ đồ ghế (khớp thẻ hiển thị + Zone 1).
+    const plateStr = (bankMeta && bankMeta.plate) || t.plate || '';
+    const vehicleTypeStr = (bankMeta && bankMeta.vehicleType) || t.vehicleType || '';
 
     if (fName) {
       const matchName = timeStr.toLowerCase().includes(fName) ||
@@ -3956,7 +4001,12 @@ function applyFilters() {
 
     if (fRoute && routeStr !== fRoute) return false;
 
-    if (fStatus && (t.status || 'Chưa chỉ định xe') !== fStatus) return false;
+    // Lọc theo ĐÚNG trạng thái đang hiển thị trên thẻ (suy từ vòng đời + biển số + vé), không theo
+    // chuỗi t.status lưu sẵn — để bộ lọc khớp với những gì nhân viên thấy.
+    if (fStatus) {
+      const dispLabel = (TRIP_DISPLAY_STATUS[tripDisplayStatusKey(t.id)] || {}).label || (t.status || 'Chưa chỉ định xe');
+      if (dispLabel !== fStatus) return false;
+    }
 
     return true;
   });
@@ -4021,14 +4071,14 @@ function renderTable(trips) {
       }
     }
 
-    let statusClass = 'chua-chi-dinh';
-    let label = t.status || 'Chưa chỉ định xe';
-    if (label === 'Đã chỉ định xe') statusClass = 'da-chi-dinh';
-    if (label === 'Đang bán') statusClass = 'dang-ban';
-    if (label === 'Đã khởi hành') statusClass = 'da-khoi-hanh';
-    if (label === 'Đã hủy') statusClass = 'da-huy';
+    // Trạng thái hiển thị THỐNG NHẤT với badge Zone 2 (renderTripLifecycleUI) — suy từ vòng đời phơi +
+    // biển số + vé đã bán, KHÔNG đọc trực tiếp t.status (chuỗi lưu sẵn có thể lệch thực tế).
+    const dispKey = tripDisplayStatusKey(t.id);
+    const dispMeta = TRIP_DISPLAY_STATUS[dispKey] || TRIP_DISPLAY_STATUS['chua-chi-dinh'];
+    const statusClass = dispMeta.phoi;
+    const label = dispMeta.label;
 
-    const sellDisabled = label === 'Đã hủy';
+    const sellDisabled = dispKey === 'da-huy';
 
     const card = document.createElement("div");
     card.setAttribute("data-id", t.id);
@@ -4083,7 +4133,7 @@ function renderTable(trips) {
         <div class="phoi-card-schedule">
           <div class="phoi-card-time-row">
             <span class="phoi-card-time">${timeStr}</span>
-            <span class="trip-plate-inline">${t.plate || '—'}</span>
+            <span class="trip-plate-inline">${(plan && plan.plate) || t.plate || 'Chưa có'}</span>
           </div>
           <span class="phoi-card-date">${formattedDate}</span>
         </div>
@@ -4100,7 +4150,7 @@ function renderTable(trips) {
       <div class="phoi-card-meta">
         <div class="phoi-card-meta-item">
           <label>Loại xe</label>
-          <span>${t.vehicleType || '—'}</span>
+          <span>${(plan && plan.vehicleType) || t.vehicleType || '—'}</span>
         </div>
         <div class="phoi-card-meta-item">
           <label>Ghế trống</label>

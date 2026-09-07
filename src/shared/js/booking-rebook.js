@@ -93,7 +93,7 @@ function renderRebookTripList() {
   const timeVal = document.getElementById('rbFilterTime')?.value || 'all';
 
   const filtered = (allTripsMeta || []).filter(trip => {
-    if (trip.status === 'Đã hủy') return false;
+    if (trip.status === 'Đã hủy' || trip.isTemplate) return false; // ẩn phơi mẫu — giống Zone 1
     if (rbSelectedDateStr && trip.date !== rbSelectedDateStr) return false;
     if (timeVal !== 'all') {
       const hh = parseInt((trip.time || '00:00').split(':')[0], 10);

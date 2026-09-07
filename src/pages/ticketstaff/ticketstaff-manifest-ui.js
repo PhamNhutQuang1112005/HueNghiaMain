@@ -14,11 +14,21 @@ function renderTripLifecycleUI() {
   if (!badge || !actionsBox || typeof currentTripId === 'undefined' || !currentTripId) return;
 
   const status = getTripLifecycleStatus(currentTripId);
-  const meta = TRIP_STATUS_META[status] || TRIP_STATUS_META.SELLING;
 
-  badge.textContent = meta.label;
-  badge.className = 'trip-status-badge ' + meta.cssClass;
+  // Nhãn badge lấy từ trạng thái hiển thị THỐNG NHẤT (dùng chung với thẻ danh sách Phơi xe) — không
+  // còn luôn hiện "Đang bán" cho mọi chuyến chưa tạo phơi mà phân biệt Chưa/Đã chỉ định xe/Đang bán.
+  if (typeof tripDisplayStatusKey === 'function') {
+    const dispKey = tripDisplayStatusKey(currentTripId);
+    const dispMeta = TRIP_DISPLAY_STATUS[dispKey] || TRIP_DISPLAY_STATUS['chua-chi-dinh'];
+    badge.textContent = dispMeta.label;
+    badge.className = 'trip-status-badge ' + dispMeta.zone2;
+  } else {
+    const meta = TRIP_STATUS_META[status] || TRIP_STATUS_META.SELLING;
+    badge.textContent = meta.label;
+    badge.className = 'trip-status-badge ' + meta.cssClass;
+  }
 
+  // Nút vòng đời vẫn theo state-machine phơi (SELLING/DEPARTED/...) — không đổi.
   actionsBox.innerHTML = tsBuildLifecycleButtonsHtml(status);
 
   // Mọi lần đổi vòng đời chuyến (khởi hành / Re-open / đóng Re-open / kết ca) đều gọi hàm này — vẽ lại

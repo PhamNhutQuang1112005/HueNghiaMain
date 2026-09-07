@@ -1418,9 +1418,11 @@ function pkRenderTripList() {
   if (!wrap) return;
   const kw = pkTripSearchKeyword.trim().toLowerCase();
 
-  const filtered = !kw ? allTripsMeta : allTripsMeta.filter(t =>
-    t.time.toLowerCase().includes(kw) || (t.plate && t.plate.toLowerCase().includes(kw)) ||
-    t.route.toLowerCase().includes(kw) || (t.vehicleType && t.vehicleType.toLowerCase().includes(kw))
+  // Ẩn "phơi mẫu" (isTemplate) — danh sách modal "Chỉ định xe" phải trùng đúng tập chuyến ở Zone 1.
+  const filtered = (allTripsMeta || []).filter(t =>
+    !t.isTemplate && (!kw ||
+      t.time.toLowerCase().includes(kw) || (t.plate && t.plate.toLowerCase().includes(kw)) ||
+      t.route.toLowerCase().includes(kw) || (t.vehicleType && t.vehicleType.toLowerCase().includes(kw)))
   );
 
   if (filtered.length === 0) {
