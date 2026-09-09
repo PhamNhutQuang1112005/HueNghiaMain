@@ -18,7 +18,6 @@ var DEFAULT_SEAT_LAYOUTS = [
   { id: 12, name: 'Sơ đồ xe thường 28 chỗ',   seats: 28, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 28 chỗ',        hiddenSeats: [] },
   { id: 13, name: 'Sơ đồ xe thường 47 chỗ',   seats: 47, isDoubleDeck: true,  active: true,  deleted: false, content: '47 chỗ 2 tầng',           hiddenSeats: [] },
   { id: 14, name: 'Sơ đồ xe VIP 24 phòng',    seats: 24, isDoubleDeck: true,  active: true,  deleted: false, content: 'VIP 24 phòng 2 tầng',     hiddenSeats: [] },
-  { id: 15, name: 'Xe Tải',                    seats: 2,  isDoubleDeck: false, active: true,  deleted: false, content: 'Xe tải chở hàng',         hiddenSeats: [] },
   { id: 17, name: 'Sơ đồ xe limousine 18 chỗ',seats: 18, isDoubleDeck: false, active: true,  deleted: false, content: 'Limousine 18 chỗ 1 tầng', hiddenSeats: [] }
 ];
 
@@ -36,7 +35,7 @@ function getSeatLayouts() {
   var list = lsRead(HN_SEAT_LAYOUTS_KEY, DEFAULT_SEAT_LAYOUTS);
   /* Xóa mục "76 chỗ" */
   var filtered = list.filter(function(x) {
-    return x.name !== '76';
+    return x.name !== '76' && x.name !== 'Xe Tải';
   });
   if (filtered.length !== list.length) {
     lsWrite(HN_SEAT_LAYOUTS_KEY, filtered);
@@ -70,10 +69,11 @@ function slBuildCodes(seats, hiddenSeats) {
 
 /* Mini preview sơ đồ nhỏ hiển thị trong card danh sách */
 function slMiniPreview(layout) {
-  var seats      = layout.seats || 1;
-  var hidden     = layout.hiddenSeats || [];
-  var dbl        = layout.isDoubleDeck;
-  var codes      = slBuildCodes(seats, hidden);
+  var seats  = layout.seats || 1;
+  var hidden = layout.hiddenSeats || [];
+  var dbl    = layout.isDoubleDeck;
+  var codes  = slBuildCodes(seats, hidden);
+  var cols   = seats > 24 ? 3 : 2;
 
   function renderFloor(arr, floorLabel) {
     var cells = arr.map(function(s) {
@@ -81,15 +81,17 @@ function slMiniPreview(layout) {
       return '<span class="sl-mini-cell"></span>';
     }).join('');
     return '<div class="sl-mini-floor">' +
-             '<span class="sl-mini-floor-lbl">' + floorLabel + '</span>' +
-             '<div class="sl-mini-grid">' + cells + '</div>' +
+             (floorLabel ? '<span class="sl-mini-floor-lbl">' + floorLabel + '</span>' : '') +
+             '<div class="sl-mini-grid" style="grid-template-columns:repeat(' + cols + ',1fr);">' + cells + '</div>' +
            '</div>';
   }
 
   var html = '<div class="sl-mini-wrap">';
   if (dbl) {
-    html += renderFloor(codes.down, 'T1');
-    html += renderFloor(codes.up,   'T2');
+    html += '<div class="sl-mini-floors">' +
+              renderFloor(codes.down, 'T1') +
+              renderFloor(codes.up,   'T2') +
+            '</div>';
   } else {
     html += renderFloor(codes.down, '');
   }
