@@ -455,13 +455,13 @@
 /* ===== DASHBOARD — soft UI template layout ===== */
 #viewDashboard {
   --db-c1: #C20D08;
-  --db-c2: #0284C7;
-  --db-c3: #F97316;
-  --db-c4: #16A34A;
+  --db-c2: #EA580C;
+  --db-c3: #F59E0B;
+  --db-c4: #D97706;
   --db-c1-soft: #FEE2E2;
-  --db-c2-soft: #E0F2FE;
-  --db-c3-soft: #FFF7ED;
-  --db-c4-soft: #DCFCE7;
+  --db-c2-soft: #FFEDD5;
+  --db-c3-soft: #FEF3C7;
+  --db-c4-soft: #FDE68A;
   background: #FFF6F3;
   border-radius: var(--radius-lg);
   padding: 4px 2px 8px;
@@ -671,9 +671,9 @@
   box-shadow: 0 10px 28px rgba(194, 13, 8, 0.18);
 }
 .db-toggle-card--c1.is-on { background: linear-gradient(135deg, #C20D08, #E02020); }
-.db-toggle-card--c2.is-on { background: linear-gradient(135deg, #0284C7, #0EA5E9); }
-.db-toggle-card--c3.is-on { background: linear-gradient(135deg, #EA580C, #F97316); }
-.db-toggle-card--c4.is-on { background: linear-gradient(135deg, #16A34A, #22C55E); }
+.db-toggle-card--c2.is-on { background: linear-gradient(135deg, #EA580C, #F97316); }
+.db-toggle-card--c3.is-on { background: linear-gradient(135deg, #F59E0B, #FBBF24); }
+.db-toggle-card--c4.is-on { background: linear-gradient(135deg, #D97706, #F59E0B); }
 .db-toggle-card.is-on .db-toggle-icon { background: rgba(255,255,255,0.22); color: #fff; }
 .db-toggle-card.is-on .db-toggle-title,
 .db-toggle-card.is-on .db-toggle-val,
@@ -884,14 +884,27 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .status-badge.da-huy { background: #F1F5F9; color: #64748B; }
 .status-badge.da-huy .status-dot { background: #64748B; }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 60; overflow-y: auto; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: none; align-items: flex-start; justify-content: center; padding: 24px 12px; z-index: 60; overflow-y: auto; }
 .modal-overlay.open { display: flex; }
 .modal { background: var(--white); border-radius: var(--radius-lg); width: 560px; max-width: 100%; padding: 0; box-shadow: var(--shadow-modal); overflow: hidden; animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
 .modal.modal-wide { width: 760px; }
-.modal.modal-fill { display: flex; flex-direction: column; width: 800px; max-height: calc(100vh - 90px); }
+.modal.modal-fill {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, calc(100vw - 24px));
+  height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+}
 .modal.modal-fill > h3 { flex: 0 0 auto; }
-.modal.modal-fill > .admin-form { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.modal.modal-fill > .admin-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;  /* không scroll form — chỉ scroll body bên trong nếu cần */
+}
 .modal h3 { margin: 0; padding: 20px 24px 16px; font-size: 17px; font-weight: 800; color: var(--black); border-bottom: 1px solid var(--border-subtle); }
 .admin-form { padding: 20px 24px 24px; }
 .admin-form .fld { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
@@ -1765,101 +1778,105 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 
 .sl-editor-body {
   flex: 1 1 auto;
-  overflow-y: auto;
-  padding: 4px 2px 8px;
+  min-height: 0;
+  overflow: hidden;          /* không scroll — grid tự co */
+  padding: 4px 2px 0;
   -webkit-user-select: none;
   user-select: none;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Bố cục 2 tầng nằm ngang — giống trang tổng đài */
+/* Bố cục 2 tầng nằm ngang */
 .sl-editor-floors {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
-@media (max-width: 680px) {
+@media (max-width: 600px) {
   .sl-editor-floors { flex-direction: column; }
 }
 
 .sl-editor-floor {
   flex: 1 1 0;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
-/* Tiêu đề tầng — xám nhạt như tổng đài */
+/* Tiêu đề tầng */
 .sl-editor-floor-label {
   text-align: center;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--text-main);
   background: #F1F5F9;
   border-radius: var(--radius-sm);
-  padding: 7px 0;
+  padding: 5px 0;
+  flex-shrink: 0;
 }
 
-/* 2 cột như sơ đồ ghế tổng đài */
+/* Grid tự fill toàn bộ chiều cao còn lại */
 .sl-editor-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: stretch;
 }
-/* 3 cột khi xe ≥34 ghế — giống ticketstaff cols-3 */
 .sl-editor-grid.sl-cols-3 {
   grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
+  gap: 5px;
 }
 
-/* Ô ghế — to, bo góc, viền đậm như ảnh mẫu */
+/* Ô ghế — tự co theo grid, không cần kích thước cứng */
 .sl-editor-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 58px;
-  padding: 10px 8px;
+  min-height: 0;
+  min-width: 0;
+  padding: 4px 2px;
   border: 2px solid #1E293B;
-  border-radius: 14px;
+  border-radius: 10px;
   background: #FFFFFF;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, transform 0.1s, box-shadow 0.1s;
+  transition: background 0.1s, border-color 0.1s;
   -webkit-user-select: none;
   user-select: none;
   overflow: hidden;
+  box-sizing: border-box;
 }
 .sl-editor-cell:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(194,13,8,0.18);
   border-color: var(--red);
   background: #FFF5F5;
 }
 .sl-editor-cell:active {
-  transform: scale(0.96);
-  box-shadow: none;
+  opacity: 0.75;
 }
 
 .sl-editor-cell-code {
-  font-size: 13px;
+  font-size: clamp(8px, 1.3vw, 13px);
   font-weight: 800;
   color: #1E293B;
   pointer-events: none;
   line-height: 1;
-  letter-spacing: -0.01em;
   white-space: nowrap;
-}
-
-/* Ô nhỏ hơn khi 3 cột */
-.sl-cols-3 .sl-editor-cell {
-  min-height: 46px;
-  padding: 8px 4px;
-  border-radius: 10px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .sl-cols-3 .sl-editor-cell-code {
-  font-size: 11.5px;
+  font-size: clamp(7px, 1vw, 11px);
 }
-
 /* Tên tuỳ chỉnh — chữ đỏ để phân biệt */
 .sl-editor-cell-code.sl-custom-name {
   color: var(--red);

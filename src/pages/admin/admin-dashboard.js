@@ -206,10 +206,10 @@ function renderDashboard() {
   var todayOccPct = todaySeat.total ? Math.round((todaySeat.sold / todaySeat.total) * 100) : 0;
 
   var pie = dbBuildPieChart([
-    { label: 'Đang bán', value: byStatus['Đang bán'] || 0, color: '#C20D08' },
-    { label: 'Đã chạy', value: byStatus['Đã khởi hành'] || 0, color: '#EA580C' },
-    { label: 'Chưa gán', value: (byStatus['Chưa chỉ định xe'] || 0) + (byStatus['Đã chỉ định xe'] || 0), color: '#F97316' },
-    { label: 'Đã hủy', value: byStatus['Đã hủy'] || 0, color: '#C20D08' }
+    { label: 'Đang bán',  value: byStatus['Đang bán']       || 0, color: '#C20D08' },
+    { label: 'Đã chạy',   value: byStatus['Đã khởi hành']  || 0, color: '#EA580C' },
+    { label: 'Chưa gán',  value: (byStatus['Chưa chỉ định xe'] || 0) + (byStatus['Đã chỉ định xe'] || 0), color: '#F59E0B' },
+    { label: 'Đã hủy',   value: byStatus['Đã hủy']          || 0, color: '#D97706' }
   ].filter(function (x) { return x.value > 0 || x.label !== 'Đã hủy'; }));
 
   var hourlyStats = dbBuildHourlyStats(todayTrips, seatBank, seatMap);
