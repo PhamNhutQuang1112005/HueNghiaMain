@@ -18,6 +18,3 @@ function renderPricingView() {
   $('viewPricing').innerHTML = renderComingSoon('Quản lý giá', 'Bảng giá vé theo trạm đi — trạm đến — tính năng sẽ có ở bản cập nhật sau.');
 }
 
-function renderScheduleView() {
-  $('viewSchedule').innerHTML = renderComingSoon('Quản lý giờ', 'Danh sách giờ xuất phát của xe — tính năng sẽ có ở bản cập nhật sau.');
-}

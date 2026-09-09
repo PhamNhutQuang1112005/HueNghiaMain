@@ -7,6 +7,8 @@
    ========================================================= */
 var TICKET_SUBTAB = 'all'; // 'all' | 'hold'
 var TICKET_FILTERS = { search: '', direction: '', route: '', time: '', staff: '' };
+var TICKET_PAGE = 1;
+var TICKET_PAGE_SIZE = 50;
 
 // id HƯỚNG (1 trong 4 hướng cố định) của 1 tuyến — ưu tiên FleetStore, fallback theo sense/tiền tố tên.
 function tkRouteDirectionId(route) {
@@ -49,30 +51,45 @@ function tkRouteHtml(r) {
 }
 
 function tkRenderRow(r, idx) {
-  var bookStaffStr = getStaffCode(r.staff) || 'NV01';
-  var sellStaffStr = r.paid ? (getStaffCode(r.staff) || 'NV05') : '—';
-  var staffTagsHtml = '<div class="staff-tag-stack">' +
-    '<span class="staff-tag staff-tag-book">' + esc(bookStaffStr) + '</span>' +
-    (sellStaffStr === '—' ? '<span class="staff-tag staff-tag-empty">—</span>' : '<span class="staff-tag staff-tag-sell">' + esc(sellStaffStr) + '</span>') +
-  '</div>';
-  var actionTimeStr = r.actionTime ? (fmtDate(r.date) + ' ' + (fmtStamp(r.actionTime).split(' ')[1] || '')) : '—';
+  var bookStaff = getStaffCode(r.staff) || '—';
+  var timeStr = r.actionTime ? fmtStamp(r.actionTime).replace(/^\S+ /, '') : '—';
   var priceStr = r.price ? fmtMoney(r.price) : '—';
-  var tripTitle = 'Biển số xe: ' + (r.plate || '—') + ' • Loại xe: ' + (r.vehicleType || '—') + ' • Tài xế: ' + (r.driver || '—') + ' • Phụ xe: ' + (r.helper || '—');
+  var stateCls = r.state === 'hold' ? 'tk-state-hold' : r.state === 'sold' ? 'tk-state-sold' : 'tk-state-other';
+  var stateLabel = r.state === 'hold' ? 'Đã đặt' : r.state === 'sold' ? 'Đã bán' : r.state === 'free' ? 'Miễn phí' : r.state;
+  var noteTip = r.note ? ' title="' + esc(r.note) + '"' : '';
 
-  return '<tr>' +
-    '<td style="text-align:center;font-weight:600;color:var(--text-sub);">' + (idx + 1) + '</td>' +
-    '<td><span class="ch-trip-link" title="' + esc(tripTitle) + '">' + esc(r.route) + ' — ' + esc(r.time) + '</span></td>' +
-    '<td class="ch-col-ellipsis" title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
-    '<td class="mono ch-col-nowrap">' + esc(r.phone) + '</td>' +
-    '<td>' + tkRouteHtml(r) + '</td>' +
-    '<td class="mono">1</td>' +
-    '<td class="mono">' + esc(r.seat) + '</td>' +
-    '<td style="text-align:right;">' + priceStr + '</td>' +
-    '<td title="' + esc(r.note) + '">' + (r.note ? '<span class="pax-note-clamp">' + esc(r.note) + '</span>' : '<span class="pax-note-empty">—</span>') + '</td>' +
-    '<td>' + staffTagsHtml + '</td>' +
-    '<td class="mono" style="color:var(--text-sub);font-style:italic;">' + actionTimeStr + '</td>' +
-    '<td></td>' +
-  '</tr>';
+  return '<div class="tk-row ' + stateCls + '">' +
+    /* Col 1: trip time */
+    '<div class="tk-col-time">' +
+      '<span class="tk-time">' + esc(r.time || '—') + '</span>' +
+      '<span class="tk-date">' + fmtDate(r.date) + '</span>' +
+    '</div>' +
+    /* Col 2: passenger info */
+    '<div class="tk-col-pax">' +
+      '<span class="tk-pax-name">' + esc(r.name) + '</span>' +
+      '<span class="tk-pax-phone">' + esc(r.phone) + '</span>' +
+    '</div>' +
+    /* Col 3: route */
+    '<div class="tk-col-route">' +
+      '<span class="tk-stop tk-stop-from">' + esc(r.firstStop) + '</span>' +
+      '<span class="tk-stop-arrow">→</span>' +
+      '<span class="tk-stop tk-stop-to">' + esc(r.lastStop) + '</span>' +
+    '</div>' +
+    /* Col 4: seat + price */
+    '<div class="tk-col-seat">' +
+      '<span class="tk-seat-badge">' + esc(r.seat) + '</span>' +
+      '<span class="tk-price">' + priceStr + '</span>' +
+    '</div>' +
+    /* Col 5: state badge */
+    '<div class="tk-col-state"><span class="tk-state-badge ' + stateCls + '">' + stateLabel + '</span></div>' +
+    /* Col 6: staff + time */
+    '<div class="tk-col-meta">' +
+      '<span class="tk-staff">' + esc(bookStaff) + '</span>' +
+      '<span class="tk-time-small">' + timeStr + '</span>' +
+    '</div>' +
+    /* Col 7: note */
+    (r.note ? '<div class="tk-col-note"' + noteTip + '><span class="tk-note">' + esc(r.note) + '</span></div>' : '<div class="tk-col-note"><span class="tk-note-empty">—</span></div>') +
+  '</div>';
 }
 
 function renderTicketListView() {
@@ -103,58 +120,134 @@ function renderTicketListView() {
     return true;
   });
 
-  var countAll = all.length, countHold = all.filter(function (r) { return r.state === 'hold'; }).length;
-  var rowsHtml = list.length ? list.map(tkRenderRow).join('') : '';
+  var countAll  = all.length;
+  var countHold = all.filter(function (r) { return r.state === 'hold'; }).length;
+  var totalRevenue = all.filter(function (r) { return r.state === 'sold' || r.state === 'free'; })
+    .reduce(function (s, r) { return s + (r.price || 0); }, 0);
 
-  $('viewTicketList').innerHTML =
-    '<div class="ticket-list-shell">' +
-      '<nav class="pk-subtabs">' +
-        '<button type="button" class="pk-subtab' + (TICKET_SUBTAB === 'all' ? ' active' : '') + '" data-action="adminTicketSwitchTab" data-args=\'["all"]\'>Tất cả<span class="pk-subtab-count">(' + countAll + ')</span></button>' +
-        '<button type="button" class="pk-subtab' + (TICKET_SUBTAB === 'hold' ? ' active' : '') + '" data-action="adminTicketSwitchTab" data-args=\'["hold"]\'>Đã đặt<span class="pk-subtab-count">(' + countHold + ')</span></button>' +
-      '</nav>' +
-      '<div class="filter-toolbar">' +
-        '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên, SĐT khách..." data-input-action="adminTicketFilterInput" data-args=\'["search","__this_value__"]\'></div>' +
-        adminCalFieldHtml('tk', 'Ngày đi') +
-        '<div class="filter-field"><label>Hướng đi</label><select data-change-action="adminTicketFilterInput" data-args=\'["direction","__this_value__"]\'>' +
-          '<option value="">Tất cả hướng</option>' +
-          FleetStore.getDirections().filter(function (d) { return d && d.active !== false; })
-            .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
-            .map(function (d) { return '<option value="' + esc(d.id) + '"' + (f.direction === d.id ? ' selected' : '') + '>' + esc(d.label) + '</option>'; }).join('') +
-          '</select></div>' +
-        '<div class="filter-field"><label>Tuyến đường</label><select data-change-action="adminTicketFilterInput" data-args=\'["route","__this_value__"]\'>' +
-          '<option value="">Tất cả tuyến</option>' + routes.map(function (r) { return '<option value="' + esc(r) + '"' + (f.route === r ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></div>' +
-        '<div class="filter-field"><label>Khung giờ</label><select data-change-action="adminTicketFilterInput" data-args=\'["time","__this_value__"]\'>' +
-          '<option value="">Tất cả khung giờ</option>' +
-          '<option value="morning"' + (f.time === 'morning' ? ' selected' : '') + '>Sáng (00:00 - 12:00)</option>' +
-          '<option value="afternoon"' + (f.time === 'afternoon' ? ' selected' : '') + '>Chiều (12:00 - 18:00)</option>' +
-          '<option value="evening"' + (f.time === 'evening' ? ' selected' : '') + '>Tối (18:00 - 24:00)</option></select></div>' +
-        '<div class="filter-field"><label>Nhân viên</label><select data-change-action="adminTicketFilterInput" data-args=\'["staff","__this_value__"]\'>' +
-          '<option value="">Tất cả nhân viên</option>' + staffCodes.map(function (s) { return '<option value="' + esc(s) + '"' + (f.staff === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>' +
-        '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="adminResetTicketFilters">Đặt lại bộ lọc</button></div>' +
+  // Pagination
+  var totalPages = Math.max(1, Math.ceil(list.length / TICKET_PAGE_SIZE));
+  if (TICKET_PAGE > totalPages) TICKET_PAGE = totalPages;
+  var pageStart = (TICKET_PAGE - 1) * TICKET_PAGE_SIZE;
+  var pageList  = list.slice(pageStart, pageStart + TICKET_PAGE_SIZE);
+
+  var statsHtml =
+    '<div class="dir-stats-grid">' +
+      '<div class="ref-card dir-stat-card">' +
+        '<div class="dir-stat-label">Tổng vé</div>' +
+        '<div class="dir-stat-val">' + countAll + ' <span class="ref-unit">vé</span></div>' +
+        '<div class="dir-stat-sub">Tất cả trạng thái</div>' +
       '</div>' +
-      '<div class="pax-table-wrap pax-table-wrap--history">' +
-        '<table class="pax-table pax-table--history pax-table--grid">' +
-          '<thead><tr>' +
-            '<th>STT</th><th>Chuyến</th><th>Hành khách</th><th>SĐT</th><th>Hành trình</th><th>SL</th>' +
-            '<th>Vị trí</th><th>Giá vé</th><th>Ghi chú</th><th>Mã NV</th><th>Thời gian</th><th></th>' +
-          '</tr></thead>' +
-          '<tbody>' + rowsHtml + '</tbody>' +
-        '</table>' +
-        (rowsHtml ? '' : '<div class="grid-empty">Không có vé phù hợp với bộ lọc hiện tại.</div>') +
+      '<div class="ref-card dir-stat-card">' +
+        '<div class="dir-stat-label">Đã đặt (chưa thanh toán)</div>' +
+        '<div class="dir-stat-val" style="color:var(--red);">' + countHold + ' <span class="ref-unit">vé</span></div>' +
+        '<div class="dir-stat-sub">Đang giữ chỗ</div>' +
+      '</div>' +
+      '<div class="ref-card dir-stat-card">' +
+        '<div class="dir-stat-label">Đang hiển thị</div>' +
+        '<div class="dir-stat-val">' + list.length + ' <span class="ref-unit">vé</span></div>' +
+        '<div class="dir-stat-sub">Khớp bộ lọc hiện tại</div>' +
+      '</div>' +
+      '<div class="ref-card dir-stat-card ref-card-featured" style="min-height:auto;">' +
+        '<div class="ref-featured-head">Doanh thu</div>' +
+        '<div class="dir-stat-val" style="font-size:22px;color:#fff;">' + fmtMoney(totalRevenue) + '</div>' +
+        '<div class="ref-featured-sub">Vé đã bán</div>' +
       '</div>' +
     '</div>';
+
+  var listHeader = list.length ?
+    '<div class="tk-list-header">' +
+      '<div class="tk-col-time">Giờ / Ngày</div>' +
+      '<div class="tk-col-pax">Hành khách</div>' +
+      '<div class="tk-col-route">Hành trình</div>' +
+      '<div class="tk-col-seat">Ghế / Giá</div>' +
+      '<div class="tk-col-state">Trạng thái</div>' +
+      '<div class="tk-col-meta">NV / Giờ đặt</div>' +
+      '<div class="tk-col-note">Ghi chú</div>' +
+    '</div>' : '';
+
+  var rowsHtml = list.length
+    ? pageList.map(tkRenderRow).join('')
+    : '<div class="grid-empty">Không có vé phù hợp với bộ lọc hiện tại.</div>';
+
+  // Pagination bar
+  var paginationHtml = '';
+  if (totalPages > 1) {
+    var pages = [];
+    // Always show first, last, current ±2
+    var shown = {};
+    [1, totalPages].forEach(function (p) { shown[p] = true; });
+    for (var p = Math.max(1, TICKET_PAGE - 2); p <= Math.min(totalPages, TICKET_PAGE + 2); p++) { shown[p] = true; }
+    var keys = Object.keys(shown).map(Number).sort(function (a, b) { return a - b; });
+    var prev = null;
+    keys.forEach(function (pg) {
+      if (prev !== null && pg - prev > 1) pages.push(-1); // ellipsis
+      pages.push(pg);
+      prev = pg;
+    });
+
+    paginationHtml = '<div class="tk-pagination">' +
+      '<button class="btn btn-sm' + (TICKET_PAGE <= 1 ? ' disabled' : '') + '" data-action="adminTicketGoPage" data-args=\'[' + (TICKET_PAGE - 1) + ']\'' + (TICKET_PAGE <= 1 ? ' disabled' : '') + '>← Trước</button>' +
+      pages.map(function (pg) {
+        if (pg === -1) return '<span class="tk-page-ellipsis">…</span>';
+        return '<button class="btn btn-sm tk-page-btn' + (pg === TICKET_PAGE ? ' btn-primary' : '') + '" data-action="adminTicketGoPage" data-args=\'[' + pg + ']\'>' + pg + '</button>';
+      }).join('') +
+      '<button class="btn btn-sm' + (TICKET_PAGE >= totalPages ? ' disabled' : '') + '" data-action="adminTicketGoPage" data-args=\'[' + (TICKET_PAGE + 1) + ']\'' + (TICKET_PAGE >= totalPages ? ' disabled' : '') + '>Sau →</button>' +
+      '<span class="tk-page-info">Trang ' + TICKET_PAGE + ' / ' + totalPages + ' · ' + list.length + ' vé</span>' +
+    '</div>';
+  }
+
+  $('viewTicketList').innerHTML =
+    statsHtml +
+    '<div class="tk-tabs">' +
+      '<button type="button" class="tk-tab' + (TICKET_SUBTAB === 'all' ? ' active' : '') + '" data-action="adminTicketSwitchTab" data-args=\'["all"]\'>Tất cả <span class="tk-tab-count">' + countAll + '</span></button>' +
+      '<button type="button" class="tk-tab' + (TICKET_SUBTAB === 'hold' ? ' active' : '') + '" data-action="adminTicketSwitchTab" data-args=\'["hold"]\'>Đã đặt <span class="tk-tab-count">' + countHold + '</span></button>' +
+    '</div>' +
+    '<div class="filter-toolbar">' +
+      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên, SĐT khách..." data-input-action="adminTicketFilterInput" data-args=\'["search","__this_value__"]\'></div>' +
+      adminCalFieldHtml('tk', 'Ngày đi') +
+      '<div class="filter-field"><label>Hướng đi</label><select data-change-action="adminTicketFilterInput" data-args=\'["direction","__this_value__"]\'>' +
+        '<option value="">Tất cả hướng</option>' +
+        FleetStore.getDirections().filter(function (d) { return d && d.active !== false; })
+          .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
+          .map(function (d) { return '<option value="' + esc(d.id) + '"' + (f.direction === d.id ? ' selected' : '') + '>' + esc(d.label) + '</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-field"><label>Tuyến đường</label><select data-change-action="adminTicketFilterInput" data-args=\'["route","__this_value__"]\'>' +
+        '<option value="">Tất cả tuyến</option>' + routes.map(function (rv) { return '<option value="' + esc(rv) + '"' + (f.route === rv ? ' selected' : '') + '>' + esc(rv) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="filter-field"><label>Khung giờ</label><select data-change-action="adminTicketFilterInput" data-args=\'["time","__this_value__"]\'>' +
+        '<option value="">Tất cả</option>' +
+        '<option value="morning"' + (f.time === 'morning' ? ' selected' : '') + '>Sáng</option>' +
+        '<option value="afternoon"' + (f.time === 'afternoon' ? ' selected' : '') + '>Chiều</option>' +
+        '<option value="evening"' + (f.time === 'evening' ? ' selected' : '') + '>Tối</option></select></div>' +
+      '<div class="filter-field"><label>Nhân viên</label><select data-change-action="adminTicketFilterInput" data-args=\'["staff","__this_value__"]\'>' +
+        '<option value="">Tất cả</option>' + staffCodes.map(function (s) { return '<option value="' + esc(s) + '"' + (f.staff === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>' +
+      '<button type="button" class="btn" data-action="adminResetTicketFilters">Đặt lại</button>' +
+    '</div>' +
+    '<div class="tk-list">' +
+      listHeader +
+      rowsHtml +
+    '</div>' +
+    paginationHtml;
 
   adminCalUpdateTrigger('tk');
 }
 
-function adminTicketSwitchTab(tab) { TICKET_SUBTAB = tab; renderTicketListView(); }
+function adminTicketSwitchTab(tab) { TICKET_SUBTAB = tab; TICKET_PAGE = 1; renderTicketListView(); }
 function adminTicketFilterInput(field, val) {
   if (!(field in TICKET_FILTERS)) return;
   TICKET_FILTERS[field] = val || '';
+  TICKET_PAGE = 1;
   renderTicketListView();
 }
 function adminResetTicketFilters() {
   Object.keys(TICKET_FILTERS).forEach(function (k) { TICKET_FILTERS[k] = ''; });
   adminCalState('tk').selectedStr = '';
+  TICKET_PAGE = 1;
   renderTicketListView();
+}
+function adminTicketGoPage(page) {
+  TICKET_PAGE = page;
+  renderTicketListView();
+  var el = $('viewTicketList');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

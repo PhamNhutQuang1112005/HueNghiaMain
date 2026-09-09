@@ -10,9 +10,6 @@ var STATION_DIR_REGION = '';
 
 function renderStationsView() {
   var stations = FleetStore.getStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
-  // Danh mục khu vực (Tỉnh/Thành) — LẤY CHUNG getRegionMeta() với panel "Danh mục trạm theo địa điểm"
-  // ở Tuyến xe (admin-stations.js), để dropdown lọc ở đây và các thẻ địa điểm bên đó luôn khớp 1-1:
-  // chọn "Trạm Sài Gòn" ở đây ra đúng những trạm nằm trong thẻ "Trạm Sài Gòn" bên Tuyến xe.
   var regionMetaAll = getRegionMeta();
   if (STATION_DIR_REGION && !regionMetaAll.some(function (rm) { return rm[0] === STATION_DIR_REGION; })) STATION_DIR_REGION = '';
 
@@ -27,38 +24,71 @@ function renderStationsView() {
   var regionLabelOf = {};
   regionMetaAll.forEach(function (rm) { regionLabelOf[rm[0]] = rm[1]; });
 
+  var saigonCount = stations.filter(function (s) { return s.region === 'saigon'; }).length;
+  var binhduongCount = stations.filter(function (s) { return s.region === 'binhduong'; }).length;
+  var angiangCount = stations.filter(function (s) { return s.region === 'angiang'; }).length;
+
+  var statsHtml =
+    '<div class="dir-stats-grid">' +
+      '<div class="ref-card dir-stat-card">' +
+        '<div class="dir-stat-label">Tổng Số Trạm Xe</div>' +
+        '<div class="dir-stat-val">' + stations.length + ' <span class="ref-unit">trạm</span></div>' +
+        '<div class="dir-stat-sub">' + list.length + ' trạm khớp bộ lọc hiện tại</div>' +
+      '</div>' +
+      '<div class="ref-card dir-stat-card">' +
+        '<div class="dir-stat-label">Trạm Sài Gòn</div>' +
+        '<div class="dir-stat-val">' + saigonCount + ' <span class="ref-unit">trạm</span></div>' +
+        '<div class="dir-stat-sub">Khu vực TP. Hồ Chí Minh</div>' +
+      '</div>' +
+      '<div class="ref-card dir-stat-card">' +
+        '<div class="dir-stat-label">Trạm Bình Dương</div>' +
+        '<div class="dir-stat-val">' + binhduongCount + ' <span class="ref-unit">trạm</span></div>' +
+        '<div class="dir-stat-sub">Khu vực Tỉnh Bình Dương</div>' +
+      '</div>' +
+      '<div class="ref-card dir-stat-card ref-card-featured" style="min-height:auto;">' +
+        '<div class="ref-featured-head">Trạm An Giang & Miền Tây</div>' +
+        '<div class="dir-stat-val" style="font-size:26px;color:#fff;">' + angiangCount + ' <span class="ref-unit" style="color:#fff;">trạm</span></div>' +
+        '<div class="ref-featured-sub">Khu vực An Giang & Đồng Bằng SCL</div>' +
+      '</div>' +
+    '</div>';
+
   var rows = list.length ? list.map(function (s, i) {
     var regionLabel = s.region ? (regionLabelOf[s.region] || s.region) : '';
     return '<tr>' +
       '<td class="num">' + (i + 1) + '</td>' +
       '<td><b>' + esc(s.name) + '</b></td>' +
-      '<td class="mono">' + esc(s.code || '—') + '</td>' +
+      '<td class="mono"><span class="trip-plate-inline">' + esc(s.code || '—') + '</span></td>' +
       '<td>' + esc(s.address || '—') + '</td>' +
-      '<td>' + (regionLabel ? esc(regionLabel) : '<span class="hint-inline">Chưa gán</span>') + '</td>' +
+      '<td>' + (regionLabel ? '<span class="status-badge dang-ban" style="font-size:11px;padding:2px 8px;">' + esc(regionLabel) + '</span>' : '<span class="hint-inline">Chưa gán</span>') + '</td>' +
       '<td class="mono">' + esc(s.hotlineCargo || '—') + '</td>' +
       '<td class="mono">' + esc(s.hotlineTicket || '—') + '</td>' +
       '<td class="row-actions">' +
-        '<button class="btn btn-sm" data-action="adminOpenStationModal" data-args=\'["' + esc(s.name) + '"]\'>Sửa</button>' +
-        '<button class="btn btn-sm btn-danger" data-action="adminDeleteStationFull" data-args=\'["' + esc(s.name) + '"]\'>Xoá</button>' +
+        '<button type="button" class="btn btn-sm" data-action="adminOpenStationModal" data-args=\'["' + esc(s.name) + '"]\'>Sửa</button>' +
+        '<button type="button" class="btn btn-sm btn-danger" data-action="adminDeleteStationFull" data-args=\'["' + esc(s.name) + '"]\'>Xoá</button>' +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="8" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-state">Không tìm thấy trạm xe phù hợp.</td></tr>';
 
   $('viewStations').innerHTML =
+    statsHtml +
     '<div class="filter-toolbar">' +
-      fld('Tìm trạm', '<input type="text" id="sdSearch" value="' + esc(STATION_DIR_FILTER) + '" placeholder="Tên trạm, mã trạm, địa chỉ, tỉnh thành..." data-input-action="adminStationDirSearch" data-args=\'["__this_value__"]\'>') +
+      fld('Tìm trạm xe', '<input type="text" id="sdSearch" value="' + esc(STATION_DIR_FILTER) + '" placeholder="Nhập tên trạm, mã, địa chỉ..." data-input-action="adminStationDirSearch" data-args=\'["__this_value__"]\'>') +
       '<div class="filter-field"><label>Tỉnh/Thành</label>' +
-        '<select id="sdRegionFilter" title="Danh mục dùng chung với Danh mục trạm theo địa điểm ở Tuyến xe" data-change-action="adminStationDirFilterRegion" data-args=\'["__this_value__"]\'>' +
+        '<select id="sdRegionFilter" data-change-action="adminStationDirFilterRegion" data-args=\'["__this_value__"]\'>' +
           '<option value="">Tất cả tỉnh/thành</option>' +
           regionMetaAll.map(function (rm) { return '<option value="' + esc(rm[0]) + '"' + (rm[0] === STATION_DIR_REGION ? ' selected' : '') + '>' + esc(rm[1]) + '</option>'; }).join('') +
         '</select></div>' +
       '<div class="filter-spacer"></div>' +
-      '<button class="btn btn-primary" data-action="adminOpenStationModal" data-args=\'[""]\'>+ Thêm trạm</button>' +
+      '<button type="button" class="btn btn-primary" data-action="adminOpenStationModal" data-args=\'[""]\'>Thêm trạm xe</button>' +
     '</div>' +
-    '<div class="table-wrap"><table class="admin-table"><thead><tr>' +
-      '<th class="num">STT</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Khu vực</th>' +
-      '<th>Hotline hàng</th><th>Hotline vé</th><th class="th-actions">Thao tác</th>' +
-    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    '<div class="ref-card" style="padding:0;overflow:hidden;">' +
+      '<div class="table-wrap" style="border:0;border-radius:0;">' +
+        '<table class="admin-table"><thead><tr>' +
+          '<th class="num">STT</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Khu vực</th>' +
+          '<th>Hotline hàng</th><th>Hotline vé</th><th class="th-actions">Thao tác</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
 }
 
 function adminStationDirSearch(v) { STATION_DIR_FILTER = v || ''; renderStationsView(); }

@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=108" />
   <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109" />
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
-  <link rel="stylesheet" href="admin/admin.css?v=38" />
+  <link rel="stylesheet" href="admin/admin.css?v=42" />
 </head>
 
 <body class="admin-body">
@@ -25,8 +25,16 @@
     <!-- ===== TOPBAR ===== -->
     <header class="topbar">
       <div class="brand">
-        <span>Huệ Nghĩa Express</span>
-        <span class="brand-tag">ADMIN</span>
+        <div class="brand-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9"/><path d="M4 16h16"/><path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-text-row">
+            <b>HUỆ NGHĨA EXPRESS</b>
+            <span class="brand-tag">ADMIN</span>
+          </div>
+          <span class="brand-sub">Hệ thống quản lý nhà xe</span>
+        </div>
       </div>
       <div class="topbar-spacer"></div>
       <div class="user-menu" id="userMenu">
@@ -46,6 +54,7 @@
     <div class="admin-layout">
       <!-- ===== SIDEBAR ===== -->
       <nav class="admin-sidebar" id="adminSidebar">
+        <hr class="sidebar-header-divider" />
         <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewDashboard"]'>
           <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
 
@@ -63,6 +72,7 @@
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Điểm dừng</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewDirections"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15.472M9 3.236v15.472"/></svg>Tuyến xe</button>
+
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTrips"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"/><path d="M2 16h20"/><path d="M4 16v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2M17 16v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2"/><path d="M7 8h10"/><circle cx="7.5" cy="12.5" r="1"/><circle cx="16.5" cy="12.5" r="1"/></svg>Phơi xe</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewPricing"]'>
@@ -87,6 +97,12 @@
             <div class="admin-nav-group">
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewVehicles"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>Quản lý xe</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewVehicleCategories"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 17h-2v-11a1 1 0 0 1 1 -1h9v12m-4 0h6m4 0h2v-6e-5a1 1 0 0 0 -.3 -1l-3.7 -3.7a1 1 0 0 0 -.7 -.3h-3.3v7.38"/></svg>Loại xe</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewSeatLayouts"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>Bố trí ghế xe</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewVehicleSeats"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><rect x="15" y="5" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="15" y="13" width="6" height="6" rx="1"/></svg>Ghế xe</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewStaff"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Quản lý nhân viên</button>
             </div>
@@ -123,7 +139,11 @@
         <section class="admin-view" id="viewSchedule" hidden></section>
         <section class="admin-view" id="viewTransship" hidden></section>
         <section class="admin-view" id="viewTicketList" hidden></section>
+        <section class="admin-view" id="viewSeatLayouts" hidden></section>
+        <section class="admin-view" id="viewVehicleSeats" hidden></section>
+        <section class="admin-view" id="viewVehicleCategories" hidden></section>
         <section class="admin-view" id="viewVehicles" hidden></section>
+
         <section class="admin-view" id="viewStaff" hidden></section>
         <section class="admin-view" id="viewAccounts" hidden></section>
         <section class="admin-view" id="viewActivity" hidden></section>
@@ -162,6 +182,7 @@
   <script src="admin/admin-placeholders.js?v=1"></script>
   <script src="admin/admin-stations.js?v=12"></script>
   <script src="admin/admin-trips.js?v=3"></script>
+  <script src="admin/admin-schedule.js?v=1"></script>
   <script src="admin/admin-calendar.js?v=1"></script>
   <script src="admin/admin-transship.js?v=2"></script>
   <script src="admin/admin-tickets.js?v=3"></script>
@@ -169,7 +190,12 @@
   <script src="admin/admin-staff.js?v=1"></script>
   <script src="admin/admin-accounts.js?v=1"></script>
   <script src="admin/admin-activity.js?v=1"></script>
+  <script src="admin/admin-seat-layouts.js?v=1"></script>
+  <script src="admin/admin-vehicle-seats.js?v=1"></script>
+  <script src="admin/admin-vehicle-categories.js?v=1"></script>
   <script src="admin/admin-settings-boot.js?v=1"></script>
+
+
   <script src="../shared/js/events.js?v=3"></script>
 </body>
 </html>

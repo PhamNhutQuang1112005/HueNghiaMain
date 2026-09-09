@@ -38,3 +38,9 @@ const HN_VEHICLE_TYPES_KEY = 'hn_vehicle_types_v1';
 const HN_VEHICLES_KEY = 'hn_vehicles_v1';
 const HN_STAFF_KEY = 'hn_staff_v1';
 const HN_ADMIN_ACTIVITY_KEY = 'hn_admin_activity_v1';
+const HN_SCHEDULE_HOURS_KEY = 'hn_schedule_hours_v1';
+const HN_SEAT_LAYOUTS_KEY = 'hn_seat_layouts_v1';
+const HN_VEHICLE_CATEGORIES_KEY = 'hn_vehicle_categories_v1';
+const HN_VEHICLE_SEATS_KEY = 'hn_vehicle_seats_v1';
+
+
