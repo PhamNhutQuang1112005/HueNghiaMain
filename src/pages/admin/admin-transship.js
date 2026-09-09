@@ -56,51 +56,49 @@ function adminScanTransshipRows() {
 
 function tsRouteHtml(r) {
   var firstStopHtml = r.fromTransfer
-    ? '<span style="font-weight:700;color:var(--black);">' + esc(r.fromStation) + '</span>' +
-      '<div style="font-size:12px;color:var(--red);font-weight:600;margin-top:2px;">📍 Đón: ' + esc(r.fromTransfer) + '</div>'
-    : '<span style="font-weight:700;color:var(--black);">' + esc(r.fromStation) + '</span>';
-
+    ? esc(r.fromStation) + '<div style="font-size:12px;color:var(--text-sub);margin-top:2px;">Đón: ' + esc(r.fromTransfer) + '</div>'
+    : esc(r.fromStation);
   var lastStopHtml = r.toTransfer
-    ? '<span style="font-weight:700;color:var(--black);">' + esc(r.toStation) + '</span>' +
-      '<div style="font-size:12px;color:#059669;font-weight:600;margin-top:2px;">🏁 Trả: ' + esc(r.toTransfer) + '</div>'
-    : '<span style="font-weight:700;color:var(--black);">' + esc(r.toStation) + '</span>';
-
+    ? esc(r.toStation) + '<div style="font-size:12px;color:var(--text-sub);margin-top:2px;">Trả: ' + esc(r.toTransfer) + '</div>'
+    : esc(r.toStation);
   return '<div class="pax-route">' +
-    '<div class="pax-route-row pax-route-from"><div class="pax-route-text">' + firstStopHtml + '</div></div>' +
+    '<div class="pax-route-row pax-route-from"><svg class="pax-route-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg><div class="pax-route-text">' + firstStopHtml + '</div></div>' +
     '<div class="pax-route-connector"></div>' +
-    '<div class="pax-route-row pax-route-to"><div class="pax-route-text">' + lastStopHtml + '</div></div>' +
+    '<div class="pax-route-row pax-route-to"><svg class="pax-route-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg><div class="pax-route-text">' + lastStopHtml + '</div></div>' +
   '</div>';
 }
 
 var TS_STATUS_LABELS = {
-  waiting: { text: 'Chờ điều phối', cls: 'status-badge chua-chi-dinh' },
-  enroute: { text: 'Đang trung chuyển', cls: 'status-badge da-chi-dinh' },
-  onboard: { text: 'Đã đón', cls: 'status-badge dang-ban' },
-  issue: { text: 'Không đón được', cls: 'status-badge da-huy' }
+  waiting: { text: 'Chờ điều phối', cls: 'status-waiting' },
+  enroute: { text: 'Đang trung chuyển', cls: 'status-enroute' },
+  onboard: { text: 'Đã đón', cls: 'status-onboard' },
+  issue: { text: 'Không đón được', cls: 'status-issue' }
 };
 
 function tsRenderRow(r, idx) {
   var timeStr = function (iso) { return iso ? (fmtDate(String(iso).slice(0, 10)) + '<br>' + (fmtStamp(iso).split(' ')[1] || '')) : '—'; };
-  var seatCell = r.seat ? '<span class="trip-plate-inline" style="background:var(--red-light);color:var(--red);border-color:var(--red-border);">' + esc(r.seat) + '</span>' : '<span style="color:var(--text-sub);">—</span>';
+  var seatCell = r.seat ? '<span class="pk-seat-link">' + esc(r.seat) + '</span>' : '<span class="pk-seat-none">_</span>';
   var status = r.driver ? (r.driver.status || 'waiting') : null;
-  var statusCell = status ? '<span class="' + (TS_STATUS_LABELS[status] ? TS_STATUS_LABELS[status].cls : 'status-badge chua-chi-dinh') + '"><span class="status-dot"></span>' + (TS_STATUS_LABELS[status] ? TS_STATUS_LABELS[status].text : status) + '</span>' : '<span style="color:var(--text-sub);">—</span>';
+  var statusCell = status ? '<span class="pk-status-tag ' + TS_STATUS_LABELS[status].cls + '">' + TS_STATUS_LABELS[status].text + '</span>' : '<span class="hint-inline">—</span>';
   var driverHtml = r.driver
-    ? '<div style="font-weight:700;color:var(--black);">' + esc(r.driver.driverName || '') + '</div>' + (r.driver.driverNote ? '<div style="font-size:11.5px;color:var(--text-sub);">' + esc(r.driver.driverNote) + '</div>' : '')
-    : '<span class="status-badge chua-chi-dinh"><span class="status-dot"></span>Chưa gán</span>';
-  var phongVeHtml = r.statusNote ? '<span style="font-size:12.5px;color:var(--text-main);">' + esc(r.statusNote) + '</span>' : '<span style="color:var(--text-sub);">—</span>';
+    ? '<span class="pk-driver-name">' + esc(r.driver.driverName || '') + '</span>' + (r.driver.driverNote ? '<span class="pk-driver-sub">' + esc(r.driver.driverNote) + '</span>' : '')
+    : '<span class="pk-driver-name pk-driver-empty">Chưa gán</span>';
+  var phongVeHtml = r.statusNote ? '<span class="pk-note-text">' + esc(r.statusNote) + '</span>' : '<span class="hint-inline">—</span>';
+  var typeChip = r.kind === 'ts' ? '<div class="pk-type-chip">Trung chuyển</div>' : '';
+
   return '<tr>' +
-    '<td class="col-stt" style="font-weight:700;color:var(--text-sub);text-align:center;">' + (idx + 1) + '</td>' +
-    '<td><div class="pax-info"><div style="font-weight:800;font-size:14px;color:var(--black);">' + esc(r.name || '—') + '</div><div style="font-size:12.5px;font-weight:600;color:var(--text-sub);">' + esc(r.phone || '—') + '</div></div></td>' +
+    '<td class="col-stt">' + (idx + 1) + '</td>' +
+    '<td><div class="pax-info">' + typeChip + '<div class="pax-name">KH: ' + esc(r.name || '—') + '</div><div class="pax-phone">SĐT: ' + esc(r.phone || '—') + '</div></div></td>' +
     '<td>' + tsRouteHtml(r) + '</td>' +
-    '<td style="text-align:center;font-weight:800;font-size:14px;color:var(--black);">' + (r.ticketCount || 1) + '</td>' +
-    '<td style="text-align:center;">' + seatCell + '</td>' +
-    '<td>' + (r.note ? esc(r.note) : '<span style="color:var(--text-sub);">—</span>') + '</td>' +
-    '<td style="text-align:center;font-size:12px;color:var(--text-sub);font-family:\'Roboto Mono\',monospace;">' + timeStr(r.createdAt) + '</td>' +
-    '<td style="text-align:center;font-size:12px;color:var(--text-sub);font-family:\'Roboto Mono\',monospace;">' + timeStr(r.printedAt) + '</td>' +
-    '<td style="text-align:center;">' + statusCell + '</td>' +
-    '<td style="text-align:center;">' + driverHtml + '</td>' +
-    '<td>' + phongVeHtml + '</td>' +
-    '<td class="col-check" style="text-align:center;"><input type="checkbox" disabled style="min-width:auto;height:auto;"></td>' +
+    '<td class="center" style="font-weight:700;font-size:13.5px;">' + (r.ticketCount || 1) + '</td>' +
+    '<td class="center">' + seatCell + '</td>' +
+    '<td>' + (r.note ? esc(r.note) : '—') + '</td>' +
+    '<td class="center mono" style="font-size:12px;color:var(--text-sub);">' + timeStr(r.createdAt) + '</td>' +
+    '<td class="center mono" style="font-size:12px;color:var(--text-sub);">' + timeStr(r.printedAt) + '</td>' +
+    '<td class="center">' + statusCell + '</td>' +
+    '<td class="center">' + driverHtml + '</td>' +
+    '<td class="center">' + phongVeHtml + '</td>' +
+    '<td class="col-check"><input type="checkbox" disabled></td>' +
   '</tr>';
 }
 
@@ -147,52 +145,13 @@ function renderTransshipView() {
 
   $('viewTransship').innerHTML =
     '<div class="transship-shell">' +
-      '<!-- OVERVIEW STATS METRICS -->' +
-      '<div class="dir-stats-grid">' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Tổng lượt trung chuyển</div>' +
-          '<div class="dir-stat-val">' + cnt.all + '</div>' +
-          '<div class="dir-stat-sub">Tất cả yêu cầu đón / trả</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Trung chuyển đón</div>' +
-          '<div class="dir-stat-val" style="color:var(--red);">' + cnt.don + '</div>' +
-          '<div class="dir-stat-sub">Địa chỉ đón tận nơi</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Rước liền</div>' +
-          '<div class="dir-stat-val" style="color:#0284C7;">' + cnt.ruoclien + '</div>' +
-          '<div class="dir-stat-sub">Khách đặt rước trực tiếp</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Trung chuyển trả</div>' +
-          '<div class="dir-stat-val" style="color:#059669;">' + cnt.tra + '</div>' +
-          '<div class="dir-stat-sub">Địa chỉ trả tận nơi</div>' +
-        '</div>' +
-      '</div>' +
-
-      '<!-- SUBTABS PILL NAVIGATION -->' +
-      '<div class="ref-card dir-tabs-card" style="margin-bottom: 20px;">' +
-        '<div class="dir-tabs-header">' +
-          '<div class="dir-pills-list">' +
-            '<button type="button" class="dir-pill-btn' + (TRANSSHIP_SUBTAB === 'all' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["all"]\'>' +
-              'Tất cả <span class="dir-cnt-badge">' + cnt.all + '</span>' +
-            '</button>' +
-            '<button type="button" class="dir-pill-btn' + (TRANSSHIP_SUBTAB === 'don' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["don"]\'>' +
-              'Trung chuyển đón <span class="dir-cnt-badge">' + cnt.don + '</span>' +
-            '</button>' +
-            '<button type="button" class="dir-pill-btn' + (TRANSSHIP_SUBTAB === 'ruoclien' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["ruoclien"]\'>' +
-              'Rước liền <span class="dir-cnt-badge">' + cnt.ruoclien + '</span>' +
-            '</button>' +
-            '<button type="button" class="dir-pill-btn' + (TRANSSHIP_SUBTAB === 'tra' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["tra"]\'>' +
-              'Trung chuyển trả <span class="dir-cnt-badge">' + cnt.tra + '</span>' +
-            '</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-
-      '<!-- FILTER TOOLBAR -->' +
-      '<div class="filter-toolbar" style="margin-bottom: 20px;">' +
+      '<nav class="pk-subtabs">' +
+        '<button type="button" class="pk-subtab' + (TRANSSHIP_SUBTAB === 'all' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["all"]\'>Tất cả<span class="pk-subtab-count">(' + cnt.all + ')</span></button>' +
+        '<button type="button" class="pk-subtab' + (TRANSSHIP_SUBTAB === 'don' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["don"]\'>Trung chuyển đón<span class="pk-subtab-count">(' + cnt.don + ')</span></button>' +
+        '<button type="button" class="pk-subtab' + (TRANSSHIP_SUBTAB === 'ruoclien' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["ruoclien"]\'>Rước liền<span class="pk-subtab-count">(' + cnt.ruoclien + ')</span></button>' +
+        '<button type="button" class="pk-subtab' + (TRANSSHIP_SUBTAB === 'tra' ? ' active' : '') + '" data-action="adminTransshipSwitchTab" data-args=\'["tra"]\'>Trung chuyển trả<span class="pk-subtab-count">(' + cnt.tra + ')</span></button>' +
+      '</nav>' +
+      '<div class="filter-toolbar">' +
         '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên, SĐT khách..." data-input-action="adminTransshipFilterInput" data-args=\'["search","__this_value__"]\'></div>' +
         adminCalFieldHtml('ts', 'Ngày') +
         '<div class="filter-field"><label>Trạm đi</label><select data-change-action="adminTransshipFilterInput" data-args=\'["fromStation","__this_value__"]\'>' +
@@ -207,47 +166,16 @@ function renderTransshipView() {
         '</select></div>' +
         '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="adminTransshipResetFilters">Đặt lại bộ lọc</button></div>' +
       '</div>' +
-
-      '<!-- TABLE CARD -->' +
-      '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-        '<div class="ref-card-header" style="padding:18px 22px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-          '<div style="font-size:15px; font-weight:800; color:var(--black);">Danh sách đón / trả trung chuyển</div>' +
-          '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">Hiển thị ' + list.length + ' / ' + byTab.length + ' hành khách</div>' +
-        '</div>' +
-        '<div class="table-wrap" style="border:0; border-radius:0; box-shadow:none;">' +
-          '<table class="admin-table shuttle-table">' +
-            '<colgroup>' +
-              '<col style="width:44px">' +   /* STT */
-              '<col style="width:160px">' +  /* Khách hàng */
-              '<col>' +                       /* Hành trình */
-              '<col style="width:44px">' +   /* SL */
-              '<col style="width:80px">' +   /* Số ghế */
-              '<col style="width:120px">' +  /* Ghi chú */
-              '<col style="width:90px">' +   /* Thời gian */
-              '<col style="width:90px">' +   /* In lúc */
-              '<col style="width:130px">' +  /* Trạng thái */
-              '<col style="width:150px">' +  /* Tài xế TC */
-              '<col style="width:130px">' +  /* Ghi chú PV */
-              '<col style="width:44px">' +   /* Checkbox */
-            '</colgroup>' +
-            '<thead><tr>' +
-              '<th class="col-stt" style="text-align:center;">STT</th>' +
-              '<th>Khách hàng</th>' +
-              '<th>Hành trình & Địa chỉ</th>' +
-              '<th style="text-align:center;">SL</th>' +
-              '<th style="text-align:center;">Số ghế</th>' +
-              '<th>Ghi chú</th>' +
-              '<th style="text-align:center;">Thời gian</th>' +
-              '<th style="text-align:center;">In lúc</th>' +
-              '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
-              '<th style="text-align:center;">Tài xế trung chuyển</th>' +
-              '<th>Ghi chú phòng vé</th>' +
-              '<th class="col-check" style="text-align:center;"><input type="checkbox" disabled style="min-width:auto;height:auto;"></th>' +
-            '</tr></thead>' +
-            '<tbody>' + rowsHtml + '</tbody>' +
-          '</table>' +
-          (rowsHtml ? '' : '<div class="empty-state">Không có hành khách nào phù hợp với điều kiện lọc hiện tại.</div>') +
-        '</div>' +
+      '<div class="pax-table-wrap">' +
+        '<table class="shuttle-table shuttle-table--grid">' +
+          '<thead><tr>' +
+            '<th class="col-stt">STT</th><th>Khách hàng</th><th>Hành trình</th><th>SL</th><th>Số ghế</th>' +
+            '<th>Ghi chú</th><th>Thời gian</th><th>In lúc</th><th class="col-status">Trạng thái</th>' +
+            '<th>Trung chuyển</th><th>Phòng vé</th><th class="col-check"><input type="checkbox" disabled></th>' +
+          '</tr></thead>' +
+          '<tbody>' + rowsHtml + '</tbody>' +
+        '</table>' +
+        (rowsHtml ? '' : '<div class="grid-empty">Không có hành khách nào phù hợp với điều kiện lọc hiện tại.</div>') +
       '</div>' +
     '</div>';
 

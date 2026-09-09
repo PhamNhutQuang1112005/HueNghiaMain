@@ -66,9 +66,6 @@ function renderDirectionsView() {
     SELECTED_DIR_ID = dirs.length ? dirs[0].id : null;
   }
 
-  var activeDirsCount = dirs.filter(activeOf).length;
-  var activeRoutesCount = routes.filter(activeOf).length;
-
   // ----- Danh mục trạm theo địa điểm -----
   var regionMeta = getRegionMeta();
   if (REGION_FILTER && !regionMeta.some(function (rm) { return rm[0] === REGION_FILTER; })) REGION_FILTER = '';
@@ -82,21 +79,21 @@ function renderDirectionsView() {
         '<button title="Xoá trạm" data-action="adminRemoveLocationStation" data-args=\'["' + esc(s.name) + '"]\'>&times;</button></span>';
     }).join('') || '<span class="hint-inline">Chưa có trạm.</span>';
     return '<div class="loc-card">' +
-      '<div class="loc-card-head"><span>' + esc(title) + ' <span class="sp-count">' + st.length + ' trạm</span></span>' +
-        '<button type="button" class="btn btn-sm btn-primary" data-action="adminAddLocationStation" data-args=\'["' + esc(region) + '"]\'>Thêm trạm</button></div>' +
+      '<div class="loc-card-head"><span>' + esc(title) + ' <span class="sp-count">' + st.length + '</span></span>' +
+        '<button class="btn btn-sm btn-primary" data-action="adminAddLocationStation" data-args=\'["' + esc(region) + '"]\'>+ Thêm trạm</button></div>' +
       '<div class="chip-editor">' + chips + '</div>' +
     '</div>';
   }).join('') || '<div class="empty-state">Không có địa điểm nào khớp bộ lọc.</div>';
 
   var regionFilterHtml =
-    '<span class="st-stations-tools" style="display:inline-flex;gap:8px;align-items:center;">' +
+    '<span class="st-stations-tools">' +
       '<select class="st-region-filter" data-change-action="adminFilterRegion" data-args=\'["__this_value__"]\'>' +
         '<option value="">Tất cả địa điểm</option>' +
         regionMeta.map(function (rm) {
           return '<option value="' + esc(rm[0]) + '"' + (rm[0] === REGION_FILTER ? ' selected' : '') + '>' + esc(rm[1]) + '</option>';
         }).join('') +
       '</select>' +
-      '<button type="button" class="btn btn-sm" data-action="adminOpenRegionsModal">Cập nhật danh mục</button>' +
+      '<button class="btn btn-sm" data-action="adminOpenRegionsModal">Cập nhật</button>' +
     '</span>';
 
   // ----- Hướng đang chọn + danh sách tuyến -----
@@ -104,80 +101,38 @@ function renderDirectionsView() {
   var selRoutes = sel ? routes.filter(function (r) { return r.directionId === sel.id; }).sort(byOrder) : [];
   if (SELECTED_ROUTE_ID && !selRoutes.some(function (r) { return r.id === SELECTED_ROUTE_ID; })) SELECTED_ROUTE_ID = null;
 
-  // Direction Pills list
-  var dirPills = dirs.map(function (d) {
-    var cnt = routes.filter(function (r) { return r.directionId === d.id; }).length;
-    var isActive = (d.id === SELECTED_DIR_ID);
-    return '<button type="button" class="dir-pill-btn ' + (isActive ? 'active' : '') + '" data-action="adminSelectDirection" data-args=\'["' + esc(d.id) + '"]\'>' +
-      '<span>' + esc(d.label) + '</span>' +
-      '<span class="dir-cnt-badge">' + cnt + ' tuyến</span>' +
-    '</button>';
+  // Thanh trên: gộp chọn hướng (dropdown) + hành động hướng, 2 nút "thêm" dồn về bên phải.
+  var dirOptions = dirs.map(function (d) {
+    return '<option value="' + esc(d.id) + '"' + (d.id === SELECTED_DIR_ID ? ' selected' : '') + '>' +
+      esc(d.label) + (activeOf(d) ? '' : ' · đã tắt') + '</option>';
   }).join('');
 
+  var toolbar = '<div class="st-toolbar">' +
+    (dirs.length
+      ? '<label class="st-dir-picker"><span>Hướng</span>' +
+          '<select data-change-action="adminSelectDirection" data-args=\'["__this_value__"]\'>' + dirOptions + '</select>' +
+        '</label>' +
+        (sel ? '<button class="btn btn-sm" data-action="adminOpenDirectionModal" data-args=\'["' + esc(sel.id) + '"]\'>Cập nhật</button>' : '')
+      : '<span class="hint-inline">Chưa có hướng nào.</span>') +
+    '<span class="st-toolbar-spacer"></span>' +
+    '<button class="btn btn-sm" data-action="adminOpenDirectionModal">+ Thêm hướng</button>' +
+    (sel ? '<button class="btn btn-sm btn-primary" data-action="adminOpenRouteModal" data-args=\'["","' + esc(sel.id) + '"]\'>+ Thêm tuyến</button>' : '') +
+  '</div>';
+
   var tableHtml = sel ? renderRoutesTable(selRoutes)
-    : '<div class="empty-state">Chưa có hướng nào. Bấm “Thêm hướng” để tạo.</div>';
+    : '<div class="empty-state">Chưa có hướng nào. Bấm “+ Thêm hướng” để tạo.</div>';
 
-  var html = 
-    '<!-- TOP METRICS STATS -->' +
-    '<div class="dir-stats-grid">' +
-      '<div class="ref-card dir-stat-card">' +
-        '<div class="dir-stat-label">Tổng Số Hướng Xe</div>' +
-        '<div class="dir-stat-val">' + dirs.length + ' <span class="ref-unit">hướng</span></div>' +
-        '<div class="dir-stat-sub">' + activeDirsCount + ' hướng đang bật</div>' +
+  $('viewDirections').innerHTML =
+    '<div class="st-workspace">' +
+      '<section class="st-col st-col-stations">' +
+        '<div class="pane-head"><span>Danh mục trạm theo địa điểm</span>' + regionFilterHtml + '</div>' +
+        '<div class="st-col-body">' + locCards + '</div>' +
+      '</section>' +
+      '<div class="st-right">' +
+        toolbar +
+        '<section class="st-col st-col-routes">' + tableHtml + '</section>' +
       '</div>' +
-      '<div class="ref-card dir-stat-card">' +
-        '<div class="dir-stat-label">Tổng Số Tuyến Đường</div>' +
-        '<div class="dir-stat-val">' + routes.length + ' <span class="ref-unit">tuyến</span></div>' +
-        '<div class="dir-stat-sub">' + activeRoutesCount + ' tuyến mở bán phơi</div>' +
-      '</div>' +
-      '<div class="ref-card dir-stat-card">' +
-        '<div class="dir-stat-label">Tổng Số Trạm Dừng</div>' +
-        '<div class="dir-stat-val">' + stations.length + ' <span class="ref-unit">trạm</span></div>' +
-        '<div class="dir-stat-sub">' + regionMeta.length + ' khu vực địa điểm</div>' +
-      '</div>' +
-      '<div class="ref-card dir-stat-card ref-card-featured" style="min-height:auto;">' +
-        '<div class="ref-featured-head">Trạng Thái Mạng Lưới</div>' +
-        '<div class="dir-stat-val" style="font-size:24px;color:#fff;">100% Hoạt Động</div>' +
-        '<div class="ref-featured-sub">Hệ thống xe tuyến ổn định</div>' +
-      '</div>' +
-    '</div>' +
-
-    '<!-- DIRECTION PILLS NAVBAR & ACTIONS -->' +
-    '<div class="ref-card dir-tabs-card">' +
-      '<div class="dir-tabs-header">' +
-        '<div class="dir-pills-list">' + (dirPills || '<span class="hint-inline">Chưa có hướng nào.</span>') + '</div>' +
-        '<div class="dir-actions-group">' +
-          (sel ? '<button type="button" class="btn btn-sm" data-action="adminOpenDirectionModal" data-args=\'["' + esc(sel.id) + '"]\'><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Sửa hướng</button>' : '') +
-          '<button type="button" class="btn btn-sm" data-action="adminOpenDirectionModal"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Thêm hướng</button>' +
-          (sel ? '<button type="button" class="btn btn-sm btn-primary" data-action="adminOpenRouteModal" data-args=\'["","' + esc(sel.id) + '"]\'><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Thêm tuyến</button>' : '') +
-        '</div>' +
-      '</div>' +
-    '</div>' +
-
-    '<!-- MAIN ROUTES TABLE CARD -->' +
-    '<div class="ref-card" style="margin-bottom:24px;">' +
-      '<div class="db-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
-        '<div>' +
-          '<h3 style="margin:0;font-size:16px;font-weight:800;color:var(--black);">● Danh Sách Tuyến Xe ' + (sel ? '— ' + esc(sel.label) : '') + '</h3>' +
-          '<div class="cell-sub">Quản lý danh sách các tuyến xe chính, giá vé niêm yết và điểm đón trả khách</div>' +
-        '</div>' +
-      '</div>' +
-      tableHtml +
-    '</div>' +
-
-    '<!-- STATION CATALOGUE SECTION -->' +
-    '<div class="ref-card">' +
-      '<div class="db-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">' +
-        '<div>' +
-          '<h3 style="margin:0;font-size:16px;font-weight:800;color:var(--black);">● Danh Mục Trạm Theo Địa Điểm</h3>' +
-          '<div class="cell-sub">Danh sách các điểm dừng đón trả cố định phân bổ theo tỉnh thành</div>' +
-        '</div>' +
-        regionFilterHtml +
-      '</div>' +
-      '<div class="loc-cards-grid">' + locCards + '</div>' +
     '</div>';
-
-  $('viewDirections').innerHTML = html;
 }
 
 function adminFilterRegion(v) { REGION_FILTER = v || ''; renderDirectionsView(); }
