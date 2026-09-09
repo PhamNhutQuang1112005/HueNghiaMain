@@ -1,0 +1,1 @@
+-- Schema DB: trips, seats, passengers, users, shuttle_driver_assignments — mapping từ js/shared/storage-keys.js

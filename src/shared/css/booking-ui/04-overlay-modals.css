@@ -1,0 +1,550 @@
+/* ===== OVERLAY / POPUP (Zone 4) ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 16, .42);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.overlay.open {
+  display: flex;
+}
+
+.slidepanel {
+  width: 920px;
+  max-width: 94vw;
+  max-height: 90vh;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  display: flex;
+  flex-direction: column;
+  transform: scale(.96);
+  opacity: 0;
+  animation: popin .18s ease forwards;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border-gray);
+  flex: 0 0 auto;
+}
+
+.panel-head h2 {
+  font-size: 18.5px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.panel-head .sub {
+  font-size: 13.5px;
+  color: var(--text-sub);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.icon-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-gray);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-close svg {
+  width: 13px;
+  height: 13px;
+}
+
+.panel-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 22px;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.form-row .form-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 15px;
+  min-height: 42px;
+}
+
+.form-field.checkbox-field {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 42px;
+}
+
+.form-field.checkbox-field .checkbox-inline {
+  width: 100%;
+  justify-content: flex-start;
+  align-items: center;
+  height: 42px;
+  min-height: 42px;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: 2px solid var(--red);
+  outline-offset: 0;
+  border-color: var(--red);
+}
+
+/* Checkbox/radio (baga, đặt cọc, phương thức thanh toán...) chỉ cần màu accent-color đã đủ thể hiện
+   đang chọn — viền đỏ to bao quanh ô tích nhỏ xíu khi bấm/focus nhìn thô, không giống lỗi thiếu dữ liệu
+   như ở ô nhập chữ/số nên không cần cảnh báo đỏ. */
+.form-field input[type="checkbox"]:focus,
+.form-field input[type="radio"]:focus {
+  outline: none;
+  border-color: inherit;
+}
+
+.form-field input[readonly] {
+  background: var(--surface-2);
+  color: var(--text-sub);
+  cursor: not-allowed;
+}
+
+.phone-input-row,
+.phone-extra-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.phone-input-row input,
+.phone-extra-row input {
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.phone-add-btn,
+.phone-remove-btn {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--text-sub);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phone-add-btn:hover,
+.phone-remove-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-light);
+}
+
+.phone-extra-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-inline input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--red);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.chip-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.seat-chip {
+  background: var(--red-light);
+  color: var(--red);
+  font-weight: 800;
+  font-size: 13.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--red);
+}
+
+.panel-ticket-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  align-self: center;
+}
+
+.ticket {
+  width: 100%;
+  max-width: 300px;
+  background: white;
+  border: 1.5px solid var(--border-gray);
+  border-radius: 14px;
+  position: relative;
+  padding: 16px;
+  font-size: 14px;
+}
+
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border-gray);
+  border-radius: 50%;
+  top: 64%;
+}
+
+.ticket::before {
+  left: -9px;
+}
+
+.ticket::after {
+  right: -9px;
+}
+
+.ticket-dash {
+  border-top: 1.5px dashed var(--border-gray);
+  margin: 12px -16px;
+  position: relative;
+  top: 0;
+}
+
+.ticket .route {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ticket .datetime {
+  font-size: 13px;
+  color: var(--text-sub);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.ticket .seatno {
+  display: inline-block;
+  background: var(--red);
+  color: white;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.ticket .kv {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  margin-top: 6px;
+  color: var(--text-main);
+}
+
+.ticket .kv span:first-child {
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.ticket .price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.zero-price-reason {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zero-price-reason label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.zero-price-reason input {
+  width: 100%;
+  border: 1px solid var(--red);
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  font-size: 13px;
+}
+
+.deposit-block {
+  margin-top: 8px;
+}
+
+.deposit-block .checkbox-inline {
+  padding: 7px 11px;
+  font-size: 13.5px;
+}
+
+.deposit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* :not(.pay-method-option) — "Phương thức"/"Số tiền cọc" là <label> chữ đơn thuần, cần display:block để
+   xuống dòng trên input. Nhưng .pay-method-option (thẻ chọn Tiền mặt/Chuyển khoản) CŨNG là <label>, lại
+   nằm lồng trong .form-field này — nếu không loại trừ, rule này đè mất display:flex của nó, làm icon
+   và chữ bên trong thẻ không còn nằm ngang hàng (mất tác dụng flex-direction/justify-content/align-items). */
+.deposit-fields .form-field label:not(.pay-method-option) {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  display: block;
+  margin-bottom: 5px;
+}
+
+.deposit-fields input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+/* Chọn phương thức thanh toán dạng thẻ bấm (dùng chung cho modal Đặt cọc và modal Xác nhận thanh toán
+   khi Bán vé) — input radio thật vẫn giữ để form hoạt động chuẩn, chỉ ẩn hình, đổi giao diện sang
+   thẻ có icon để bấm chọn trực quan hơn dấu chấm radio thường. */
+.pay-method-toggle {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.pay-method-option {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  user-select: none;
+  background: white;
+  transition: border-color .12s ease, background .12s ease;
+}
+
+.pay-method-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.pay-method-option svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--text-main);
+  transition: color .12s ease;
+}
+
+.pay-method-option span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  transition: color .12s ease;
+}
+
+.pay-method-option:hover {
+  border-color: var(--green);
+}
+
+.pay-method-option:has(input:checked) {
+  border-color: var(--green);
+  background: rgba(22, 163, 74, .07);
+}
+
+.pay-method-option:has(input:checked) svg,
+.pay-method-option:has(input:checked) span {
+  color: var(--green);
+}
+
+.pay-method-option:has(input:checked) span {
+  font-weight: 700;
+}
+
+.pay-method-option:has(input:focus-visible) {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.seat-deposit-tag {
+  background: rgba(22, 163, 74, .12);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.panel-footer {
+  flex: 0 0 auto;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border-gray);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ===== MODALS ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 16, .42);
+  /* Phải cao hơn #rebookModal (z-index: 9999, css/shared/booking-ui/09-rebook-modal.css) — các modal
+     xác nhận nhỏ (Đặt cọc, Xác nhận thanh toán, Hủy vé...) thường được mở CHỒNG lên từ bên trong 1 modal/
+     panel lớn hơn đang mở sẵn (VD "Đặt lại vé"), nên luôn phải nổi trên mọi overlay/panel khác, không chỉ
+     trên overlay cơ bản (.overlay, z-index: 100). */
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.open,
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal {
+  width: 520px;
+  max-width: 92vw;
+  background: white;
+  border-radius: 14px;
+  padding: 22px;
+  animation: popin .16s ease;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .2);
+}
+
+.modal h3 {
+  margin: 0 0 16px;
+  font-size: 18.5px;
+  font-weight: 800;
+}
+
+/* Modal Đặt cọc chỉ có 1 ô số tiền + 2 thẻ chọn phương thức — nội dung ít, không cần rộng bằng modal
+   mặc định (520px, dùng cho các form dài hơn như modal Chỉ định xe/Hủy vé). */
+#depositModal .modal {
+  width: 400px;
+}
+
+.modal .form-field {
+  margin-bottom: 14px;
+}
+
+.warn-box {
+  display: flex;
+  gap: 8px;
+  background: var(--red-light);
+  border: 1px solid #FBD5D4;
+  color: #B91C1C;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.warn-box svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+

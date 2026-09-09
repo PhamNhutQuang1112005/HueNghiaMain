@@ -1,0 +1,138 @@
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1199px) {
+  .search-wrap {
+    width: 100%;
+    max-width: 420px;
+    flex: 1 1 220px;
+  }
+
+  /* Zone 1 vẫn nằm cạnh Zone 2/3 ở tablet (giảm cột chứ chưa xếp chồng như mobile) — chỉ thu hẹp bề
+     rộng cố định 352px xuống 260px để nhường chỗ cho khu vực chính. */
+  .zone1 {
+    width: 260px;
+    flex: 0 0 260px;
+    padding: 12px 10px;
+  }
+  .zone1-toggle-handle { left: 260px; }
+
+  .zone2 { padding: 6px 14px; }
+  .zone3 { padding: 0 14px 16px; }
+  .tabs { padding: 4px 10px; }
+
+  /* Grid 5 cột cố định (1fr 1px 1fr 50px 1fr) của Zone 2 dựa vào grid-column/grid-row đặt trực tiếp
+     bằng inline style trong HTML — đổi .z2-grid sang display:flex khiến các khai báo grid-column/
+     grid-row đó vô hiệu (chỉ có tác dụng trong ngữ cảnh grid), nhờ vậy các mục tự xếp thành cột dọc mà
+     không cần sửa HTML. */
+  .z2-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .z2-item.combo,
+  .z2-item.money-line {
+    margin: 0;
+    padding-left: 0;
+    flex-wrap: wrap;
+  }
+
+  /* 2 tầng ghế nằm ngang buộc floor-col:has(.cols-3) phải rộng tối thiểu 510px/tầng (>1000px cho cả
+     2 tầng) — luôn tràn ngang dưới 1200px. Xếp chồng 2 tầng theo chiều dọc để mỗi tầng có trọn bề rộng
+     màn hình thay vì bị bóp nhỏ hoặc tràn ra ngoài. */
+  .floor-row { flex-direction: column; }
+  .floor-col:has(.cols-3) { min-width: 0; }
+
+  /* Form đặt vé (2 cột: form trái 1fr, vé preview phải 300px cố định) — 300px cố định không co giãn
+     được, xếp chồng thành 1 cột trên tablet/mobile, đưa khung vé preview lên trên bằng order để khách
+     luôn thấy tổng giá ngay khi cuộn tới. */
+  .panel-body { grid-template-columns: 1fr; }
+  .panel-ticket-wrap { order: -1; }
+  .panel-ticket-wrap .ticket { max-width: 360px; }
+
+  /* Modal "Đặt lại vé": cột trái 520px cố định (flex-basis không co) + cột phải sơ đồ ghế — xếp chồng
+     dọc, cột trái không còn ép rộng tối thiểu 520px. */
+  .rebook-panel-body { flex-direction: column; overflow-y: auto; }
+  .rebook-col-left {
+    width: 100%;
+    flex: 0 0 auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-gray);
+  }
+  .rebook-col-right { flex: 1 1 auto; }
+
+  .overlay { padding: 16px; }
+}
+
+@media (max-width: 767px) {
+  /* Bỏ layout 2 cột cố định (Zone 1 352px + Zone 3 phần còn lại) — xếp Zone 1 (bộ lọc + danh sách phơi)
+     lên trên, nội dung chính bên dưới, cả trang cuộn dọc bình thường thay vì mỗi khối tự cuộn riêng bên
+     trong (dễ thao tác cảm ứng hơn cuộn lồng nhau). */
+  .main { flex-direction: column; overflow-y: auto; }
+  .zone1 {
+    width: 100%;
+    flex: 0 0 auto;
+    max-height: 46vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border-gray);
+  }
+  .right-col { overflow: visible; }
+  .zone1-toggle-handle { display: none; }
+
+  .search-wrap { max-width: none; }
+  .tab-btn-group { width: 100%; }
+
+  /* Thanh tab (Sơ đồ ghế/Hành khách/Trung chuyển/Ghế hủy/Thống kê) chia đều 1/5 quá hẹp trên mobile —
+     chuyển sang cuộn ngang, mỗi tab giữ nguyên 1 hàng chữ. */
+  .tabs { overflow-x: auto; }
+  .tab-item { flex: 0 0 auto; white-space: nowrap; padding: 8px 14px; }
+
+  .filter-toolbar { padding: 10px 14px; gap: 8px 10px; }
+  .filter-field { flex: 1 1 calc(50% - 5px); min-width: 0; }
+  .filter-field-date {
+    flex: 1 1 calc(50% - 5px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  .filter-reset { flex: 1 1 100%; margin-left: 0; }
+  .filter-reset button { width: 100%; justify-content: center; }
+
+  .form-row,
+  .rebook-form-section .form-row { grid-template-columns: 1fr !important; }
+
+  .sticky-actions { flex-wrap: wrap; padding: 10px 14px; }
+  .sticky-actions .hint { flex: 1 1 100%; margin-right: 0; }
+  .sticky-actions > div { width: 100%; flex-wrap: wrap; }
+  .sticky-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+  .panel-body { padding: 16px; gap: 16px; }
+  .panel-head { padding: 14px 16px; }
+  .panel-footer { padding: 12px 16px; flex-wrap: wrap; }
+  .panel-footer .btn { flex: 1 1 auto; justify-content: center; }
+
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .btn { flex: 1 1 auto; justify-content: center; }
+  .overlay { padding: 10px; }
+
+  .btn { min-height: 40px; }
+  .checkbox-inline,
+  .phone-add-btn,
+  .phone-remove-btn { min-height: 40px; }
+  .form-field input,
+  .form-field select { min-height: 44px; }
+  input[type="checkbox"] { width: 18px; height: 18px; }
+
+  .pax-toolbar { flex-direction: column; align-items: stretch; }
+  .pax-toolbar-actions { margin-left: 0; }
+  .pax-toolbar-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (max-width: 479px) {
+  .zone2 { padding: 6px 10px; }
+  .zone3 { padding: 0 10px 16px; }
+  .z2-title-compact h1 { font-size: 14px; }
+  .filter-field,
+  .filter-field-date {
+    flex: 1 1 100% !important;
+    max-width: none !important;
+  }
+}

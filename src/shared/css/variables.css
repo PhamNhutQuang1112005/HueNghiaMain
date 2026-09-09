@@ -1,0 +1,16 @@
+/* Biến CSS dùng chung — nguồn: 13 biến giống hệt giữa 5 trang (đo 07/08/2026) */
+:root {
+  --black: #000000;
+  --border-gray: #CBCDCD;
+  --green: #16A34A;
+  --radius-lg: 10px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --red: #C20D08;
+  --red-light: #FEEFEF;
+  --surface: #E7E7E8;
+  --surface-2: #F8F7F7;
+  --text-main: #111213;
+  --text-sub: #6B6E70;
+  --white: #FFFFFF;
+}

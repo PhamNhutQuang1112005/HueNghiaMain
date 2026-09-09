@@ -1,0 +1,719 @@
+/* ===== ZONE 1 ===== */
+.zone1 {
+  width: 330px;
+  flex: 0 0 330px;
+  border-right: 1px solid var(--border-gray);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 14px 12px;
+  gap: 6px;
+  /* Vẫn cuộn được nhưng ẩn hẳn thanh trượt (Firefox / IE-Edge cũ). */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Ẩn thanh trượt Zone 1 trên Chrome / Edge / Safari — vẫn cuộn bằng lăn chuột / trackpad. */
+.zone1::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.field-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 3px;
+  display: block;
+}
+
+.select-fake {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 15px;
+  font-weight: 600;
+  background: white;
+}
+
+.select-fake.dropdown-trigger {
+  cursor: pointer;
+}
+
+.select-fake span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.select-fake svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-sub);
+  flex: 0 0 auto;
+}
+
+.combo-input-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background: white;
+}
+
+.combo-input-wrap:focus-within {
+  border-color: var(--red);
+}
+
+.combo-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  padding: 6px 0;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-main);
+  background: transparent;
+}
+
+.combo-input-wrap svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-sub);
+  flex: 0 0 auto;
+}
+
+.dropdown-empty {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text-sub);
+  text-align: center;
+}
+
+.dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .14);
+  padding: 8px 0;
+  display: none;
+  z-index: 40;
+}
+
+.dropdown-panel.open {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+
+.dropdown-item:hover,
+.dropdown-item.kbd-highlight {
+  background: var(--surface-2);
+}
+
+.dropdown-item.active {
+  background: var(--red-light);
+  color: var(--red);
+}
+
+.dropdown-item-check {
+  opacity: 0;
+  transition: opacity .12s;
+}
+
+.dropdown-item.active .dropdown-item-check {
+  opacity: 1;
+}
+
+/* Dropdown dùng chung cho "Trạm đi"/"Trạm đến"/"Địa điểm rước" (initDatalistCombobox(), xem
+   shared/booking.js) — gắn thẳng vào <body> với position:fixed (top/left/width tính bằng JS theo input)
+   thay vì absolute trong 1 wrapper, nên không bao giờ bị .panel-body (overflow-y:auto) cắt mất dù các ô
+   này đều nằm bên trong đó, và luôn nổi trên mọi modal/panel khác nhờ z-index riêng cao. */
+.datalist-combo-dropdown {
+  position: fixed;
+  display: none;
+  background: white;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .14);
+  padding: 6px 0;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100000;
+}
+
+.datalist-combo-dropdown.open {
+  display: block;
+}
+
+.datalist-combo-option {
+  padding: 9px 14px;
+  font-size: 14px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.datalist-combo-option:hover,
+.datalist-combo-option.highlighted {
+  background: var(--surface-2);
+}
+
+.datalist-combo-empty {
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+/* calendar */
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.date-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-gray);
+  border-radius: 999px;
+  padding: 3px 8px 3px 7px;
+  background: white;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: border-color .12s, background .12s, color .12s;
+}
+
+.date-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.date-btn.open {
+  border-color: var(--red);
+  background: var(--red-light);
+  color: var(--red);
+}
+
+.date-btn-ico {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  flex: 0 0 auto;
+}
+
+.date-btn-chev {
+  width: 10px;
+  height: 10px;
+  stroke: currentColor;
+  transition: transform .15s;
+  flex: 0 0 auto;
+}
+
+.date-btn.open .date-btn-chev {
+  transform: rotate(180deg);
+}
+
+.calendar-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 250px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  border-radius: var(--radius-md) !important;
+  border-top: 1px solid var(--border-gray) !important;
+}
+
+.calendar {
+  border: 1px solid var(--border-gray);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 10px;
+  display: none;
+  background: var(--white);
+}
+
+.calendar.open {
+  display: block;
+  animation: calopen .15s ease;
+}
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cal-head b {
+  font-size: 15px;
+}
+
+/* #pkCalendarPanel (Rước liền) và #rbCalendarPanel (modal Đặt lại vé) đặt nút "Hôm nay"/"Tất cả" + nút
+   chuyển tháng vào 1 div class="cal-head-right" (lịch Zone 1 dùng inline style riêng nên không cần class
+   này) — thiếu rule này khiến div mặc định display:block, đẩy nút "›" xuống dòng thay vì cùng hàng. */
+.cal-head-right {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.cal-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.cal-nav button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-gray);
+  background: white;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-nav button svg {
+  width: 11px;
+  height: 11px;
+}
+
+.cal-today-btn {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 5px;
+  padding: 3px 7px;
+  background: var(--red-light);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-dow {
+  font-size: 12px;
+  color: var(--text-sub);
+  text-align: center;
+  font-weight: 700;
+  padding-bottom: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  position: relative;
+  color: var(--text-main);
+}
+
+.cal-day.muted {
+  color: #C9CACB;
+}
+
+.cal-day .lunar {
+  font-size: 10px;
+  color: #B7B9BA;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.cal-day.today {
+  background: var(--red);
+  color: white;
+}
+
+.cal-day.today .lunar {
+  color: #FFD9D8;
+}
+
+.cal-day.selected:not(.today) {
+  border: 1.5px solid var(--red);
+  color: var(--red);
+}
+
+.cal-day:hover:not(.today) {
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+/* trip list */
+.trip-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trip-list-head span {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+/* Danh sách phơi: mỗi thẻ 1 hàng ngang — icon đồng hồ + giờ chạy bên trái, biển số + tuyến đường ở giữa
+   (xếp dọc), SL ghế dạng badge bo góc nổi bật bên phải. Dùng CHUNG cho 3 nơi hiển thị "danh sách phơi"
+   (đều render qua renderPhoiTripCardHtml() ở ticketstaff.js): Zone 1 (#tripListSGCD/#tripListCDSG), modal
+   "Đặt lại vé" (#rbTripList) và modal "Chỉ định xe" (#pkTripListPanel) — kiểu dáng phải giống HỆT nhau.
+   .trip-card-row1/.trip-card-row2 gốc bên dưới giờ không còn nơi nào dùng, giữ lại phòng khi cần. */
+#tripListSGCD,
+#tripListCDSG,
+#rbTripList,
+#pkTripListPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Thẻ phơi chia 2 phần xếp dọc: header (icon+giờ | divider | biển số ..... badge) và bên dưới là tên
+   phơi chiếm trọn bề rộng card — không còn thụt lề theo icon/divider của header nữa. */
+#tripListSGCD .trip-card,
+#tripListCDSG .trip-card,
+#rbTripList .trip-card,
+#pkTripListPanel .trip-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border-left: 4px solid var(--border-gray);
+}
+
+#tripListSGCD .trip-card.selected,
+#tripListCDSG .trip-card.selected,
+#rbTripList .trip-card.selected,
+#pkTripListPanel .trip-card.selected {
+  border-width: 2px;
+  border-left: 4px solid var(--red);
+}
+
+/* Header: icon+giờ, divider, biển số cùng hàng bên trái; badge ghim cứng bên phải bằng margin-left:auto
+   (không cần wrapper riêng) — biển số + badge đều nằm trên header như yêu cầu. */
+#tripListSGCD .z1-header,
+#tripListCDSG .z1-header,
+#rbTripList .z1-header,
+#pkTripListPanel .z1-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Icon + giờ: bề rộng PX cố định, đủ rộng cho "07:00"/"08:30" + icon ở mọi trường hợp — không overflow,
+   không clip, không co giãn theo nội dung hay theo bề rộng card. */
+#tripListSGCD .z1-time-block,
+#tripListCDSG .z1-time-block,
+#rbTripList .z1-time-block,
+#pkTripListPanel .z1-time-block {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 70px;
+  width: 70px;
+}
+
+#tripListSGCD .z1-clock,
+#tripListCDSG .z1-clock,
+#rbTripList .z1-clock,
+#pkTripListPanel .z1-clock {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--red-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+#tripListSGCD .z1-clock svg,
+#tripListCDSG .z1-clock svg,
+#rbTripList .z1-clock svg,
+#pkTripListPanel .z1-clock svg {
+  width: 13px;
+  height: 13px;
+  stroke: var(--red);
+}
+
+#tripListSGCD .trip-time,
+#tripListCDSG .trip-time,
+#rbTripList .trip-time,
+#pkTripListPanel .trip-time {
+  font-size: 13px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+#tripListSGCD .z1-divider,
+#tripListCDSG .z1-divider,
+#rbTripList .z1-divider,
+#pkTripListPanel .z1-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border-gray);
+  flex: 0 0 auto;
+}
+
+/* Biển số dùng lại nguyên kiểu pill nền đỏ nhạt/chữ đỏ gốc của .trip-plate-inline (xem định nghĩa gốc
+   bên dưới, dùng chung với các modal) — cỡ chữ theo nội dung (flex:0 0 auto), không kéo giãn lấp đầy
+   header để không biến thành 1 thanh màu dài; khoảng trống còn lại giữa biển số và badge để trống. */
+#tripListSGCD .trip-plate-inline,
+#tripListCDSG .trip-plate-inline,
+#rbTripList .trip-plate-inline,
+#pkTripListPanel .trip-plate-inline {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Badge SL ghế: bề rộng PX cố định (không % theo card, không auto theo nội dung), luôn ghim cứng bên
+   phải header nhờ margin-left:auto — không tham gia quyết định bề rộng biển số hay tên phơi. */
+#tripListSGCD .trip-seat-tag,
+#tripListCDSG .trip-seat-tag,
+#rbTripList .trip-seat-tag,
+#pkTripListPanel .trip-seat-tag {
+  border-radius: 6px;
+  padding: 0;
+  font-size: 11px;
+  margin-left: auto;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Tên phơi/tuyến nằm hẳn 1 hàng riêng bên dưới header, chiếm trọn bề rộng card — không còn icon định vị
+   phía trước, không còn phải thẳng cột với biển số/icon giờ ở header nữa. */
+#tripListSGCD .z1-name-row,
+#tripListCDSG .z1-name-row,
+#rbTripList .z1-name-row,
+#pkTripListPanel .z1-name-row {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  padding-left: 4px;
+}
+
+/* Tên phơi được phép xuống tối đa 2 dòng tự nhiên thay vì ép 1 dòng rồi "..." quá sớm; overflow-wrap
+   phòng trường hợp 1 từ đơn lẻ quá dài. min-width:0 bắt buộc vì đây là flex item chứa nowrap-tương-đương
+   (line-clamp) — mặc định min-width:auto sẽ khiến chữ tràn ra khỏi hàng thay vì xuống dòng đúng chỗ. */
+#tripListSGCD .trip-name-text,
+#tripListCDSG .trip-name-text,
+#rbTripList .trip-name-text,
+#pkTripListPanel .trip-name-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-main);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden;
+}
+
+.trip-card {
+  border: 1px solid var(--border-gray);
+  /* Khôi phục vệt nhấn bên trái (xám lúc thường, đỏ lúc chọn) — đã bỏ ở 1 lần chỉnh trước, nay thêm
+     lại theo đúng bản gốc. */
+  border-left: 3.5px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0; /* danh sách phơi trong modal "Chỉ định xe"/"Đặt lại vé" nằm trong khung cuộn có chiều
+    cao giới hạn (khác Zone 1 luôn đủ chỗ) — không khóa lại, flexbox sẽ bóp co từng thẻ (đặc biệt mất hẳn
+    trip-card-row2) để nhồi vừa thay vì để phần overflow-y:auto cuộn. */
+  gap: 0;
+  background: white;
+  box-sizing: border-box;
+  overflow: hidden; /* bo góc thẻ cắt gọn nền màu của row1 (header) tràn ra ngoài border-radius */
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.trip-card.selected {
+  border-color: var(--red);
+  border-left: 3.5px solid var(--red);
+}
+
+/* row1 = "header" thẻ phơi (giờ, biển số, SL ghế) — bỏ màu nền lẫn viền phân tách, dùng chung màu trắng
+   với row2, đổi màu cùng lúc với row2 khi hover/chọn (xem .trip-card.selected .trip-card-row1). */
+.trip-card-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  background: white;
+  padding: 6px 8px 3px;
+  box-sizing: border-box;
+}
+
+.trip-info-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.trip-time {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.15;
+  flex: 0 0 auto;
+}
+
+.trip-plate-inline {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--red);
+  background: var(--red-light);
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  letter-spacing: .1px;
+  flex: 0 0 auto;
+}
+
+.trip-card.selected .trip-plate-inline {
+  background: white;
+  color: var(--red);
+}
+
+/* SL ghế là khối chữ nhật nền đặc (đỏ/xanh theo loại xe), không bo góc, chữ trắng — dễ phân biệt hơn
+   kiểu chữ màu trên nền trong suốt trước đây. */
+.trip-seat-tag {
+  font-size: 13px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 0;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  margin-left: auto;
+  line-height: 1.15;
+  color: white;
+}
+
+.trip-seat-tag.tag-limo {
+  background: #e11d48;
+}
+
+.trip-seat-tag.tag-normal {
+  background: #16a34a;
+}
+
+/* Danh sách phơi Zone 1 (renderZone1TripList ở ticketstaff.js): đỏ = xe ĐÃ KHOÁ BÁN VÉ (đã khởi hành
+   và đã đóng Re-open — DEPARTED/REOPEN_CLOSED/MANIFEST_CLOSED, xem zone1IsTripSellingLocked); xanh = xe
+   CÒN BÁN ĐƯỢC (chưa khởi hành, hoặc đang có Re-open mở). Dùng riêng 2 class này (không đụng
+   .tag-limo/.tag-normal ở trên, vẫn dùng cho modal "Đặt lại vé" phân biệt theo loại xe) để đổi ý nghĩa
+   màu chỉ trong danh sách phơi Zone 1. */
+.trip-seat-tag.tag-departed {
+  background: #e11d48;
+}
+
+.trip-seat-tag.tag-not-departed {
+  background: #16a34a;
+}
+
+/* row2 = "thân" thẻ phơi (tên phơi) — luôn nền trắng, đổi màu nhẹ khi hover/chọn để giữ phản hồi thị
+   giác (trước đây màu hover/selected phủ cả thẻ; giờ row1 luôn cố định #f8fafc nên chuyển phần phản hồi
+   này sang riêng row2). */
+.trip-card-row2 {
+  width: 100%;
+  background: white;
+  padding: 3px 8px 6px;
+  box-sizing: border-box;
+}
+
+.trip-card:hover .trip-card-row2 {
+  background: var(--surface-2);
+}
+
+.trip-card.selected .trip-card-row2,
+.trip-card.selected .trip-card-row1 {
+  background: var(--red-light);
+}
+
+.trip-name-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.35;
+  word-break: break-word;
+  display: block;
+}
+
+.trip-card.selected .trip-name-text {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.more-trips {
+  text-align: center;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--red);
+  padding: 8px;
+  border: 1px dashed var(--border-gray);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+
+.more-trips svg {
+  width: 12px;
+  height: 12px;
+}
+

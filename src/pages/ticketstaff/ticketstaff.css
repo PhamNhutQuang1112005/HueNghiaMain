@@ -1,0 +1,2434 @@
+:root {
+  --seat-empty: #FFFFFF;
+  --seat-hold: #FBBF24;
+  --seat-sold: #C20D08;
+  --seat-free: #9CA3AF;
+  --seat-locked: #FB923C;
+}
+
+.tab-btn-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 0 1 auto;
+  align-self: center;
+  min-width: 0;
+  height: 36px;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 2px rgba(17, 18, 19, 0.04);
+}
+
+.pill-btn {
+  position: relative;
+  height: 100%;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--text-sub);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background .2s ease, color .2s ease, box-shadow .2s ease, transform .15s ease;
+  cursor: pointer;
+}
+
+.pill-btn:hover:not(.active) {
+  color: var(--black);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.pill-btn.active {
+  background: var(--red);
+  color: var(--white);
+  box-shadow: 0 2px 10px rgba(245, 16, 11, 0.28);
+}
+
+.pill-btn:active {
+  transform: scale(0.98);
+}
+
+/* Badge số khách cạnh nút "Trung chuyển" trên header. Mặc định (tab CHƯA được chọn) nền ĐỎ chữ trắng để
+   nổi bật trên thanh tab nền xám — trước đây nền trắng chữ đỏ nên gần như chìm khi chưa bấm vào nút.
+   Khi tab đang chọn (nút nền đỏ) thì đảo lại nền trắng chữ đỏ để vẫn tương phản. */
+#headerPickupBadge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--red);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+}
+.pill-btn.active #headerPickupBadge {
+  background: var(--white);
+  color: var(--red);
+}
+
+@keyframes calopen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Các nút hành động vòng đời chuyến (Chỉ định xe/Khởi hành xe/Re-open...) giờ chỉ còn xuất hiện bên
+   trong dropdown "Thao tác" (.z2-actions-dropdown) nên style như menu item, không còn là pill màu. */
+.assign-btn {
+  width: 100%;
+  background: transparent;
+  color: var(--text-main);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  white-space: nowrap;
+  transition: background .12s;
+  height: auto;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.assign-btn:hover {
+  background: var(--surface-2);
+}
+
+.assign-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--text-sub);
+  flex: 0 0 auto;
+  display: block;
+}
+
+.z2-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.depart-btn {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.depart-btn svg {
+  stroke: var(--red);
+}
+
+/* Searchable Dropdowns */
+.searchable-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-dropdown input {
+  width: 100%;
+  padding-right: 32px;
+  cursor: pointer;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 15px;
+  font-weight: 600;
+  background: white;
+  font-family: inherit;
+  transition: border-color .12s, box-shadow .12s;
+}
+
+.searchable-dropdown input:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+.form-field .searchable-dropdown input {
+  padding: 9px 11px;
+  min-height: 42px;
+  font-weight: 700;
+}
+
+.searchable-dropdown .combobox-arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-sub);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.searchable-dropdown .dropdown-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+  padding: 6px 0;
+  display: none;
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.searchable-dropdown .dropdown-panel.open {
+  display: block;
+}
+
+.searchable-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background .12s;
+}
+
+.searchable-dropdown .dropdown-item:hover {
+  background: var(--surface-2);
+}
+
+.searchable-dropdown .dropdown-item.active {
+  background: var(--red-light);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.searchable-dropdown .dropdown-item-check {
+  display: none;
+}
+
+.searchable-dropdown .dropdown-item.active .dropdown-item-check {
+  display: inline;
+}
+
+.seat-footbtn {
+  width: 100%;
+  background: var(--white);
+  color: var(--text-main);
+  border: 1px solid var(--border-gray);
+  border-radius: 5px;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  margin-top: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-sell {
+  background: linear-gradient(135deg, #2b2b2b 0%, #000000 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .28);
+}
+
+.btn-sell:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .36);
+}
+
+.btn-cancel-seats {
+  background: var(--red);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, .28);
+}
+
+.btn-cancel-seats:hover {
+  box-shadow: 0 4px 12px rgba(220, 38, 38, .36);
+}
+
+.ticket .price {
+  font-size: 19px;
+  font-weight: 800;
+  border-bottom: 1.5px dashed var(--border-gray);
+  padding: 0 3px;
+  border-radius: 4px;
+  outline: none;
+  transition: background .2s;
+}
+
+.ticket .price:focus,
+.ticket .price:hover {
+  background: var(--surface-2);
+  border-bottom: 2px solid var(--text-sub);
+}
+
+.ticket .edit-price {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-sub);
+  transition: transform .15s, stroke .15s;
+}
+
+.btn-icon-edit-price:hover .edit-price {
+  transform: scale(1.2);
+  stroke: var(--text-main);
+}
+
+@keyframes popin {
+  from {
+    transform: scale(.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.zone3 {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  padding: 10px 22px 16px;
+}
+
+/* ===== MODAL CHỈ ĐỊNH GHẾ DƯ CHO PHƠI KHÁC ===== */
+#assignSeatModal .panel-body {
+  overflow-y: hidden;
+}
+
+#assignSeatModal .trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+#assignSeatModal .trip-card {
+  border: 1px solid var(--border-gray);
+  border-left: 3.5px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  cursor: pointer;
+  transition: background .12s;
+}
+
+#assignSeatModal .trip-card:hover {
+  background: var(--surface-2);
+}
+
+#assignSeatModal .trip-card.selected {
+  border-color: var(--red);
+  border-left-color: var(--red);
+  background: var(--red-light);
+}
+
+#assignSeatModal .trip-card .trip-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+#assignSeatModal .trip-card .trip-time {
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+#assignSeatModal .trip-card .trip-plate-inline {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--red);
+  background: var(--red-light);
+  padding: 1.5px 6.5px;
+  border-radius: 5px;
+  letter-spacing: .2px;
+}
+
+#assignSeatModal .trip-card.selected .trip-plate-inline {
+  background: white;
+}
+
+#assignSeatModal .trip-card .trip-sub {
+  font-size: 12.5px;
+  color: var(--text-main);
+  margin-top: 2.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+}
+
+#assignSeatModal .trip-nums {
+  flex: 0 0 65px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+}
+
+#assignSeatModal .trip-nums .n1 {
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+#assignSeatModal .trip-nums .n2 {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  font-weight: 500;
+  margin-top: 3.5px;
+  white-space: nowrap;
+}
+
+#assignSeatModal .van-seat {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: all .2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#assignSeatModal .van-seat:hover:not(.blocked) {
+  transform: scale(1.1);
+}
+
+#assignSeatModal .van-seat .seat-num {
+  position: absolute;
+  top: 43%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: bold;
+  color: #475569;
+  pointer-events: none;
+}
+
+#assignSeatModal .van-seat.empty {
+  color: #7DAEE8;
+}
+
+#assignSeatModal .van-seat.selected {
+  color: #F27874;
+}
+
+#assignSeatModal .van-seat.selected .seat-num {
+  color: #ffffff;
+}
+
+#assignSeatModal .van-seat.blocked {
+  color: #C7CBD1;
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+#assignSeatModal .van-seat.blocked .seat-num {
+  color: #ffffff;
+}
+
+#assignSeatModal .seat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  flex: 1 1 auto;
+  align-content: start;
+  justify-items: center;
+}
+
+#assignSeatModal .seat-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@keyframes chFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================== RƯỚC LIỀN (gộp từ pickup-list.html/css) =====================
+   Bảng danh sách khách rước liền dùng .shuttle-table (ticketstaff.css trước đây chưa có,
+   copy đúng bản đang dùng ở css/callcenter.css cho "Danh sách phơi xe" để đồng nhất kiểu bảng). */
+
+/* .filter-field-date/.filter-select/.filter-date-chev chuyển sang css/shared/booking-ui.css (dùng chung)
+   vì #rbFilterDateBtn trong modal "Đặt lại vé" (js/shared/booking.js) cần kiểu này trên CẢ callcenter.html
+   lẫn ticketstaff.html, không riêng gì #pkFilterDateBtn ở đây. */
+.filter-reset { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 8px; margin-left: auto; }
+.filter-reset button { height: 35px; padding: 0 12px; font-size: 12px; font-weight: 600; }
+
+/* .panel-footer dùng chung (css/shared/booking-ui.css) mặc định justify-content:flex-end — dồn hết các
+   phần tử con (kể cả dòng gợi ý "Sẽ chỉ định...") về sát bên phải. #assignPickupModal cần dòng gợi ý nằm
+   góc trái, nút "Đóng"/"Bán vé" bên phải (đúng như trước khi gộp pickup-list.html) — ghi đè riêng
+   space-between, không đụng .panel-footer dùng chung cho các modal khác. */
+#assignPickupModal .panel-footer {
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* #pkFilterDateBtn là ô lọc NGOÀI CÙNG BÊN TRÁI trong .filter-toolbar (#pickupView), nằm trong
+   .filter-field-date chỉ rộng 160-190px. .calendar-popover dùng chung (css/shared/booking-ui.css) neo
+   theo "right:0" — tính từ mép PHẢI của khung 160-190px đó, trong khi bản thân popover rộng 250px, nên
+   phần dư (~60-90px) tràn ngược sang TRÁI khung, đè lên bảng bên dưới. Neo lại theo "left:0" (khớp mép
+   trái nút bấm) để popover mở đúng ngay dưới nút, không lệch/đè lên bảng. Không đụng đến lịch Zone 1
+   (#calendarPanel) — chỉ ghi đè riêng #pkCalendarPanel. */
+#pkCalendarPanel {
+  left: 0;
+  right: auto;
+}
+
+/* Bảng danh sách rước liền — bản đầu tiên ngay sau khi gộp pickup-list.html vào ticketstaff.html
+   (copy theo kiểu bảng "Danh sách phơi xe" bên callcenter.css, KHÔNG phải copy nguyên từ shuttle.css —
+   không dùng table-layout:fixed/max-width, để tránh bị kéo giãn hết màn hình). */
+.shuttle-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.shuttle-table thead th {
+  position: sticky;
+  top: 16px; /* khớp đúng chiều cao .pk-table-gap-spacer bên dưới — header luôn dính cách đỉnh vùng
+    cuộn đúng 16px dù cuộn bao nhiêu, không dính sát mép 0 nữa */
+  background: var(--white);
+  z-index: 5;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--border-gray);
+  white-space: nowrap;
+}
+
+.shuttle-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--surface);
+  vertical-align: middle;
+}
+
+.shuttle-table tbody tr {
+  transition: background .12s ease;
+}
+
+.shuttle-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.shuttle-table th.col-stt, .shuttle-table td.col-stt {
+  width: 28px;
+  /* Đè lại padding ngang mặc định (12px) của .shuttle-table th/td — cột này chỉ có 1-2 chữ số nên
+     padding mặc định làm cột rộng hơn cần thiết nhiều, cản việc thu gọn để dồn chỗ cho các cột nội dung. */
+  padding-left: 6px;
+  padding-right: 6px;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.shuttle-table td.center {
+  text-align: center;
+}
+
+/* Cột "Thao tác" thu hẹp còn 70px (dồn chỗ cho các cột nội dung) — cùng lý do như .col-stt, đè lại padding
+   ngang mặc định (12px) xuống nhỏ hơn để nút "Chỉ định"/"Đổi chỉ định" có đủ chỗ không bị bó/tràn viền. */
+.shuttle-table th.col-action, .shuttle-table td.col-action {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* Trang "Rước liền" — cùng kiểu bảng kẻ ô đầy đủ với bảng Hành khách/Trung chuyển/Ghế hủy/Lịch sử
+   (xem .pax-table--grid ở css/shared/booking-ui.css): mỗi ô đều có viền, header nền xám nhạt, thay cho
+   kiểu chỉ có viền dưới mỗi hàng mặc định của .shuttle-table. */
+.shuttle-table.shuttle-table--grid {
+  /* border-collapse:separate (+ border-spacing:0) thay vì collapse — collapse khiến Chrome vẽ lẫn viền
+     của hàng vừa cuộn qua lên trên nền header sticky (bóng mờ 1 dòng chữ rất nhạt lộ ra phía trên
+     header khi cuộn), lỗi hiển thị đã biết khi kết hợp border-collapse:collapse với position:sticky
+     trên <th> (đã gặp và sửa y hệt cho .shuttle-table bên trang shuttle.html trước đây). border-spacing:
+     0 giữ nguyên hình dáng viền, không có khe hở giữa các ô. */
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Với border-collapse:separate, mỗi ô tự vẽ viền riêng — nếu khai border:1px cho cả 4 cạnh thì 2 ô kề
+   nhau (phải/trái hoặc trên/dưới) MỖI ô đều vẽ 1px tại đúng ranh giới chung, cộng lại thành đường kẻ dày
+   ~2px (khác hẳn border-collapse:collapse gộp làm 1 đường 1px). Để đường kẻ mảnh 1px giống hệt bảng
+   Lịch sử (.pax-table--grid) dù vẫn giữ separate (cần cho sticky header, xem trên), mỗi ô CHỈ vẽ viền
+   phải + dưới (viền trái/trên của ô kề đã lo phần đó rồi); viền ngoài cùng (trái bảng/trên bảng) do
+   .shuttle-table-wrap đảm nhận qua border của chính khung bọc — ở đây tự vẽ bù thêm cho ô đầu cột/hàng
+   đầu để không thiếu viền khi không có khung bọc riêng. */
+.shuttle-table.shuttle-table--grid th,
+.shuttle-table.shuttle-table--grid td {
+  border: none;
+  border-right: 1px solid var(--border-gray);
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.shuttle-table.shuttle-table--grid th:first-child,
+.shuttle-table.shuttle-table--grid td:first-child {
+  border-left: 1px solid var(--border-gray);
+}
+
+.shuttle-table.shuttle-table--grid thead th {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border-gray);
+}
+
+/* .pk-table-wrap không cần style riêng — khoảng cách 16px phía trên bảng giờ do .pk-table-gap-spacer
+   (bên dưới) chiếm chỗ sẵn trong luồng bình thường, không còn dựa vào margin-top ở đây nữa.
+   Dải trắng cố định 16px phía trên bảng #pickupView — đứng NGAY TRƯỚC .pk-table-wrap trong .grid-wrap
+   (chính vùng cuộn overflow:auto). Bản thân dải này CŨNG sticky top:0 nên luôn dính khít đỉnh vùng cuộn
+   trong lúc cuộn, đóng vai trò 1 "nắp" đặc (nền trắng) che kín khoảng 0-16px — nhờ vậy khoảng cách giữa
+   mép trên vùng cuộn và header (chính header cũng sticky, neo top:16px — xem .shuttle-table thead th)
+   LUÔN cố định đúng 16px dù cuộn bao nhiêu, đồng thời không hàng nào lọt/lộ ra được trong dải 16px đó
+   (khác với cách cũ dùng padding-top trên .grid-wrap, để lộ hàng đang cuộn qua trong đúng dải đệm này). */
+.pk-table-gap-spacer {
+  position: sticky;
+  top: 0;
+  height: 16px;
+  background: var(--white);
+  z-index: 6;
+  flex: 0 0 auto;
+}
+
+/* Nav 4-tab lọc "Tất cả/Trung chuyển đón/Rước liền/Trung chuyển trả" ở đầu #pickupView — kiểu underline
+   (không pill, không nền đỏ đậm): nằm 1 hàng, trải đều đúng 4 phần bằng nhau kín 100% bề ngang khu vực
+   nội dung (mỗi tab flex:1, không còn co theo nội dung), có line phân tách dọc giữa các tab. border-
+   bottom của .pk-subtabs làm "đường ray" nền cho underline; tab active vẽ thêm 1 vạch đỏ 2px đè lên
+   đúng vị trí đó (::after) để không bị dính-nhảy layout khi chuyển active. */
+.pk-subtabs {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  flex: 0 0 auto;
+  width: 100%;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.pk-subtab {
+  position: relative;
+  flex: 1 1 0;
+  padding: 13px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  text-align: center;
+  border: none;
+  border-left: 1px solid var(--border-gray);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: color .12s ease, background .12s ease;
+}
+
+.pk-subtab:first-child {
+  border-left: none;
+}
+
+.pk-subtab.active {
+  color: var(--red);
+  font-weight: 700;
+  background: rgba(194, 13, 8, 0.04);
+}
+
+.pk-subtab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--red);
+}
+
+.pk-subtab:hover:not(.active) {
+  color: var(--red);
+  background: rgba(194, 13, 8, 0.04);
+}
+
+.pk-subtab-count {
+  margin-left: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+  opacity: .7;
+}
+
+/* Cột checkbox thay cho "Thao tác" ở bảng #pickupView — dùng lại đúng width/canh giữa của .col-stt */
+.shuttle-table th.col-check,
+.shuttle-table td.col-check {
+  width: 44px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Ô tick cột "col-check" — Y CHANG shuttle.html (css/shuttle.css: input[type="checkbox"]{width:16px;
+   height:16px;accent-color:var(--red);cursor:pointer;}): to hơn mặc định trình duyệt 1 chút + khi tick
+   hiện màu đỏ thương hiệu (accent-color, trình duyệt tự vẽ). Áp dụng cho cả 2 role vì dùng chung 1 bảng. */
+.shuttle-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--red);
+  cursor: pointer;
+}
+
+/* Tô cả dòng nền hồng/đỏ rất nhạt khi checkbox dòng đó được chọn — Y CHANG shuttle.html
+   (css/shuttle.css: .shuttle-table tbody tr.selected-row{background:var(--red-light);}). Class
+   "selected-row" gắn trực tiếp lúc render (pkRenderPickupRow/pkRenderTransshipRow, ticketstaff.js). */
+.shuttle-table tbody tr.selected-row {
+  background: var(--red-light);
+}
+
+/* Chú giải trạng thái (giống trang shuttle) */
+.status-legend {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-gray);
+  background: var(--surface-2);
+}
+
+.status-legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-right: 4px;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-main);
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* Ô "Khách hàng" trong bảng rước liền (cột "Hành trình" giờ dùng chung .pax-route/.pax-route-row của
+   css/shared/booking-ui.css — giống cột "Hành trình" bảng Lịch sử hành khách — không còn .route-tags/
+   .route-tag riêng của bảng này nữa). */
+.pax-info { display: flex; flex-direction: column; gap: 3px; }
+.pax-name { font-weight: 700; color: var(--text-main); white-space: nowrap; font-size: 13.5px; }
+.pax-phone { color: var(--text-sub); white-space: nowrap; font-size: 13.5px; }
+
+.status-tag { font-size: 12.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; white-space: nowrap; }
+.status-tag.pending { background: #FFF7E0; color: #B45309; }
+.status-tag.assigned { background: #EAFBF1; color: var(--green); }
+.assigned-info { display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; align-items: center; text-align: center; }
+.assigned-info b { font-size: 13.5px; color: var(--text-main); }
+.assigned-info span { color: var(--text-sub); }
+
+.assign-action-btn {
+  background: linear-gradient(135deg, var(--red) 0%, #d81410 100%);
+  color: white; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px;
+  font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+  gap: 4px; white-space: nowrap; box-shadow: 0 1.5px 5px rgba(194, 13, 8, 0.22);
+  transition: all .15s ease; line-height: 1.2; cursor: pointer;
+}
+.assign-action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(194, 13, 8, 0.32); }
+.assign-action-btn svg { width: 12px; height: 12px; stroke: currentColor; flex: 0 0 auto; }
+.assign-action-btn.reassign { background: white; color: var(--text-main); border: 1px solid var(--border-gray); box-shadow: none; }
+.assign-action-btn.reassign:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+
+/* Cột "Trung chuyển" (trang Trung chuyển) — tên tài xế đã gán ở shuttle.html (hoặc "Chưa gán tài xế")
+   + ghi chú CỦA TRUNG CHUYỂN (driverNote) ở dòng phụ .pk-driver-sub. Cột "Trạng thái" tách riêng, xem
+   .pk-status-tag bên dưới. Role bán vé chỉ xem (<div>); role trung chuyển bấm được cả ô (<button>, thêm
+   class .pk-transship-cell--clickable) để ghi/sửa driverNote qua #pkDriverNoteModal — CÙNG PATTERN với
+   cột "Phòng vé" bên role bán vé, không mở modal Cập nhật trạng thái/tài xế lớn. Xếp dọc để tên/ghi chú
+   không đè lên nhau. */
+.pk-transship-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+  width: 100%;
+  font-family: inherit;
+}
+
+/* Tag trạng thái đón (PK_STATUS_LABELS, ticketstaff.js) — cột "Trạng thái" RIÊNG (đã tách khỏi cột
+   "Trung chuyển"), chỉ xem ở CẢ 2 role (đổi trạng thái qua thanh nổi "Cập nhật"). Cùng bảng màu 4 trạng
+   thái với trang shuttle.html (--status-waiting/enroute/onboard/issue bên css/shuttle.css). */
+.pk-status-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pk-status-tag.status-waiting { background: #F3F4F6; color: #9CA3AF; }
+.pk-status-tag.status-enroute { background: #FFF7E0; color: #B45309; }
+.pk-status-tag.status-onboard { background: #EFF4FF; color: #1D4ED8; }
+.pk-status-tag.status-issue { background: #FEF0EF; color: #DC2626; }
+
+.pk-transship-cell--clickable {
+  border: 1px dashed var(--border-gray);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: background .12s ease, border-color .12s ease;
+}
+.pk-transship-cell--clickable:hover { background: var(--surface-2); border-color: var(--text-sub); }
+
+/* Cột "Phòng vé" chỉ xem (role trung chuyển, .pk-note-cell--readonly) — không phải nút, bỏ con trỏ tay/
+   hover, viền nhạt hơn .pk-note-cell (role bán vé, vẫn bấm được như cũ) để phân biệt rõ 2 trạng thái. */
+.pk-note-cell--readonly {
+  cursor: default;
+  border-style: solid;
+  border-color: var(--surface);
+}
+.pk-note-cell--readonly:hover { background: transparent; border-color: var(--surface); color: var(--text-sub); }
+.pk-driver-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-size: 12.5px; font-weight: 600; color: var(--text-main); }
+.pk-driver-name.pk-driver-empty { color: #B0B2B3; font-style: italic; font-weight: 500; }
+.pk-note-text { font-size: 11.5px; font-weight: 500; color: var(--red); white-space: normal; line-height: 1.3; }
+
+/* Cột "Phòng vé" (trang Rước liền) — ghi chú trạng thái đón do phòng vé nhập (p.statusNote), hiện thẳng
+   NỘI DUNG trong ô giống cột "Trung chuyển" (.pk-note-text). Luôn bấm được (dù có ghi chú hay trống) để
+   mở modal ghi/sửa (#pkStatusNoteModal, xem pkOpenStatusNoteModal()); trống thì hiện icon bút chì mờ.
+   Khi ĐÃ có ghi chú thì chỉ hiện CHỮ ĐỎ (.pk-note-text), KHÔNG viền/nền đỏ. */
+.pk-note-cell {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px dashed var(--border-gray);
+  border-radius: 6px;
+  color: var(--text-sub);
+  cursor: pointer;
+  text-align: center;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.pk-note-cell:hover { background: var(--surface-2); border-color: var(--text-sub); color: var(--text-main); }
+.pk-note-cell svg { width: 14px; height: 14px; }
+
+/* Thông báo "vừa cập nhật ghi chú Phòng vé" (.pk-phongve-banner-row, tab "Tất cả") — thay cho việc đẩy
+   dòng lên đầu danh sách: 1 DÒNG (<tr>) GHIM CỐ ĐỊNH ở đầu #pkPaxTableBody (nằm TRONG bảng, không phải
+   div nổi ngoài bảng nữa — xem pkRenderPaxTable/pkRenderPhongVeBannerRow), kèm nút "Đến vị trí" nhảy tới
+   đúng dòng và nút đóng. Cùng tông màu/đậm với .violation-alert cho nhất quán "cảnh báo đỏ" trong trang. */
+.pk-phongve-banner-row td {
+  background: var(--red);
+  padding: 0;
+  border-color: var(--red);
+}
+.pk-phongve-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: white;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.pk-phongve-banner-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.pk-phongve-banner-btn {
+  background: white;
+  color: var(--red);
+  border: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pk-phongve-banner-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+/* Vạch "in rước" (nút "In rước", role trung chuyển, xem pkSavePrintRuoc) — 1 dòng đỏ đậm cắt ngang hết
+   bề rộng bảng, GHIM CỐ ĐỊNH ở hàng đầu tiên của #pkPaxTableBody (không tham gia sort/lọc theo tab —
+   xem pkRenderPaxTable) nên luôn nằm trên cùng cho tới khi in rước lại (đổi giờ) hoặc bấm nút đóng. */
+.pk-print-divider-row td {
+  background: rgba(194, 13, 8, 0.06);
+  border-top: 1px dashed var(--red);
+  border-bottom: 1px dashed var(--red);
+  color: var(--red);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .5px;
+  text-align: center;
+  padding: 6px 8px;
+  position: relative;
+}
+.pk-print-divider-close {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--red);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* Chớp nền vàng nhạt 1 lần khi "Đến vị trí" (pkJumpToPhongVeRow) cuộn tới đúng dòng, để dễ nhận ra giữa
+   danh sách dài — tự tắt sau khi animation chạy xong (animation-fill-mode mặc định, không cần dọn class). */
+@keyframes pkRowFlash {
+  0% { background-color: #FFF3C4; }
+  100% { background-color: transparent; }
+}
+.pk-row-flash td { animation: pkRowFlash 1.6s ease-out; }
+
+/* Cột "Số ghế" (trang Trung chuyển) — cột hẹp, nằm ngay sau cột "SL". Chỉ hiện số ghế đã chỉ định; bấm
+   vào nhảy thẳng sang phơi tương ứng (data-action="sellTicketForTrip"). Chưa gán phơi thì hiện dấu "_"
+   (.pk-seat-none). */
+.pk-seat-link {
+  background: transparent;
+  border: none;
+  padding: 2px 3px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+}
+.pk-seat-link:hover { color: #d81410; }
+.pk-seat-none { color: var(--text-sub); font-weight: 700; }
+
+/* Nhãn phân biệt loại dòng trong bảng gộp trang "Trung chuyển" — dòng khách trung chuyển (gộp từ mọi
+   phơi) mới có nhãn này; dòng khách rước liền không có. Là nhãn chữ phẳng (không viền/nền) nằm ngay
+   trên "KH: {tên khách}" và canh lề trái thẳng hàng với chữ "KH:". */
+.pk-type-chip {
+  align-self: flex-start;
+  margin-bottom: 1px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--red);
+}
+
+/* Dòng phụ dưới tên tài xế ở cột "Trung chuyển" (SĐT / ghi chú tài xế) — bảng gộp trang Trung chuyển. */
+.pk-driver-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* Tag "Trạng thái" (2 bảng Trung chuyển đón/trả) — bấm để ghi/sửa ghi chú (tsRenderTransshipStatusBadge,
+   ticketstaff.js). KHÔNG hiện thẳng nội dung ghi chú trên tag như cột "Trung chuyển" (.pk-transship-cell)
+   trang Rước liền — chỉ đổi viền khi có ghi chú (.has-note), rê chuột vào mới thấy qua title="...". */
+.ts-status-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter .12s ease, border-color .12s ease;
+}
+.ts-status-badge:hover { filter: brightness(0.96); }
+.ts-status-badge.has-note { border-color: var(--red); }
+.ts-status-badge.pending { background: #FFF7E0; color: #B45309; }
+.ts-status-badge.ongoing { background: #EAFBF1; color: var(--green); }
+.ts-status-badge.blue { background: #EAF2FE; color: #2563eb; }
+.ts-status-badge.done { background: var(--surface-2); color: var(--text-sub); }
+
+/* ===== Thanh lọc select dùng chung cho các tab: Hành khách / Trung chuyển / Rước đường ===== */
+/* Thanh công cụ 1 hàng phẳng, canh ĐÁY: các ô lọc (.filter-field, 08-phoi-management.css) giãn đều chia
+   nhau bề ngang còn lại, rồi "Bỏ lọc" + "In danh sách" đứng liền nhau ở cuối hàng — đáy select / 2 nút
+   thẳng một hàng. */
+.rs-toolbar {
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+/* Các ô lọc giãn đều nhau (flex-grow) lấp kín bề ngang còn lại dù tab có 3 hay 4 ô — trần max-width
+   rộng để 3 ô vẫn phủ hết hàng, không để trống 1 khoảng bên phải; select width:100% + min-width:0 để
+   nội dung dài bị cắt gọn trong ô thay vì kéo giãn ô. */
+.rs-toolbar .filter-field {
+  flex: 1 1 180px;
+  min-width: 150px;
+  max-width: 320px;
+  gap: 3px;
+}
+.rs-toolbar .filter-field label {
+  font-size: 10px;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-toolbar .filter-field select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  font-size: 12px;
+}
+/* "Bỏ lọc" — nút phụ trung tính (viền xám, chữ xám) cho cân với nút đỏ "In danh sách" bên cạnh, thay
+   cho kiểu link chữ đỏ thừa kế từ .pax-filter-clear. */
+.rs-toolbar .rs-filter-clear {
+  flex: 0 0 auto;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--border-gray);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rs-toolbar .rs-filter-clear:hover {
+  color: var(--text-main);
+  border-color: var(--text-sub);
+}
+.rs-toolbar .rs-print-btn {
+  flex: 0 0 auto;
+  height: 34px;
+}
+#zone3Roadside .pax-col-paid .ts-status-badge { cursor: default; }
+#zone3Roadside .pax-col-paid .ts-status-badge:hover { filter: none; }
+
+/* Bảng 11 cột — chia lại tỉ lệ cho cân đối, chừa đủ chỗ cho cột Ghi chú (không khai width, tự nhận
+   phần còn lại). .pax-table là table-layout:fixed nên width khai ở đây được tôn trọng tuyệt đối. */
+/* Thu bớt padding ngang th/td (12px → 6px) để cột hẹp vẫn đủ chỗ chứa nội dung / tên cột 1 dòng. */
+.pax-table--roadside thead th,
+.pax-table--roadside tbody td {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+/* Mọi tên cột nằm 1 dòng — không để "TRẠNG THÁI" / "SỐ GHẾ" / "THÀNH TIỀN" bị bẻ xuống dòng. */
+.pax-table--roadside thead th { white-space: nowrap; }
+.pax-table--roadside .pax-col-stt    { width: 40px; }
+.pax-table--roadside .pax-col-name   { width: 12%; }
+.pax-table--roadside .pax-col-phone  { width: 9%; }
+.pax-table--roadside .pax-col-stop   { width: 10%; }
+.pax-table--roadside .pax-col-pickup { width: 14%; }
+.pax-table--roadside .pax-col-sl     { width: 3.5%; }
+.pax-table--roadside .pax-col-vt     { width: 7%; }
+.pax-table--roadside .pax-col-total  { width: 9%; }
+.pax-table--roadside .pax-col-paid   { width: 9%; }
+
+/* Cột checkbox thêm vào 2 bảng "Trung chuyển đón/trả" (zone3Transship, tab Trung chuyển trong booking
+   view) — CHỈ hiện cho role trung chuyển: mặc định ẩn (display:none), JS gắn class "ts-dispatch-role"
+   lên #zone3Transship khi role = shuttle_dispatch (xem tsApplyRoleUI() ticketstaff.js) mới hiện. Chọn
+   dòng rồi bấm "In vé trung chuyển" trên thanh nổi #tsPrintActionBar để in — y hệt cách checkbox trang
+   shuttle.html trông (16px, tick màu đỏ). */
+.pax-table--transship th.pax-col-check,
+.pax-table--transship td.pax-col-check {
+  width: 44px;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+.pax-table--transship input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--red);
+  cursor: pointer;
+}
+/* Checkbox nằm CHÍNH GIỮA ô — block + margin auto để không lệ thuộc text-align/khoảng trắng quanh input. */
+.pax-table--transship th.pax-col-check input[type="checkbox"],
+.pax-table--transship td.pax-col-check input[type="checkbox"] {
+  display: block;
+  margin: 0 auto;
+}
+.ts-check-col {
+  display: none;
+}
+#zone3Transship.ts-dispatch-role .ts-check-col {
+  display: table-cell;
+}
+
+/* In vé trung chuyển giờ dùng chung cơ chế mở cửa sổ in riêng (window.open + TICKET_PRINT_STYLE) với
+   vé lên xe bên role phòng vé — xem buildTransshipMultiTicketPrintHtml()/tsPrintSelectedTickets() ở
+   ticketstaff.js — nên không còn modal xem trước/CSS @media print riêng ở trang này nữa. */
+
+/* Modal "Chỉ định xe rước liền" (#assignPickupModal) — .panel-head/.panel-body/.panel-footer/.icon-close
+   đã dùng chung ở css/shared/booking-ui.css; chỉ ghi đè riêng layout 2 cột + kích thước cho modal này. */
+.assign-panel {
+  width: 980px; height: 650px; max-width: 95vw; max-height: 92vh; background: white; border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25); display: flex; flex-direction: column; overflow: hidden;
+}
+#assignPickupModal .panel-body {
+  grid-template-columns: 350px 1fr;
+  overflow-y: hidden;
+  height: 100%;
+  align-items: stretch;
+}
+.assign-left-col, .assign-right-col {
+  display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+}
+
+/* Danh sách phơi bên trái modal — đặt tiền tố "pk-" vì .trip-card/.trip-time/.trip-plate-inline đã được
+   dùng cho thẻ phơi Zone 1 (css/shared/booking-ui.css) với cấu trúc/kiểu khác hẳn — trùng tên sẽ đè nhầm. */
+.pk-trip-col-title { font-size: 12.5px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+.pk-trip-search-box {
+  display: flex; align-items: center; gap: 8px;
+  border: 1.5px solid var(--border-gray); border-radius: 999px;
+  padding: 8px 14px; margin-bottom: 10px; background: white;
+}
+.pk-trip-search-box:focus-within { border-color: var(--red); }
+.pk-trip-search-box svg { width: 15px; height: 15px; stroke: var(--text-sub); flex: 0 0 auto; }
+.pk-trip-search-box input { border: none; background: transparent; outline: none; flex: 1; font-size: 14.5px; color: var(--text-main); font-family: inherit; }
+.pk-trip-empty-msg { padding: 16px 4px; text-align: center; font-size: 13.5px; color: var(--text-sub); font-weight: 600; }
+/* .pk-trip-list vẫn cần (khung cuộn danh sách) — riêng kiểu dáng từng thẻ phơi giờ dùng chung .trip-card
+   (css/shared/booking-ui.css), đúng y hệt danh sách phơi Zone 1, nên đã bỏ toàn bộ .pk-trip-card/.pk-trip-*
+   riêng của modal này. */
+.pk-trip-list { flex: 1 1 0; min-height: 0; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Sơ đồ ghế bên phải modal */
+.seatmap-col-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.seatmap-col-title span { font-size: 12.5px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: .4px; }
+#assignPickupModal .van-frame {
+  flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 14px 16px; width: 100%;
+  display: flex; flex-direction: row; gap: 16px; justify-content: center; align-items: flex-start;
+  border: 1px solid var(--border-gray); border-radius: var(--radius-lg); background: var(--surface-2);
+}
+#assignPickupModal .seat-legend {
+  flex: 0 0 auto; margin-top: 8px; padding: 7px 12px; background: white;
+  border: 1px solid var(--border-gray); border-radius: var(--radius-sm); width: 100%;
+}
+#assignPickupModal .floor-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+#assignPickupModal .floor-title-bar {
+  text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 1px; color: var(--text-main);
+  background: var(--surface); border-radius: var(--radius-sm); padding: 4px 0; margin-bottom: 6px;
+}
+#assignPickupModal .seat-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  flex: 1 1 auto; align-content: start; justify-items: center;
+}
+#assignPickupModal .seat-grid.cols-3 { grid-template-columns: repeat(3, 1fr); gap: 6px 8px; }
+#assignPickupModal .seat-grid.cols-3 .van-seat { width: 36px; height: 36px; }
+
+.van-seat {
+  position: relative; width: 40px; height: 40px; background: none; border: none; padding: 0;
+  cursor: pointer; color: #cbd5e1; transition: all .2s ease;
+}
+.van-seat:hover:not(.blocked) { transform: scale(1.1); }
+.van-seat .seat-num {
+  position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 11px; font-weight: bold; color: #475569; pointer-events: none;
+}
+.van-seat.empty { color: #7DAEE8; }
+.van-seat.selected { color: #F27874; }
+.van-seat.selected .seat-num { color: #ffffff; }
+.van-seat.blocked { color: #C7CBD1; opacity: .55; cursor: not-allowed; }
+.van-seat.blocked .seat-num { color: #ffffff; }
+
+/* ===================== QUẢN LÝ VÒNG ĐỜI CHUYẾN XE (KHỞI HÀNH / RE-OPEN / KẾT CA) =====================
+   Toàn bộ CSS cho tính năng state machine chuyến xe (SELLING → DEPARTED → REOPEN → REOPEN_CLOSED →
+   MANIFEST_CLOSED), modal tạo phơi/Re-open/khách ngoài phơi/kết ca. Logic + render nằm ở
+   js/ticketstaff-manifest-core.js và js/ticketstaff-manifest-ui.js. */
+
+/* Badge trạng thái chuyến — màu đổi theo state, đặt ngay cạnh tên chuyến trên Zone 2. */
+.trip-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.trip-status-badge:empty {
+  display: none;
+}
+
+/* Chuyến chưa tạo phơi: phân biệt Chưa/Đã chỉ định xe (màu khớp badge cùng trạng thái ở thẻ danh sách
+   Phơi xe — .status-badge.chua-chi-dinh / .da-chi-dinh). "Đang bán" dùng lại .status-selling bên dưới. */
+.trip-status-badge.status-chua-chi-dinh {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+.trip-status-badge.status-da-chi-dinh {
+  background: #EFF4FF;
+  color: #1D4ED8;
+}
+
+.trip-status-badge.status-selling {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.trip-status-badge.status-departed {
+  background: #E2E8F0;
+  color: #334155;
+}
+
+.trip-status-badge.status-reopen {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.trip-status-badge.status-reopen_closed {
+  background: #E0E7FF;
+  color: #4338CA;
+}
+
+.trip-status-badge.status-manifest_closed {
+  background: #1E293B;
+  color: #F1F5F9;
+}
+
+/* Nút "Thao tác" gộp toàn bộ nút vòng đời chuyến (Chỉ định xe/Khởi hành xe/Re-open...) vào 1 dropdown
+   ở zone2, chỉ còn nút Thu gọn đứng riêng bên cạnh. Nội dung dropdown vẫn do renderTripLifecycleUI()
+   đổ vào #tripLifecycleActions (id giữ nguyên) theo state, chỉ đổi vai trò từ hàng nút sang panel. */
+.z2-actions-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.z2-actions-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background: linear-gradient(135deg, var(--red) 0%, #d81410 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .12s;
+  box-sizing: border-box;
+}
+
+.z2-actions-btn:hover {
+  opacity: .9;
+}
+
+.z2-actions-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: white;
+  flex: 0 0 auto;
+}
+
+.z2-actions-btn .z2-actions-chevron {
+  transition: transform .15s;
+}
+
+.z2-actions-menu.open .z2-actions-btn .z2-actions-chevron {
+  transform: rotate(180deg);
+}
+
+.z2-actions-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .12);
+  z-index: 60;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.assign-btn.reopen-btn {
+  color: #B45309;
+  font-weight: 700;
+}
+
+.assign-btn.reopen-btn svg {
+  stroke: #B45309;
+}
+
+/* Dòng thông tin chỉ đọc trong các modal (Chuyến xe/Biển số/Tài xế/Nhân viên/Thời gian...), thay cho
+   inline style lặp lại nhiều chỗ. */
+.readonly-line {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  padding: 8px 0;
+}
+
+/* Modal "Đóng Re-open" — dùng .modal cơ bản (520px mặc định) nhưng #closeReopenSummaryBox bên trong có
+   bảng "Doanh thu theo trạm" (tsRenderStationTableHtml), hơi chật ở 520px — nới rộng thêm 1 chút. */
+#closeReopenModal .modal {
+  width: 620px;
+}
+
+/* Modal tổng hợp/Xem phơi/Kết ca cần rộng hơn modal xác nhận đơn giản (520px mặc định) vì có bảng số
+   liệu bên trong. Giới hạn chiều cao theo viewport — khi nội dung dài hơn cho phép, chỉ phần
+   .manifest-modal-body ở giữa cuộn dọc, tiêu đề (h3) và hàng nút (.modal-actions) luôn cố định tại chỗ,
+   không bị cuộn mất khỏi tầm nhìn cùng nội dung. */
+.manifest-modal {
+  width: 620px;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow: hidden;
+}
+
+/* Rộng hơn nữa (760px cũ không đủ) vì bảng "Danh sách rước đường" có 9 cột (STT/Họ và tên/SDT/Trạm đi/
+   Trạm đến/Điểm rước/Số vé/Số ghế/Thành tiền) — 760px khiến tiêu đề cột như "Họ và tên"/"Thành tiền" bị
+   xuống dòng. .pax-table-wrap vẫn có overflow-x:auto làm lưới an toàn nếu màn hình hẹp hơn max-width. */
+.manifest-modal.manifest-modal-wide {
+  width: 1030px;
+  max-width: 92vw;
+}
+
+.manifest-modal h3 {
+  flex: 0 0 auto;
+}
+
+.manifest-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Edge cũ/IE */
+}
+
+/* Ẩn thanh cuộn trên trình duyệt Chromium/Safari — vẫn cuộn được bình thường bằng chuột/cảm ứng, chỉ
+   ẩn phần thanh trượt hiển thị cho gọn giao diện modal. */
+.manifest-modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+.manifest-modal .modal-actions {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+
+/* Khối tiêu đề 1 nhóm số liệu bên trong modal (VD "Phơi gốc", "Doanh thu theo trạm", "Đối soát"). */
+.manifest-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  margin: 10px 0 5px;
+}
+
+.manifest-section-title:first-child {
+  margin-top: 0;
+}
+
+/* Khối "Thông tin chuyến" trong modal Khởi hành xe/Xem phơi — header riêng (tuyến + biển số nổi bật)
+   và danh sách nhãn/giá trị xếp dọc bên dưới, thay cho 1 dòng chữ dài nối bằng dấu "•" trước đây. */
+.trip-meta-box {
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.trip-meta-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.trip-meta-route {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.trip-meta-plate {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+  color: var(--text-sub);
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+/* 2 cột: trái là kíp xe (Tài xế/Phụ xe), phải là mốc thời gian (Khởi hành/tạo phơi lúc) — tách vạch
+   giữa để phân biệt rõ 2 nhóm thông tin khác bản chất. */
+.trip-meta-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.trip-meta-col:first-child {
+  border-right: 1px solid var(--border-gray);
+}
+
+.trip-meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+}
+
+.trip-meta-item:not(:last-child) {
+  border-bottom: 1px solid var(--surface);
+}
+
+.trip-meta-item .tm-label {
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.trip-meta-item .tm-value {
+  color: var(--text-main);
+  font-weight: 700;
+  text-align: right;
+}
+
+
+/* Modal "Xem phơi" gom rất nhiều khối (thông tin chuyến/tổng hiện tại/doanh thu theo trạm/diễn biến/
+   vi phạm...) nên các bảng dùng lại .pax-table ở đây cần thu nhỏ padding hơn bản gốc (vốn tối ưu cho
+   bảng chính toàn màn hình) để đỡ chiếm chiều cao modal. */
+.manifest-modal .pax-table thead th {
+  padding: 6px 10px;
+}
+
+.manifest-modal .pax-table tbody td {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+/* Bảng chi tiết mệnh giá dạng lưới 2 dòng (Số lượng & Số tiền) có vạch kẻ mảnh chuẩn như phơi in */
+.denom-grid-table {
+  width: 100%;
+  border-collapse: collapse !important;
+}
+
+.denom-grid-table th,
+.denom-grid-table td {
+  border: 1px solid var(--border-gray) !important;
+  padding: 5px 6px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.denom-grid-table thead th {
+  background: var(--surface-2) !important;
+  color: var(--text-sub) !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.3px;
+}
+
+.denom-station-cell {
+  background: var(--surface-2) !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  color: var(--text-main) !important;
+}
+
+.denom-row-count td {
+  background: #FFFFFF;
+}
+
+.denom-row-amount td {
+  background: #FAFAFA;
+}
+
+/* Khối tóm tắt (Số vé/Vé trạm/Khách rước đường/Đã thu/Chưa thu/Tiền rước đường dự kiến/Tổng tiền) — bảng
+   riêng ngay dưới bảng lưới trạm × mệnh giá, khung viền/nền giống .denom-grid-table nhưng có 4 cột cố
+   định (khai qua <colgroup> ở JS) để luôn đúng tỉ lệ 2 cột nhãn/giá trị đều nhau, không phụ thuộc số cột
+   mệnh giá của bảng lưới phía trên. "Tổng tiền" chiếm trọn hàng cuối, nổi bật hơn các mục còn lại. */
+.denom-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.denom-summary-table td {
+  border: 1px solid var(--border-gray);
+  padding: 7px 10px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.denom-summary-table td.ds-label {
+  background: var(--surface-2);
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.denom-summary-table td.ds-value {
+  text-align: right;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.denom-summary-total-row td {
+  background: var(--surface-2);
+}
+
+.denom-summary-total-row .ds-label {
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.denom-summary-total-row .ds-value {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Kiểu đường kẻ ô dùng chung cho các bảng liệt kê thường (Doanh thu theo trạm, Lịch sử Re-open...) —
+   giống bảng "Chi tiết mệnh giá" bên cạnh nhưng giữ nguyên căn lề riêng từng cột (không ép center như
+   bảng mệnh giá vì đây là bảng liệt kê thường, không phải lưới số). */
+.lined-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lined-table th,
+.lined-table td {
+  border: 1px solid var(--border-gray);
+}
+
+.lined-table thead th {
+  background: var(--surface-2);
+  color: var(--text-sub);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: .3px;
+  white-space: nowrap;
+}
+
+/* Bảng "Danh sách rước đường" (modal Khởi hành xe/Xem phơi, tsRenderRoadsideListTableHtml) — khai rõ
+   width % cho ĐỦ cả 9 cột (trước đây chỉ STT/Điểm rước có width, còn lại để trình duyệt tự chia đều —
+   .pax-table dùng table-layout:fixed nên phải khai rõ mới chỉnh chính xác được từng cột). Tổng = 100%.
+   overflow:hidden + ellipsis trên STT làm lưới an toàn phòng tràn chữ đè lên cột kế bên (đã gặp lỗi này ở
+   cột SĐT bảng Lịch sử, xem css/shared/booking-ui.css). */
+.ts-rlist-stt {
+  width: 5%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-rlist-name {
+  width: 12.75%;
+}
+
+.ts-rlist-phone {
+  width: 11%;
+}
+
+.ts-rlist-stop {
+  width: 12.75%;
+}
+
+.ts-rlist-pickup {
+  width: 21.75%;
+}
+
+.ts-rlist-count {
+  width: 5%;
+}
+
+.ts-rlist-seats {
+  width: 9%;
+}
+
+.ts-rlist-amount {
+  width: 10%;
+}
+
+
+
+/* Timeline "Phơi gốc → Re-open lần N → Tổng hiện tại" (mục 6 trong spec nghiệp vụ) — không ghi đè số
+   cũ, mỗi mốc hiện riêng 1 dòng, số phát sinh có dấu (+) để phân biệt với số liệu gốc. */
+.manifest-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 12px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+}
+
+.manifest-history-item.is-total {
+  background: var(--red-light);
+  border-color: #FBD5D4;
+}
+
+.manifest-history-item .mh-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.manifest-history-item .mh-sub {
+  font-size: 10.5px;
+  color: var(--text-sub);
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.manifest-history-item .mh-value {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.manifest-history-item.is-total .mh-value {
+  color: var(--red);
+  font-size: 14px;
+}
+
+/* Cảnh báo "PHÁT HIỆN KHÁCH KHÔNG CÓ TRÊN PHƠI" — nổi bật hơn hẳn .warn-box thường vì đây là tình huống
+   vi phạm cần chú ý ngay khi mở modal, không phải nhắc nhở thông thường. */
+.violation-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--red);
+  color: white;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  margin-bottom: 14px;
+}
+
+.violation-alert svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+/* Số chênh lệch trong modal ghi nhận khách ngoài phơi — 0 thì trung tính, khác 0 thì đỏ nổi bật để
+   nhân viên không bỏ sót. */
+.diff-highlight {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+.diff-highlight.has-diff {
+  color: var(--red) !important;
+}
+
+/* Khối đối soát kết ca — hệ thống vs thực tế, chênh lệch phải đập ngay vào mắt (mục 11), không cho
+   click lướt qua nút xác nhận mà không thấy. */
+.reconcile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.reconcile-row .rc-value {
+  font-weight: 800;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.reconcile-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 0;
+  margin-top: 4px;
+  border-top: 2px solid var(--border-gray);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.reconcile-diff-box {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.reconcile-diff-box.ok {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.reconcile-diff-box.warn {
+  background: var(--red-light);
+  color: var(--red);
+  border: 1.5px solid var(--red);
+}
+
+/* Mục "Kết ca" trong dropdown tài khoản (cạnh tên đăng nhập) — cùng layout với .user-logout-btn (đã có
+   sẵn ở shared/booking-ui.css) nhưng màu trung tính vì đây là điều hướng sang trang Kết ca, không phải
+   hành động nguy hiểm như đăng xuất. */
+.user-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.user-menu-item svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--text-sub);
+  flex: 0 0 auto;
+}
+
+.user-menu-item:hover {
+  background: var(--surface-2);
+}
+
+/* Trang Kết ca (thay cho modal cũ) — nằm cùng cấp #historyView/#pickupView, tự cuộn nội dung dài. */
+#shiftClosingView {
+  flex: 1;
+  width: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  gap: 18px;
+}
+
+#shiftClosingView .modal-actions {
+  margin-top: 4px;
+}
+
+/* Khối số liệu tổng hợp dùng chung cho trang Kết ca VÀ các modal phơi (Xem phơi/Khởi hành xe/Re-open...)
+   — vài số chính nổi bật thành 1 hàng, số phụ gom vào danh sách/chip gọn bên dưới thay vì mỗi số 1 ô
+   vuông riêng như trước, đỡ tốn chiều cao. .compact dùng trong modal hẹp nên chữ/khoảng cách nhỏ hơn so
+   với trang Kết ca full-width. */
+.stat-hero-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+
+.stat-hero-item {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-hero-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.stat-hero-item.accent .stat-hero-value {
+  color: var(--red);
+}
+
+.stat-hero-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .2px;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.stat-hero-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border-gray);
+  flex: 0 0 auto;
+}
+
+.stat-detail-list {
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.stat-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.stat-detail-row:not(:last-child) {
+  border-bottom: 1px solid var(--surface);
+}
+
+.stat-detail-row span:last-child {
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.stat-detail-row.warn span:last-child {
+  color: var(--red);
+}
+
+/* Đường kẻ mảnh phân tách khối "Tổng hiện tại" khỏi khối "Chi tiết phơi" bên dưới */
+
+/* Đường kẻ mảnh phân tách khối "Tổng hiện tại" (tổng quan/thanh toán) khỏi khối "Chi tiết phơi" bên
+   dưới (mệnh giá/trạm/diễn biến...) trong modal Xem phơi/Khởi hành xe. */
+.pv-hr {
+  border: none;
+  border-top: 1px solid var(--border-gray);
+  margin: 4px 0 16px;
+}
+
+/* Tiêu đề từng khối trong "Chi tiết phơi" (mệnh giá/trạm/diễn biến/lịch sử/vi phạm) — chỉ chữ, không
+   khung bao quanh cả khối như .manifest-section-title kiểu cũ vẫn dùng ở các modal Re-open/Kết ca. */
+.pv-detail-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  margin: 16px 0 8px;
+}
+
+.pv-detail-title:first-child {
+  margin-top: 0;
+}
+
+/* Modal Xem phơi/Khởi hành xe giảm hẳn border thừa quanh bảng — giữ border trong bảng (cần cho dữ liệu
+   dạng lưới) nhưng bỏ khung bao ngoài .pax-table-wrap vốn tạo cảm giác "card lồng card". */
+.manifest-modal .pax-table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+/* Bảng "Chi tiết mệnh giá"/"Doanh thu theo trạm"/"Lịch sử Re-open" cần bo góc ngoài như .trip-meta-box/
+   .stat-detail-list bên cạnh — bo góc trên <table border-collapse> không ăn nên chuyển viền + bo góc ra
+   khung bọc ngoài, bỏ border riêng của .denom-grid-table/.lined-table (giữ lại vạch kẻ ô bên trong) để
+   tránh viền đôi. */
+.manifest-modal .grid-table-wrap {
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.seat-legend-dot.selected { background: #F27874; }
+.seat-legend-dot.blocked { background: #C7CBD1; }
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1199px) {
+  .assign-panel { width: 92vw; }
+  #assignPickupModal .panel-body { grid-template-columns: 280px 1fr; }
+}
+
+@media (max-width: 767px) {
+  /* Modal "Chỉ định xe rước liền" có chiều cao cố định 650px + 2 cột (danh sách phơi 350px | sơ đồ
+     ghế) — trên mobile đổi sang cao tự nhiên theo nội dung (giới hạn theo viewport) và xếp chồng 1 cột,
+     danh sách phơi lên trên, sơ đồ ghế bên dưới. */
+  .assign-panel { width: 100%; height: auto; max-height: 92vh; }
+  #assignPickupModal .panel-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    height: auto;
+  }
+  .assign-left-col,
+  .assign-right-col { height: auto; overflow: visible; }
+  .assign-left-col {
+    border-bottom: 1px solid var(--border-gray);
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+  }
+  #assignPickupModal .van-frame { flex-direction: column; }
+
+  .trip-meta-cols { grid-template-columns: 1fr; }
+  .trip-meta-col:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--border-gray);
+  }
+
+  .manifest-modal,
+  .manifest-modal.manifest-modal-wide { width: 100%; }
+
+  .stat-hero-row { flex-wrap: wrap; gap: 10px; }
+  .stat-hero-divider { display: none; }
+  .stat-hero-item { flex: 1 1 40%; }
+
+  .filter-reset { flex: 1 1 100%; margin-left: 0; }
+  .filter-reset button { width: 100%; justify-content: center; }
+
+  .pk-trip-search-box { padding: 9px 14px; }
+  .assign-action-btn,
+  .status-tag { min-height: 30px; }
+}
+
+/* ===================== PHƠI XE MANAGEMENT (chuyển từ css/callcenter.css qua) =====================
+   .modal-overlay/.sticky-actions/.filter-toolbar/.filter-field/.grid-wrap/.grid-empty/.main-view-container
+   đã dùng chung ở css/shared/booking-ui.css — chỉ chuyển các class riêng của tính năng Phơi xe (modal
+   Tạo/Sửa phơi, modal Lộ trình, thẻ phơi dạng card, badge trạng thái, thanh chọn phơi mẫu) chưa tồn tại
+   ở bản ticketstaff trước đây. */
+
+.modal-card label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.modal-card input[type="text"],
+.modal-card input[type="date"],
+.modal-card input[type="time"],
+.modal-card input[type="number"],
+.modal-card select {
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-gray);
+  background: var(--white);
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
+  transition: border-color .15s;
+}
+
+.modal-card input[type="text"]:focus,
+.modal-card input[type="date"]:focus,
+.modal-card input[type="time"]:focus,
+.modal-card input[type="number"]:focus,
+.modal-card select:focus {
+  border-color: var(--red);
+}
+
+.modal-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop .2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1.5px solid var(--border-gray);
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.close-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-main);
+}
+
+.close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Header modal "Tạo/Chỉnh sửa phơi xe" thu gọn hơn mặc định — chỉ áp dụng riêng #singleModal, không
+   đổi các modal khác dùng chung .modal-header/.close-btn. */
+#singleModal .modal-header { padding: 13px 20px; }
+#singleModal .modal-header h2 { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.3; letter-spacing: .1px; }
+#singleModal .close-btn { width: 26px; height: 26px; }
+#singleModal .close-btn svg { width: 16px; height: 16px; }
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+.modal-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.flex-1 {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.required {
+  color: var(--red);
+  margin-left: 2px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Nút "Hủy phơi xe" trong modal Chỉnh sửa — tách biệt rõ với "Đóng"/"Lưu" bằng viền đỏ. */
+.btn-danger-outline {
+  background: var(--white);
+  color: var(--red);
+  border: 1.5px solid var(--red);
+}
+
+.btn-danger-outline:hover {
+  background: var(--red);
+  color: var(--white);
+}
+
+/* "Trạm có thể nhận thêm khách" (modal Tạo phơi xe) — chip checkbox nằm ngang. */
+.station-pick-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding-top: 2px;
+}
+
+.station-pick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--border-gray);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.station-pick-pill input {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--red);
+  cursor: pointer;
+}
+
+.station-pick-pill.checked {
+  border-color: var(--red);
+  background: var(--red-light);
+  color: var(--red);
+}
+
+.station-pick-empty {
+  font-size: 13px;
+  color: var(--text-sub);
+  font-style: italic;
+}
+
+#singleModal .modal-card { max-width: 720px; }
+
+#singleModal .modal-body {
+  padding: 14px 20px 36px;
+  max-height: calc(100vh - 100px);
+}
+
+#singleModal .modal-row { gap: 12px; margin-bottom: 10px; }
+#singleModal .modal-card label { display: block; font-size: 12px; margin-bottom: 4px; }
+
+#singleModal .modal-card input[type="text"],
+#singleModal .modal-card input[type="date"],
+#singleModal .modal-card input[type="time"],
+#singleModal .modal-card input[type="number"],
+#singleModal .modal-card select {
+  padding: 8px 12px;
+  font-size: 13.5px;
+}
+
+#singleModal .station-pick-group { min-height: 28px; gap: 6px; padding-top: 2px; }
+#singleModal .station-pick-pill { padding: 5px 11px; font-size: 12px; }
+#singleModal .modal-footer { margin-top: 8px; }
+
+/* Nút "Hủy phơi xe"/"Đóng"/"Lưu" — bo góc nhẹ như .seat-footbtn thay vì bo tròn hết cỡ (border-radius:
+   999px) của .btn dùng chung toàn trang, cùng kiểu với .phoi-edit-btn/.phoi-sell-btn ở thẻ phơi. */
+#singleModal .modal-footer .btn {
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-badge .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.status-badge.chua-chi-dinh { background: #F3F4F6; color: #4B5563; }
+.status-badge.chua-chi-dinh .status-dot { background: #9CA3AF; }
+
+.status-badge.da-chi-dinh { background: #EFF4FF; color: #1D4ED8; }
+.status-badge.da-chi-dinh .status-dot { background: #2563EB; }
+
+.status-badge.dang-ban { background: #F0FDF4; color: #15803D; }
+.status-badge.dang-ban .status-dot { background: #16A34A; }
+
+.status-badge.da-khoi-hanh { background: #EEF2FF; color: #4338CA; }
+.status-badge.da-khoi-hanh .status-dot { background: #6366F1; }
+
+.status-badge.da-huy { background: #FEF0EF; color: #DC2626; }
+.status-badge.da-huy .status-dot { background: #DC2626; }
+
+/* Danh sách phơi xe dạng thẻ — mỗi thẻ có vệt màu trái theo trạng thái và nút "Bán vé" dẫn thẳng sang
+   tab Quản lý vé cho đúng phơi đó. */
+.phoi-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+  padding: 2px 2px 4px;
+}
+
+.phoi-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-gray);
+  border-left: 4px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  overflow: hidden;
+  transition: box-shadow .15s ease, border-color .15s ease;
+  cursor: pointer;
+}
+
+.phoi-card:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, .07); }
+
+.phoi-card.status-chua-chi-dinh { border-left-color: #9CA3AF; }
+.phoi-card.status-da-chi-dinh { border-left-color: #2563EB; }
+.phoi-card.status-dang-ban { border-left-color: #16A34A; }
+.phoi-card.status-da-khoi-hanh { border-left-color: #6366F1; }
+.phoi-card.status-da-huy { border-left-color: #DC2626; opacity: .7; }
+
+.phoi-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 8px 0 12px;
+}
+
+.phoi-card-schedule {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.phoi-card-time-row { display: flex; align-items: center; gap: 6px; }
+.phoi-card-time { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+.phoi-card-date { font-size: 11.5px; color: var(--text-sub); font-weight: 500; }
+.phoi-card-top .status-badge { flex: 0 0 auto; }
+
+.phoi-card-name {
+  padding: 10px 12px 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.phoi-card-meta {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--surface);
+}
+
+.phoi-card-meta-item { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
+.phoi-card-meta-item label { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; color: var(--text-sub); font-weight: 700; }
+.phoi-card-meta-item span { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.phoi-card-footer { margin-top: auto; display: flex; gap: 8px; padding: 0 12px 12px; }
+
+.phoi-edit-btn,
+.phoi-sell-btn {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: 5px;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+.phoi-sell-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+.phoi-route-btn {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border: none;
+  background: none;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color .12s;
+}
+
+.phoi-route-btn svg { width: 21px; height: 21px; }
+.phoi-route-btn:hover { color: var(--red); }
+
+/* ===== MODAL: LỘ TRÌNH — timeline dọc điểm xuất phát/đón khách/điểm đến ===== */
+.trip-route-modal-card { max-width: 460px; }
+
+.trip-route-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.trip-route-summary #tripRouteName { font-size: 13.5px; font-weight: 700; color: var(--text-main); }
+
+.trip-route-timeline { display: flex; flex-direction: column; }
+
+.trip-route-step { position: relative; display: flex; gap: 14px; padding-bottom: 26px; }
+.trip-route-step:last-child { padding-bottom: 0; }
+.trip-route-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-gray);
+}
+
+.trip-route-step-marker {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  color: var(--text-sub);
+  border: 2px solid var(--white);
+  box-shadow: 0 0 0 1.5px var(--border-gray);
+}
+
+.trip-route-step-marker svg { width: 16px; height: 16px; }
+
+.trip-route-step.start .trip-route-step-marker { background: #16A34A; color: white; box-shadow: 0 0 0 1.5px #16A34A; }
+.trip-route-step.stop .trip-route-step-marker { background: var(--red-light); color: var(--red); box-shadow: 0 0 0 1.5px #FBD5D4; }
+.trip-route-step.end .trip-route-step-marker { background: var(--red); color: white; box-shadow: 0 0 0 1.5px var(--red); }
+
+.trip-route-step-body { flex: 1 1 auto; min-width: 0; padding-top: 4px; }
+.trip-route-step-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--text-sub); }
+.trip-route-step-name { font-size: 14px; font-weight: 700; color: var(--text-main); margin-top: 2px; }
+.trip-route-empty { margin: 0; font-size: 13.5px; color: var(--text-sub); text-align: center; padding: 20px 0; }
+
+/* ===== "Tạo phơi xe hàng loạt" — chọn phơi mẫu ngay trong danh sách ===== */
+#btnBulkCreate.active-bulk { background: var(--red); color: white; border-color: var(--red); }
+#btnBulkCreate.active-bulk svg { stroke: white; }
+
+.phoi-card-selectable { position: relative; padding-bottom: 12px; }
+.phoi-card-selectable:hover { border-color: var(--red); }
+.phoi-card-selectable .phoi-card-top { padding-right: 32px; }
+.phoi-card-selectable.selected { border-color: var(--red); background: var(--red-light); }
+
+.phoi-card-select-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-gray);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.phoi-card-selectable.selected .phoi-card-select-check { border-color: var(--red); background: var(--red); }
+.phoi-card-select-check svg { width: 12px; height: 12px; }
+
+.bulk-template-bar-fields { display: flex; align-items: flex-end; gap: 10px; }
+.bulk-template-date-field { display: flex; flex-direction: column; gap: 4px; }
+.bulk-template-date-field label { font-size: 10.5px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: .3px; }
+.bulk-template-date-field input[type="date"] {
+  height: 35px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+@media (max-width: 1199px) {
+  .phoi-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 767px) {
+  .phoi-card-grid { grid-template-columns: 1fr; gap: 10px; }
+  .phoi-edit-btn,
+  .phoi-sell-btn { min-height: 38px; }
+
+  .modal-row { flex-direction: column; gap: 10px; }
+  #singleModal .modal-row { gap: 8px; }
+  .modal-body { max-height: calc(100vh - 160px); }
+  #singleModal .modal-body { max-height: calc(100vh - 90px); }
+
+  .bulk-template-bar-fields { flex-wrap: wrap; }
+  .bulk-template-date-field { flex: 1 1 140px; }
+}

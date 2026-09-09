@@ -1,0 +1,350 @@
+/* UI đặt vé/ghế/modal/lịch sử dùng chung giữa callcenter và ticketstaff — 07/08/2026 */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.brand-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.brand-badge svg {
+  width: 22px;
+  height: 22px;
+  stroke: white;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-text b {
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.brand-text span {
+  font-size: 13px;
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.search-wrap {
+  flex: 0 0 auto;
+  width: 320px;
+  max-width: 320px;
+  position: relative;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: var(--white);
+  border: 1.5px solid var(--red);
+  border-radius: 999px;
+  padding: 4px 4px 4px 14px;
+  box-sizing: border-box;
+}
+
+.search-box:focus-within {
+  border-color: var(--red);
+}
+
+.search-box svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-sub);
+  flex: 0 0 auto;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 15.5px;
+  color: var(--text-main);
+}
+
+.search-box input::placeholder {
+  color: #9A9C9D;
+}
+
+.search-btn {
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.search-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: white;
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+  z-index: 40;
+  overflow: hidden;
+  display: none;
+}
+
+.search-results.open {
+  display: block;
+}
+
+.search-result-row {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--surface-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-result-row:last-child {
+  border-bottom: none;
+}
+
+.search-result-row:hover {
+  background: var(--surface-2);
+}
+
+.src-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.src-meta {
+  font-size: 13.5px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+.src-status {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex: 0 0 auto;
+}
+
+.src-status.paid {
+  background: #EAFBF1;
+  color: var(--green);
+}
+
+.src-status.hold {
+  background: #FFF7E0;
+  color: #B45309;
+}
+
+.pill-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.user-chip:hover,
+.user-menu.open .user-chip {
+  border-color: var(--border-gray);
+  background: var(--surface-2);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--black);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.user-chip span {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.user-chip>svg {
+  width: 12px;
+  height: 12px;
+  stroke: var(--text-sub);
+  transition: transform .18s;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .1);
+  z-index: 50;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.user-dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--surface);
+  margin-bottom: 4px;
+}
+
+.user-dropdown-meta b {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.user-dropdown-meta span {
+  font-size: 13.5px;
+  color: var(--text-sub);
+}
+
+.user-logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--red);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.user-logout-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--red);
+  flex: 0 0 auto;
+}
+
+.user-logout-btn:hover {
+  background: var(--red-light);
+}
+
+/* ===== MAIN LAYOUT ===== */
+.main {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* #historyView/#pickupView (class "main-view-container") là flex item của .main — mặc định flex item
+   không co nhỏ hơn kích thước nội dung bên trong nó (min-width:auto), nên nếu 1 bảng bên trong có ô
+   "white-space:nowrap" đủ dài, cả view sẽ bị đẩy rộng hơn .main, tràn ngang ra ngoài trang thay vì tự
+   cuộn ngang bên trong .pax-table-wrap/.grid-wrap của riêng nó. min-width:0 ép flex item co lại đúng
+   theo không gian thật có, phần overflow (nếu còn) sẽ do overflow-x:auto của .pax-table-wrap xử lý. */
+.main-view-container {
+  min-width: 0;
+}
+
+body.zone1-collapsed .zone1 {
+  display: none;
+}
+
+body.zone1-collapsed .right-col {
+  flex: 1 1 auto;
+}
+
+body.zone1-collapsed .zone1-toggle-handle {
+  left: 0;
+  transform: translateY(-50%);
+  background: var(--red);
+  border-color: var(--red);
+}
+
+body.zone1-collapsed .zone1-toggle-handle svg {
+  transform: rotate(180deg);
+  stroke: white;
+}
+
+.zone1-toggle-handle {
+  position: absolute;
+  top: 50%;
+  left: 328px;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 34px;
+  border: 1px solid var(--border-gray);
+  border-left: none;
+  border-radius: 0 999px 999px 0;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+  padding: 0;
+}
+
+.zone1-toggle-handle:hover {
+  background: var(--surface-2);
+}
+
+.zone1-toggle-handle svg {
+  width: 9px;
+  height: 9px;
+  stroke: var(--text-sub);
+  transition: transform .18s ease;
+}
+

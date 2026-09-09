@@ -1,0 +1,622 @@
+/* ===== PASSENGER LIST (ZONE 3B) ===== */
+.passenger-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* khoảng cách từ thanh công cụ lọc (.pax-toolbar) xuống khung bảng (.pax-table-wrap) —
+    chuẩn 16px "phía trên bảng" (Hành khách/Ghế hủy) */
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.zone3.passenger-view {
+  padding-left: 20px; /* chuẩn khoảng cách bảng chung: 20px 2 bên — khớp padding 20px của topbar/
+    filter-toolbar phía trên (thay vì 22px kế thừa từ .zone3 dùng chung với Zone 3 sơ đồ ghế) */
+  padding-right: 20px;
+  padding-bottom: 10px;
+  overflow: visible;
+}
+
+.pax-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pax-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pax-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.pax-filter-wrap {
+  position: relative;
+}
+
+.pax-filter-count {
+  background: var(--red);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 2px;
+}
+
+.pax-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: white;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .10);
+  padding: 12px 14px;
+  min-width: 190px;
+  z-index: 40;
+  display: none;
+}
+
+.pax-filter-dropdown.open {
+  display: block;
+}
+
+.pax-filter-group {
+  margin-bottom: 10px;
+}
+
+.pax-filter-group:last-of-type {
+  margin-bottom: 0;
+}
+
+.pax-filter-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  margin-bottom: 6px;
+}
+
+.pax-filter-opt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.pax-filter-opt input {
+  accent-color: var(--red);
+  width: 13px;
+  height: 13px;
+}
+
+.pax-filter-actions {
+  border-top: 1px solid var(--surface);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.pax-filter-clear {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+.pax-toolbar-hint {
+  font-size: 13.5px;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.pax-table-wrap {
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bảng "Lịch sử" (tab Lịch sử) không bọc khung viền như bảng Hành khách/Ghế hủy — theo đúng định dạng
+   bảng "Phơi xe" (.shuttle-table ở tab Phơi xe, css/callcenter.css): bảng nằm thẳng trong .grid-wrap,
+   không có border/bo góc bao quanh, chỉ còn viền dưới mỗi hàng (.pax-table.pax-table--history đã có). */
+.pax-table-wrap--history {
+  border: none;
+  border-radius: 0;
+}
+
+/* .grid-wrap/.grid-empty: callcenter.css đã có sẵn bộ này cho #phoiView (nạp sau booking-ui.css nên vẫn
+   thắng, không đổi phoiView) — ticketstaff.css không có, cần thêm ở đây để #historyView dùng chung được
+   trên cả 2 trang mà không phải viết trùng 2 lần. */
+.grid-wrap {
+  flex: 1;
+  overflow: auto;
+}
+
+.grid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-sub);
+  text-align: center;
+  gap: 12px;
+}
+
+.grid-empty svg {
+  width: 42px;
+  height: 42px;
+  stroke: #A0A3A5;
+}
+
+.grid-empty p {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.pax-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: inherit;
+  font-size: 13px;
+  min-width: 0;
+}
+
+/* Định dạng header giống hệt bảng "Lịch sử hành khách" (.pax-table--history, tab Lịch sử) để 2 bảng
+   nhất quán trong cùng hệ thống — nền trắng, chữ thường 12px/700, viền dưới 2px var(--border-gray). */
+.pax-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--white);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--border-gray);
+  white-space: normal;
+  vertical-align: bottom;
+  /* Tên cột (thead th) của MỌI bảng dùng .pax-table luôn canh giữa — !important vì nhiều rule chọn cột
+     theo nth-child bên dưới (VD ".pax-table--cancelled-all thead th:nth-child(2), tbody td:nth-child(2)
+     { text-align: left }") gộp chung text-align cho cả th lẫn td, đặc hiệu hơn selector này nên nếu
+     không có !important sẽ đè ngược alignment riêng của cột đó lên tiêu đề, làm tên cột không đồng nhất
+     canh giữa như nhau giữa các cột. Chỉ ảnh hưởng th (tên cột), không đụng tới text-align của td (nội
+     dung ô dữ liệu) vẫn giữ nguyên theo từng cột như cũ. */
+  text-align: center !important;
+}
+
+/* Bảng "Hành khách" gộp còn 9 cột theo nhóm thông tin (Hành trình = điểm đi/đến, Ghế = số vé+mã ghế)
+   thay vì 11 cột rời rạc như trước, riêng Họ và tên/SĐT/Đã thu/Chưa thu vẫn tách cột riêng — chọn bằng
+   class thay vì nth-child để không lệ thuộc thứ tự cột, đồng thời không lẫn với
+   .pax-table--cancelled/.pax-table--history (tự override riêng bên dưới, độ đặc hiệu cao hơn nên luôn
+   thắng ở đây). */
+/* STT/SĐT/Đã thu/Chưa thu/Baga chỉ có 1 dòng nội dung, bề rộng ổn định giữa các hàng nên canh giữa
+   không lệch tiêu đề. Riêng Ghế có 2 dòng dài ngắn khác nhau (SL:/VT:) — nếu canh giữa, mỗi dòng tự
+   center riêng khiến 2 dòng lệch nhau và lệch luôn với tiêu đề cột, nên canh trái để tiêu đề thẳng hàng
+   với điểm bắt đầu của nội dung bên dưới (xem .pax-seat-line). */
+.pax-col-stt,
+.pax-col-phone,
+.pax-col-paid,
+.pax-col-debt,
+.pax-col-luggage {
+  text-align: center;
+}
+
+.pax-col-seat {
+  text-align: left;
+}
+
+.pax-col-stt {
+  width: 44px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* 16% → 14% — bớt lại 2% cho cột Ghi chú (.pax-col-note không đặt width, tự nhận phần còn lại nên tự
+   động rộng thêm tương ứng, không cần khai riêng). Vẫn giữ white-space:nowrap + ellipsis để tên khách
+   không bị bẻ xuống dòng, chỉ cắt "..." trong trường hợp hiếm gặp tên quá dài so với 14%. */
+.pax-col-name {
+  width: 14%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* SĐT phải giữ đủ rộng + không xuống dòng — số điện thoại 10 chữ số bị bẻ dòng giữa chừng thì rất khó
+   đọc, không như các cột chữ khác có thể tự xuống dòng bình thường. */
+.pax-col-phone {
+  width: 10%;
+  white-space: nowrap;
+}
+
+/* Ưu tiên độ rộng cho Hành trình — bớt của 2 cột SL/Vị trí (xem bên dưới) VÀ 2% vừa bớt ở cột Họ và
+   tên (14%, xem phía trên) đều dồn hết về đây thay vì để trôi ngược sang Ghi chú, vì địa chỉ trạm đi/
+   trạm đến thường dài hơn hẳn 1-2 chữ số SL hay vài mã ghế ngắn ở Vị trí. */
+.pax-col-route {
+  width: 23%;
+}
+
+.pax-col-seat {
+  width: 9%;
+}
+
+/* Tách cột "Ghế" thành 2 cột riêng SL (số lượng vé) và Vị trí (mã ghế), thay cho 1 ô gộp 2 dòng
+   SL:/VT: như .pax-col-seat ở trên — dùng chung cho cả bảng Hành khách lẫn Trung chuyển đón/trả. Cả 2
+   đều thu hẹp hết mức có thể (chỉ 1-2 chữ số/vài mã ghế ngắn) để nhường phần lớn không gian cho các cột
+   thông tin dài và quan trọng hơn trong hàng (Hành trình/Địa chỉ, Ghi chú). */
+.pax-col-sl {
+  width: 4%;
+  text-align: center;
+}
+
+.pax-col-vt {
+  width: 7%;
+}
+
+.pax-col-paid,
+.pax-col-debt {
+  width: 9%;
+}
+
+.pax-col-luggage {
+  width: 52px;
+}
+
+/* Ghi chú (.pax-col-note) không đặt width, tự nhận phần còn lại — cột rộng nhất trong 9 cột, kèm
+   line-clamp 2 dòng ở .pax-note-clamp để không kéo dài chiều cao hàng khi ghi chú nhiều chữ. */
+
+/* Bảng ghế hủy (tab "Ghế hủy") dùng chung .pax-table nhưng thứ tự/số cột khác bảng Hành khách
+   (8 cột: STT, Vị trí, Họ và tên, SĐT, Chặng đi, Số tiền, Nguyên nhân hủy, Thời gian hủy) —
+   ghi đè lại toàn bộ width theo đúng cột của bảng này, độ đặc hiệu cao hơn nên không lẫn với bảng trên. */
+.pax-table--cancelled thead th:nth-child(1),
+.pax-table--cancelled tbody td:nth-child(1) {
+  width: 40px;
+  text-align: center;
+}
+
+.pax-table--cancelled thead th:nth-child(2),
+.pax-table--cancelled tbody td:nth-child(2) {
+  width: 70px;
+  text-align: center;
+}
+
+.pax-table--cancelled thead th:nth-child(3),
+.pax-table--cancelled tbody td:nth-child(3) {
+  width: 17%;
+  text-align: center;
+}
+
+.pax-table--cancelled thead th:nth-child(4),
+.pax-table--cancelled tbody td:nth-child(4) {
+  width: 12%;
+}
+
+.pax-table--cancelled thead th:nth-child(5),
+.pax-table--cancelled tbody td:nth-child(5) {
+  width: 20%;
+}
+
+.pax-table--cancelled thead th:nth-child(6),
+.pax-table--cancelled tbody td:nth-child(6) {
+  width: 11%;
+  text-align: center;
+}
+
+.pax-table--cancelled thead th:nth-child(7),
+.pax-table--cancelled tbody td:nth-child(7) {
+  width: 22%;
+  text-align: center;
+}
+
+.pax-table--cancelled thead th:nth-child(8),
+.pax-table--cancelled tbody td:nth-child(8) {
+  width: 18%;
+  text-align: center;
+}
+
+/* Bảng "Ghế hủy" gộp toàn bộ phơi xe (nút "Ghế hủy" trên trang Lịch sử hành khách, #phCancelledTableBody)
+   — khác bảng "Ghế hủy" 8 cột của 1 chuyến ở trên: thêm cột Tên phơi (chuyến nào), Hành trình dạng
+   .pax-route giống bảng Lịch sử (thay cho 1 dòng "A → B"), tách SL/Vị trí riêng, và thêm cột Nhân viên
+   (người thực hiện thao tác hủy) — tổng 11 cột nên cần bộ width riêng, không dùng chung .pax-table--cancelled. */
+.pax-table--cancelled-all thead th:nth-child(1),
+.pax-table--cancelled-all tbody td:nth-child(1) {
+  width: 40px;
+  text-align: center;
+}
+
+.pax-table--cancelled-all thead th:nth-child(2),
+.pax-table--cancelled-all tbody td:nth-child(2) {
+  width: 15%;
+  text-align: left;
+}
+
+.pax-table--cancelled-all thead th:nth-child(3),
+.pax-table--cancelled-all tbody td:nth-child(3) {
+  width: 12%;
+  text-align: left;
+}
+
+.pax-table--cancelled-all thead th:nth-child(4),
+.pax-table--cancelled-all tbody td:nth-child(4) {
+  width: 9%;
+  text-align: left;
+}
+
+.pax-table--cancelled-all thead th:nth-child(5),
+.pax-table--cancelled-all tbody td:nth-child(5) {
+  width: 19%;
+  text-align: left;
+}
+
+.pax-table--cancelled-all thead th:nth-child(6),
+.pax-table--cancelled-all tbody td:nth-child(6) {
+  width: 4%;
+  text-align: center;
+}
+
+.pax-table--cancelled-all thead th:nth-child(7),
+.pax-table--cancelled-all tbody td:nth-child(7) {
+  width: 6%;
+  text-align: center;
+}
+
+.pax-table--cancelled-all thead th:nth-child(8),
+.pax-table--cancelled-all tbody td:nth-child(8) {
+  width: 9%;
+  text-align: left;
+}
+
+.pax-table--cancelled-all thead th:nth-child(9),
+.pax-table--cancelled-all tbody td:nth-child(9) {
+  width: 10%;
+  text-align: left;
+}
+
+.pax-table--cancelled-all thead th:nth-child(10),
+.pax-table--cancelled-all tbody td:nth-child(10) {
+  width: 7%;
+  text-align: center; /* cột "Nhân viên" — canh giữa nội dung */
+}
+
+.pax-table--cancelled-all thead th:nth-child(11),
+.pax-table--cancelled-all tbody td:nth-child(11) {
+  width: calc(8% + 2px);
+  text-align: center;
+}
+
+.pax-table--cancelled-all thead th:nth-child(11) {
+  white-space: nowrap;
+}
+
+/* Bảng trang "Lịch sử hành khách" (historyView) dùng chung .pax-table nhưng có 12 cột riêng, thứ tự khác
+   hẳn bảng Hành khách/Ghế hủy — nếu không ghi đè, cột 1 (cần rộng nhất) bị bó theo width 40px của cột STT
+   bảng Hành khách. Chọn cả 2 lớp (.pax-table.pax-table--history) để độ đặc hiệu chắc chắn cao hơn
+   .pax-table đơn, không phụ thuộc thứ tự khai báo trong file.
+   Thứ tự cột: 1 STT, 2 Tên phơi, 3 Tên hành khách, 4 SĐT, 5 Hành trình (gộp Trạm đi/Trạm đến, dùng lại đúng
+   kiểu trình bày .pax-route ở cột "Hành trình" bảng Hành khách), 6 SL, 7 Vị trí (mã ghế, tách riêng
+   khỏi SL), 8 Giá vé, 9 Ghi chú (ghi chú của khách hàng), 10 Nhân viên, 11 Thời gian (ngày + giờ nhân
+   viên thao tác — gộp luôn phần ngày, không còn cột "Ngày" riêng vì đã trùng thông tin), 12 Chức năng
+   (nút "Đặt lại vé", chỉ còn icon).
+   Kiểu chữ/bảng lấy theo mẫu .shuttle-table (bảng "Danh sách phơi xe" trang callcenter, css/callcenter.css)
+   — header xám nhạt in hoa dính (sticky), hàng có hover — nhưng .shuttle-table chỉ tồn tại ở callcenter.css
+   (ticketstaff.html không nạp file đó), nên style được viết đè trực tiếp ở đây (file dùng chung) để cả 2
+   trang hiển thị giống nhau thay vì phụ thuộc .shuttle-table. */
+.pax-table.pax-table--history thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--white);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--border-gray);
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+.pax-table.pax-table--history tbody td {
+  padding: 12px;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--surface);
+}
+
+.pax-table.pax-table--history tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.pax-table.pax-table--history tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* STT — số thứ tự hàng, thu hẹp (5%→4%→3%) dồn chỗ cho cột Hành trình (nth-child(5)). Vẫn giữ
+   overflow:hidden/ellipsis/nowrap làm lưới an toàn phòng danh sách dài ra số nhiều chữ số. */
+.pax-table.pax-table--history thead th:nth-child(1),
+.pax-table.pax-table--history tbody td:nth-child(1) {
+  width: 3%;
+  padding-left: 6px;
+  padding-right: 6px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tên phơi — thông tin chuyến đi, ưu tiên rộng hơn hẳn các cột còn lại. Nới thêm (14%→15.5%) bằng 1
+   phần cột Thời gian vừa bớt (nth-child(11), gộp ngày+giờ không cần rộng như trước), rồi nới thêm 1%
+   nữa (15.5%→16.5%) bằng phần cột Ghi chú vừa bớt (nth-child(9)). */
+.pax-table.pax-table--history thead th:nth-child(2),
+.pax-table.pax-table--history tbody td:nth-child(2) {
+  width: 16.5%;
+  text-align: left;
+}
+
+/* Hành khách + SĐT — đủ rộng để tên và số hiện trên 1 hàng, không cần xuống dòng hay cắt bớt. */
+.pax-table.pax-table--history thead th:nth-child(3),
+.pax-table.pax-table--history tbody td:nth-child(3) {
+  width: 10%;
+  text-align: left;
+}
+
+.pax-table.pax-table--history tbody td.ch-col-ellipsis {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/* Thu hẹp (9%→8%) — 6% từng thử trước đó QUÁ hẹp: .pax-table dùng table-layout:fixed (cố định đúng % đã
+   khai, không tự giãn theo nội dung như bảng auto layout thường), nên số điện thoại 10 số ở font mono
+   kết hợp nowrap tràn hẳn ra ngoài, đè chữ lên cột "Hành trình" bên cạnh thay vì tự xuống dòng — 8% đủ
+   chỗ cho "09xxxxxxxx". Vẫn thêm text-overflow:ellipsis làm lưới an toàn (cắt "…" gọn gàng thay vì tràn
+   đè lên cột khác) phòng trường hợp số điện thoại dài hơn 10 số hoặc màn hình hẹp hơn dự tính.
+   Tiêu đề "SỐ ĐIỆN THOẠI" phải ép nowrap riêng (mặc định cả header bảng này cho phép xuống dòng, xem
+   thead th ở trên) vì cột hẹp lại đúng bằng nội dung số điện thoại thì tiêu đề 2 chữ sẽ tự bẻ dòng nếu
+   không chặn. Số điện thoại (td.ch-col-nowrap) đã nowrap sẵn nên không bị ảnh hưởng. */
+.pax-table.pax-table--history thead th:nth-child(4),
+.pax-table.pax-table--history tbody td:nth-child(4) {
+  width: 8%;
+  text-align: center; /* cột "SDT" — canh giữa nội dung */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pax-table.pax-table--history thead th:nth-child(4) {
+  white-space: nowrap;
+}
+
+.pax-table.pax-table--history tbody td.ch-col-nowrap {
+  white-space: nowrap;
+}
+
+/* Hành trình — gộp Trạm đi/Trạm đến thành 1 cột duy nhất, dùng lại nguyên .pax-route/.pax-route-row/
+   .pax-route-connector/.pax-route-text từ cột "Hành trình" ở bảng Hành khách (chấm đỏ = điểm đi, ghim
+   xám = điểm đến, nối bằng 1 đường kẻ ngắn) để 2 bảng trình bày hành trình giống hệt nhau. Từng nới lên
+   16% (bằng phần bớt của SL nth-child(6)) nhưng phải trả lại 2% cho cột SĐT (nth-child(4)) — 6% từng thử
+   cho SĐT bị tràn chữ đè lên cột này (xem giải thích ở nth-child(4)), nên về lại 14%; nới thêm 1% (STT
+   nth-child(1) thu hẹp 32px→24px) lên 15%, rồi thêm 1% nữa (STT thu hẹp tiếp 24px→15px) lên 16%, rồi bớt
+   lại 1% (STT chỉnh về đúng 28px như bên Rước liền) về lại 15%, rồi nới thêm 2% nữa (STT thu hẹp hẳn
+   xuống 10px) lên 17%; cả STT lẫn Chức năng (nth-child(12)) sau đổi lại về % rồi cùng bớt 5%→4% mỗi cột,
+   dồn tiếp 2% vào đây lên 19%, rồi STT bớt thêm 4%→3% dồn tiếp 1% lên 20%, rồi Thời gian (nth-child(11))
+   bớt thêm 8%→7% dồn tiếp 1% lên 21%. */
+.pax-table.pax-table--history thead th:nth-child(5),
+.pax-table.pax-table--history tbody td:nth-child(5) {
+  width: 21%;
+  text-align: left;
+}
+
+/* Số lượng vé chỉ hiện số lượng (1-2 chữ số) nên rất hẹp — mã ghế cụ thể tách riêng sang cột Vị trí
+   kế bên thay vì chỉ xem qua title như trước. Thu hẹp thêm (5%→3%), phần dôi ra dồn sang cột SĐT
+   (nth-child(4)) chứ không phải Hành trình nữa — xem giải thích ở nth-child(4)/(5). */
+.pax-table.pax-table--history thead th:nth-child(6),
+.pax-table.pax-table--history tbody td:nth-child(6) {
+  width: 3%;
+  text-align: center;
+}
+
+/* Vị trí — liệt kê mã ghế (VD "A1, A2"), tách riêng khỏi cột SL để không phải rê chuột xem tooltip
+   mới biết ghế nào. */
+.pax-table.pax-table--history thead th:nth-child(7),
+.pax-table.pax-table--history tbody td:nth-child(7) {
+  width: 6%;
+  text-align: center;
+}
+
+.pax-table.pax-table--history thead th:nth-child(8),
+.pax-table.pax-table--history tbody td:nth-child(8) {
+  width: 7%;
+  text-align: right;
+}
+
+/* Ghi chú — ghi chú của khách hàng (VD "Có trẻ nhỏ đi cùng"), chỉ hiện chữ (không icon) + line-clamp
+   2 dòng. Nới thêm (9%→10.5%) bằng 1 phần cột Thời gian vừa bớt (nth-child(11)), rồi bớt lại 1%
+   (10.5%→9.5%) dồn sang cột Tên phơi (nth-child(2)). */
+.pax-table.pax-table--history thead th:nth-child(9),
+.pax-table.pax-table--history tbody td:nth-child(9) {
+  width: 9.5%;
+  text-align: left;
+}
+
+/* Nhân viên — giữ nguyên tên cột đầy đủ, chỉ thu hẹp từ 8% xuống mức vừa đủ (6.5%) để tiêu đề "NHÂN
+   VIÊN" vẫn nằm gọn 1 hàng không bị bẻ dòng. */
+.pax-table.pax-table--history thead th:nth-child(10),
+.pax-table.pax-table--history tbody td:nth-child(10) {
+  width: 6.5%;
+  text-align: center; /* cột "Nhân viên" — canh giữa nội dung */
+}
+
+/* Thời gian — bỏ cột "Ngày" riêng (trùng thông tin), gộp cả ngày lẫn giờ nhân viên thao tác (đặt/sửa/
+   bán vé, lấy từ seat.actionTime ghi lại lúc lưu form applyFormToSeat hoặc lúc bán nhanh/đặt lại) vào
+   chung cột này. Thu hẹp (11%→8%) để nhường chỗ cho cột Tên phơi và Ghi chú — ngày/giờ đủ ngắn để tự
+   xuống 2 dòng gọn gàng khi cột hẹp lại, không cần rộng như trước. Bớt thêm 1% (8%→7%) dồn sang cột
+   Hành trình (nth-child(5)). */
+.pax-table.pax-table--history thead th:nth-child(11),
+.pax-table.pax-table--history tbody td:nth-child(11) {
+  width: 7%;
+  text-align: center;
+}
+
+/* Chức năng — nút "Đặt lại" chỉ còn icon (bỏ chữ), cột thu hẹp lại vừa đủ 1 icon vuông thay vì phải
+   chừa chỗ cho cả icon lẫn chữ "Đặt lại" (white-space:nowrap) như trước. Thu hẹp (5%→4%) dồn chỗ cho cột
+   Hành trình (nth-child(5)). */
+.pax-table.pax-table--history thead th:nth-child(12),
+.pax-table.pax-table--history tbody td:nth-child(12) {
+  width: 4%;
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* Định dạng hàng cũng theo đúng bảng "Lịch sử hành khách" — không có vằn xen kẽ (zebra), hover đổi nền
+   var(--surface-2) đơn giản, viền dưới var(--surface), padding/cỡ chữ đồng bộ 2 bảng. */
+.pax-table tbody td {
+  padding: 12px;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--surface);
+  vertical-align: middle;
+  color: var(--text-main);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pax-table tbody tr {
+  transition: background .12s ease;
+}
+
+.pax-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pax-table tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.pax-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
