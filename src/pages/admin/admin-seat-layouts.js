@@ -4,23 +4,22 @@
    ========================================================= */
 
 var DEFAULT_SEAT_LAYOUTS = [
-  { id: 1,  name: 'Sơ đồ xe 34 giường',       seats: 34, isDoubleDeck: true,  active: true,  deleted: false, content: 'Bố trí 34 giường 2 tầng cao cấp (Tầng 1: A1-A17, Tầng 2: B1-B17)', hiddenSeats: ['A3','B3'] },
-  { id: 2,  name: 'Sơ đồ xe 36 giường',       seats: 36, isDoubleDeck: true,  active: true,  deleted: false, content: 'Bố trí 36 giường 2 tầng (Tầng 1: 18 giường, Tầng 2: 18 giường)',   hiddenSeats: [] },
-  { id: 3,  name: 'Sơ đồ xe 40 giường',       seats: 40, isDoubleDeck: true,  active: true,  deleted: false, content: 'Bố trí 40 giường 2 tầng tiêu chuẩn',                              hiddenSeats: [] },
-  { id: 4,  name: 'Sơ đồ xe 41 giường',       seats: 41, isDoubleDeck: true,  active: true,  deleted: false, content: 'Bố trí 41 giường 2 tầng',                                        hiddenSeats: [] },
-  { id: 5,  name: 'Sơ đồ xe 44 giường',       seats: 44, isDoubleDeck: true,  active: true,  deleted: false, content: 'Bố trí 44 giường 2 tầng',                                        hiddenSeats: [] },
-  { id: 6,  name: 'Sơ đồ xe limousine 11 chỗ',seats: 11, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe Limousine 11 chỗ 1 tầng VIP',                                 hiddenSeats: [] },
-  { id: 7,  name: 'Sơ đồ xe limousine 19 chỗ',seats: 19, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe Limousine 19 chỗ 1 tầng',                                     hiddenSeats: [] },
-  { id: 8,  name: 'Sơ đồ xe limousine 28 chỗ',seats: 28, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe Limousine 28 chỗ 1 tầng',                                     hiddenSeats: [] },
-  { id: 9,  name: 'Sơ đồ xe limousine 9 chỗ', seats: 9,  isDoubleDeck: false, active: true,  deleted: false, content: 'Xe Limousine 9 chỗ VIP 1 tầng',                                  hiddenSeats: [] },
-  { id: 10, name: 'Sơ đồ xe thường 16 chỗ',   seats: 16, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 16 chỗ 1 tầng',                                        hiddenSeats: [] },
-  { id: 11, name: 'Sơ đồ xe thường 26 chỗ',   seats: 26, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 26 chỗ 1 tầng',                                        hiddenSeats: [] },
-  { id: 12, name: 'Sơ đồ xe thường 28 chỗ',   seats: 28, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 28 chỗ 1 tầng',                                        hiddenSeats: [] },
-  { id: 13, name: 'Sơ đồ xe thường 47 chỗ',   seats: 47, isDoubleDeck: true,  active: true,  deleted: false, content: 'Sơ đồ xe 47 chỗ 2 tầng',                                        hiddenSeats: [] },
-  { id: 14, name: 'Sơ đồ xe VIP 24 phòng',    seats: 24, isDoubleDeck: true,  active: true,  deleted: false, content: 'Sơ đồ VIP 24 phòng cabin đôi 2 tầng',                           hiddenSeats: [] },
-  { id: 15, name: 'Xe Tải',                    seats: 2,  isDoubleDeck: false, active: true,  deleted: false, content: 'Sơ đồ Xe tải chở hàng',                                         hiddenSeats: [] },
-  { id: 16, name: '76',                        seats: 76, isDoubleDeck: true,  active: false, deleted: false, content: 'Sơ đồ xe 76 chỗ 2 tầng',                                        hiddenSeats: [] },
-  { id: 17, name: 'Sơ đồ xe limousine 18 chỗ',seats: 18, isDoubleDeck: false, active: true,  deleted: false, content: 'Sơ đồ xe limousine 18 chỗ 1 tầng',                              hiddenSeats: [] }
+  { id: 1,  name: 'Sơ đồ xe 34 giường',       seats: 34, isDoubleDeck: true,  active: true,  deleted: false, content: '34 giường 2 tầng',       hiddenSeats: ['A3','B3'] },
+  { id: 2,  name: 'Sơ đồ xe 36 giường',       seats: 36, isDoubleDeck: true,  active: true,  deleted: false, content: '36 giường 2 tầng',        hiddenSeats: [] },
+  { id: 3,  name: 'Sơ đồ xe 40 giường',       seats: 40, isDoubleDeck: true,  active: true,  deleted: false, content: '40 giường 2 tầng',        hiddenSeats: [] },
+  { id: 4,  name: 'Sơ đồ xe 41 giường',       seats: 41, isDoubleDeck: true,  active: true,  deleted: false, content: '41 giường 2 tầng',        hiddenSeats: [] },
+  { id: 5,  name: 'Sơ đồ xe 44 giường',       seats: 44, isDoubleDeck: true,  active: true,  deleted: false, content: '44 giường 2 tầng',        hiddenSeats: [] },
+  { id: 6,  name: 'Sơ đồ xe limousine 11 chỗ',seats: 11, isDoubleDeck: false, active: true,  deleted: false, content: 'Limousine 11 chỗ 1 tầng', hiddenSeats: [] },
+  { id: 7,  name: 'Sơ đồ xe limousine 19 chỗ',seats: 19, isDoubleDeck: false, active: true,  deleted: false, content: 'Limousine 19 chỗ 1 tầng', hiddenSeats: [] },
+  { id: 8,  name: 'Sơ đồ xe limousine 28 chỗ',seats: 28, isDoubleDeck: false, active: true,  deleted: false, content: 'Limousine 28 chỗ 1 tầng', hiddenSeats: [] },
+  { id: 9,  name: 'Sơ đồ xe limousine 9 chỗ', seats: 9,  isDoubleDeck: false, active: true,  deleted: false, content: 'Limousine 9 chỗ 1 tầng',  hiddenSeats: [] },
+  { id: 10, name: 'Sơ đồ xe thường 16 chỗ',   seats: 16, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 16 chỗ',        hiddenSeats: [] },
+  { id: 11, name: 'Sơ đồ xe thường 26 chỗ',   seats: 26, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 26 chỗ',        hiddenSeats: [] },
+  { id: 12, name: 'Sơ đồ xe thường 28 chỗ',   seats: 28, isDoubleDeck: false, active: true,  deleted: false, content: 'Xe thường 28 chỗ',        hiddenSeats: [] },
+  { id: 13, name: 'Sơ đồ xe thường 47 chỗ',   seats: 47, isDoubleDeck: true,  active: true,  deleted: false, content: '47 chỗ 2 tầng',           hiddenSeats: [] },
+  { id: 14, name: 'Sơ đồ xe VIP 24 phòng',    seats: 24, isDoubleDeck: true,  active: true,  deleted: false, content: 'VIP 24 phòng 2 tầng',     hiddenSeats: [] },
+  { id: 15, name: 'Xe Tải',                    seats: 2,  isDoubleDeck: false, active: true,  deleted: false, content: 'Xe tải chở hàng',         hiddenSeats: [] },
+  { id: 17, name: 'Sơ đồ xe limousine 18 chỗ',seats: 18, isDoubleDeck: false, active: true,  deleted: false, content: 'Limousine 18 chỗ 1 tầng', hiddenSeats: [] }
 ];
 
 var SEAT_LAYOUT_FILTERS = { search: '', isDoubleDeck: '', active: '' };
@@ -29,7 +28,20 @@ var SEAT_LAYOUT_FILTERS = { search: '', isDoubleDeck: '', active: '' };
    STORAGE
    --------------------------------------------------------- */
 function getSeatLayouts() {
-  return lsRead(HN_SEAT_LAYOUTS_KEY, DEFAULT_SEAT_LAYOUTS);
+  /* Xóa hẳn cache cũ nếu còn text dài — force dùng DEFAULT mới */
+  var raw = localStorage.getItem(HN_SEAT_LAYOUTS_KEY);
+  if (raw && raw.indexOf('Tầng 1:') !== -1) {
+    localStorage.removeItem(HN_SEAT_LAYOUTS_KEY);
+  }
+  var list = lsRead(HN_SEAT_LAYOUTS_KEY, DEFAULT_SEAT_LAYOUTS);
+  /* Xóa mục "76 chỗ" */
+  var filtered = list.filter(function(x) {
+    return x.name !== '76';
+  });
+  if (filtered.length !== list.length) {
+    lsWrite(HN_SEAT_LAYOUTS_KEY, filtered);
+  }
+  return filtered;
 }
 function saveSeatLayouts(list) {
   lsWrite(HN_SEAT_LAYOUTS_KEY, list);
