@@ -16,7 +16,7 @@ function renderTripLifecycleUI() {
   const status = getTripLifecycleStatus(currentTripId);
 
   // Nhãn badge lấy từ trạng thái hiển thị THỐNG NHẤT (dùng chung với thẻ danh sách Phơi xe) — không
-  // còn luôn hiện "Đang bán" cho mọi chuyến chưa tạo phơi mà phân biệt Chưa/Đã chỉ định xe/Đang bán.
+  // còn luôn hiện "Đang bán" cho mọi chuyến chưa tạo phơi mà phân biệt "Chưa chỉ định" / "Đang bán".
   if (typeof tripDisplayStatusKey === 'function') {
     const dispKey = tripDisplayStatusKey(currentTripId);
     const dispMeta = TRIP_DISPLAY_STATUS[dispKey] || TRIP_DISPLAY_STATUS['chua-chi-dinh'];

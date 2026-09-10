@@ -23,7 +23,7 @@
 <link rel="stylesheet" href="../shared/css/booking-ui/09-rebook-modal.css?v=110">
 <link rel="stylesheet" href="../shared/css/booking-ui/10-customer-history-seatmap.css?v=108">
 <link rel="stylesheet" href="../shared/css/booking-ui/11-responsive.css?v=108">
-<link rel="stylesheet" href="ticketstaff/ticketstaff.css?v=112">
+<link rel="stylesheet" href="ticketstaff/ticketstaff.css?v=113">
 </head>
 <body>
 
@@ -775,10 +775,9 @@
           <label for="filterStatus">Trạng thái</label>
           <select id="filterStatus" data-change-action="applyFilters">
             <option value="">Tất cả trạng thái</option>
-            <option value="Chưa chỉ định xe">Chưa chỉ định xe</option>
-            <option value="Đã chỉ định xe">Đã chỉ định xe</option>
+            <option value="Chưa chỉ định">Chưa chỉ định</option>
             <option value="Đang bán">Đang bán</option>
-            <option value="Đã khởi hành">Đã khởi hành</option>
+            <option value="Khởi hành">Khởi hành</option>
             <option value="Đã hủy">Đã hủy</option>
           </select>
         </div>
@@ -919,7 +918,7 @@
           <select id="pkFilterStatus" data-change-action="pkApplyFilters">
             <option value="all">Tất cả trạng thái</option>
             <option value="pending">Chưa chỉ định</option>
-            <option value="assigned">Đã chỉ định xe</option>
+            <option value="assigned">Đã chỉ định</option>
           </select>
         </div>
 
@@ -939,15 +938,14 @@
               <tr>
                 <th class="col-stt">STT</th>
                 <th style="width: 165px;">Khách hàng</th>
-                <th style="width: 280px;">Hành trình</th>
+                <th style="width: 328px;">Hành trình</th>
                 <th style="width: 40px;">SL</th>
-                <th style="width: 62px;">Số ghế</th>
+                <th style="width: 98px;">Số ghế</th>
                 <th style="width: 140px;">Ghi chú</th>
                 <th style="width: 100px;">Thời gian</th>
                 <th style="width: 90px;">In lúc</th>
-                <th class="col-status" style="width: 118px;">Trạng thái</th>
-                <th style="width: 170px;">Trung chuyển</th>
-                <th style="width: 170px;">Phòng vé</th>
+                <th style="width: 180px;">Trung chuyển</th>
+                <th style="width: 180px;">Phòng vé</th>
                 <th class="col-check" style="width: 44px;"><input type="checkbox" id="pkCheckAll" data-action="pkToggleAllVisible" data-args='["__this__"]'></th>
               </tr>
             </thead>
@@ -2062,10 +2060,9 @@
           <div class="form-group flex-1">
             <label for="tripStatus">Trạng thái phơi xe</label>
             <select id="tripStatus">
-              <option value="Chưa chỉ định xe">Chưa chỉ định xe</option>
-              <option value="Đã chỉ định xe">Đã chỉ định xe</option>
+              <option value="Chưa chỉ định">Chưa chỉ định</option>
               <option value="Đang bán">Đang bán</option>
-              <option value="Đã khởi hành">Đã khởi hành</option>
+              <option value="Khởi hành">Khởi hành</option>
               <option value="Đã hủy">Đã hủy</option>
             </select>
           </div>
@@ -2098,11 +2095,11 @@
 <script src="../shared/js/constants.js?v=5"></script>
 <script src="../data/sample-seat-pool.js?v=3"></script>
 <script src="../data/sample-customer-history.js?v=3"></script>
-<script src="../data/sample-trip-templates.js?v=5"></script>
+<script src="../data/sample-trip-templates.js?v=7"></script>
 <script src="../shared/js/seat-bank.js?v=3"></script>
 <script src="../auth/session.js?v=1"></script>
 <script src="../auth/permissions.js?v=1"></script>
-<script src="../shared/js/fleet-store.js?v=11"></script>
+<script src="../shared/js/fleet-store.js?v=13"></script>
 <script src="../services/trip-service.js?v=1"></script>
 <script src="../services/pickup-service.js?v=2"></script>
 <script src="../services/shuttle-driver-service.js?v=1"></script>
@@ -2117,11 +2114,11 @@
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=148"></script>
+<script src="ticketstaff/ticketstaff.js?v=150"></script>
 <script src="ticketstaff/ticketstaff-account.js?v=3"></script>
-<script src="ticketstaff/ticketstaff-pickup.js?v=17"></script>
-<script src="ticketstaff/ticketstaff-manifest-core.js?v=7"></script>
-<script src="ticketstaff/ticketstaff-manifest-ui.js?v=43"></script>
+<script src="ticketstaff/ticketstaff-pickup.js?v=20"></script>
+<script src="ticketstaff/ticketstaff-manifest-core.js?v=8"></script>
+<script src="ticketstaff/ticketstaff-manifest-ui.js?v=44"></script>
 <script src="../shared/js/events.js?v=3"></script>
 </body>
 </html>

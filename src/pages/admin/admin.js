@@ -25,12 +25,11 @@
 })();
 
 var TS_MANIFESTS_KEY = 'hn_ts_manifests_v1'; // khai báo trong ticketstaff-manifest-core.js (không nạp ở đây)
-var TRIP_STATUSES = ['Chưa chỉ định xe', 'Đã chỉ định xe', 'Đang bán', 'Đã khởi hành', 'Đã hủy'];
+var TRIP_STATUSES = ['Chưa chỉ định', 'Đang bán', 'Khởi hành', 'Đã hủy'];
 var STATUS_CLASS = {
-  'Chưa chỉ định xe': 'chua-chi-dinh',
-  'Đã chỉ định xe': 'da-chi-dinh',
+  'Chưa chỉ định': 'chua-chi-dinh',
   'Đang bán': 'dang-ban',
-  'Đã khởi hành': 'da-khoi-hanh',
+  'Khởi hành': 'da-khoi-hanh',
   'Đã hủy': 'da-huy'
 };
 
@@ -39,6 +38,22 @@ var STATUS_CLASS = {
    --------------------------------------------------------- */
 function $(id) { return document.getElementById(id); }
 function esc(s) { return (typeof escapeHtml === 'function') ? escapeHtml(s) : String(s == null ? '' : s); }
+
+/* Chạy hàm render (thường dựng lại innerHTML nguyên view) mà KHÔNG mất focus/vị trí con trỏ ở ô đang gõ.
+   Các ô "Tìm kiếm" gõ-đến-đâu-lọc-đến-đó gọi lại full render mỗi phím → phần tử <input> bị thay mới, mất
+   focus, chỉ gõ được 1 ký tự. Bọc render trong hàm này: nhớ id + selection của ô đang focus, render xong
+   trả lại focus + đặt con trỏ đúng chỗ. Ô tìm kiếm phải có id ổn định (giữ nguyên qua các lần render). */
+function adminKeepFocus(renderFn) {
+  var a = document.activeElement;
+  var id = a && a.id, ss = null, se = null;
+  try { ss = a.selectionStart; se = a.selectionEnd; } catch (e) { /* input không hỗ trợ selection */ }
+  renderFn();
+  if (!id) return;
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.focus();
+  if (ss != null) { try { el.setSelectionRange(ss, se); } catch (e) { /* ignore */ } }
+}
 function fmtMoney(n) { return (Number(n) || 0).toLocaleString('vi-VN') + 'đ'; }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 function fmtDate(iso) {

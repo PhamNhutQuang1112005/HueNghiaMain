@@ -17,7 +17,8 @@
   <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=108" />
   <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109" />
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
-  <link rel="stylesheet" href="admin/admin.css?v=43" />
+  <link rel="stylesheet" href="admin/admin.css?v=116" />
+  <link rel="stylesheet" href="admin/admin-ts-modals.css?v=3" />
 </head>
 
 <body class="admin-body">
@@ -157,6 +158,140 @@
     <div class="modal" id="adminModalBox"></div>
   </div>
 
+  <!-- Modal "Chỉ định xe rước" (tab Trung chuyển) — markup + CSS COPY 100% từ #assignPickupModal TicketStaff.
+       Phần động (danh sách phơi, sơ đồ ghế) do admin-transship.js đổ vào. -->
+  <div id="atsAssignOverlay">
+    <div class="assign-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Chỉ định xe rước</h2>
+          <div class="sub" id="atsAssignSub">Khách: —</div>
+        </div>
+        <button class="icon-close" type="button" data-action="adminTsCloseAssignModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </div>
+      <div class="panel-body">
+        <div class="assign-left-col">
+          <div class="pk-trip-col-title">Danh sách phơi xe</div>
+          <div class="pk-trip-search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="atsTripSearchInput" type="text" placeholder="Tìm giờ, biển số, tuyến..." data-input-action="adminTsAssignSearch" data-args='["__this_value__"]'>
+          </div>
+          <div class="pk-trip-list" id="pkTripListPanel"></div>
+        </div>
+        <div class="assign-right-col">
+          <div class="seatmap-col-title">
+            <span>Sơ đồ ghế</span>
+            <div class="assign-price-box">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <label for="atsAssignTripPrice">Giá vé:</label>
+                <input type="number" id="atsAssignTripPrice" min="0" step="5000" data-input-action="adminTsAssignPriceChange" data-args='["__this_value__"]'>
+                <span style="font-weight:600;color:var(--text-sub);font-size:12px;">đ</span>
+              </div>
+              <div style="width:1px;height:18px;background:var(--border-gray);"></div>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-weight:700;color:var(--text-sub);font-size:12px;">Tổng tiền:</span>
+                <span id="atsAssignTotalPrice" style="font-weight:800;color:var(--red);font-size:14px;">0đ</span>
+              </div>
+            </div>
+          </div>
+          <div class="van-frame">
+            <div class="floor-col">
+              <div class="floor-title-bar">TẦNG DƯỚI</div>
+              <div class="seat-grid" id="atsAssignSeatFloorDown"></div>
+            </div>
+            <div class="floor-col" id="atsAssignSeatFloorUpWrap">
+              <div class="floor-title-bar">TẦNG TRÊN</div>
+              <div class="seat-grid" id="atsAssignSeatFloorUp"></div>
+            </div>
+          </div>
+          <div class="seat-legend">
+            <div class="seat-legend-item"><span class="seat-legend-dot empty"></span>Trống</div>
+            <div class="seat-legend-item"><span class="seat-legend-dot selected"></span>Đang chọn</div>
+            <div class="seat-legend-item"><span class="seat-legend-dot blocked"></span>Đã có khách</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-footer">
+        <span class="hint" id="atsAssignHint">Chọn 1 phơi xe và 1 ghế trống để chỉ định.</span>
+        <div>
+          <button class="btn btn-secondary" type="button" data-action="adminTsCloseAssignModal">Đóng</button>
+          <button class="btn btn-primary" id="atsConfirmAssignBtn" type="button" disabled data-action="adminTsAssignConfirm">Chỉ định</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Cập nhật trạng thái/tài xế trung chuyển" — markup + CSS COPY 100% từ #pkUpdateStatusModal TicketStaff. -->
+  <div id="atsUpdateOverlay">
+    <div class="modal">
+      <h3 id="atsUpdateTitle">Cập nhật trạng thái khách hàng</h3>
+      <p class="modal-sub" id="atsUpdateSub">Khách hàng: —</p>
+      <input type="hidden" id="atsUpdateKeys" value="">
+      <div class="form-field">
+        <label>Chọn trạng thái *</label>
+        <select id="atsUpdateStatus" data-change-action="adminTsOnStatusChange">
+          <option value="waiting">Chờ điều phối</option>
+          <option value="enroute">Đang trung chuyển</option>
+          <option value="onboard">Đã đón</option>
+          <option value="issue">Không đón được</option>
+        </select>
+      </div>
+      <div class="form-field" id="atsUpdateReasonBox" style="display:none;">
+        <label>Lý do không đón được *</label>
+        <textarea id="atsUpdateReason" placeholder="Nhập lý do (VD: Điện thoại thuê bao, khách đổi ý, sai địa chỉ...)"></textarea>
+      </div>
+      <div id="atsUpdateDriverSection">
+        <div class="form-field">
+          <label>Tài xế trung chuyển</label>
+          <select id="atsUpdateDriver" data-change-action="adminTsOnDriverChange">
+            <option value="">-- Giữ nguyên / chưa gán --</option>
+          </select>
+        </div>
+        <div class="form-row-grid">
+          <div class="form-field" style="margin-bottom:0;">
+            <label>Loại xe</label>
+            <select id="atsUpdateVType"><option value="">— Chưa chọn —</option></select>
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label>Biển số xe</label>
+            <select id="atsUpdatePlate"><option value="">— Chưa chọn —</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="adminTsCloseUpdateModal">Hủy</button>
+        <button type="button" class="btn btn-secondary" style="border-color:var(--red);color:var(--red);" data-action="adminTsAssignDriverDefault">Gán</button>
+        <button type="button" class="btn btn-primary" data-action="adminTsSaveUpdate">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Xác nhận thanh toán" — port 100% từ #sellPaymentModal TicketStaff; mở CHỒNG lên modal Chỉ định. -->
+  <div id="atsSellPaymentModal">
+    <div class="modal">
+      <h3>Xác nhận thanh toán</h3>
+      <div class="form-field">
+        <label>Phương thức thanh toán <span style="color:var(--red);">*</span></label>
+        <div class="pay-method-toggle" style="margin-top:6px;">
+          <label class="pay-method-option">
+            <input type="radio" name="atsSellPaymentMethod" value="Tiền mặt" checked>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Tiền mặt</span>
+          </label>
+          <label class="pay-method-option">
+            <input type="radio" name="atsSellPaymentMethod" value="Chuyển khoản">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/><path d="M6 15h3"/></svg>
+            <span>Chuyển khoản</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="adminTsCloseSellPayment">Đóng</button>
+        <button type="button" class="btn btn-primary" data-action="adminTsConfirmSellPayment">Xác nhận &amp; In vé</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast">
     <svg viewBox="0 0 24 24" stroke-width="2.5"><path d="m5 13 4 4L19 7" /></svg>
     <span id="toastText"></span>
@@ -169,23 +304,23 @@
   <script src="../auth/session.js?v=1"></script>
   <script src="../auth/permissions.js?v=1"></script>
   <script src="../auth/accounts.js?v=1"></script>
-  <script src="../shared/js/fleet-store.js?v=11"></script>
+  <script src="../shared/js/fleet-store.js?v=13"></script>
   <script src="../services/trip-service.js?v=1"></script>
   <script src="../services/pickup-service.js?v=1"></script>
   <script src="../services/shuttle-driver-service.js?v=1"></script>
   <!-- admin.js (1333 dòng) đã tách theo banner mục 1–8 thành các mảnh liền mạch — NẠP ĐÚNG
        THỨ TỰ (= thứ tự dòng file gốc); admin-settings-boot.js chứa dòng BOOT ở cuối nên phải nạp
        SAU cùng. Biến/hàm vẫn là global top-level như cũ. -->
-  <script src="admin/admin.js?v=23"></script>
-  <script src="admin/admin-dashboard.js?v=1"></script>
-  <script src="admin/admin-station-directory.js?v=3"></script>
+  <script src="admin/admin.js?v=26"></script>
+  <script src="admin/admin-dashboard.js?v=3"></script>
+  <script src="admin/admin-station-directory.js?v=14"></script>
   <script src="admin/admin-placeholders.js?v=1"></script>
-  <script src="admin/admin-stations.js?v=13"></script>
-  <script src="admin/admin-trips.js?v=4"></script>
-  <script src="admin/admin-schedule.js?v=1"></script>
+  <script src="admin/admin-stations.js?v=29"></script>
+  <script src="admin/admin-trips.js?v=13"></script>
+  <script src="admin/admin-schedule.js?v=4"></script>
   <script src="admin/admin-calendar.js?v=1"></script>
-  <script src="admin/admin-transship.js?v=3"></script>
-  <script src="admin/admin-tickets.js?v=4"></script>
+  <script src="admin/admin-transship.js?v=15"></script>
+  <script src="admin/admin-tickets.js?v=8"></script>
   <script src="admin/admin-vehicles.js?v=1"></script>
   <script src="admin/admin-staff.js?v=1"></script>
   <script src="admin/admin-accounts.js?v=1"></script>

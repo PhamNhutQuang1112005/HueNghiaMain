@@ -50,13 +50,6 @@ function renderScheduleView() {
   var items = getScheduleItems();
   var f = SCHEDULE_FILTERS;
 
-  var totalCount = items.length;
-  var activeCount = 0, deletedCount = 0;
-  items.forEach(function (x) {
-    if (x && x.active) activeCount++;
-    if (x && x.deleted) deletedCount++;
-  });
-
   var filtered = items.filter(function (x) {
     if (!x) return false;
     if (f.active === '1' && !x.active) return false;
@@ -89,7 +82,7 @@ function renderScheduleView() {
 
     return '<tr class="' + (isDel ? 'sch-row-deleted' : '') + '">' +
       '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
-      '<td><span style="font-size:15px; font-weight:800; font-family:\'Roboto Mono\', monospace; color:var(--black); background:var(--surface-2); padding:3px 10px; border-radius:6px; border:1px solid var(--border-gray); display:inline-block;">' + esc(x.time) + '</span></td>' +
+      '<td style="text-align:center;"><span style="font-size:15px; font-weight:800; font-family:\'Roboto Mono\', monospace; color:var(--black); background:var(--surface-2); padding:3px 10px; border-radius:6px; border:1px solid var(--border-gray); display:inline-block;">' + esc(x.time) + '</span></td>' +
       '<td>' + (esc(x.content) || '<span class="hint-inline">Chưa có nội dung mô tả</span>') + '</td>' +
       '<td class="col-status" style="text-align:center;">' + activeBadge + '</td>' +
       '<td class="col-status" style="text-align:center;">' + deletedBadge + '</td>' +
@@ -107,86 +100,48 @@ function renderScheduleView() {
     ? filtered.map(tableRow).join('')
     : '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-sub);">Không tìm thấy lịch trình phù hợp với bộ lọc.</td></tr>';
 
+  // Bố cục phẳng giống trang Trạm Xe: thanh lọc .sd-toolbar (không panel/nền/bóng) + bảng trong
+  // .sd-table-wrap. Bỏ dải thẻ thống kê và header "Hệ Thống Quản Lý Lịch Trình".
   $('viewSchedule').innerHTML =
-    '<div class="schedule-shell">' +
-      '<!-- OVERVIEW STATS METRICS -->' +
-      '<div class="dir-stats-grid">' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Tổng số lịch trình</div>' +
-          '<div class="dir-stat-val">' + totalCount + ' <span class="ref-unit">mốc giờ</span></div>' +
-          '<div class="dir-stat-sub">Toàn bộ danh mục khung giờ</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Được kích hoạt</div>' +
-          '<div class="dir-stat-val" style="color:#059669;">' + activeCount + ' <span class="ref-unit">khung giờ</span></div>' +
-          '<div class="dir-stat-sub">Đang mở hoạt động</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Chưa kích hoạt</div>' +
-          '<div class="dir-stat-val" style="color:var(--amber, #d97706);">' + (totalCount - activeCount) + ' <span class="ref-unit">khung giờ</span></div>' +
-          '<div class="dir-stat-sub">Đang tạm ngưng áp dụng</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card ref-card-featured" style="min-height:auto;">' +
-          '<div class="ref-featured-head">Đã đánh dấu xóa</div>' +
-          '<div class="dir-stat-val" style="font-size:26px;color:#fff;">' + deletedCount + ' <span class="ref-unit" style="color:#fff;">lịch trình</span></div>' +
-          '<div class="ref-featured-sub">Đã nằm trong thùng rác</div>' +
-        '</div>' +
+    '<div class="sd-toolbar">' +
+      '<div class="filter-field sd-field-search"><label>Tìm kiếm lịch trình</label>' +
+        '<input type="text" id="schSearch" value="' + esc(f.search) + '" placeholder="Nhập giờ (01h30...) hoặc nội dung..." data-input-action="adminScheduleFilterInput" data-args=\'["search","__this_value__"]\'></div>' +
+      '<div class="filter-field sd-field-region"><label>Trạng thái kích hoạt</label>' +
+        '<select data-change-action="adminScheduleFilterInput" data-args=\'["active","__this_value__"]\'>' +
+          '<option value="">Tất cả trạng thái</option>' +
+          '<option value="1"' + (f.active === '1' ? ' selected' : '') + '>Được Kích Hoạt</option>' +
+          '<option value="0"' + (f.active === '0' ? ' selected' : '') + '>Chưa Kích Hoạt</option>' +
+        '</select></div>' +
+      '<div class="filter-field sd-field-region"><label>Trạng thái xóa</label>' +
+        '<select data-change-action="adminScheduleFilterInput" data-args=\'["deleted","__this_value__"]\'>' +
+          '<option value="">Tất cả</option>' +
+          '<option value="0"' + (f.deleted === '0' ? ' selected' : '') + '>Chưa Xóa</option>' +
+          '<option value="1"' + (f.deleted === '1' ? ' selected' : '') + '>Đã Xóa</option>' +
+        '</select></div>' +
+      '<div class="sd-toolbar-actions">' +
+        '<button type="button" class="btn sd-btn" data-action="adminResetScheduleFilters">Đặt lại</button>' +
+        '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenScheduleModal" data-args=\'[""]\'>+ Tạo mới lịch trình</button>' +
       '</div>' +
-
-      '<!-- FILTER TOOLBAR -->' +
-      '<div class="filter-toolbar" style="margin-bottom:20px;">' +
-        '<div class="filter-field">' +
-          '<label>Tìm kiếm lịch trình</label>' +
-          '<input type="text" value="' + esc(f.search) + '" placeholder="Nhập giờ (01h30...) hoặc nội dung..." data-input-action="adminScheduleFilterInput" data-args=\'["search","__this_value__"]\'>' +
-        '</div>' +
-        '<div class="filter-field">' +
-          '<label>Được Kích Hoạt</label>' +
-          '<select data-change-action="adminScheduleFilterInput" data-args=\'["active","__this_value__"]\'>' +
-            '<option value="">Tất cả trạng thái</option>' +
-            '<option value="1"' + (f.active === '1' ? ' selected' : '') + '>Được Kích Hoạt</option>' +
-            '<option value="0"' + (f.active === '0' ? ' selected' : '') + '>Chưa Kích Hoạt</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="filter-field">' +
-          '<label>Đã Xóa</label>' +
-          '<select data-change-action="adminScheduleFilterInput" data-args=\'["deleted","__this_value__"]\'>' +
-            '<option value="">Tất cả</option>' +
-            '<option value="0"' + (f.deleted === '0' ? ' selected' : '') + '>Chưa Xóa</option>' +
-            '<option value="1"' + (f.deleted === '1' ? ' selected' : '') + '>Đã Xóa</option>' +
-          '</select>' +
-        '</div>' +
-        '<button type="button" class="btn" data-action="adminResetScheduleFilters">Đặt lại</button>' +
-        '<div class="filter-spacer"></div>' +
-        '<button type="button" class="btn btn-primary" data-action="adminOpenScheduleModal" data-args=\'[""]\'>+ Tạo mới lịch trình</button>' +
-      '</div>' +
-
-      '<!-- TABLE CARD -->' +
-      '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-        '<div class="ref-card-header" style="padding:18px 22px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-          '<div style="font-size:15px; font-weight:800; color:var(--black);">Hệ Thống Quản Lý Lịch Trình</div>' +
-          '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">Hiển thị ' + filtered.length + ' / ' + totalCount + ' lịch trình</div>' +
-        '</div>' +
-        '<div class="table-wrap" style="border:0; border-radius:0; box-shadow:none;">' +
-          '<table class="admin-table">' +
-            '<thead><tr>' +
-              '<th style="width:60px; text-align:center;">STT</th>' +
-              '<th style="width:160px;">Thời gian</th>' +
-              '<th>Nội dung mô tả</th>' +
-              '<th class="col-status" style="text-align:center; width:150px;">Được Kích Hoạt</th>' +
-              '<th class="col-status" style="text-align:center; width:140px;">Đã Xóa</th>' +
-              '<th class="th-actions" style="text-align:center; width:220px;">Thao tác</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rowsHtml + '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+    '</div>' +
+    '<div class="sd-table-wrap">' +
+      '<table class="admin-table">' +
+        '<thead><tr>' +
+          '<th class="num" style="text-align:center;">STT</th>' +
+          '<th style="width:150px; text-align:center;">Thời gian</th>' +
+          '<th>Nội dung mô tả</th>' +
+          '<th class="col-status" style="text-align:center; width:150px;">Được Kích Hoạt</th>' +
+          '<th class="col-status" style="text-align:center; width:130px;">Đã Xóa</th>' +
+          '<th class="th-actions" style="text-align:center; width:220px;">Thao tác</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rowsHtml + '</tbody>' +
+      '</table>' +
     '</div>';
 }
 
 function adminScheduleFilterInput(field, val) {
   if (field in SCHEDULE_FILTERS) {
     SCHEDULE_FILTERS[field] = val || '';
-    renderScheduleView();
+    adminKeepFocus(renderScheduleView);
   }
 }
 

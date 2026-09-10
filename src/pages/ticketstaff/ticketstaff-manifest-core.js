@@ -21,9 +21,9 @@ const TRIP_LIFECYCLE_STATUS = Object.freeze({
 // Nhãn hiển thị + màu badge cho từng state (khớp class .status-xxx ở css/ticketstaff.css).
 const TRIP_STATUS_META = {
   SELLING: { label: 'Đang bán', cssClass: 'status-selling' },
-  DEPARTED: { label: 'Đã khởi hành', cssClass: 'status-departed' },
-  REOPEN: { label: 'Đang Re-open', cssClass: 'status-reopen' },
-  REOPEN_CLOSED: { label: 'Đã đóng Re-open', cssClass: 'status-reopen_closed' },
+  DEPARTED: { label: 'Khởi hành', cssClass: 'status-departed' },
+  REOPEN: { label: 'Re-open', cssClass: 'status-reopen' },
+  REOPEN_CLOSED: { label: 'Đóng Re-open', cssClass: 'status-reopen_closed' },
   MANIFEST_CLOSED: { label: 'Đã kết ca', cssClass: 'status-manifest_closed' }
 };
 

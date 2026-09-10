@@ -1,0 +1,198 @@
+/* ===========================================================================================
+   Modal "Chỉ định xe rước" (#atsAssignOverlay) + modal "Cập nhật trạng thái/tài xế" (#atsUpdateOverlay)
+   của tab Trung chuyển bên Admin — CSS COPY NGUYÊN từ TicketStaff để 2 modal giống 100%.
+   Nguồn: booking-ui/04-overlay-modals.css (panel-head/panel-body/panel-footer/icon-close/form-field/
+   modal/modal-actions), booking-ui/03-right-column.css (floor-col/floor-title-bar/seat-grid/seat-legend),
+   ticketstaff.css (assign-panel, pk-trip- list, seatmap-col-title, van-seat, assignPickupModal overrides).
+   Các file trên KHÔNG được nạp ở admin.html; nạp file này SAU admin.css. Selector gốc #assignPickupModal /
+   #pkUpdateStatusModal đổi thành #atsAssignOverlay / #atsUpdateOverlay. .trip-card đã có từ 02-zone1.css.
+   =========================================================================================== */
+
+/* ---------- overlay chung ---------- */
+#atsAssignOverlay {
+  position: fixed; inset: 0; background: rgba(15, 15, 16, .42); z-index: 100;
+  display: none; align-items: center; justify-content: center; padding: 24px;
+}
+#atsAssignOverlay.open { display: flex; }
+
+@keyframes atsPopin { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------- #assignPickupModal (ticketstaff.css) ---------- */
+#atsAssignOverlay .assign-panel {
+  width: 980px; height: 650px; max-width: 95vw; max-height: 92vh; background: #fff; border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25); display: flex; flex-direction: column; overflow: hidden;
+  animation: atsPopin .18s ease;
+}
+#atsAssignOverlay .panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px; border-bottom: 1px solid var(--border-gray); flex: 0 0 auto;
+}
+#atsAssignOverlay .panel-head h2 { font-size: 18.5px; font-weight: 800; margin: 0; }
+#atsAssignOverlay .panel-head .sub { font-size: 13.5px; color: var(--text-sub); font-weight: 600; margin-top: 2px; }
+#atsAssignOverlay .icon-close {
+  width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border-gray); background: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+#atsAssignOverlay .icon-close svg { width: 13px; height: 13px; }
+
+#atsAssignOverlay .panel-body {
+  flex: 1 1 auto; overflow-y: hidden; padding: 22px;
+  display: grid; grid-template-columns: 350px 1fr; gap: 24px; align-items: stretch; height: 100%;
+}
+#atsAssignOverlay .assign-left-col,
+#atsAssignOverlay .assign-right-col {
+  display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+}
+
+#atsAssignOverlay .pk-trip-col-title {
+  font-size: 12.5px; font-weight: 800; color: var(--text-sub); text-transform: uppercase;
+  letter-spacing: .4px; margin-bottom: 8px;
+}
+#atsAssignOverlay .pk-trip-search-box {
+  display: flex; align-items: center; gap: 8px;
+  border: 1.5px solid var(--border-gray); border-radius: 999px;
+  padding: 8px 14px; margin-bottom: 10px; background: #fff;
+}
+#atsAssignOverlay .pk-trip-search-box:focus-within { border-color: var(--red); }
+#atsAssignOverlay .pk-trip-search-box svg { width: 15px; height: 15px; stroke: var(--text-sub); flex: 0 0 auto; }
+#atsAssignOverlay .pk-trip-search-box input {
+  border: none; background: transparent; outline: none; flex: 1; font-size: 14.5px;
+  color: var(--text-main); font-family: inherit;
+}
+#atsAssignOverlay .pk-trip-empty-msg { padding: 16px 4px; text-align: center; font-size: 13.5px; color: var(--text-sub); font-weight: 600; }
+#atsAssignOverlay .pk-trip-list {
+  flex: 1 1 0; min-height: 0; overflow-y: auto; padding-right: 4px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+#atsAssignOverlay .seatmap-col-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#atsAssignOverlay .seatmap-col-title > span { font-size: 12.5px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: .4px; }
+
+#atsAssignOverlay .van-frame {
+  flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 14px 16px; width: 100%;
+  display: flex; flex-direction: row; gap: 16px; justify-content: center; align-items: flex-start;
+  border: 1px solid var(--border-gray); border-radius: var(--radius-lg); background: var(--surface-2);
+}
+#atsAssignOverlay .floor-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+#atsAssignOverlay .floor-title-bar {
+  text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 1px; color: var(--text-main);
+  background: var(--surface); border-radius: var(--radius-sm); padding: 4px 0; margin-bottom: 6px;
+}
+#atsAssignOverlay .seat-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  flex: 1 1 auto; align-content: start; justify-items: center;
+}
+#atsAssignOverlay .seat-grid.cols-3 { grid-template-columns: repeat(3, 1fr); gap: 6px 8px; }
+#atsAssignOverlay .seat-grid.cols-3 .van-seat { width: 36px; height: 36px; }
+
+#atsAssignOverlay .van-seat {
+  position: relative; width: 40px; height: 40px; background: none; border: none; padding: 0;
+  cursor: pointer; color: #cbd5e1; transition: all .2s ease;
+}
+#atsAssignOverlay .van-seat:hover:not(.blocked) { transform: scale(1.1); }
+#atsAssignOverlay .van-seat .seat-num {
+  position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 11px; font-weight: bold; color: #475569; pointer-events: none;
+}
+#atsAssignOverlay .van-seat.empty { color: #7DAEE8; }
+#atsAssignOverlay .van-seat.selected { color: #F27874; }
+#atsAssignOverlay .van-seat.selected .seat-num { color: #fff; }
+#atsAssignOverlay .van-seat.blocked { color: #C7CBD1; opacity: .55; cursor: not-allowed; }
+#atsAssignOverlay .van-seat.blocked .seat-num { color: #fff; }
+
+#atsAssignOverlay .seat-legend {
+  flex: 0 0 auto; margin-top: 8px; padding: 7px 12px; background: #fff;
+  border: 1px solid var(--border-gray); border-radius: var(--radius-sm); width: 100%;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+#atsAssignOverlay .seat-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--text-main); }
+#atsAssignOverlay .seat-legend-dot { width: 13px; height: 13px; border-radius: 4px; border: 1.5px solid var(--border-gray); flex: 0 0 auto; }
+#atsAssignOverlay .seat-legend-dot.empty { background: #fff; border-color: #7DAEE8; }
+#atsAssignOverlay .seat-legend-dot.selected { background: #F27874; border-color: #F27874; }
+#atsAssignOverlay .seat-legend-dot.blocked { background: #C7CBD1; border-color: #C7CBD1; }
+
+#atsAssignOverlay .panel-footer {
+  flex: 0 0 auto; padding: 14px 22px; border-top: 1px solid var(--border-gray);
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+#atsAssignOverlay .panel-footer .hint { font-size: 13.5px; color: var(--text-sub); font-weight: 600; }
+#atsAssignOverlay .panel-footer > div { display: flex; gap: 10px; }
+
+#atsAssignOverlay .assign-price-box {
+  display: flex; align-items: center; gap: 12px; background: #fff;
+  border: 1px solid var(--border-gray); border-radius: 8px; padding: 3px 10px;
+}
+#atsAssignOverlay .assign-price-box label { font-weight: 700; color: var(--text-sub); text-transform: none; margin: 0; font-size: 12px; }
+#atsAssignOverlay .assign-price-box input {
+  width: 90px; border: 1px solid var(--border-gray); border-radius: 6px; padding: 2px 6px;
+  font-weight: 700; color: var(--text-main); font-size: 13px; outline: none; text-align: right; font-family: inherit;
+}
+
+@media (max-width: 1040px) {
+  #atsAssignOverlay .assign-panel { width: 92vw; }
+  #atsAssignOverlay .panel-body { grid-template-columns: 280px 1fr; }
+}
+@media (max-width: 767px) {
+  #atsAssignOverlay .assign-panel { width: 100%; height: auto; max-height: 92vh; }
+  #atsAssignOverlay .panel-body { grid-template-columns: 1fr; overflow-y: auto; }
+  #atsAssignOverlay .assign-left-col, #atsAssignOverlay .assign-right-col { height: auto; overflow: visible; }
+  #atsAssignOverlay .assign-left-col { max-height: 220px; }
+  #atsAssignOverlay .van-frame { flex-direction: column; }
+}
+
+/* ---------- #pkUpdateStatusModal (booking-ui/04) ---------- */
+#atsUpdateOverlay {
+  position: fixed; inset: 0; background: rgba(15, 15, 16, .42); z-index: 10000;
+  display: none; align-items: center; justify-content: center;
+}
+#atsUpdateOverlay.open { display: flex; }
+#atsUpdateOverlay .modal {
+  width: 520px; max-width: 92vw; background: #fff; border-radius: 14px; padding: 22px;
+  animation: atsPopin .16s ease; box-shadow: 0 20px 50px rgba(0, 0, 0, .2); overflow: visible;
+}
+#atsUpdateOverlay .modal h3 { margin: 0 0 16px; padding: 0; border: 0; font-size: 18.5px; font-weight: 800; }
+#atsUpdateOverlay .modal-sub { font-size: 13.5px; color: var(--text-sub); font-weight: 600; margin: 0 0 14px; }
+#atsUpdateOverlay .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+#atsUpdateOverlay .form-field label { font-size: 13.5px; font-weight: 700; color: var(--text-sub); }
+#atsUpdateOverlay .form-field input,
+#atsUpdateOverlay .form-field select,
+#atsUpdateOverlay .form-field textarea {
+  width: 100%; border: 1px solid var(--border-gray); border-radius: var(--radius-sm);
+  padding: 9px 11px; font-size: 15px; min-height: 42px; font-family: inherit; color: var(--text-main); background: #fff;
+}
+#atsUpdateOverlay .form-field textarea { min-height: 64px; resize: vertical; }
+#atsUpdateOverlay .form-field input:focus,
+#atsUpdateOverlay .form-field select:focus,
+#atsUpdateOverlay .form-field textarea:focus { outline: 2px solid var(--red); outline-offset: 0; border-color: var(--red); }
+/* .form-row-grid: KHÔNG có CSS bên TicketStaff (2 ô Loại xe / Biển số xếp dọc) — giữ y chang, không style. */
+#atsUpdateOverlay .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 0; border-top: 0; }
+
+/* ---------- #sellPaymentModal "Xác nhận thanh toán" (booking-ui/04) — mở CHỒNG lên modal Chỉ định ---------- */
+#atsSellPaymentModal {
+  position: fixed; inset: 0; background: rgba(15, 15, 16, .42); z-index: 10001;
+  display: none; align-items: center; justify-content: center;
+}
+#atsSellPaymentModal.open { display: flex; }
+#atsSellPaymentModal .modal {
+  width: 460px; max-width: 92vw; background: #fff; border-radius: 14px; padding: 22px;
+  animation: atsPopin .16s ease; box-shadow: 0 20px 50px rgba(0, 0, 0, .2); overflow: visible;
+}
+#atsSellPaymentModal .modal h3 { margin: 0 0 16px; padding: 0; border: 0; font-size: 18.5px; font-weight: 800; }
+#atsSellPaymentModal .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+#atsSellPaymentModal .form-field label { font-size: 13.5px; font-weight: 700; color: var(--text-sub); }
+#atsSellPaymentModal .pay-method-toggle { display: flex; align-items: stretch; gap: 12px; }
+#atsSellPaymentModal .pay-method-option {
+  position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: row; align-items: center;
+  justify-content: flex-start; gap: 8px; padding: 12px 14px; border: 1.5px solid var(--border-gray);
+  border-radius: var(--radius-lg); cursor: pointer; user-select: none; background: #fff;
+  transition: border-color .12s ease, background .12s ease;
+}
+#atsSellPaymentModal .pay-method-option input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+#atsSellPaymentModal .pay-method-option svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--text-main); transition: color .12s ease; }
+#atsSellPaymentModal .pay-method-option span { font-size: 13px; font-weight: 500; color: var(--text-main); white-space: nowrap; transition: color .12s ease; }
+#atsSellPaymentModal .pay-method-option:hover { border-color: var(--green, #16A34A); }
+#atsSellPaymentModal .pay-method-option:has(input:checked) { border-color: var(--green, #16A34A); background: rgba(22, 163, 74, .07); }
+#atsSellPaymentModal .pay-method-option:has(input:checked) svg,
+#atsSellPaymentModal .pay-method-option:has(input:checked) span { color: var(--green, #16A34A); }
+#atsSellPaymentModal .pay-method-option:has(input:checked) span { font-weight: 700; }
+#atsSellPaymentModal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }

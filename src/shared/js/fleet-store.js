@@ -36,10 +36,33 @@
   var BD_STATIONS = ['Trạm An Phú', 'Bến xe An Phú', 'Trạm Bến Cát', 'Trạm Phú Chánh', 'Trạm Tân Uyên', 'Trạm An Tây', 'Trạm Bình Phước', 'Trạm An Sương', 'Bình Dương'];
   var AG_STATIONS = ['Trạm An Giang', 'Trạm Sa Đéc', 'Trạm Long Xuyên', 'Trạm Vịnh Tre', 'Trạm Châu Đốc', 'Trạm An Phú', 'Trạm Tri Tôn', 'Trạm Chi Lăng', 'Trạm Tịnh Biên', 'Trạm Nhà Bàng', 'Trạm Tân Châu', 'Trạm Núi Sập', 'Trạm Hà Tiên', 'Trạm Long Bình', 'Trạm Đồng Ky', 'Trạm Bắc Đai', 'Trạm Vĩnh Hội Đông', 'Trạm Cần Thảo', 'Trạm Cái Dầu', 'Trạm Năng Gù', 'Trạm Bình Hòa', 'Trạm Châu Thành', 'Trạm Cần Đăng', 'Trạm Phú Hòa', 'Trạm Óc Eo', 'Trạm An Hòa', 'Trạm Cựu Hội', 'Trạm Ba Chúc', 'Trạm Lạc Quới', 'Trạm Giang Thành', 'Trạm Tân An - Tân Châu'];
 
+  // Dữ liệu mẫu cho các cột Mã trạm / Địa chỉ / Hotline hàng / Hotline vé — sinh theo quy tắc cố định
+  // (deterministic) cho từng vùng để mỗi trạm có sẵn thông tin minh hoạ thay vì bỏ trống.
+  var STATION_SEED_META = {
+    saigon:    { code: 'SG', province: 'TP. Hồ Chí Minh', landline: '028 3752 ', mobile: '0908 ' },
+    binhduong: { code: 'BD', province: 'Bình Dương',      landline: '0274 3822 ', mobile: '0918 ' },
+    angiang:   { code: 'AG', province: 'An Giang',        landline: '0296 3853 ', mobile: '0968 ' }
+  };
+  function pad3(n) { n = String(n); return n.length >= 3 ? n : ('000' + n).slice(-3); }
+  function seedStationRow(name, region, i) {
+    var m = STATION_SEED_META[region] || { code: 'TR', province: '', landline: '02 ', mobile: '09 ' };
+    var no = String(i + 1); if (no.length < 2) no = '0' + no;
+    var short = name.replace(/^Trạm\s+/i, '');
+    return {
+      name: name,
+      region: region,
+      code: m.code + no,
+      address: short + (m.province ? ', ' + m.province : ''),
+      province: m.province,
+      hotlineCargo: m.landline + pad3(700 + i * 3),
+      hotlineTicket: m.mobile + pad3(110 + i * 9) + ' ' + pad3(20 + i * 7)
+    };
+  }
+
   var SEED_STATIONS = []
-    .concat(SG_STATIONS.map(function (n) { return { name: n, region: 'saigon' }; }))
-    .concat(BD_STATIONS.map(function (n) { return { name: n, region: 'binhduong' }; }))
-    .concat(AG_STATIONS.map(function (n) { return { name: n, region: 'angiang' }; }));
+    .concat(SG_STATIONS.map(function (n, i) { return seedStationRow(n, 'saigon', i); }))
+    .concat(BD_STATIONS.map(function (n, i) { return seedStationRow(n, 'binhduong', i); }))
+    .concat(AG_STATIONS.map(function (n, i) { return seedStationRow(n, 'angiang', i); }));
 
   // 4 hướng — hiển thị tên đầy đủ, KHÔNG gắn nhãn đi/về. `sense` giữ NỘI BỘ cho bộ lọc "Chiều đi /
   // Chiều về" ở tab Phơi xe của TicketStaff. Trạm đi/đến/đón nằm ở TỪNG TUYẾN, không ở hướng.
@@ -211,14 +234,26 @@
   function mergeSeedStations() {
     var cur = readJSON(HN_STATIONS_KEY, null);
     if (cur === null || !Array.isArray(cur)) return; // seedKey đã ghi trọn SEED_STATIONS
+    var seedByKey = {};
+    SEED_STATIONS.forEach(function (s) { seedByKey[(s.region || '') + '||' + s.name] = s; });
     var have = {};
     cur.forEach(function (s) { if (s && s.name != null) have[(s.region || '') + '||' + s.name] = true; });
-    var added = 0;
+    var changed = 0;
     SEED_STATIONS.forEach(function (s) {
       var k = (s.region || '') + '||' + s.name;
-      if (!have[k]) { cur.push({ name: s.name, region: s.region }); have[k] = true; added++; }
+      if (!have[k]) { cur.push(clone(s)); have[k] = true; changed++; }
     });
-    if (added) writeJSON(HN_STATIONS_KEY, cur);
+    // Backfill dữ liệu mẫu (mã trạm / địa chỉ / tỉnh thành / hotline) cho trạm seed đang bỏ trống —
+    // KHÔNG đè giá trị Admin đã tự nhập. Idempotent, chạy mỗi lần nạp.
+    cur.forEach(function (s) {
+      if (!s || s.name == null) return;
+      var seed = seedByKey[(s.region || '') + '||' + s.name];
+      if (!seed) return;
+      ['code', 'address', 'province', 'hotlineCargo', 'hotlineTicket'].forEach(function (f) {
+        if (!s[f] && seed[f]) { s[f] = seed[f]; changed++; }
+      });
+    });
+    if (changed) writeJSON(HN_STATIONS_KEY, cur);
   }
 
   // Tương tự cho TUYẾN: với các tuyến seed (khớp theo id), bổ sung trạm đi/đến seed còn thiếu để

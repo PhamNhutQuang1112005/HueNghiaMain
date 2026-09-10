@@ -17,9 +17,27 @@ function tripRouteDirectionId(route) {
   return s === 'di' ? 'sg-ag' : 'ag-sg';
 }
 var ADMIN_BULK = { mode: false, ids: [] }; // "Tạo phơi xe hàng loạt" — chọn phơi mẫu (isTemplate) rồi nhân bản theo khoảng ngày
+var ADMIN_TPL_MODE = false; // đang mở modal ở chế độ "Tạo phơi mẫu" (gắn isTemplate cho phơi mới) — xem adminOpenTripModal
 
 function fld(label, inner) { return '<div class="filter-field"><label>' + esc(label) + '</label>' + inner + '</div>'; }
 function uniq(a) { return Array.from(new Set(a)); }
+
+/* Trạng thái hiển thị THỐNG NHẤT với thẻ Phơi xe bên TicketStaff (tripDisplayStatusKey / TRIP_DISPLAY_STATUS):
+   đã hủy → vòng đời phơi (manifest TicketStaff, key hn_ts_manifests_v1) → chưa có manifest thì suy từ
+   biển số + vé đã bán. KHÔNG đọc thẳng t.status. bank = seat bank của phơi (HN_STORAGE_KEY[tripId]). */
+function adminTripDisplayStatus(t, bank) {
+  if (t.status === 'Đã hủy') return { cls: 'da-huy', label: 'Đã hủy' };
+  var mf = lsRead('hn_ts_manifests_v1', {});
+  var life = (mf && mf[t.id] && mf[t.id].status) || 'SELLING';
+  if (life === 'DEPARTED') return { cls: 'da-khoi-hanh', label: 'Khởi hành' };
+  if (life === 'REOPEN') return { cls: 'da-khoi-hanh', label: 'Re-open' };
+  if (life === 'REOPEN_CLOSED') return { cls: 'da-khoi-hanh', label: 'Đóng Re-open' };
+  if (life === 'MANIFEST_CLOSED') return { cls: 'da-khoi-hanh', label: 'Đã kết ca' };
+  var plate = (bank && bank.plate) || t.plate || '';
+  // Chỉ còn 2 trạng thái khi chưa tạo phơi: chưa có biển số vs đã có biển số ("Đang bán").
+  // Bỏ "Đã chỉ định xe" — chỉ định xe xong coi như đang bán.
+  return plate ? { cls: 'dang-ban', label: 'Đang bán' } : { cls: 'chua-chi-dinh', label: 'Chưa chỉ định' };
+}
 
 function renderTripsView() {
   var trips = getTrips();
@@ -35,14 +53,20 @@ function renderTripsView() {
     if (!t) return false;
     // Chế độ chọn "phơi mẫu" luôn hiện đủ toàn bộ mẫu cố định, bỏ qua thanh lọc (giống TicketStaff).
     if (ADMIN_BULK.mode) return t.isTemplate && t.status !== 'Đã hủy';
+    // Ngoài chế độ hàng loạt: KHÔNG hiện phơi mẫu trong danh sách thường (giống TicketStaff).
+    if (t.isTemplate) return false;
+    var bk = seatBank[t.id];
+    var plateStr = (bk && bk.plate) || t.plate || '';
+    var vtypeStr = (bk && bk.vehicleType) || t.vehicleType || '';
     if (f.name) {
-      var hay = ((t.name || '') + ' ' + (t.route || '') + ' ' + (t.time || '') + ' ' + (t.plate || '')).toLowerCase();
+      var hay = ((t.name || '') + ' ' + (t.route || '') + ' ' + (t.time || '') + ' ' + plateStr + ' ' + vtypeStr).toLowerCase();
       if (hay.indexOf(f.name.toLowerCase()) === -1) return false;
     }
     if (f.date && t.date && t.date !== f.date) return false;
     if (f.direction && tripRouteDirectionId(t.route) !== f.direction) return false;
     if (f.route && t.route !== f.route) return false;
-    if (f.status && (t.status || 'Chưa chỉ định xe') !== f.status) return false;
+    // Lọc theo ĐÚNG trạng thái đang hiện trên thẻ (suy từ vòng đời + biển số + vé), không theo t.status.
+    if (f.status && adminTripDisplayStatus(t, bk).label !== f.status) return false;
     return true;
   }).sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
 
@@ -56,6 +80,7 @@ function renderTripsView() {
   var ICN_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   var ICN_ROUTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15.472M9 3.236v15.472"/></svg>';
   var ICN_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var ICN_SELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>';
 
   function seatInfo(t) {
     var plan = seatBank[t.id], empty = 0, total = 0;
@@ -66,44 +91,49 @@ function renderTripsView() {
     } else { total = seatMap[t.vehicleType] || 24; empty = total; }
     return empty + '/' + total;
   }
-  function cardInner(t, cls, st) {
+  // Card hiển thị y hệt TicketStaff (renderTable): biển số & loại xe ưu tiên seat bank, giá vé fallback
+  // 280.000đ, tên = t.name || "<tuyến> (<giờ>h)".
+  function cardInner(t, cls, label) {
+    var bank = seatBank[t.id];
     var timeStr = t.time || '00:00';
     var name = t.name || ((t.route || '') + ' (' + timeStr.replace(':', 'h') + ')');
+    var plate = (bank && bank.plate) || t.plate || 'Chưa có';
+    var vtype = (bank && bank.vehicleType) || t.vehicleType || '—';
     return '<div class="phoi-card-top">' +
         '<div class="phoi-card-schedule">' +
           '<div class="phoi-card-time-row"><span class="phoi-card-time">' + esc(timeStr) + '</span>' +
-          '<span class="trip-plate-inline">' + esc(t.plate || '—') + '</span></div>' +
+          '<span class="trip-plate-inline">' + esc(plate) + '</span></div>' +
           '<span class="phoi-card-date">' + fmtDate(t.date) + '</span>' +
         '</div>' +
-        '<span class="status-badge ' + cls + '"><span class="status-dot"></span>' + esc(st) + '</span>' +
+        '<span class="status-badge ' + cls + '"><span class="status-dot"></span>' + esc(label) + '</span>' +
       '</div>' +
       '<div class="phoi-card-name">' + esc(name) + '</div>' +
       '<div class="phoi-card-meta">' +
-        '<div class="phoi-card-meta-item"><label>Loại xe</label><span>' + esc(t.vehicleType || '—') + '</span></div>' +
+        '<div class="phoi-card-meta-item"><label>Loại xe</label><span>' + esc(vtype) + '</span></div>' +
         '<div class="phoi-card-meta-item"><label>Ghế trống</label><span>' + seatInfo(t) + '</span></div>' +
-        '<div class="phoi-card-meta-item"><label>Giá vé</label><span>' + fmtMoney(t.price || 0) + '</span></div>' +
+        '<div class="phoi-card-meta-item"><label>Giá vé</label><span>' + fmtMoney(t.price || 280000) + '</span></div>' +
       '</div>';
   }
 
   function tripCard(t) {
-    var st = t.status || 'Chưa chỉ định xe';
-    var cls = STATUS_CLASS[st] || 'chua-chi-dinh';
-
     if (ADMIN_BULK.mode) {
+      // Danh sách PHƠI MẪU: mọi thẻ luôn hiện "Chưa chỉ định" (mẫu không mang trạng thái/biển số sống).
       var sel = ADMIN_BULK.ids.indexOf(t.id) !== -1;
-      return '<div class="phoi-card phoi-card-selectable status-' + cls + (sel ? ' selected' : '') + '" data-action="adminToggleBulkSelect" data-args=\'["' + esc(t.id) + '"]\'>' +
+      return '<div class="phoi-card phoi-card-selectable status-chua-chi-dinh' + (sel ? ' selected' : '') + '" data-action="adminToggleBulkSelect" data-args=\'["' + esc(t.id) + '"]\'>' +
         '<div class="phoi-card-select-check">' + (sel ? ICN_CHECK : '') + '</div>' +
-        cardInner(t, cls, st) +
+        cardInner(t, 'chua-chi-dinh', 'Chưa chỉ định') +
       '</div>';
     }
 
-    var canCancel = st !== 'Đã hủy' && st !== 'Đã khởi hành';
+    var ds = adminTripDisplayStatus(t, seatBank[t.id]);
+    var cls = ds.cls, label = ds.label;
+    var sellDisabled = cls === 'da-huy' || cls === 'da-khoi-hanh';
     return '<div class="phoi-card status-' + cls + '" data-action="adminOpenTripModal" data-args=\'["' + esc(t.id) + '"]\'>' +
       '<button type="button" class="phoi-route-btn" title="Xem lộ trình" data-action="adminShowTripRoute" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + ICN_ROUTE + '</button>' +
-      cardInner(t, cls, st) +
+      cardInner(t, cls, label) +
       '<div class="phoi-card-footer">' +
         '<button type="button" class="btn btn-secondary phoi-edit-btn" data-action="adminOpenTripModal" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + ICN_EDIT + 'Chỉnh sửa</button>' +
-        '<button type="button" class="btn btn-danger phoi-sell-btn" data-action="adminCancelTrip" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'' + (canCancel ? '' : ' disabled') + '>' + ICN_X + 'Huỷ chuyến</button>' +
+        '<button type="button" class="btn btn-primary phoi-sell-btn" data-action="adminSellTripTickets" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'' + (sellDisabled ? ' disabled' : '') + '>' + ICN_SELL + 'Bán vé</button>' +
       '</div>' +
     '</div>';
   }
@@ -114,22 +144,25 @@ function renderTripsView() {
       (ADMIN_BULK.mode ? 'Chưa có phơi mẫu nào.' : 'Không tìm thấy chuyến phù hợp với bộ lọc.') + '</p></div>';
 
   var today = todayISO();
+  var allSelected = list.length > 0 && list.every(function (t) { return ADMIN_BULK.ids.indexOf(t.id) !== -1; });
   var bulkBar = ADMIN_BULK.mode
     ? '<div class="bulk-bar">' +
-        '<span class="bulk-bar-hint">' + (ADMIN_BULK.ids.length ? 'Đã chọn ' + ADMIN_BULK.ids.length + ' phơi mẫu' : 'Chọn các phơi mẫu bên dưới để nhân bản theo khoảng ngày') + '</span>' +
+        '<span class="bulk-bar-hint">' + (ADMIN_BULK.ids.length ? 'Đã chọn ' + ADMIN_BULK.ids.length + '/' + list.length + ' phơi mẫu' : 'Chọn các phơi mẫu bên trên để tạo hàng loạt theo khoảng ngày') + '</span>' +
         '<div class="bulk-bar-fields">' +
           '<div class="filter-field"><label>Từ ngày</label><input type="date" id="bkFrom" value="' + today + '" min="' + today + '"></div>' +
           '<div class="filter-field"><label>Đến ngày</label><input type="date" id="bkTo" value="' + today + '" min="' + today + '"></div>' +
-          '<button class="btn" data-action="adminToggleBulkMode">Hủy</button>' +
+          '<button class="btn btn-secondary" data-action="adminBulkSelectAll"' + (list.length ? '' : ' disabled') + '>' + (allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả') + '</button>' +
+          '<button class="btn btn-secondary" data-action="adminToggleBulkMode">Hủy</button>' +
           '<button class="btn btn-primary" data-action="adminBulkCreate"' + (ADMIN_BULK.ids.length ? '' : ' disabled') + '>Tạo hàng loạt</button>' +
         '</div>' +
       '</div>'
     : '';
 
-  var body = bulkBar + '<div class="phoi-grid-wrap">' + grid + '</div>';
+  // .has-bulk-bar: chừa chỗ dưới lưới cho thanh chọn phơi mẫu (position:fixed, dính đáy màn hình).
+  var body = '<div class="phoi-grid-wrap' + (ADMIN_BULK.mode ? ' has-bulk-bar' : '') + '">' + grid + '</div>' + bulkBar;
 
   $('viewTrips').innerHTML =
-    '<div class="filter-toolbar">' +
+    '<div class="filter-toolbar tf-toolbar">' +
       fld('Tên phơi', '<input type="text" id="tfName" value="' + esc(f.name) + '" placeholder="Nhập tên phơi..." data-change-action="adminTripFilterInput" data-args=\'["name","__this_value__"]\'>') +
       fld('Ngày khởi hành', '<input type="date" id="tfDate" value="' + esc(f.date) + '" data-change-action="adminTripFilterInput" data-args=\'["date","__this_value__"]\'>') +
       fld('Hướng đi', '<select id="tfDirection" data-change-action="adminTripFilterInput" data-args=\'["direction","__this_value__"]\'>' +
@@ -147,7 +180,9 @@ function renderTripsView() {
       '<div class="filter-spacer"></div>' +
       '<button class="btn' + (ADMIN_BULK.mode ? ' bulk-toggle-active' : '') + '" data-action="adminToggleBulkMode">' +
         (ADMIN_BULK.mode ? 'Hủy chọn phơi mẫu' : 'Tạo phơi xe hàng loạt') + '</button>' +
-      (ADMIN_BULK.mode ? '' : '<button class="btn btn-primary" data-action="adminOpenTripModal" data-args=\'[""]\'>+ Tạo phơi xe</button>') +
+      (ADMIN_BULK.mode
+        ? '<button class="btn btn-primary" data-action="adminOpenTripModal" data-args=\'["",true]\'>+ Tạo phơi mẫu</button>'
+        : '<button class="btn btn-primary" data-action="adminOpenTripModal" data-args=\'[""]\'>+ Tạo phơi xe</button>') +
     '</div>' +
     body;
 }
@@ -205,6 +240,12 @@ function adminToggleBulkSelect(id) {
   if (i === -1) ADMIN_BULK.ids.push(id); else ADMIN_BULK.ids.splice(i, 1);
   renderTripsView();
 }
+function adminBulkSelectAll() {
+  var ids = getTrips().filter(function (t) { return t && t.isTemplate && t.status !== 'Đã hủy'; }).map(function (t) { return t.id; });
+  var allSel = ids.length > 0 && ids.every(function (id) { return ADMIN_BULK.ids.indexOf(id) !== -1; });
+  ADMIN_BULK.ids = allSel ? [] : ids;
+  renderTripsView();
+}
 function adminBulkCreate() {
   if (!ADMIN_BULK.ids.length) { showToast('Chưa chọn phơi mẫu nào.'); return; }
   var from = ($('bkFrom') || {}).value || '';
@@ -232,7 +273,7 @@ function adminBulkCreate() {
         fromStation: tpl.fromStation || '', toStation: tpl.toStation || '',
         pickupStations: Array.isArray(tpl.pickupStations) ? tpl.pickupStations.slice() : [],
         vehicleType: tpl.vehicleType, price: tpl.price,
-        status: 'Chưa chỉ định xe', plate: '', note: tpl.note || '', createdAt: Date.now() + n
+        status: 'Chưa chỉ định', plate: '', note: tpl.note || '', createdAt: Date.now() + n
       });
       created++;
     });
@@ -249,10 +290,11 @@ function adminBulkCreate() {
 /* Modal "Tạo phơi xe mới" / "Chỉnh sửa phơi xe" — dựng GIỐNG #singleModal của TicketStaff:
    Hướng đi → Trạm đi | Trạm đến → Ngày | Giờ → Trạm có thể nhận thêm khách → Giá vé | Loại xe →
    Ghi chú → (chỉ khi sửa) Trạng thái | Biển số → Tên phơi. Footer: [Hủy phơi xe] [Đóng] [Lưu]. */
-function adminOpenTripModal(id) {
+function adminOpenTripModal(id, asTemplate) {
+  ADMIN_TPL_MODE = !!asTemplate && !id;
   var trips = getTrips();
   var t = id ? trips.find(function (x) { return x.id === id; }) : null;
-  var readOnly = !!t && (t.status === 'Đã khởi hành' || t.status === 'Đã hủy');
+  var readOnly = !!t && (t.status === 'Khởi hành' || t.status === 'Đã khởi hành' || t.status === 'Đã hủy');
   var cfg = FleetStore.buildTripDirectionsCfg();               // { [routeId]: {label,route,price,fromStations,toStations,pickupStations,directionLabel} }
   var dirKeys = Object.keys(cfg);
   var curDirKey = t ? (dirKeys.find(function (k) { return cfg[k].route === t.route; }) || '') : '';
@@ -269,8 +311,8 @@ function adminOpenTripModal(id) {
   if (curType && !vtypes.some(function (v) { return v.name === curType; })) vtypes = vtypes.concat([{ name: curType }]);
 
   openAdminModal(
-    '<h3>' + (t ? 'Chỉnh sửa phơi xe' : 'Tạo phơi xe mới') + '</h3>' +
-    '<form class="admin-form" data-submit-action="adminSaveTrip" data-args=\'["__event__"]\'>' +
+    '<h3>' + (t ? 'Chỉnh sửa phơi xe' : (ADMIN_TPL_MODE ? 'Tạo phơi mẫu' : 'Tạo phơi xe mới')) + '</h3>' +
+    '<form class="admin-form trip-form" data-submit-action="adminSaveTrip" data-args=\'["__event__"]\'>' +
       '<input type="hidden" id="ttId" value="' + (t ? esc(t.id) : '') + '">' +
 
       '<div class="fld"><label>Hướng đi <span class="req">*</span></label>' +
@@ -439,22 +481,56 @@ function adminSaveTrip(e) {
     if ($('ttPlate')) t.plate = $('ttPlate').value.trim();
     setTrips(trips);
     if (typeChanged) regenSeatBankForType(id, vehicleType, price);
+    // Đồng bộ biển số / loại xe / tài xế-phụ xe mặc định xuống seat bank — giống updateExistingTrip() của TicketStaff,
+    // để header sơ đồ ghế bên TicketStaff luôn hiện đúng biển số của phơi.
+    syncTripSeatBankMeta(id, t.plate || '', vehicleType);
     FleetStore.log({ action: 'update', entity: 'trip', entityId: id, summary: 'Sửa phơi ' + name, before: before, after: t });
   } else {
     var newId = String(Date.now());
     var nt = {
-      id: newId, name: name, date: date, route: d.route, fromStation: from, toStation: to,
+      id: newId, name: name, date: (ADMIN_TPL_MODE ? todayISO() : date), route: d.route, fromStation: from, toStation: to,
       pickupStations: pickups, time: time, vehicleType: vehicleType, price: price,
-      note: note, status: 'Chưa chỉ định xe', plate: '', createdAt: Date.now()
+      note: note, status: 'Chưa chỉ định', plate: '', createdAt: Date.now()
     };
+    if (ADMIN_TPL_MODE) nt.isTemplate = true;
     trips.push(nt);
     setTrips(trips);
     regenSeatBankForType(newId, vehicleType, price);
-    FleetStore.log({ action: 'create', entity: 'trip', entityId: newId, summary: 'Tạo phơi ' + name, after: nt });
+    FleetStore.log({ action: 'create', entity: 'trip', entityId: newId, summary: (ADMIN_TPL_MODE ? 'Tạo phơi mẫu ' : 'Tạo phơi ') + name, after: nt });
   }
+  var wasTpl = ADMIN_TPL_MODE;
+  ADMIN_TPL_MODE = false;
   closeAdminModal();
-  showToast('Đã lưu phơi xe.');
+  showToast(wasTpl ? 'Đã thêm phơi mẫu.' : 'Đã lưu phơi xe.');
   renderTripsView();
+}
+
+// Ghi biển số / loại xe / (tài xế, phụ xe mặc định khi có biển số) xuống seat bank của phơi.
+function syncTripSeatBankMeta(tripId, plate, vehicleType) {
+  var bank = lsRead(HN_STORAGE_KEY, {});
+  var b = bank[tripId];
+  if (!b) return;
+  b.plate = plate;
+  b.vehicleType = vehicleType;
+  if (plate) {
+    b.driver = b.driver || 'Phạm Quốc Bảo';
+    b.helper = b.helper || 'Đỗ Văn Sơn';
+  }
+  bank[tripId] = b;
+  lsWrite(HN_STORAGE_KEY, bank);
+}
+
+/* ---- "Bán vé" trên thẻ phơi — mở Danh sách vé của phơi (admin không có luồng đặt vé; đây là chỗ xem/
+   quản lý vé gần nhất) ---- */
+function adminSellTripTickets(id) {
+  var t = getTrips().find(function (x) { return x.id === id; });
+  if (!t) return;
+  if (typeof TICKET_FILTERS === 'object') {
+    Object.keys(TICKET_FILTERS).forEach(function (k) { TICKET_FILTERS[k] = ''; });
+    TICKET_FILTERS.route = t.route || '';
+  }
+  try { if (typeof adminCalState === 'function') adminCalState('tk').selectedStr = t.date || ''; } catch (e) {}
+  if (typeof switchAdminView === 'function') switchAdminView('viewTicketList');
 }
 
 /* Sinh seat bank rỗng cho chuyến mới / khi đổi loại xe — ghi thẳng HN_STORAGE_KEY (không dùng global

@@ -14,7 +14,7 @@
 
 :root {
   --admin-sidebar-w: 260px;
-  --admin-content-max: 1680px;
+  --admin-content-max: 2200px;
 
   /* TicketStaff Exact Brand Red Palette (#C20D08) */
   --red: #C20D08;
@@ -362,14 +362,16 @@
   flex: 1 1 auto;
   min-width: 0;
   overflow-y: auto;
-  padding: 24px 32px 64px;
+  padding: 16px 20px 32px;
 }
 
 @media (min-width: 1700px) {
-  .admin-main { padding-left: 40px; padding-right: 40px; }
+  .admin-main { padding-left: 24px; padding-right: 24px; }
 }
 
 .admin-view {
+  /* Căn giữa nhưng trần rộng (2200px) nên trên màn lớn khoảng trống 2 bên nhỏ; padding .admin-main
+     mỏng để nội dung sát khung hơn cả 4 phía. */
   max-width: var(--admin-content-max);
   margin: 0 auto;
 }
@@ -731,21 +733,238 @@ input:checked + .slider:before { transform: translateX(16px); }
 .filter-field input:focus, .filter-field select:focus, .admin-form input:not([type="checkbox"]):not([type="radio"]):focus, .admin-form select:focus, .admin-form textarea:focus { outline: none; background: var(--white); border-color: var(--red); box-shadow: var(--ring); }
 .filter-spacer { flex: 1 1 auto; }
 
-.table-wrap { background: var(--white); border: 1px solid var(--border-gray); border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm); }
-table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.admin-table th, .admin-table td { text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
-.admin-table th { background: var(--surface-2); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-sub); position: sticky; top: 0; z-index: 2; white-space: nowrap; border-bottom: 1px solid var(--border-gray); }
-.admin-table tbody tr { transition: background var(--t-fast); }
-.admin-table tbody tr:hover { background: var(--surface-2); }
-.admin-table tbody tr:last-child td { border-bottom: 0; }
+/* Phơi xe — thanh lọc PHẲNG (bỏ panel card) + cân đối chiều ngang: 5 ô lọc giãn đều, nút bám 2 đầu.
+   Ô lọc kiểu TicketStaff (viền 1.5px #CBCDCD, nền trắng, 35px, nhãn nhỏ trên). */
+.tf-toolbar {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 16px;
+  gap: 10px;
+  flex-wrap: nowrap;          /* tất cả (5 ô lọc + 4 nút) nằm CÙNG 1 hàng */
+}
+.tf-toolbar .filter-field { flex: 1 1 0; min-width: 96px; gap: 4px; }
+.tf-toolbar .filter-spacer { display: none; }
+.tf-toolbar .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+.tf-toolbar .filter-field > input,
+.tf-toolbar .filter-field > select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.tf-toolbar .filter-field > input:focus,
+.tf-toolbar .filter-field > select:focus { outline: none; background: #fff; border-color: var(--red); box-shadow: none; }
+.tf-toolbar > .btn { flex: 0 0 auto; height: 35px; }
+@media (max-width: 900px) {
+  .tf-toolbar { flex-wrap: wrap; }
+  .tf-toolbar .filter-field { flex: 1 1 46%; min-width: 130px; }
+  .tf-toolbar > .btn { flex: 1 1 auto; }
+}
+
+/* ============================================================================
+   MỌI BẢNG ADMIN (.admin-table + khung bọc) — SAO Y bảng "Trung chuyển" bên TicketStaff
+   (.transship-block > .pax-table.pax-table--grid). admin.css định nghĩa lại bảng biến màu
+   trong :root nên phải HARDCODE đúng hex của TicketStaff (variables.css) — cùng tên biến
+   nhưng khác giá trị: --border-gray #CBCDCD, --surface-2 #F8F7F7, --text-sub #6B6E70,
+   --text-main #111213, --radius-md 8px.
+   ============================================================================ */
+/* Khung bọc bảng = .transship-block nhưng KHÔNG bo góc: viền #CBCDCD vuông + bóng nhẹ */
+.table-wrap,
+.sd-table-wrap {
+  background: #fff;
+  border: 1px solid #CBCDCD;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.table-wrap { overflow: auto; }
+.sd-table-wrap { overflow-x: auto; }
+
+table.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-family: inherit;
+  font-size: 13px;
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 12px;
+  border: 1px solid #CBCDCD;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #F8F7F7;
+  color: #6B6E70;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding: 10px 12px;
+  vertical-align: bottom;
+  text-align: center;
+}
+.admin-table tbody td { font-size: 13.5px; color: #111213; }
+.admin-table tbody tr { transition: background .12s ease; }
+.admin-table tbody tr:nth-child(even) { background: transparent; }
+.admin-table tbody tr:hover { background: #F8F7F7; }
 .admin-table tr.is-selected { background: var(--red-light); }
 .admin-table tr.row-click { cursor: pointer; }
-.admin-table .num { text-align: right; font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; font-weight: 700; }
-.admin-table .row-actions { display: flex; gap: 8px; justify-content: center; }
-.admin-table td.row-actions { text-align: center; }
+.admin-table .num { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; font-weight: 700; }
+/* KHÔNG dùng display:flex trên <td> — trong bảng border-collapse nó tách ô khỏi lưới, viền không gộp
+   với ô kế bên nên trông ĐẬM/DÀY hơn các ô khác. Giữ ô là table-cell, chỉ căn giữa + cách nút bằng margin. */
+.admin-table td.row-actions { display: table-cell; text-align: center; white-space: nowrap; }
+.admin-table td.row-actions .btn + .btn { margin-left: 8px; }
 .admin-table th.th-actions { text-align: center; }
 .admin-table .col-status { text-align: center; white-space: nowrap; }
+
+/* Card / cột bọc bảng ở các trang khác (Tài khoản, Nhật ký, Nhân viên, Sơ đồ ghế, Tuyến xe,
+   Vé, Trung chuyển...) — ép về frame .transship-block: viền #CBCDCD, KHÔNG bo góc, bóng nhẹ. */
+.ref-card:has(.admin-table) {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #CBCDCD;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.ref-card:has(.admin-table) .table-wrap,
+.ref-card:has(.admin-table) .admin-table-wrap {
+  border: 0;
+  box-shadow: none;
+}
+.st-col { border-color: #CBCDCD; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+
+/* KHÔNG BO GÓC bất kỳ khung bảng admin nào — đè mọi border-radius kế thừa (.ref-card 20px,
+   .pax-table-wrap/.st-col --radius-*, ...). */
+.admin-view .table-wrap,
+.admin-view .sd-table-wrap,
+.admin-view .admin-table-wrap,
+.admin-view .pax-table-wrap,
+.admin-view .ref-card:has(.admin-table),
+.admin-view .st-col,
+.admin-view .admin-table,
+.admin-view .admin-table th,
+.admin-view .admin-table td { border-radius: 0 !important; }
+
 .empty-state { padding: 60px 20px; text-align: center; color: var(--text-sub); font-size: 13.5px; font-weight: 500; }
+
+/* Bảng tuyến (.rt-table): thu gọn cột Mã / Trạng thái, dồn bề ngang cho cột "Trạm có thể nhận".
+   Cột Thao tác KHÔNG khai width → tự vừa nút "Cập nhật ▾" y như bảng Trạm Xe (cùng .row-menu-btn).
+   Tiêu đề mọi cột canh giữa (kế thừa .admin-table thead th); ô dữ liệu cột trạm canh trái để chip đọc dễ. */
+.rt-table .rt-col-abbr { width: 72px; white-space: nowrap; text-align: center; }
+.rt-table .col-status,
+.rt-table th.th-actions,
+.rt-table td.row-actions { width: 120px; }
+.rt-table td.rt-pickup-cell { text-align: left; min-width: 360px; }
+.rt-pickup.chip-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rt-pickup .btn-ghost { flex: 0 0 auto; }
+
+/* --- Thanh lọc Trạm Xe: phẳng như .rs-toolbar bên TicketStaff --- */
+.sd-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-bottom: 16px;
+}
+.sd-toolbar .filter-field { gap: 4px; }
+.sd-toolbar .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px; }
+.sd-toolbar .sd-field-search { flex: 1 1 260px; min-width: 200px; }
+.sd-toolbar .sd-field-region { flex: 0 1 220px; min-width: 170px; }
+/* Khung ô lọc y hệt các ô bên TicketStaff: viền 1.5px #CBCDCD, nền trắng, focus chỉ đổi viền đỏ. */
+.sd-toolbar .sd-field-search input,
+.sd-toolbar .sd-field-region select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.sd-toolbar .sd-field-search input:focus,
+.sd-toolbar .sd-field-region select:focus {
+  background: var(--white);
+  border-color: var(--red);
+  box-shadow: none;
+}
+.sd-toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
+.sd-toolbar .sd-btn { flex: 0 0 auto; height: 35px; }
+
+/* --- Khung bảng Trạm Xe: chỉ viền mảnh + bo góc, không card/bóng (như .pax-table-wrap) --- */
+.sd-table-wrap {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+/* --- Nút phẳng trong Trạm Xe (+ modal danh mục địa điểm) --- */
+#viewStations .btn,
+#viewStations .btn:hover,
+#viewStations .btn-primary,
+#viewStations .btn-primary:hover,
+.regions-modal .btn,
+.regions-modal .btn:hover,
+.row-menu-btn,
+.row-menu-btn:hover { box-shadow: none; }
+
+/* --- Cột "Thao tác": nút "Cập nhật ▾" mở dropdown nổi (gắn <body>, không bị wrap cắt) --- */
+.row-menu-btn { white-space: nowrap; }
+.row-menu-caret { font-size: 10px; opacity: 0.7; margin-left: 2px; }
+.admin-row-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  animation: modal-in 0.14s ease;
+}
+.admin-row-menu-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.admin-row-menu-item:hover { background: var(--surface-2); }
+.admin-row-menu-item.danger { color: var(--red); }
+.admin-row-menu-item.danger:hover { background: var(--red-light); }
+
+@media (max-width: 720px) {
+  .sd-toolbar .sd-field-search,
+  .sd-toolbar .sd-field-region { flex: 1 1 100%; }
+  .sd-toolbar-actions { width: 100%; margin-left: 0; }
+  .sd-toolbar-actions .sd-btn { flex: 1 1 auto; }
+}
 
 /* Transship table — fixed layout so colgroup widths are respected */
 .admin-table.shuttle-table {
@@ -889,6 +1108,9 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .modal { background: var(--white); border-radius: var(--radius-lg); width: 560px; max-width: 100%; padding: 0; box-shadow: var(--shadow-modal); overflow: hidden; animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
 .modal.modal-wide { width: 760px; }
+/* Modal "Tạo phơi xe mới" / "Chỉnh sửa phơi xe" — khổ giống #singleModal bên TicketStaff (max-width 720). */
+.modal:has(> .trip-form) { width: 720px; max-width: calc(100vw - 32px); }
+.modal:has(> .trip-form) > .admin-form { max-height: calc(100vh - 150px); overflow-y: auto; }
 .modal.modal-fill {
   display: flex;
   flex-direction: column;
@@ -912,6 +1134,19 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .admin-form .fld-row { display: flex; gap: 16px; }
 .admin-form .fld-row > .fld { flex: 1 1 0; min-width: 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-subtle); }
+
+/* Modal "Tạo/Chỉnh sửa phơi xe" — thu gọn khoảng cách giữa các thành phần cho khớp #singleModal bên
+   TicketStaff (hàng sát nhau hơn, label sát input, ô thấp hơn, nút bớt cách). Chỉ áp cho .trip-form
+   nên các modal admin khác (Trạm/Tuyến/Xe…) giữ nguyên. */
+.modal:has(> .trip-form) > h3 { padding: 14px 20px 12px; }
+.admin-form.trip-form { padding: 14px 20px 18px; }
+.admin-form.trip-form .fld { gap: 4px; margin-bottom: 10px; }
+.admin-form.trip-form .fld > label { font-size: 12px; }
+.admin-form.trip-form .fld-row { gap: 12px; }
+.admin-form.trip-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.admin-form.trip-form select { height: 34px; padding: 0 12px; }
+.admin-form.trip-form .station-pick-group { min-height: 28px; gap: 6px; }
+.admin-form.trip-form .modal-actions { margin-top: 12px; padding-top: 12px; }
 
 /* Pickup combobox — "Trạm có thể nhận thêm khách" */
 .pickup-combobox {
@@ -1417,12 +1652,7 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 }
 
 /* ===== QUẢN LÝ LỊCH TRÌNH (SCHEDULE MANAGEMENT) STYLES ===== */
-.schedule-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
+/* Bố cục dùng chung .sd-toolbar + .sd-table-wrap của trang Trạm Xe — không cần style riêng. */
 .sch-row-deleted {
   opacity: 0.55;
   background-color: var(--surface-2, #F8FAFC);
@@ -1946,17 +2176,25 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 
 /* ===== PHƠI XE — danh sách thẻ (.phoi-card) ===== */
 .phoi-grid-wrap {
-  background: var(--white);
-  border: 1px solid var(--border-gray);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  padding: 16px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
+/* ---------------------------------------------------------------------------
+   LƯỚI THẺ PHƠI XE — mọi thẻ ĐỒNG NHẤT tuyệt đối: cùng width (grid 1fr),
+   cùng height (cố định), mọi khu vực bên trong chiều cao ổn định → footer luôn
+   thẳng hàng dù nội dung dài/ngắn. Nội dung dài bị line-clamp + ellipsis.
+   --------------------------------------------------------------------------- */
 .phoi-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(3, 1fr);   /* mặc định: 3 phơi / hàng; thu dần theo bề rộng bên dưới */
   gap: 14px;
+  /* KHÔNG đặt align-items → mặc định stretch: các thẻ cùng hàng tự cao bằng nhau theo thẻ cao nhất,
+     y như bên TicketStaff (thẻ cao theo nội dung, không ép chiều cao cố định). */
 }
+@media (max-width: 1040px) { .phoi-card-grid { grid-template-columns: repeat(2, 1fr); } }
 .phoi-card {
   position: relative;
   display: flex;
@@ -1976,14 +2214,24 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .phoi-card.status-da-khoi-hanh { border-left-color: #6366F1; }
 .phoi-card.status-da-huy { border-left-color: #DC2626; opacity: .7; }
 
-.phoi-card-top { display: flex; align-items: flex-start; gap: 8px; padding: 12px 8px 0 12px; }
+/* Header: giờ + biển số (1 dòng, không xuống dòng) | ngày | badge trạng thái */
+.phoi-card-top { flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; padding: 12px 8px 0 12px; }
 .phoi-card-schedule { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
-.phoi-card-time-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.phoi-card-time { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.2; }
-.phoi-card-date { font-size: 11.5px; color: var(--text-sub); font-weight: 500; margin-top: 3px; }
+.phoi-card-time-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0; }
+.phoi-card-time { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.2; white-space: nowrap; flex: 0 0 auto; }
+.phoi-card-time-row .trip-plate-inline {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phoi-card-date { font-size: 11.5px; color: var(--text-sub); font-weight: 500; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .phoi-card-top .status-badge { flex: 0 0 auto; }
 
+/* Tuyến — cao theo nội dung (1–2 dòng tự nhiên), không ép chiều cao như trước để khớp TicketStaff. */
 .phoi-card-name {
+  flex: 0 0 auto;
   padding: 10px 12px 0;
   font-weight: 700;
   font-size: 13.5px;
@@ -1991,6 +2239,7 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   line-height: 1.35;
 }
 .phoi-card-meta {
+  flex: 0 0 auto;
   display: flex;
   gap: 8px;
   padding: 10px 12px;
@@ -1998,10 +2247,11 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   border-top: 1px solid var(--surface);
 }
 .phoi-card-meta-item { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
-.phoi-card-meta-item label { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; color: var(--text-sub); font-weight: 700; }
+.phoi-card-meta-item label { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; color: var(--text-sub); font-weight: 700; white-space: nowrap; }
 .phoi-card-meta-item span { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.phoi-card-footer { margin-top: auto; display: flex; gap: 8px; padding: 0 12px 12px; }
+/* Footer — LUÔN sát đáy thẻ nhờ margin-top:auto, bất kể nội dung phía trên */
+.phoi-card-footer { flex: 0 0 auto; margin-top: auto; display: flex; gap: 8px; padding: 0 12px 12px; }
 .phoi-edit-btn,
 .phoi-sell-btn {
   flex: 1 1 0;
@@ -2035,9 +2285,12 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .phoi-route-btn:hover { color: var(--red); background: var(--surface-2); }
 .phoi-card:not(.phoi-card-selectable) .phoi-card-top { padding-right: 34px; }
 
+/* Thẻ phơi MẪU (chế độ chọn hàng loạt) — không có footer/route-btn nên thấp hơn; cao theo nội dung,
+   các thẻ cùng hàng tự bằng nhau nhờ grid stretch (giống TicketStaff). */
 .phoi-card-selectable { padding-bottom: 12px; }
 .phoi-card-selectable:hover { border-color: var(--red); }
 .phoi-card-selectable .phoi-card-top { padding-right: 34px; }
+.phoi-card-selectable .phoi-card-meta { border-bottom: 0; }
 .phoi-card-selectable.selected { border-color: var(--red); background: var(--red-light); }
 .phoi-card-select-check {
   position: absolute;
@@ -2058,22 +2311,51 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 
 .bulk-toggle-active { background: var(--red); border-color: var(--red); color: #fff; }
 .bulk-toggle-active:hover { background: var(--red-hover); border-color: var(--red-hover); }
+/* Thanh chọn phơi mẫu — DÍNH ĐÁY MÀN HÌNH (giống .sticky-actions Zone 4 bên TicketStaff): chạy hết
+   bề ngang vùng nội dung (từ mép sidebar tới mép phải) và nằm sát đáy cửa sổ, KHÔNG bị bó trong
+   max-width/padding của .admin-main — dùng position:fixed vì .admin-main mới là khung cuộn, sticky
+   chỉ bám được tới đáy khung nội dung nên còn hở 64px padding-bottom và thụt vào 2 bên.
+   Nền trắng, viền trên, bóng hắt lên, dồn phải; hint đẩy sang trái. */
 .bulk-bar {
+  position: fixed;
+  left: var(--admin-sidebar-w);
+  right: 0;
+  bottom: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  background: var(--red-light);
-  border: 1px solid #e0aaa8;
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  gap: 10px;
+  background: #fff;
+  border-top: 1px solid #CBCDCD;
+  box-shadow: 0 -6px 14px rgba(0, 0, 0, 0.06);
+  padding: 12px 18px;
 }
-.bulk-bar-hint { font-size: 12.5px; font-weight: 600; color: var(--red); }
+/* Thanh dính đáy che mất hàng thẻ cuối → chừa chỗ trống bên dưới lưới khi đang bật chế độ chọn mẫu. */
+.phoi-grid-wrap.has-bulk-bar { padding-bottom: 84px; }
+.bulk-bar-hint { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-right: auto; }
 .bulk-bar-fields { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 .bulk-bar-fields .filter-field { gap: 4px; }
-.bulk-bar-fields input[type="date"] { min-width: 140px; }
+.bulk-bar-fields .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--text-sub); }
+.bulk-bar-fields input[type="date"] {
+  min-width: 150px;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.bulk-bar-fields .btn { height: 35px; }
+@media (max-width: 640px) {
+  .bulk-bar { padding: 10px 14px; }
+  .bulk-bar-hint { flex: 1 1 100%; margin-right: 0; }
+  .bulk-bar-fields { width: 100%; }
+  .bulk-bar-fields .btn { flex: 1 1 auto; }
+  /* Thanh xuống 2–3 hàng ở màn hẹp nên cần chừa nhiều chỗ hơn cho hàng thẻ cuối. */
+  .phoi-grid-wrap.has-bulk-bar { padding-bottom: 170px; }
+}
 
 .grid-empty {
   display: flex;
@@ -2162,44 +2444,43 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   gap: 16px;
 }
 .st-right { display: flex; flex-direction: column; min-height: 0; gap: 12px; }
+/* Thanh trên Tuyến xe (1 hàng, mỗi ô nhãn phía TRÊN): Tìm tuyến — Hướng — Cập nhật hướng — + Thêm tuyến.
+   PHẲNG như .sd-toolbar bên Trạm Xe (bỏ nền/viền/bóng/padding card), canh đáy, cân đối trọn chiều ngang. */
 .st-toolbar {
   flex: 0 0 auto;
   display: flex;
-  align-items: center;
-  align-content: center;
+  align-items: flex-end;
   flex-wrap: wrap;
-  gap: 8px 10px;
-  min-height: 74px;
-  background: var(--white);
-  border: 1px solid var(--border-gray);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  padding: 10px 14px;
+  gap: 10px 12px;
 }
-.st-toolbar-spacer { flex: 1 1 auto; }
-.st-dir-picker { display: inline-flex; align-items: center; gap: 8px; }
-.st-dir-picker > span {
+.st-toolbar-spacer { display: none; }
+.st-toolbar .filter-field { gap: 4px; }
+.st-toolbar .filter-field > label {
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: .3px;
   text-transform: uppercase;
-  letter-spacing: .05em;
   color: var(--text-sub);
 }
-.st-toolbar select {
-  height: 34px;
-  min-width: 240px;
-  max-width: 380px;
-  padding: 0 11px;
-  border: 1px solid var(--border-gray);
+.st-search-field { flex: 1 1 220px; min-width: 180px; }   /* co giãn → lấp hết khoảng trống */
+.st-dir-field { flex: 0 1 260px; min-width: 190px; }
+.st-toolbar .filter-field > input,
+.st-toolbar .filter-field > select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
   border-radius: var(--radius-md);
-  background: var(--white);
-  font-size: 13px;
+  background: #fff;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-main);
-  cursor: pointer;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
 }
-.st-toolbar select:focus { outline: none; border-color: var(--red); box-shadow: var(--ring); }
+.st-toolbar .filter-field > select { cursor: pointer; }
+.st-toolbar .filter-field > input:focus,
+.st-toolbar .filter-field > select:focus { outline: none; border-color: var(--red); box-shadow: none; }
+.st-tb-btn { flex: 0 0 auto; height: 35px; }
 
 .st-col {
   display: flex;
@@ -2261,15 +2542,23 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .st-col-stations .loc-card-head > .btn { min-width: 104px; }
 .st-stations-tools > .btn { flex: 0 0 auto; height: 32px; }
 
-.st-right > .st-col-routes { flex: 1 1 auto; }
-.st-col-routes > .table-wrap {
-  flex: 1 1 auto;
+/* Tuyến xe = 1 cột, BẢNG HIỆN ĐỦ CHIỀU DỌC (cuộn theo trang như Trạm Xe) — bỏ khung cao cố định /
+   cuộn dọc nội bộ mà layout 2-cột cũ áp đặt. */
+#viewDirections:not([hidden]) { display: block; height: auto; }
+#viewDirections > .st-right { display: block; min-height: 0; }
+#viewDirections .st-toolbar { margin-bottom: 16px; }
+#viewDirections .st-col-routes {
+  display: block;
   min-height: 0;
+  overflow: visible;
+}
+.st-col-routes > .table-wrap {
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  overflow-x: auto;
 }
-.st-col-routes > .empty-state { margin: auto; }
+.st-col-routes > .empty-state { margin: 40px auto; }
 
 .st-col-stations .loc-card {
   background: transparent;
@@ -2352,6 +2641,11 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .regions-modal .rgm-row-hidden .rgm-name-static { font-weight: 600; }
 .regions-modal .rgm-add { display: flex; align-items: center; gap: 8px; }
 .regions-modal .rgm-add > input { flex: 1 1 auto; min-width: 0 !important; }
+/* Modal "Cập nhật hướng" — hàng thêm hướng có 2 ô (tên + mã) */
+.dirs-modal .dm-add { flex-wrap: wrap; }
+.dirs-modal .dm-add > #dmNewLabel { flex: 1 1 220px; }
+.dirs-modal .dm-add > #dmNewKey { flex: 0 0 130px; }
+.dirs-modal .dm-name { font-weight: 600; }
 
 /* Chip editor (Tuyến xe + modal chọn trạm) — ghi đè bản "overhaul" */
 .chip-editor {
@@ -2463,6 +2757,8 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   accent-color: var(--red);
 }
 .sp-addfld { margin-bottom: 0; }
+/* Modal "Chọn trạm": thu hẹp khoảng cách từ ô "Thêm trạm mới vào danh mục" xuống nút Huỷ/Lưu */
+.sp-picker > .modal-actions { margin-top: 4px; padding-top: 6px; }
 .sp-addrow { display: flex; gap: 10px; align-items: center; }
 .admin-form .sp-addrow > input { flex: 1 1 auto; min-width: 0; }
 .admin-form .sp-addrow > select { flex: 0 0 150px; min-width: 0; }
@@ -2539,18 +2835,94 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .pk-subtab:hover:not(.active) { color: var(--red); background: rgba(194, 13, 8, 0.04); }
 .pk-subtab-count { margin-left: 5px; font-size: 12px; font-weight: 600; color: inherit; opacity: .7; }
 
-.transship-shell,
-.ticket-list-shell {
-  background: var(--white);
-  border: 1px solid var(--border-gray);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  overflow: hidden;
+/* ===== TRUNG CHUYỂN + DANH SÁCH VÉ — bố cục PHẲNG (không panel/nền/bóng) giống trang Trạm Xe & Quản lý
+   giờ: nav tab (nếu có) + thanh lọc trong suốt + bảng trong .sd-table-wrap. ===== */
+#viewTransship .pk-subtabs {
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--border-gray);
+  margin-bottom: 14px;
 }
-.transship-shell > .filter-toolbar,
-.ticket-list-shell > .filter-toolbar { margin: 0; border: 0; border-radius: 0; border-bottom: 1px solid var(--border-gray); box-shadow: none; }
-.transship-shell > .pax-table-wrap,
-.ticket-list-shell > .pax-table-wrap { border: 0; }
+#viewTransship > .filter-toolbar,
+#viewTicketList > .filter-toolbar {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  /* Nén cho VỪA 1 HÀNG (không wrap): ô co giãn đều, thu nhỏ ô nhập/label, quá hẹp thì cuộn ngang. */
+  flex-wrap: nowrap;
+  gap: 10px 12px;
+  overflow-x: auto;
+}
+#viewTransship > .filter-toolbar > .filter-field,
+#viewTicketList > .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 118px; gap: 4px; }
+#viewTransship > .filter-toolbar > .filter-field:first-child,
+#viewTicketList > .filter-toolbar > .filter-field:first-child { flex: 1.5 1 0; }   /* ô Tìm kiếm rộng hơn */
+#viewTransship > .filter-toolbar > .filter-field > label,
+#viewTicketList > .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+#viewTransship > .filter-toolbar > .filter-field > input,
+#viewTransship > .filter-toolbar > .filter-field > select,
+#viewTransship > .filter-toolbar .filter-select,
+#viewTicketList > .filter-toolbar > .filter-field > input,
+#viewTicketList > .filter-toolbar > .filter-field > select,
+#viewTicketList > .filter-toolbar .filter-select {
+  min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  background: var(--white);   /* ô lọc NỀN TRẮNG (không xám --surface-2) — như thanh lọc Trạm Xe */
+}
+#viewTransship > .filter-toolbar > .filter-field > input:focus,
+#viewTransship > .filter-toolbar > .filter-field > select:focus,
+#viewTicketList > .filter-toolbar > .filter-field > input:focus,
+#viewTicketList > .filter-toolbar > .filter-field > select:focus { background: var(--white); }
+#viewTransship > .filter-toolbar > .filter-field-date,
+#viewTicketList > .filter-toolbar > .filter-field-date { flex: 1 1 0; min-width: 128px; }
+#viewTransship > .filter-toolbar > .filter-reset,
+#viewTicketList > .filter-toolbar > .filter-reset { flex: 0 0 auto; margin-left: auto; }
+#viewTransship > .filter-toolbar > .filter-reset .btn,
+#viewTicketList > .filter-toolbar > .filter-reset .btn { white-space: nowrap; }
+#viewTransship .sd-table-wrap,
+#viewTicketList .sd-table-wrap { border: 0; overflow-x: auto; }   /* viền hộp do các ô grid của bảng tự vẽ */
+
+/* Nút "Ghế hủy" — trạng thái bật (đang xem bảng ghế hủy) tô đỏ như bên ticketstaff (.btn-action-red.active). */
+#viewTicketList .btn-action-red.active { background: var(--red); border-color: var(--red); color: #fff; }
+#viewTicketList .btn-action-red.active svg { stroke: #fff; }
+
+/* Căn cột bảng Danh sách vé cho CÂN ĐỐI trong vùng nội dung admin (hẹp hơn #historyView ticketstaff vì
+   có sidebar): min-width đủ để % cột quy ra px thoải mái (hẹp hơn thì .sd-table-wrap cuộn ngang), nới các
+   cột hay bị bẻ dòng (Giá vé / Thời gian / Nhân viên) + ép chúng 1 hàng. */
+#viewTicketList .pax-table { min-width: 1100px; }
+#viewTicketList .pax-table--history tbody td:nth-child(8),   /* Giá vé — 1 hàng */
+#viewTicketList .pax-table--history thead th:nth-child(8) { width: 9%; white-space: nowrap; }
+#viewTicketList .pax-table--history tbody td:nth-child(11),  /* Thời gian — xuống 2 dòng "ngày / giờ" */
+#viewTicketList .pax-table--history thead th:nth-child(11) { width: 9%; }
+#viewTicketList .pax-table--history tbody td:nth-child(5),   /* Hành trình — nới thêm */
+#viewTicketList .pax-table--history thead th:nth-child(5) { width: 20%; }
+#viewTicketList .pax-table--history tbody td:nth-child(2),   /* Tên phơi — giữ 17% */
+#viewTicketList .pax-table--history thead th:nth-child(2) { width: 17%; }
+#viewTicketList .pax-table--history tbody td:nth-child(3),   /* Hành khách — nới thêm cho tên dài */
+#viewTicketList .pax-table--history thead th:nth-child(3) { width: 12%; }
+#viewTicketList .pax-table--history tbody td:nth-child(4),   /* SĐT — số cố định 10 chữ số, hẹp hơn tên */
+#viewTicketList .pax-table--history thead th:nth-child(4) { width: 9%; }
+#viewTicketList .pax-table--history tbody td:nth-child(9),   /* Ghi chú — bù cho Hành trình */
+#viewTicketList .pax-table--history thead th:nth-child(9) { width: 7%; }
+#viewTicketList .pax-table--history tbody td:nth-child(10),  /* Mã NV — chỉ 2 tag ngắn (admin/NV01), thu hẹp nhường Tên phơi */
+#viewTicketList .pax-table--history thead th:nth-child(10) { width: 5.5%; }
+
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(8),  /* Số tiền */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(8) { white-space: nowrap; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(2),  /* Tên phơi — bớt để hàng không bẻ đôi */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(2) { width: 12%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(9),  /* Nguyên nhân — nới */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(9) { width: 13%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(10), /* Nhân viên */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(10) { width: 8%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(11), /* Thời gian — nới cho "YYYY-MM-DD HH:MM" 2 dòng gọn */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(11) { width: 10%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(5),  /* Hành trình — bớt */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(5) { width: 15%; }
 
 .staff-tag-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .staff-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
@@ -2574,8 +2946,33 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .pk-driver-name.pk-driver-empty { color: #B0B2B3; font-style: italic; font-weight: 500; }
 .pk-driver-sub { font-size: 11.5px; font-weight: 500; color: var(--text-sub); white-space: normal; line-height: 1.3; }
 .pk-note-text { font-size: 11.5px; font-weight: 500; color: var(--red); white-space: normal; line-height: 1.3; }
-.pk-seat-link { background: transparent; border: none; padding: 2px 3px; font-size: 13px; font-weight: 700; color: var(--red); cursor: default; }
-.pk-seat-none { color: var(--text-sub); font-weight: 700; }
+.pk-seat-link { background: transparent; border: none; padding: 2px 3px; font-size: 13px; font-weight: 700; color: var(--red); cursor: pointer; }
+.pk-seat-link:hover { text-decoration: underline; }
+.pk-seat-none { color: var(--text-sub); font-weight: 600; font-size: 11px; font-style: italic; white-space: normal; line-height: 1.2; display: inline-block; }
+
+/* Modal "Chỉ định xe rước" + "Cập nhật trạng thái" của tab Trung chuyển: markup tĩnh trong admin.html,
+   CSS COPY 100% từ ticketstaff — xem admin/admin-ts-modals.css. */
+
+/* Cột "Trung chuyển" / "Phòng vé" — ô bấm được để ghi/sửa ghi chú (port từ TicketStaff, admin có CẢ 2
+   role nên cả 2 cột đều bấm được). */
+.pk-transship-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; width: 100%; font-family: inherit; }
+.pk-transship-cell--clickable { border: 1px dashed var(--border-gray); border-radius: 6px; background: transparent; cursor: pointer; padding: 4px 6px; transition: background .12s ease, border-color .12s ease; }
+.pk-transship-cell--clickable:hover { background: var(--surface-2); border-color: var(--text-sub); }
+.pk-note-cell { width: 100%; min-height: 30px; display: flex; align-items: center; justify-content: center; padding: 5px 8px; background: transparent; border: 1px dashed var(--border-gray); border-radius: 6px; color: var(--text-sub); cursor: pointer; text-align: center; transition: background .12s ease, border-color .12s ease, color .12s ease; }
+.pk-note-cell:hover { background: var(--surface-2); border-color: var(--text-sub); color: var(--text-main); }
+.pk-note-cell svg { width: 14px; height: 14px; }
+
+/* Vạch "In rước" — 1 dòng phân cách đỏ trong bảng gộp (port từ TicketStaff pkRenderDividerRowHtml). */
+.pk-print-divider-row td { position: relative; background: rgba(194, 13, 8, 0.06); border-top: 1px dashed var(--red); border-bottom: 1px dashed var(--red); color: var(--red); font-weight: 800; font-size: 13px; text-align: center; letter-spacing: 1px; padding: 8px 12px; }
+.pk-print-divider-close { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--red); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+
+.pk-note-cell.has-note { border-style: solid; border-color: var(--red-border, #FCA5A5); }
+
+/* Thanh nổi chọn dòng trung chuyển — tái dùng khung .bulk-bar (fixed đáy). */
+.ts-action-bar .bulk-bar-fields .btn { height: 35px; }
+.ts-action-bar .btn[disabled] { opacity: .5; cursor: not-allowed; }
+/* Chừa chỗ dưới bảng khi thanh nổi hiện, tránh che mất hàng cuối. */
+#viewTransship.ts-bar-open .sd-table-wrap { padding-bottom: 72px; }
 
 #tsCalendarPanel, #tkCalendarPanel { left: 0; right: auto; width: 280px; }
 #tsCalendarPanel .cal-head b, #tkCalendarPanel .cal-head b { font-size: 13px; }

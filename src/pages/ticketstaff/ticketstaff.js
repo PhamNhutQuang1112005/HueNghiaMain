@@ -133,13 +133,13 @@ let calDate = zone1TodayDate();
 let selectedDate = zone1TodayDate();
 
 // Chuẩn hoá "phơi mẫu" (isTemplate): luôn kéo về ngày HÔM NAY (mẫu để nhân bản, không có ngày thật) và
-// LUÔN ở trạng thái "Chưa chỉ định xe" + không có biển số — mẫu là bản thiết kế chuyến, không mang
+// LUÔN ở trạng thái "Chưa chỉ định" + không có biển số — mẫu là bản thiết kế chuyến, không mang
 // trạng thái/biển số sống. Áp cho cả dữ liệu localStorage lẫn seed mặc định.
 function normalizeTemplateTrips(list) {
   (list || []).forEach(t => {
     if (t && t.isTemplate) {
       t.date = todayStr;
-      t.status = 'Chưa chỉ định xe';
+      t.status = 'Chưa chỉ định';
       t.plate = '';
     }
   });
@@ -149,14 +149,13 @@ function normalizeTemplateTrips(list) {
 // ===== Trạng thái hiển thị THỐNG NHẤT cho 1 chuyến =====
 // Dùng CHUNG cho thẻ danh sách Phơi xe (applyFilters) và badge Zone 2 (renderTripLifecycleUI) để 2 nơi
 // luôn hiện đúng cùng 1 trạng thái. Suy từ: đã hủy → vòng đời phơi (khởi hành/Re-open/kết ca) → chưa
-// tạo phơi thì theo biển số + vé đã bán. KHÔNG đọc thẳng t.status (chuỗi lưu sẵn, dễ lệch thực tế).
+// tạo phơi thì theo biển số (có biển = "Đang bán"). KHÔNG đọc thẳng t.status (chuỗi lưu sẵn, dễ lệch).
 const TRIP_DISPLAY_STATUS = {
-  'chua-chi-dinh':  { label: 'Chưa chỉ định xe', phoi: 'chua-chi-dinh', zone2: 'status-chua-chi-dinh' },
-  'da-chi-dinh':    { label: 'Đã chỉ định xe',   phoi: 'da-chi-dinh',   zone2: 'status-da-chi-dinh' },
+  'chua-chi-dinh':  { label: 'Chưa chỉ định', phoi: 'chua-chi-dinh', zone2: 'status-chua-chi-dinh' },
   'dang-ban':       { label: 'Đang bán',         phoi: 'dang-ban',      zone2: 'status-selling' },
-  'da-khoi-hanh':   { label: 'Đã khởi hành',     phoi: 'da-khoi-hanh',  zone2: 'status-departed' },
-  'dang-reopen':    { label: 'Đang Re-open',     phoi: 'da-khoi-hanh',  zone2: 'status-reopen' },
-  'da-dong-reopen': { label: 'Đã đóng Re-open',  phoi: 'da-khoi-hanh',  zone2: 'status-reopen_closed' },
+  'da-khoi-hanh':   { label: 'Khởi hành',        phoi: 'da-khoi-hanh',  zone2: 'status-departed' },
+  'dang-reopen':    { label: 'Re-open',          phoi: 'da-khoi-hanh',  zone2: 'status-reopen' },
+  'da-dong-reopen': { label: 'Đóng Re-open',     phoi: 'da-khoi-hanh',  zone2: 'status-reopen_closed' },
   'da-ket-ca':      { label: 'Đã kết ca',        phoi: 'da-khoi-hanh',  zone2: 'status-manifest_closed' },
   'da-huy':         { label: 'Đã hủy',           phoi: 'da-huy',        zone2: 'status-departed' }
 };
@@ -169,13 +168,12 @@ function tripDisplayStatusKey(tripId) {
   if (life === 'REOPEN') return 'dang-reopen';
   if (life === 'REOPEN_CLOSED') return 'da-dong-reopen';
   if (life === 'MANIFEST_CLOSED') return 'da-ket-ca';
-  // SELLING = chưa tạo phơi → suy từ biển số + vé đã bán.
+  // SELLING = chưa tạo phơi → chỉ còn 2 trạng thái: chưa có biển số ("Chưa chỉ định") vs đã có biển số
+  // ("Đang bán"). Trước đây tách thêm "Đã chỉ định xe" cho xe có biển mà chưa bán vé — bỏ, vì chỉ định
+  // xe xong coi như đang bán.
   const bank = (typeof tripSeatBank === 'object' && tripSeatBank) ? tripSeatBank[tripId] : null;
   const plate = (bank && bank.plate) || (trip && trip.plate) || '';
-  if (!plate) return 'chua-chi-dinh';
-  const seats = bank ? [...(bank.down || []), ...(bank.up || []), ...(bank.subSeats || []), ...(bank.extraSeats || [])] : [];
-  const hasSales = seats.some(s => s && ['sold', 'hold', 'free', 'cargo'].includes(s.state));
-  return hasSales ? 'dang-ban' : 'da-chi-dinh';
+  return plate ? 'dang-ban' : 'chua-chi-dinh';
 }
 
 function loadAllTrips() {
@@ -4004,7 +4002,7 @@ function applyFilters() {
     // Lọc theo ĐÚNG trạng thái đang hiển thị trên thẻ (suy từ vòng đời + biển số + vé), không theo
     // chuỗi t.status lưu sẵn — để bộ lọc khớp với những gì nhân viên thấy.
     if (fStatus) {
-      const dispLabel = (TRIP_DISPLAY_STATUS[tripDisplayStatusKey(t.id)] || {}).label || (t.status || 'Chưa chỉ định xe');
+      const dispLabel = (TRIP_DISPLAY_STATUS[tripDisplayStatusKey(t.id)] || {}).label || (t.status || 'Chưa chỉ định');
       if (dispLabel !== fStatus) return false;
     }
 
@@ -4088,7 +4086,7 @@ function renderTable(trips) {
     // tích ở góc phải trên báo trạng thái đã chọn (xem toggleBulkTemplateMode/toggleBulkTemplateSelect).
     if (phoiBulkMode) {
       const selected = bulkTemplateIds.includes(t.id);
-      // Danh sách phơi MẪU: mọi thẻ luôn hiện trạng thái "Chưa chỉ định xe" (mẫu là bản thiết kế, không
+      // Danh sách phơi MẪU: mọi thẻ luôn hiện trạng thái "Chưa chỉ định" (mẫu là bản thiết kế, không
       // mang trạng thái/biển số sống) — dữ liệu cũng đã được normalizeTemplateTrips() chuẩn hoá khi nạp.
       card.className = `phoi-card phoi-card-selectable status-chua-chi-dinh${selected ? ' selected' : ''}`;
       card.setAttribute("data-action", "toggleBulkTemplateSelect");
@@ -4103,7 +4101,7 @@ function renderTable(trips) {
             </div>
             <span class="phoi-card-date">${formattedDate}</span>
           </div>
-          <span class="status-badge chua-chi-dinh"><span class="status-dot"></span>Chưa chỉ định xe</span>
+          <span class="status-badge chua-chi-dinh"><span class="status-dot"></span>Chưa chỉ định</span>
         </div>
         <div class="phoi-card-name">${displayName}</div>
         <div class="phoi-card-meta">
@@ -4188,7 +4186,7 @@ function cancelTripFromModal() {
   const trip = allTripsMeta.find(t => t.id === id);
   if (!trip) return;
 
-  if (trip.status === 'Đã khởi hành') {
+  if (trip.status === 'Khởi hành' || trip.status === 'Đã khởi hành') {
     alert("Lỗi: Không được hủy phơi xe đã khởi hành.");
     return;
   }
@@ -4344,7 +4342,7 @@ function openSingleModal() {
 }
 
 // Nút "Tạo phơi mẫu" (chỉ hiện ở chế độ tạo hàng loạt) — dùng lại modal "Tạo phơi xe", ẩn ô "Ngày khởi
-// hành" (mẫu không gắn ngày cụ thể), đổi tiêu đề. Lưu ra phơi có isTemplate:true, luôn "Chưa chỉ định xe".
+// hành" (mẫu không gắn ngày cụ thể), đổi tiêu đề. Lưu ra phơi có isTemplate:true, luôn "Chưa chỉ định".
 function openTemplateModal() {
   openSingleModal();
   templateModalMode = true;
@@ -4376,7 +4374,7 @@ function openEditModal(id) {
   document.getElementById("tripVehicleType").value = trip.vehicleType || 'Limousine 24 Phòng';
   document.getElementById("tripNote").value = trip.note || '';
 
-  document.getElementById("tripStatus").value = trip.status || 'Chưa chỉ định xe';
+  document.getElementById("tripStatus").value = trip.status || 'Chưa chỉ định';
   document.getElementById("tripPlate").value = trip.plate || '';
 
   // Suy ngược HƯỚNG CHÍNH từ chuỗi route đã lưu: khớp nhãn tuyến chính, hoặc nằm trong danh sách tuyến
@@ -4405,7 +4403,7 @@ function openEditModal(id) {
   document.getElementById("tripPrice").value = trip.price || 280000;
   document.getElementById("tripName").value = trip.name || '';
 
-  const isReadOnly = (trip.status === 'Đã khởi hành' || trip.status === 'Đã hủy');
+  const isReadOnly = (trip.status === 'Khởi hành' || trip.status === 'Đã khởi hành' || trip.status === 'Đã hủy');
   const inputs = document.querySelectorAll("#singleForm input, #singleForm select, #singleForm button[type='submit']");
   inputs.forEach(el => {
     if (el.id !== 'btnSaveSingle') el.disabled = isReadOnly;
@@ -4475,7 +4473,7 @@ function createNewTrip(fields) {
     vehicleType: vehicleVal,
     price: priceVal,
     note: noteVal,
-    status: 'Chưa chỉ định xe',
+    status: 'Chưa chỉ định',
     plate: '',
     createdAt: Date.now()
   };
@@ -4506,7 +4504,7 @@ function saveSingleTrip(e) {
   const vehicleVal = document.getElementById("tripVehicleType").value;
   const priceVal = parseInt(document.getElementById("tripPrice").value) || 280000;
   const noteVal = document.getElementById("tripNote").value.trim();
-  const statusVal = document.getElementById("tripStatus").value || 'Chưa chỉ định xe';
+  const statusVal = document.getElementById("tripStatus").value || 'Chưa chỉ định';
   const plateVal = document.getElementById("tripPlate").value.trim();
 
   const dirCfg = TRIP_DIRECTIONS_CFG[dirVal];
@@ -4640,7 +4638,7 @@ function computeBulkTripDates(fromDateStr, toDateStr, weekdays) {
 
 // Nhân bản từng "phơi mẫu" cho mỗi ngày trong khoảng đã chọn — giữ nguyên tuyến/giờ/loại xe/giá/tên/
 // trạm đi-đến/trạm đón dọc đường, KHÔNG copy biển số hay trạng thái của mẫu (phơi mới luôn bắt đầu
-// "Chưa chỉ định xe" như tạo phơi đơn thật sự). Không ràng buộc trùng tên/trùng lịch — nhân viên có thể
+// "Chưa chỉ định" như tạo phơi đơn thật sự). Không ràng buộc trùng tên/trùng lịch — nhân viên có thể
 // chủ động tạo thêm phơi trùng tên hoặc trùng giờ nếu cần (VD tăng cường thêm xe).
 function createBulkTripsFromTemplates(validDates, templates) {
   let createdCount = 0;
@@ -4658,7 +4656,7 @@ function createBulkTripsFromTemplates(validDates, templates) {
         time: tpl.time,
         vehicleType: tpl.vehicleType,
         price: tpl.price,
-        status: 'Chưa chỉ định xe',
+        status: 'Chưa chỉ định',
         plate: '',
         note: tpl.note || '',
         fromStation: tpl.fromStation || '',

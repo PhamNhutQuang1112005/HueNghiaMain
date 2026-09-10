@@ -842,7 +842,7 @@ function pkRenderPhongVeNoticeRow(n) {
   const text = n.phone
     ? `Vừa cập nhật ghi chú Phòng vé — SĐT: ${escapeHtml(n.phone)}`
     : `Vừa cập nhật ghi chú Phòng vé cho 1 khách`;
-  return `<tr class="pk-phongve-banner-row"><td colspan="12">
+  return `<tr class="pk-phongve-banner-row"><td colspan="11">
     <div class="pk-phongve-banner-inner">
       <span>${text}</span>
       <div class="pk-phongve-banner-actions">
@@ -920,7 +920,7 @@ function pkDismissPrintRuocDivider(id) {
 // 1 dòng vạch — ghép vào bảng gộp như 1 dòng ảo (kind 'divider', xem pkRenderPaxTable), tự xen kẽ đúng
 // vị trí theo thời gian thay vì ghim cố định.
 function pkRenderDividerRowHtml(d) {
-  return `<tr class="pk-print-divider-row"><td colspan="12" class="pk-print-divider-cell">
+  return `<tr class="pk-print-divider-row"><td colspan="11" class="pk-print-divider-cell">
     <span>${escapeHtml(d.label)}</span>
     <button type="button" class="pk-print-divider-close" data-action="pkDismissPrintRuocDivider" data-args='["${d.id}"]' aria-label="Đóng">&times;</button>
   </td></tr>`;
@@ -1003,7 +1003,7 @@ function pkRenderPaxTable() {
       const seatStr = p.assigned.seat || (Array.isArray(p.assigned.seats) ? p.assigned.seats.join(', ') : 'Rước liền');
       seatCell = `<button type="button" class="pk-seat-link" data-action="sellTicketForTrip" data-args='${JSON.stringify([p.assigned.tripId])}' title="Bấm để mở phơi đã chỉ định">${escapeHtml(seatStr)}</button>`;
     } else {
-      seatCell = `<span class="pk-seat-none">_</span>`;
+      seatCell = `<span class="pk-seat-none">Chưa chỉ định</span>`;
     }
     // Cột cuối — checkbox thay cho nút "Chỉ định"/"Đổi chỉ định" mỗi dòng (xem pkToggleRow/pkActionBar):
     // chọn dòng rồi bấm nút trên thanh nổi thay vì bấm trực tiếp trên từng dòng.
@@ -1027,18 +1027,15 @@ function pkRenderPaxTable() {
     const assignedDriver = shuttleDriverMap[driverKey];
     const hasStatusNote = !!p.statusNote;
     const driverNote = (assignedDriver && assignedDriver.driverNote) || '';
-    const driverNameHtml = assignedDriver
+    // Chưa gán tài xế -> hiện thẳng trạng thái "Chờ điều phối" (cột "Trạng thái" riêng đã bỏ).
+    const rowStatus = (assignedDriver && assignedDriver.status) || 'waiting';
+    const driverNameHtml = (assignedDriver && assignedDriver.driverName)
       ? `<span class="pk-driver-name">${escapeHtml(assignedDriver.driverName)}</span>`
-      : `<span class="pk-driver-name pk-driver-empty"></span>`;
+      : `<span class="pk-driver-name pk-driver-empty">${PK_STATUS_LABELS[rowStatus].text}</span>`;
     const transshipInnerHtml = driverNote
       ? `${driverNameHtml}<span class="pk-driver-sub">${escapeHtml(driverNote)}</span>`
       : `${driverNameHtml}${isDispatchRole ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-top:2px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>` : ''}`;
     const transshipCell = pkTransshipCellHtml(transshipInnerHtml, pkRowKeyForCell, isDispatchRole);
-
-    // Cột "Trạng thái" — TÁCH RIÊNG khỏi cột "Trung chuyển", hiện ở CẢ 2 role (chỉ xem — đổi trạng thái
-    // qua thanh nổi "Cập nhật", xem pkOpenDriverUpdateModal/pkSaveDriverUpdate).
-    const rowStatus = (assignedDriver && assignedDriver.status) || 'waiting';
-    const statusCell = `<span class="pk-status-tag ${PK_STATUS_LABELS[rowStatus].cls}">${PK_STATUS_LABELS[rowStatus].text}</span>`;
 
     // Cột "Phòng vé" — ghi chú trạng thái đón do phòng vé nhập (p.statusNote), hiện thẳng NỘI DUNG trong ô
     // giống cột "Trung chuyển". Chỉ role bán vé bấm được để mở modal ghi/sửa (#pkStatusNoteModal) — role
@@ -1058,7 +1055,6 @@ function pkRenderPaxTable() {
         <td class="note-cell">${p.note ? escapeHtml(p.note) : '—'}</td>
         <td class="center mono" style="font-size:12px; color:var(--text-sub);">${createdTimeStr}</td>
         <td class="center mono" style="font-size:12px; color:var(--text-sub);">${printedTimeStr}</td>
-        <td class="center">${statusCell}</td>
         <td class="center">${transshipCell}</td>
         <td class="center">${phongVeCell}</td>
         <td class="col-check">${checkCell}</td>
@@ -1284,15 +1280,15 @@ function pkRenderTransshipRow(r, idx, shuttleDriverMap) {
   // Bấm được / chỉ xem theo role: xem pkTransshipCellHtml().
   const drvName = (assignedDriver && assignedDriver.driverName) || '';
   const drvNote = (assignedDriver && assignedDriver.driverNote) || '';
-  const tsTransshipInnerHtml = `<span class="pk-driver-name">${escapeHtml(drvName)}</span>${drvNote
+  // Chưa gán tài xế -> hiện thẳng trạng thái "Chờ điều phối" (cột "Trạng thái" riêng đã bỏ).
+  const tsRowStatus = (assignedDriver && assignedDriver.status) || 'waiting';
+  const tsDrvNameHtml = drvName
+    ? `<span class="pk-driver-name">${escapeHtml(drvName)}</span>`
+    : `<span class="pk-driver-name pk-driver-empty">${PK_STATUS_LABELS[tsRowStatus].text}</span>`;
+  const tsTransshipInnerHtml = `${tsDrvNameHtml}${drvNote
     ? `<span class="pk-driver-sub">${escapeHtml(drvNote)}</span>`
     : (isDispatchRole ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-top:2px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>` : '')}`;
   const transshipCell = pkTransshipCellHtml(tsTransshipInnerHtml, pkTransshipRowKey(r), isDispatchRole);
-
-  // Cột "Trạng thái" — TÁCH RIÊNG khỏi cột "Trung chuyển", hiện ở CẢ 2 role (chỉ xem — đổi trạng thái
-  // qua thanh nổi "Cập nhật", xem pkOpenDriverUpdateModal/pkSaveDriverUpdate).
-  const tsRowStatus = (assignedDriver && assignedDriver.status) || 'waiting';
-  const statusCell = `<span class="pk-status-tag ${PK_STATUS_LABELS[tsRowStatus].cls}">${PK_STATUS_LABELS[tsRowStatus].text}</span>`;
 
   // Cột "Phòng vé": Y HỆT dòng rước liền — role bán vé bấm được để ghi/sửa ghi chú trạng thái đón (mở
   // #tsStatusNoteModal, khoá theo ticketNo); role trung chuyển chỉ xem (ghi chú riêng của phòng vé).
@@ -1326,7 +1322,6 @@ function pkRenderTransshipRow(r, idx, shuttleDriverMap) {
       <td class="note-cell">${m.note ? escapeHtml(m.note) : '—'}</td>
       <td class="center mono" style="font-size:12px; color:var(--text-sub);">${timeStr}</td>
       <td class="center mono" style="font-size:12px; color:var(--text-sub);">${printedStr}</td>
-      <td class="center">${statusCell}</td>
       <td class="center">${transshipCell}</td>
       <td class="center">${phongVeCell}</td>
       <td class="col-check">${checkCell}</td>

@@ -169,7 +169,7 @@ function renderDashboard() {
   var byStatus = {};
   TRIP_STATUSES.forEach(function (s) { byStatus[s] = 0; });
   trips.forEach(function (t) {
-    var s = (t && t.status) || 'Chưa chỉ định xe';
+    var s = (t && t.status) || 'Chưa chỉ định';
     byStatus[s] = (byStatus[s] || 0) + 1;
   });
 
@@ -193,7 +193,7 @@ function renderDashboard() {
   var activeSchedule = scheduleItems.filter(function (x) { return x && x.active !== false && !x.deleted; }).length;
 
   var todaySelling = todayTrips.filter(function (t) { return t.status === 'Đang bán'; }).length;
-  var todayDeparted = todayTrips.filter(function (t) { return t.status === 'Đã khởi hành'; }).length;
+  var todayDeparted = todayTrips.filter(function (t) { return t.status === 'Khởi hành' || t.status === 'Đã khởi hành'; }).length;
   var totalSelling = byStatus['Đang bán'] || 0;
   var sellingRatio = trips.length ? Math.round((totalSelling / trips.length) * 100) : 0;
 
@@ -207,8 +207,8 @@ function renderDashboard() {
 
   var pie = dbBuildPieChart([
     { label: 'Đang bán',  value: byStatus['Đang bán']       || 0, color: '#C20D08' },
-    { label: 'Đã chạy',   value: byStatus['Đã khởi hành']  || 0, color: '#EA580C' },
-    { label: 'Chưa gán',  value: (byStatus['Chưa chỉ định xe'] || 0) + (byStatus['Đã chỉ định xe'] || 0), color: '#F59E0B' },
+    { label: 'Đã chạy',   value: (byStatus['Khởi hành'] || 0) + (byStatus['Đã khởi hành'] || 0), color: '#EA580C' },
+    { label: 'Chưa gán',  value: (byStatus['Chưa chỉ định'] || 0) + (byStatus['Đã chỉ định xe'] || 0), color: '#F59E0B' },
     { label: 'Đã hủy',   value: byStatus['Đã hủy']          || 0, color: '#D97706' }
   ].filter(function (x) { return x.value > 0 || x.label !== 'Đã hủy'; }));
 
@@ -354,6 +354,6 @@ function activeTag(on) {
 function byTime(a, b) { return String(a.time || '').localeCompare(String(b.time || '')); }
 function byOrder(a, b) { return (a.order || 0) - (b.order || 0); }
 function statusBadge(s) {
-  s = s || 'Chưa chỉ định xe';
+  s = s || 'Chưa chỉ định';
   return '<span class="status-badge ' + (STATUS_CLASS[s] || 'chua-chi-dinh') + '">' + esc(s) + '</span>';
 }
