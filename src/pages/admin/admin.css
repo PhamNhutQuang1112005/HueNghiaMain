@@ -682,15 +682,126 @@
 .db-toggle-card.is-on .db-toggle-sub { color: #fff; }
 .db-toggle-card.is-on .db-toggle-val span { color: rgba(255,255,255,0.85); }
 
-.db-table-card { margin-top: 0; }
-.db-table-card .db-card-head {
+.db-departures-panel { margin-top: 0; }
+.db-departures-panel .db-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
 }
-.db-table-card .db-card-head > div { flex: 1; min-width: 0; }
+.db-departures-panel .db-card-head > div { flex: 1; min-width: 0; }
+
+.db-trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.db-trip-panel {
+  display: grid;
+  grid-template-columns: 105px 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: 14px;
+  padding: 12px 18px;
+  transition: all var(--t-fast);
+}
+
+.db-trip-panel:hover {
+  background: var(--white);
+  border-color: var(--red-border);
+  box-shadow: 0 4px 16px rgba(194, 13, 8, 0.08);
+  transform: translateY(-1px);
+}
+
+.db-trip-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--black);
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+
+.db-trip-time svg {
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.db-trip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.db-trip-route {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-trip-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.db-trip-status {
+  display: flex;
+  align-items: center;
+}
+
+.db-trip-action {
+  display: flex;
+  align-items: center;
+}
+
+.db-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--text-sub);
+  background: var(--surface-2);
+  border-radius: 14px;
+  border: 1px dashed var(--border-gray);
+}
+
+.db-empty-panel p {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .db-trip-panel {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .db-trip-time {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
+
 .db-seat-pill {
   display: inline-flex;
   align-items: center;

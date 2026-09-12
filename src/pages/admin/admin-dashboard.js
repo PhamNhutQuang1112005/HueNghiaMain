@@ -219,16 +219,20 @@ function renderDashboard() {
     ? todayTrips.slice().sort(byTime).map(function (t) {
         var seat = dbTripSeatStats(t, seatBank, seatMap);
         var seatLabel = seat.total ? (seat.total - seat.sold) + '/' + seat.total + ' trống' : '—';
-        return '<tr>' +
-          '<td><div class="db-time-cell"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><span>' + esc(t.time || '—') + '</span></div></td>' +
-          '<td><span class="db-route-name">' + esc(t.route || '—') + '</span></td>' +
-          '<td><span class="trip-plate-inline">' + esc(t.plate || 'Chưa gán') + '</span></td>' +
-          '<td><span class="db-seat-pill">' + esc(seatLabel) + '</span></td>' +
-          '<td>' + statusBadge(t.status) + '</td>' +
-          '<td class="row-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="switchAdminView" data-args=\'["viewTrips"]\' title="Xem phơi"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Xem phơi</button></td>' +
-          '</tr>';
+        return '<div class="db-trip-panel">' +
+          '<div class="db-trip-time"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><span>' + esc(t.time || '—') + '</span></div>' +
+          '<div class="db-trip-info">' +
+            '<div class="db-trip-route">' + esc(t.route || '—') + '</div>' +
+            '<div class="db-trip-meta">' +
+              '<span class="trip-plate-inline">' + esc(t.plate || 'Chưa gán') + '</span>' +
+              '<span class="db-seat-pill">' + esc(seatLabel) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="db-trip-status">' + statusBadge(t.status) + '</div>' +
+          '<div class="db-trip-action"><button type="button" class="btn btn-sm btn-ghost" data-action="switchAdminView" data-args=\'["viewTrips"]\' title="Xem phơi"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Xem phơi</button></div>' +
+        '</div>';
       }).join('')
-    : '<tr><td colspan="6" class="empty-state"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p style="margin-top:8px">Chưa có chuyến xe nào cho ngày hôm nay (' + fmtDate(today) + ')</p></td></tr>';
+    : '<div class="db-empty-panel"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Chưa có chuyến xe nào cho ngày hôm nay (' + fmtDate(today) + ')</p></div>';
 
   var html =
     '<div class="db-shell">' +
@@ -325,7 +329,7 @@ function renderDashboard() {
       '</div>' +
     '</div>' +
 
-    '<div class="ref-card db-table-card">' +
+    '<div class="ref-card db-panel db-departures-panel">' +
       '<div class="db-card-head">' +
         '<div>' +
           '<h3 style="margin:0">● Danh Sách Chuyến Khởi Hành Hôm Nay (' + fmtDate(today) + ')</h3>' +
@@ -333,12 +337,7 @@ function renderDashboard() {
         '</div>' +
         '<button type="button" class="btn btn-primary btn-sm" data-action="switchAdminView" data-args=\'["viewTrips"]\'>Quản lý tất cả chuyến</button>' +
       '</div>' +
-      '<div class="table-wrap">' +
-        '<table class="admin-table">' +
-          '<thead><tr><th>Giờ đi</th><th>Tuyến đường</th><th>Biển số xe</th><th>Ghế trống</th><th>Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead>' +
-          '<tbody>' + rows + '</tbody>' +
-        '</table>' +
-      '</div>' +
+      '<div class="db-trip-list">' + rows + '</div>' +
     '</div>' +
     '</div>';
 
