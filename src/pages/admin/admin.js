@@ -146,6 +146,10 @@ var VIEW_RENDERERS = {
   viewVehicleSeats: function () { renderVehicleSeatsView(); },
   viewVehicleCategories: function () { renderVehicleCategoriesView(); },
   viewVehicles: function () { renderVehiclesView(); },
+  viewAccountingReports: function () { renderAccountingReportsView(); },
+  viewAccountingThu: function () { renderAccountingThuView(); },
+  viewAccountingChi: function () { renderAccountingChiView(); },
+  viewAccountingLedgers: function () { renderAccountingLedgersView(); },
   viewStaff: function () { renderStaffView(); },
   viewAccounts: function () { renderAccountsView(); },
   viewActivity: function () { renderActivityView(); },
@@ -197,7 +201,7 @@ function initAdminNavGroups() {
 /* Admin sửa dữ liệu ở tab khác → render lại view đang mở. */
 window.addEventListener('storage', function (e) {
   if (!e.key) return;
-  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY];
+  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY];
   if (watched.indexOf(e.key) !== -1 && VIEW_RENDERERS[CURRENT_VIEW]) VIEW_RENDERERS[CURRENT_VIEW]();
 });
 

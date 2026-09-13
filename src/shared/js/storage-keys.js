@@ -46,4 +46,10 @@ const HN_SEAT_LAYOUTS_KEY = 'hn_seat_layouts_v2';
 const HN_VEHICLE_CATEGORIES_KEY = 'hn_vehicle_categories_v1';
 const HN_VEHICLE_SEATS_KEY = 'hn_vehicle_seats_v1';
 
-
+// ===== Store Kế toán & Tài chính =====
+const HN_ACCOUNTING_VOUCHERS_KEY = 'hn_accounting_vouchers_v1';
+const HN_ACCOUNTING_FUEL_LOGS_KEY = 'hn_accounting_fuel_logs_v1';
+const HN_ACCOUNTING_FIXED_ASSETS_KEY = 'hn_accounting_fixed_assets_v1';
+const HN_ACCOUNTING_DEBTS_KEY = 'hn_accounting_debts_v1';
+const HN_ACCOUNTING_PAYROLL_KEY = 'hn_accounting_payroll_v1';
+const HN_ACCOUNTING_INSPECTION_KEY = 'hn_accounting_inspection_v1';
