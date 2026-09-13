@@ -84,6 +84,8 @@
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 11v2M13 17v2"/></svg>Tổng đài</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTicketOffice"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>Phòng vé</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewCustomers"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>Khách hàng</button>
             </div>
           </div>
         </div>
@@ -120,6 +122,8 @@
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Quản lý nhân viên</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewAccounts"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M6 16c.5-1.5 1.8-2 3-2s2.5.5 3 2"/></svg>Tài khoản</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewStaffStats"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Thống kê nhân sự</button>
             </div>
           </div>
         </div>
@@ -174,6 +178,7 @@
         <section class="admin-view" id="viewTransship" hidden></section>
         <section class="admin-view" id="viewTicketList" hidden></section>
         <section class="admin-view" id="viewTicketOffice" hidden></section>
+        <section class="admin-view" id="viewCustomers" hidden></section>
         <section class="admin-view" id="viewSeatLayouts" hidden></section>
         <section class="admin-view" id="viewVehicleSeats" hidden></section>
         <section class="admin-view" id="viewVehicleCategories" hidden></section>
@@ -187,6 +192,7 @@
 
         <section class="admin-view" id="viewStaff" hidden></section>
         <section class="admin-view" id="viewAccounts" hidden></section>
+        <section class="admin-view" id="viewStaffStats" hidden></section>
         <section class="admin-view" id="viewActivity" hidden></section>
         <section class="admin-view" id="viewSettings" hidden></section>
 
@@ -363,9 +369,11 @@
   <script src="admin/admin-transship.js?v=15"></script>
   <script src="admin/admin-tickets.js?v=8"></script>
   <script src="admin/admin-ticket-office.js?v=1"></script>
+  <script src="admin/admin-customers.js?v=1"></script>
   <script src="admin/admin-vehicles.js?v=1"></script>
   <script src="admin/admin-staff.js?v=1"></script>
   <script src="admin/admin-accounts.js?v=1"></script>
+  <script src="admin/admin-staff-stats.js?v=1"></script>
   <script src="admin/admin-activity.js?v=1"></script>
   <script src="admin/admin-seat-layouts.js?v=1"></script>
   <script src="admin/admin-vehicle-seats.js?v=1"></script>

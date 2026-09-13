@@ -143,6 +143,7 @@ var VIEW_RENDERERS = {
   viewTransship: function () { renderTransshipView(); },
   viewTicketList: function () { renderTicketListView(); },
   viewTicketOffice: function () { renderTicketOfficeView(); },
+  viewCustomers: function () { renderCustomersView(); },
   viewSeatLayouts: function () { renderSeatLayoutsView(); },
   viewVehicleSeats: function () { renderVehicleSeatsView(); },
   viewVehicleCategories: function () { renderVehicleCategoriesView(); },
@@ -153,6 +154,7 @@ var VIEW_RENDERERS = {
   viewAccountingLedgers: function () { renderAccountingLedgersView(); },
   viewStaff: function () { renderStaffView(); },
   viewAccounts: function () { renderAccountsView(); },
+  viewStaffStats: function () { renderStaffStatsView(); },
   viewActivity: function () { renderActivityView(); },
   viewSettings: function () { renderSettingsView(); }
 };

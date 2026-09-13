@@ -30,13 +30,29 @@
     }
   }
 
+  // Ghi 1 mốc đăng nhập/đăng xuất vào HN_STAFF_TIMELOG_KEY — dùng cho màn "Thống kê nhân sự" (giờ làm)
+  // bên admin. Không được để lỗi ở đây làm hỏng luồng đăng nhập/đăng xuất chính nên bọc try/catch riêng.
+  function logTimeEvent(type, username) {
+    if (!username) return;
+    try {
+      var raw = localStorage.getItem(HN_STAFF_TIMELOG_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) list = [];
+      list.push({ id: 'tl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), username: username, type: type, ts: Date.now() });
+      localStorage.setItem(HN_STAFF_TIMELOG_KEY, JSON.stringify(list));
+    } catch (e) { /* localStorage đầy/bị chặn — bỏ qua, không chặn đăng nhập/đăng xuất */ }
+  }
+
   // Giữ nguyên hành vi cũ: KHÔNG try/catch (login.js gốc gọi setItem trực tiếp).
   function set(user) {
     sessionStorage.setItem(KEY, JSON.stringify(user));
+    logTimeEvent('login', user && user.username);
   }
 
   function clear() {
+    var cur = get();
     sessionStorage.removeItem(KEY);
+    logTimeEvent('logout', cur && cur.username);
   }
 
   function role() {

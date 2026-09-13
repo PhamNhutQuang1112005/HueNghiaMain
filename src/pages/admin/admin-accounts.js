@@ -46,7 +46,7 @@ function renderAccountsView() {
     if (!a) return;
     if (a.active !== false) activeCount++;
     if (a.role === 'admin') adminCount++;
-    if (a.role === 'call_center' || a.role === 'shuttle_dispatch') staffCount++;
+    if (a.role === 'call_center' || a.role === 'ticket_office' || a.role === 'shuttle_dispatch') staffCount++;
   });
 
   var filtered = accounts.filter(function (a) {
@@ -153,6 +153,7 @@ function renderAccountsView() {
             '<option value="">Tất cả vai trò</option>' +
             '<option value="admin"' + (f.role === 'admin' ? ' selected' : '') + '>Quản trị viên hệ thống</option>' +
             '<option value="call_center"' + (f.role === 'call_center' ? ' selected' : '') + '>Nhân viên tổng đài</option>' +
+            '<option value="ticket_office"' + (f.role === 'ticket_office' ? ' selected' : '') + '>Nhân viên phòng vé</option>' +
             '<option value="shuttle_dispatch"' + (f.role === 'shuttle_dispatch' ? ' selected' : '') + '>Điều hành trung chuyển</option>' +
             '<option value="dispatch_manager"' + (f.role === 'dispatch_manager' ? ' selected' : '') + '>Điều hành bến xe</option>' +
             '<option value="accountant"' + (f.role === 'accountant' ? ' selected' : '') + '>Kế toán / Thu ngân</option>' +
@@ -219,6 +220,7 @@ function adminOpenAccountModal(id) {
   var roles = [
     ['admin', 'Quản trị viên hệ thống', 'admin.html'],
     ['call_center', 'Nhân viên tổng đài (Bán vé)', 'ticketstaff.html'],
+    ['ticket_office', 'Nhân viên phòng vé (Thu tiền)', 'ticketstaff.html'],
     ['shuttle_dispatch', 'Điều hành trung chuyển', 'ticketstaff.html'],
     ['dispatch_manager', 'Điều hành bến xe', 'dieuhanh.html'],
     ['accountant', 'Kế toán / Thu ngân', 'ketoan.html'],
@@ -325,6 +327,7 @@ function adminAccountRoleChange() {
   var map = {
     'admin': 'admin.html',
     'call_center': 'ticketstaff.html',
+    'ticket_office': 'ticketstaff.html',
     'shuttle_dispatch': 'ticketstaff.html',
     'dispatch_manager': 'dieuhanh.html',
     'accountant': 'ketoan.html',
@@ -347,6 +350,7 @@ function adminSaveAccount(e) {
   var roleLabels = {
     'admin': 'Quản trị viên hệ thống',
     'call_center': 'Nhân viên tổng đài',
+    'ticket_office': 'Nhân viên phòng vé',
     'shuttle_dispatch': 'Điều hành trung chuyển',
     'dispatch_manager': 'Điều hành bến xe',
     'accountant': 'Kế toán / Thu ngân',
