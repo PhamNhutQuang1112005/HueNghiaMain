@@ -142,6 +142,7 @@ var VIEW_RENDERERS = {
   viewSchedule: function () { renderScheduleView(); },
   viewTransship: function () { renderTransshipView(); },
   viewTicketList: function () { renderTicketListView(); },
+  viewTicketOffice: function () { renderTicketOfficeView(); },
   viewSeatLayouts: function () { renderSeatLayoutsView(); },
   viewVehicleSeats: function () { renderVehicleSeatsView(); },
   viewVehicleCategories: function () { renderVehicleCategoriesView(); },

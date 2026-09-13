@@ -1296,6 +1296,17 @@ table.admin-table {
 .admin-form .fld-row > .fld { flex: 1 1 0; min-width: 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-subtle); }
 
+/* Khung "Phân quyền theo chức năng" trong modal Thêm/Sửa tài khoản (admin-accounts.js,
+   acPermissionsFieldHtml) — 4 nhóm quyền dạng thẻ, 2 cột trên màn rộng, 1 cột trên di động. */
+.acc-perm-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 620px) { .acc-perm-groups { grid-template-columns: 1fr; } }
+.acc-perm-group { border: 1px solid var(--border-gray); border-radius: var(--radius-md); background: var(--surface-2); padding: 12px 14px; }
+.acc-perm-group-head { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border-gray); }
+.acc-perm-group-head b { font-size: 13px; font-weight: 800; color: var(--black); }
+.acc-perm-group-items { display: flex; flex-direction: column; gap: 7px; }
+.acc-perm-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-main); font-weight: 600; cursor: pointer; }
+.acc-perm-check input[type="checkbox"] { width: 15px; height: 15px; flex: 0 0 auto; cursor: pointer; accent-color: var(--red); }
+
 /* Modal "Tạo/Chỉnh sửa phơi xe" — thu gọn khoảng cách giữa các thành phần cho khớp #singleModal bên
    TicketStaff (hàng sát nhau hơn, label sát input, ô thấp hơn, nút bớt cách). Chỉ áp cho .trip-form
    nên các modal admin khác (Trạm/Tuyến/Xe…) giữ nguyên. */

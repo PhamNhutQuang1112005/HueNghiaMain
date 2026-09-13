@@ -67,6 +67,13 @@ function renderAccountsView() {
   var ICN_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
   var ICN_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg>';
 
+  function acPermCountHtml(permissions) {
+    var n = Array.isArray(permissions) ? permissions.length : 0;
+    return '<div style="font-size:11px; font-weight:600; color:' + (n ? 'var(--text-sub)' : '#DC2626') + '; margin-top:5px;">' +
+      (n ? n + ' quyền đã cấp' : 'Chưa gán quyền') +
+    '</div>';
+  }
+
   function tableRow(a, idx) {
     var isActive = a.active !== false;
     var initial = String(a.username || 'A').charAt(0).toUpperCase();
@@ -85,7 +92,7 @@ function renderAccountsView() {
           '</div>' +
         '</div>' +
       '</td>' +
-      '<td>' + roleBadge + '</td>' +
+      '<td>' + roleBadge + acPermCountHtml(a.permissions) + '</td>' +
       '<td><span style="font-family:\'Roboto Mono\', monospace; font-size:12.5px; color:var(--text-sub);">' + esc(a.redirect || '—') + '</span></td>' +
       '<td><span style="font-family:\'Roboto Mono\', monospace; letter-spacing:2px; font-size:12px; color:var(--text-sub);">••••••</span></td>' +
       '<td class="col-status" style="text-align:center;">' +
@@ -253,11 +260,60 @@ function adminOpenAccountModal(id) {
           '</select></div>' +
       '</div>' +
 
+      acPermissionsFieldHtml(acc ? acc.permissions : []) +
+
       '<div class="modal-actions">' +
         '<button type="button" class="btn" data-action="closeAdminModal">Hủy bỏ</button>' +
         '<button type="submit" class="btn btn-primary">Lưu tài khoản</button>' +
       '</div>' +
-    '</form>'
+    '</form>',
+    true
+  );
+}
+
+/* Khung chọn quyền theo chức năng (KHÔNG theo vai trò/role) — danh mục nguồn ở
+   window.PERMISSION_GROUPS (auth/permissions.js). Mỗi nhóm có 1 checkbox "chọn cả nhóm"
+   để bật/tắt nhanh toàn bộ quyền con — xem acToggleGroupPerms. */
+function acPermissionsFieldHtml(selected) {
+  selected = Array.isArray(selected) ? selected : [];
+  var groups = window.PERMISSION_GROUPS || [];
+  return '<div class="fld">' +
+    '<label>Phân quyền theo chức năng</label>' +
+    '<div class="acc-perm-groups">' +
+      groups.map(function (g) {
+        var allChecked = g.items.length > 0 && g.items.every(function (it) { return selected.indexOf(it.key) !== -1; });
+        return '<div class="acc-perm-group">' +
+          '<label class="acc-perm-check acc-perm-group-head">' +
+            '<input type="checkbox"' + (allChecked ? ' checked' : '') + ' data-change-action="acToggleGroupPerms" data-args=\'["' + g.key + '","__this__"]\'>' +
+            '<b>' + esc(g.label) + '</b>' +
+          '</label>' +
+          '<div class="acc-perm-group-items" data-perm-group="' + g.key + '">' +
+            g.items.map(function (it) {
+              return '<label class="acc-perm-check">' +
+                '<input type="checkbox" value="' + esc(it.key) + '"' + (selected.indexOf(it.key) !== -1 ? ' checked' : '') + '>' +
+                '<span>' + esc(it.label) + '</span>' +
+              '</label>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+  '</div>';
+}
+
+function acToggleGroupPerms(groupKey, el) {
+  var checked = !!(el && el.checked);
+  var container = document.querySelector('.acc-perm-group-items[data-perm-group="' + groupKey + '"]');
+  if (!container) return;
+  container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = checked; });
+}
+
+/* Đọc danh sách quyền đang tick trong form đang mở (chỉ tính checkbox quyền con — bỏ qua
+   checkbox "chọn cả nhóm" vì nó không mang value permission key). */
+function acReadSelectedPermissions() {
+  return Array.prototype.map.call(
+    document.querySelectorAll('.acc-perm-group-items input[type="checkbox"]:checked'),
+    function (cb) { return cb.value; }
   );
 }
 
@@ -286,6 +342,7 @@ function adminSaveAccount(e) {
   var role = ($('acRole') || {}).value || 'call_center';
   var redirect = ($('acRedirect') || {}).value || 'ticketstaff.html';
   var active = ($('acActive') || {}).value === '1';
+  var permissions = acReadSelectedPermissions();
 
   var roleLabels = {
     'admin': 'Quản trị viên hệ thống',
@@ -307,6 +364,7 @@ function adminSaveAccount(e) {
       acc.roleLabel = roleLabels[role] || role;
       acc.redirect = redirect;
       acc.active = active;
+      acc.permissions = permissions;
     }
   } else {
     if (!username.trim()) { showToast('Nhập tên tài khoản.'); return; }
@@ -327,6 +385,7 @@ function adminSaveAccount(e) {
       roleLabel: roleLabels[role] || role,
       redirect: redirect,
       active: active,
+      permissions: permissions,
       createdAt: Date.now()
     });
   }

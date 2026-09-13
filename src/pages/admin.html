@@ -81,14 +81,16 @@
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTransship"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14"/><path d="M5 17a2 2 0 0 1-2-2v-3.2a1 1 0 0 1 .3-.7l2.6-2.6A2 2 0 0 1 7.3 8H16a2 2 0 0 1 1.6.8l2.1 2.8a1 1 0 0 0 .5.3l1.4.4a1 1 0 0 1 .7 1v1.7a2 2 0 0 1-2 2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Trung chuyển</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTicketList"]'>
-                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 11v2M13 17v2"/></svg>Danh sách vé</button>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 11v2M13 17v2"/></svg>Tổng đài</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTicketOffice"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>Phòng vé</button>
             </div>
           </div>
         </div>
 
         <button type="button" class="admin-nav-group-toggle" id="navGroupXeNhanSuToggle" data-action="adminToggleNavGroup" data-args='["navGroupXeNhanSuWrap"]'>
           <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-          <span class="navgrp-title">Xe &amp; nhân sự</span>
+          <span class="navgrp-title">Thiết lập vận tải</span>
           <svg class="grp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="admin-nav-group-wrap" id="navGroupXeNhanSuWrap">
@@ -102,8 +104,22 @@
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>Sơ đồ ghế</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewVehicleSeats"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><rect x="15" y="5" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="15" y="13" width="6" height="6" rx="1"/></svg>Ghế xe</button>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="admin-nav-group-toggle" id="navGroupNhanSuToggle" data-action="adminToggleNavGroup" data-args='["navGroupNhanSuWrap"]'>
+          <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="navgrp-title">Nhân sự</span>
+          <svg class="grp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="admin-nav-group-wrap" id="navGroupNhanSuWrap">
+          <div class="admin-nav-group-inner">
+            <div class="admin-nav-group">
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewStaff"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Quản lý nhân viên</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewAccounts"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M6 16c.5-1.5 1.8-2 3-2s2.5.5 3 2"/></svg>Tài khoản</button>
             </div>
           </div>
         </div>
@@ -136,8 +152,6 @@
         <div class="admin-nav-group-wrap" id="navGroupHeThongWrap">
           <div class="admin-nav-group-inner">
             <div class="admin-nav-group">
-              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewAccounts"]'>
-                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M6 16c.5-1.5 1.8-2 3-2s2.5.5 3 2"/></svg>Tài khoản</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewActivity"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Nhật ký hoạt động</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewSettings"]'>
@@ -159,6 +173,7 @@
         <section class="admin-view" id="viewSchedule" hidden></section>
         <section class="admin-view" id="viewTransship" hidden></section>
         <section class="admin-view" id="viewTicketList" hidden></section>
+        <section class="admin-view" id="viewTicketOffice" hidden></section>
         <section class="admin-view" id="viewSeatLayouts" hidden></section>
         <section class="admin-view" id="viewVehicleSeats" hidden></section>
         <section class="admin-view" id="viewVehicleCategories" hidden></section>
@@ -347,6 +362,7 @@
   <script src="admin/admin-calendar.js?v=1"></script>
   <script src="admin/admin-transship.js?v=15"></script>
   <script src="admin/admin-tickets.js?v=8"></script>
+  <script src="admin/admin-ticket-office.js?v=1"></script>
   <script src="admin/admin-vehicles.js?v=1"></script>
   <script src="admin/admin-staff.js?v=1"></script>
   <script src="admin/admin-accounts.js?v=1"></script>
