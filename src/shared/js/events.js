@@ -121,6 +121,7 @@
   // Đăng ký ở capture phase: đúng với thứ tự event.stopPropagation() được gọi TRƯỚC khi bubble lên
   // phần tử cha trong code gốc, và để nghe được cả sự kiện không bubble (blur).
   document.addEventListener('click', dispatch('click', 'data-action'), true);
+  document.addEventListener('dblclick', dispatch('dblclick', 'data-dblclick-action'), true);
   document.addEventListener('change', dispatch('change', 'data-change-action'), true);
   document.addEventListener('input', dispatch('input', 'data-input-action'), true);
   document.addEventListener('blur', dispatch('blur', 'data-blur-action'), true);

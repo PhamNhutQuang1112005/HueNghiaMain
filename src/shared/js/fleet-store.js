@@ -223,6 +223,8 @@
     seedKey(HN_DIRECTIONS_KEY, function () { return clone(SEED_DIRECTIONS); });
     seedKey(HN_ROUTES_KEY, function () { return clone(SEED_ROUTES); });
     seedKey(HN_STATIONS_KEY, function () { return clone(SEED_STATIONS); });
+    seedKey(HN_MAIN_STATIONS_KEY, function () { return []; });
+    seedKey(HN_SUB_STATIONS_KEY, function () { return []; });
     seedKey(HN_VEHICLE_TYPES_KEY, function () { return clone(SEED_VEHICLE_TYPES); });
     seedKey(HN_VEHICLES_KEY, function () { return clone(SEED_VEHICLES); });
     seedKey(HN_STAFF_KEY, function () { return clone(SEED_STAFF); });
@@ -294,6 +296,195 @@
     return list;
   }
   function setStations(a) { writeJSON(HN_STATIONS_KEY, Array.isArray(a) ? a : []); }
+
+  function getMainStations() { return readJSON(HN_MAIN_STATIONS_KEY, []); }
+  function setMainStations(a) { writeJSON(HN_MAIN_STATIONS_KEY, Array.isArray(a) ? a : []); }
+  function getSubStations() { return readJSON(HN_SUB_STATIONS_KEY, []); }
+  function setSubStations(a) { writeJSON(HN_SUB_STATIONS_KEY, Array.isArray(a) ? a : []); }
+  function getStopStations() { return readJSON(HN_STOP_STATIONS_KEY, []); }
+  function setStopStations(a) { writeJSON(HN_STOP_STATIONS_KEY, Array.isArray(a) ? a : []); }
+  function makeStationId(prefix) {
+    return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+  }
+  function normalizeProvince(provinceKey, fallbackLabel) {
+    var meta = [];
+    try { meta = (typeof getRegionMeta === 'function') ? getRegionMeta() : []; } catch (e) { meta = []; }
+    var match = meta.find(function (m) { return m && m[0] === provinceKey; });
+    return match ? { provinceKey: match[0], province: match[1].replace(/^Trạm\s+/i, '') } : { provinceKey: provinceKey || '', province: (fallbackLabel || '').replace(/^Trạm\s+/i, '') };
+  }
+  function addMainStation(fields) {
+    var name = String((fields && fields.name) || '').trim();
+    if (!name) return { ok: false, reason: 'Tên trạm chính không được để trống.' };
+    var meta = normalizeProvince(fields && fields.provinceKey, fields && fields.province);
+    var list = getMainStations();
+    if (list.some(function (s) { return String(s.name || '').toLowerCase() === name.toLowerCase(); })) {
+      return { ok: false, reason: 'Trạm chính này đã tồn tại.' };
+    }
+    var item = {
+      id: String((fields && fields.id) || makeStationId('main')),
+      name: name,
+      provinceKey: meta.provinceKey,
+      province: meta.province || '',
+      code: String((fields && fields.code) || '').trim(),
+      address: String((fields && fields.address) || '').trim(),
+      hotline: String((fields && fields.hotline) || '').trim()
+    };
+    list.push(item);
+    setMainStations(list);
+    return { ok: true, item: item };
+  }
+  function updateMainStation(id, fields) {
+    var list = getMainStations();
+    var idx = list.findIndex(function (s) { return s && s.id === id; });
+    if (idx === -1) return { ok: false, reason: 'Không tìm thấy trạm chính.' };
+    var name = String((fields && fields.name) || '').trim();
+    if (!name) return { ok: false, reason: 'Tên trạm chính không được để trống.' };
+    var current = list[idx];
+    if (String(current.name || '').toLowerCase() !== name.toLowerCase() && list.some(function (s, i) { return i !== idx && String(s.name || '').toLowerCase() === name.toLowerCase(); })) {
+      return { ok: false, reason: 'Tên trạm chính đã tồn tại.' };
+    }
+    var meta = normalizeProvince(fields && fields.provinceKey, fields && fields.province);
+    current.name = name;
+    current.provinceKey = meta.provinceKey;
+    current.province = meta.province || '';
+    current.code = String((fields && fields.code) || '').trim();
+    current.address = String((fields && fields.address) || '').trim();
+    current.hotline = String((fields && fields.hotline) || '').trim();
+    setMainStations(list);
+    return { ok: true, item: current };
+  }
+  function removeMainStation(id) {
+    var list = getMainStations();
+    var item = list.find(function (s) { return s && s.id === id; });
+    if (!item) return { ok: true };
+    var dependents = getSubStations().filter(function (s) { return s && s.mainStationId === id; }).length;
+    if (dependents) return { ok: false, reason: 'Trạm chính còn ' + dependents + ' trạm phụ. Xoá các trạm phụ trước.' };
+    setMainStations(list.filter(function (s) { return s && s.id !== id; }));
+    return { ok: true };
+  }
+  function addSubStation(fields) {
+    var mainStationId = String((fields && fields.mainStationId) || '').trim();
+    var name = String((fields && fields.name) || '').trim();
+    if (!mainStationId) return { ok: false, reason: 'Chọn trạm chính trước.' };
+    if (!name) return { ok: false, reason: 'Tên trạm phụ không được để trống.' };
+    var main = getMainStations().find(function (s) { return s && s.id === mainStationId; });
+    if (!main) return { ok: false, reason: 'Trạm chính không tồn tại.' };
+    var list = getSubStations();
+    if (list.some(function (s) { return s && s.mainStationId === mainStationId && String(s.name || '').toLowerCase() === name.toLowerCase(); })) {
+      return { ok: false, reason: 'Trạm phụ này đã tồn tại trong trạm chính.' };
+    }
+    var item = {
+      id: String((fields && fields.id) || makeStationId('sub')),
+      mainStationId: mainStationId,
+      name: name,
+      provinceKey: main.provinceKey || '',
+      province: main.province || '',
+      code: String((fields && fields.code) || '').trim(),
+      address: String((fields && fields.address) || '').trim(),
+      hotline: String((fields && fields.hotline) || '').trim()
+    };
+    list.push(item);
+    setSubStations(list);
+    return { ok: true, item: item };
+  }
+  function updateSubStation(id, fields) {
+    var list = getSubStations();
+    var idx = list.findIndex(function (s) { return s && s.id === id; });
+    if (idx === -1) return { ok: false, reason: 'Không tìm thấy trạm phụ.' };
+    var mainStationId = String((fields && fields.mainStationId) || '').trim();
+    var name = String((fields && fields.name) || '').trim();
+    if (!mainStationId) return { ok: false, reason: 'Chọn trạm chính trước.' };
+    if (!name) return { ok: false, reason: 'Tên trạm phụ không được để trống.' };
+    var main = getMainStations().find(function (s) { return s && s.id === mainStationId; });
+    if (!main) return { ok: false, reason: 'Trạm chính không tồn tại.' };
+    if (String(list[idx].name || '').toLowerCase() !== name.toLowerCase() && list.some(function (s, i) {
+      return i !== idx && s && s.mainStationId === mainStationId && String(s.name || '').toLowerCase() === name.toLowerCase();
+    })) {
+      return { ok: false, reason: 'Tên trạm phụ đã tồn tại trong trạm chính.' };
+    }
+    var current = list[idx];
+    current.mainStationId = mainStationId;
+    current.name = name;
+    current.provinceKey = main.provinceKey || '';
+    current.province = main.province || '';
+    current.code = String((fields && fields.code) || '').trim();
+    current.address = String((fields && fields.address) || '').trim();
+    current.hotline = String((fields && fields.hotline) || '').trim();
+    setSubStations(list);
+    return { ok: true, item: current };
+  }
+  function removeSubStation(id) {
+    var list = getSubStations();
+    var next = list.filter(function (s) { return s && s.id !== id; });
+    setSubStations(next);
+    return { ok: true };
+  }
+  function addStopStation(fields) {
+    var provinceKey = String((fields && fields.provinceKey) || '').trim();
+    var mainStationId = String((fields && fields.mainStationId) || '').trim();
+    var subStationId = String((fields && fields.subStationId) || '').trim();
+    var name = String((fields && fields.name) || '').trim();
+    if (!provinceKey) return { ok: false, reason: 'Chọn tỉnh/thành.' };
+    if (!mainStationId) return { ok: false, reason: 'Chọn trạm chính.' };
+    if (!subStationId) return { ok: false, reason: 'Chọn trạm phụ.' };
+    if (!name) return { ok: false, reason: 'Tên điểm dừng không được để trống.' };
+    var main = getMainStations().find(function (s) { return s && s.id === mainStationId; });
+    var sub = getSubStations().find(function (s) { return s && s.id === subStationId; });
+    if (!main || !sub) return { ok: false, reason: 'Trạm chính / trạm phụ không hợp lệ.' };
+    var list = getStopStations();
+    if (list.some(function (s) { return s && s.subStationId === subStationId && String(s.name || '').toLowerCase() === name.toLowerCase(); })) {
+      return { ok: false, reason: 'Điểm dừng này đã tồn tại trong trạm phụ.' };
+    }
+    var item = {
+      id: String((fields && fields.id) || makeStationId('stop')),
+      provinceKey: provinceKey,
+      mainStationId: mainStationId,
+      subStationId: subStationId,
+      name: name,
+      code: String((fields && fields.code) || '').trim(),
+      address: String((fields && fields.address) || '').trim(),
+      hotline: String((fields && fields.hotline) || '').trim()
+    };
+    list.push(item);
+    setStopStations(list);
+    return { ok: true, item: item };
+  }
+  function updateStopStation(id, fields) {
+    var list = getStopStations();
+    var idx = list.findIndex(function (s) { return s && s.id === id; });
+    if (idx === -1) return { ok: false, reason: 'Không tìm thấy điểm dừng.' };
+    var provinceKey = String((fields && fields.provinceKey) || '').trim();
+    var mainStationId = String((fields && fields.mainStationId) || '').trim();
+    var subStationId = String((fields && fields.subStationId) || '').trim();
+    var name = String((fields && fields.name) || '').trim();
+    if (!provinceKey) return { ok: false, reason: 'Chọn tỉnh/thành.' };
+    if (!mainStationId) return { ok: false, reason: 'Chọn trạm chính.' };
+    if (!subStationId) return { ok: false, reason: 'Chọn trạm phụ.' };
+    if (!name) return { ok: false, reason: 'Tên điểm dừng không được để trống.' };
+    var main = getMainStations().find(function (s) { return s && s.id === mainStationId; });
+    var sub = getSubStations().find(function (s) { return s && s.id === subStationId; });
+    if (!main || !sub) return { ok: false, reason: 'Trạm chính / trạm phụ không hợp lệ.' };
+    if (String(list[idx].name || '').toLowerCase() !== name.toLowerCase() && list.some(function (s, i) {
+      return i !== idx && s && s.subStationId === subStationId && String(s.name || '').toLowerCase() === name.toLowerCase();
+    })) {
+      return { ok: false, reason: 'Điểm dừng này đã tồn tại trong trạm phụ.' };
+    }
+    var current = list[idx];
+    current.provinceKey = provinceKey;
+    current.mainStationId = mainStationId;
+    current.subStationId = subStationId;
+    current.name = name;
+    current.code = String((fields && fields.code) || '').trim();
+    current.address = String((fields && fields.address) || '').trim();
+    current.hotline = String((fields && fields.hotline) || '').trim();
+    setStopStations(list);
+    return { ok: true, item: current };
+  }
+  function removeStopStation(id) {
+    var list = getStopStations();
+    setStopStations(list.filter(function (s) { return s && s.id !== id; }));
+    return { ok: true };
+  }
   // Thêm 1 trạm vào danh mục nếu chưa có (khớp theo tên) — trả true nếu vừa thêm.
   function addStation(name, region) {
     name = String(name || '').trim();
@@ -694,6 +885,21 @@
     setRoutes: setRoutes,
     getStations: getStations,
     setStations: setStations,
+    getMainStations: getMainStations,
+    setMainStations: setMainStations,
+    getSubStations: getSubStations,
+    setSubStations: setSubStations,
+    getStopStations: getStopStations,
+    setStopStations: setStopStations,
+    addMainStation: addMainStation,
+    updateMainStation: updateMainStation,
+    removeMainStation: removeMainStation,
+    addSubStation: addSubStation,
+    updateSubStation: updateSubStation,
+    removeSubStation: removeSubStation,
+    addStopStation: addStopStation,
+    updateStopStation: updateStopStation,
+    removeStopStation: removeStopStation,
     addStation: addStation,
     addStationFull: addStationFull,
     updateStation: updateStation,

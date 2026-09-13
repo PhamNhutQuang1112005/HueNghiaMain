@@ -370,7 +370,11 @@ function adminRemoveRouteStation(routeId, kind, idx) {
     r[kind].splice(idx, 1);
   });
   FleetStore.log({ action: 'update', entity: 'route', entityId: routeId, summary: 'Bỏ trạm "' + removed + '" khỏi ' + kind });
-  renderDirectionsView();
+  if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'viewPricing') {
+    renderPricingView();
+  } else {
+    renderDirectionsView();
+  }
 }
 function adminOpenStationPicker(routeId, kind) {
   var r = FleetStore.getRoutes().find(function (x) { return x.id === routeId; });
@@ -423,7 +427,11 @@ function adminSaveStationPick(e) {
   FleetStore.log({ action: 'update', entity: 'route', entityId: routeId, summary: 'Cập nhật ' + kind + ' (' + picked.length + ' trạm)' });
   showToast('Đã lưu trạm.');
   closeAdminModal();
-  renderDirectionsView();
+  if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'viewPricing') {
+    renderPricingView();
+  } else {
+    renderDirectionsView();
+  }
 }
 
 function adminOpenRouteModal(id, directionId) {
@@ -480,7 +488,11 @@ function adminSaveRoute(e) {
   SELECTED_DIR_ID = dirId;
   closeAdminModal();
   showToast('Đã lưu tuyến.');
-  renderDirectionsView();
+  if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'viewPricing') {
+    renderPricingView();
+  } else {
+    renderDirectionsView();
+  }
 }
 
 function adminDeleteRoute(id) {
@@ -492,6 +504,10 @@ function adminDeleteRoute(id) {
   FleetStore.log({ action: 'delete', entity: 'route', entityId: id, summary: 'Xoá tuyến ' + id });
   if (SELECTED_ROUTE_ID === id) SELECTED_ROUTE_ID = null;
   showToast('Đã xoá tuyến.');
-  renderDirectionsView();
+  if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'viewPricing') {
+    renderPricingView();
+  } else {
+    renderDirectionsView();
+  }
 }
 
