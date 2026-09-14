@@ -39,62 +39,65 @@ function renderVehiclesView() {
       '<td>' + scopeBadge + '</td>' +
       '<td class="col-status" style="text-align:center;">' + activeTag(activeOf(v)) + '</td>' +
       '<td style="color:var(--text-sub);">' + (v.note ? esc(v.note) : '—') + '</td>' +
-      '<td class="row-actions" style="text-align:center;">' +
-        '<button class="btn btn-sm" data-action="adminOpenVehicleModal" data-args=\'[' + originalIdx + ']\'>Sửa</button> ' +
-        '<button class="btn btn-sm btn-danger" data-action="adminDeleteVehicle" data-args=\'[' + originalIdx + ']\'>Xoá</button>' +
+      '<td class="row-actions">' +
+        '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminVehicleRowMenu" data-args=\'["__this__",' + originalIdx + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td></tr>';
   }).join('') : '<tr><td colspan="7" class="empty-state">Không tìm thấy xe phù hợp.</td></tr>';
 
   $('viewVehicles').innerHTML =
-    '<div class="vehicles-shell">' +
-      '<!-- FILTER TOOLBAR -->' +
-      '<div class="filter-toolbar" style="margin-bottom:20px;">' +
-        '<div class="filter-field">' +
-          '<label>Tìm kiếm xe</label>' +
-          '<input type="text" value="' + esc(f.search) + '" placeholder="Biển số, loại xe..." data-input-action="adminVehicleFilterInput" data-args=\'["search","__this_value__"]\'>' +
-        '</div>' +
-        '<div class="filter-field">' +
-          '<label>Nhóm xe</label>' +
-          '<select data-change-action="adminVehicleFilterInput" data-args=\'["scope","__this_value__"]\'>' +
-            '<option value="">Tất cả nhóm</option>' +
-            '<option value="line"' + (f.scope === 'line' ? ' selected' : '') + '>Xe tuyến</option>' +
-            '<option value="shuttle"' + (f.scope === 'shuttle' ? ' selected' : '') + '>Xe trung chuyển</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="filter-field">' +
-          '<label>Trạng thái</label>' +
-          '<select data-change-action="adminVehicleFilterInput" data-args=\'["status","__this_value__"]\'>' +
-            '<option value="">Tất cả trạng thái</option>' +
-            '<option value="active"' + (f.status === 'active' ? ' selected' : '') + '>Đang hoạt động</option>' +
-            '<option value="inactive"' + (f.status === 'inactive' ? ' selected' : '') + '>Tạm ngưng</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="filter-spacer"></div>' +
-        '<button class="btn btn-primary" data-action="adminOpenVehicleModal" data-args=\'[-1]\'>Thêm xe mới</button>' +
+    '<div class="sd-toolbar">' +
+      '<div class="filter-field sd-field-search">' +
+        '<label>Tìm kiếm xe</label>' +
+        '<input type="text" value="' + esc(f.search) + '" placeholder="Biển số, loại xe..." data-input-action="adminVehicleFilterInput" data-args=\'["search","__this_value__"]\'>' +
       '</div>' +
+      '<div class="filter-field sd-field-region">' +
+        '<label>Nhóm xe</label>' +
+        '<select data-change-action="adminVehicleFilterInput" data-args=\'["scope","__this_value__"]\'>' +
+          '<option value="">Tất cả nhóm</option>' +
+          '<option value="line"' + (f.scope === 'line' ? ' selected' : '') + '>Xe tuyến</option>' +
+          '<option value="shuttle"' + (f.scope === 'shuttle' ? ' selected' : '') + '>Xe trung chuyển</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="filter-field sd-field-region">' +
+        '<label>Trạng thái</label>' +
+        '<select data-change-action="adminVehicleFilterInput" data-args=\'["status","__this_value__"]\'>' +
+          '<option value="">Tất cả trạng thái</option>' +
+          '<option value="active"' + (f.status === 'active' ? ' selected' : '') + '>Đang hoạt động</option>' +
+          '<option value="inactive"' + (f.status === 'inactive' ? ' selected' : '') + '>Tạm ngưng</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="sd-toolbar-actions">' +
+        '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenVehicleModal" data-args=\'[-1]\'>Thêm xe mới</button>' +
+      '</div>' +
+    '</div>' +
 
-      '<!-- TABLE CARD -->' +
-      '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-        '<div class="ref-card-header" style="padding:18px 22px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-          '<div style="font-size:15px; font-weight:800; color:var(--black);">Danh sách phương tiện bãi xe</div>' +
-          '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">Hiển thị ' + filtered.length + ' / ' + totalCount + ' xe</div>' +
-        '</div>' +
-        '<div class="table-wrap" style="border:0; border-radius:0; box-shadow:none;">' +
-          '<table class="admin-table">' +
-            '<thead><tr>' +
-              '<th>Biển số</th>' +
-              '<th>Loại xe</th>' +
-              '<th style="text-align:center;">Số ghế</th>' +
-              '<th>Nhóm phơi</th>' +
-              '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
-              '<th>Ghi chú</th>' +
-              '<th class="th-actions" style="text-align:center;">Thao tác</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-        '</div>' +
+    '<div class="sd-blocks"><div class="sd-section-block">' +
+      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+        '<span>Danh sách phương tiện bãi xe</span>' +
+        '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">Hiển thị ' + filtered.length + ' / ' + totalCount + ' xe</span>' +
       '</div>' +
-    '</div>';
+      '<div class="sd-table-wrap">' +
+        '<table class="admin-table">' +
+          '<thead><tr>' +
+            '<th>Biển số</th>' +
+            '<th>Loại xe</th>' +
+            '<th style="text-align:center;">Số ghế</th>' +
+            '<th>Nhóm phơi</th>' +
+            '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
+            '<th>Ghi chú</th>' +
+            '<th class="th-actions">Thao tác</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div></div>';
+}
+
+// Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
+function adminVehicleRowMenu(btn, idx) {
+  adminOpenRowMenu(btn, 'vehicle:' + idx,
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenVehicleModal" data-args=\'[' + idx + ']\'>Sửa</button>' +
+    '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteVehicle" data-args=\'[' + idx + ']\'>Xoá</button>');
 }
 
 function adminVehicleFilterInput(field, val) {

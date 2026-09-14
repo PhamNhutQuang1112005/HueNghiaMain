@@ -33,7 +33,7 @@ function adminScanTicketRows() {
       var g = map[gk];
       if (!g) {
         g = map[gk] = {
-          tripId: t.id, route: t.route || '—', time: t.time || '', date: t.date || '',
+          tripId: t.id, route: t.route || '—', time: t.time || '', date: t.date || '', tripName: t.name || '',
           plate: bank.plate || t.plate || '', vehicleType: bank.vehicleType || t.vehicleType || '',
           driver: bank.driver || '', helper: bank.helper || '',
           name: seat.customerName || '—', phone: seat.phone || '—',
@@ -72,7 +72,7 @@ function adminScanCancelledSeats() {
     if (!bank || !Array.isArray(bank.cancelledSeats)) return;
     bank.cancelledSeats.forEach(function (item) {
       var o = {}; for (var kk in item) if (Object.prototype.hasOwnProperty.call(item, kk)) o[kk] = item[kk];
-      o.route = t.route || '—'; o.time = t.time || '';
+      o.route = t.route || '—'; o.time = t.time || ''; o.date = t.date || ''; o.tripName = t.name || '';
       rows.push(o);
     });
   });
@@ -110,14 +110,19 @@ function tkRenderRow(r, idx) {
     '<span class="staff-tag staff-tag-book">' + esc(bookStaff) + '</span>' +
     (sellStaff === '—' ? '<span class="staff-tag staff-tag-empty">—</span>' : '<span class="staff-tag staff-tag-sell">' + esc(sellStaff) + '</span>') +
   '</div>';
-  // Cột "Thời gian" gộp ngày + giờ từ CÙNG mốc actionTime (y chang renderPassengerHistoryRowHtml).
-  var actionTimeStr = r.actionTime ? (formatHistoryDate(r.actionTime) + ' ' + formatActionTime(r.actionTime)) : '—';
+  // Cột "Thời gian" gộp ngày + giờ từ mốc actionTime; ghế mẫu dựng sẵn (seed lúc khởi tạo trang) không
+  // có actionTime nên rơi về hiện dấu "—" trống trơn — dự phòng bằng ngày giờ khởi hành của chuyến
+  // (r.date/r.time, luôn có) để cột này không bao giờ trống hẳn.
+  var actionTimeStr = r.actionTime
+    ? (formatHistoryDate(r.actionTime) + ' ' + formatActionTime(r.actionTime))
+    : (r.date ? (formatHistoryDate(r.date) + ' ' + (r.time || '')).trim() : '—');
   var priceStr = r.price ? fmtMoney(r.price) : '—';
   var tripTitle = 'Biển số xe: ' + (r.plate || '—') + ' • Loại xe: ' + (r.vehicleType || '—') + ' • Tài xế: ' + (r.driver || '—') + ' • Phụ xe: ' + (r.helper || '—');
+  var tripLabel = r.tripName || (r.route + ' — ' + r.time);
 
   return '<tr>' +
     '<td style="text-align:center;font-weight:600;color:var(--text-sub);">' + (idx + 1) + '</td>' +
-    '<td><span class="ch-trip-link" data-action="adminTicketGoToTrip" data-args=\'["' + esc(r.tripId) + '"]\' title="' + esc(tripTitle) + '">' + esc(r.route) + ' — ' + esc(r.time) + '</span></td>' +
+    '<td><span class="ch-trip-link" data-action="adminTicketGoToTrip" data-args=\'["' + esc(r.tripId) + '"]\' title="' + esc(tripTitle) + '">' + esc(tripLabel) + '</span></td>' +
     '<td class="ch-col-ellipsis" title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
     '<td class="mono ch-col-nowrap">' + esc(r.phone) + '</td>' +
     '<td>' + tkRouteHtml(stops.first, stops.last) + '</td>' +
@@ -126,18 +131,19 @@ function tkRenderRow(r, idx) {
     '<td style="text-align:right;">' + priceStr + '</td>' +
     '<td title="' + esc(r.note) + '">' + (r.note ? '<span class="pax-note-clamp">' + esc(r.note) + '</span>' : '<span class="pax-note-empty">—</span>') + '</td>' +
     '<td>' + staffTags + '</td>' +
-    '<td class="mono" style="color:var(--text-sub);font-style:italic;">' + actionTimeStr + '</td>' +
+    '<td class="mono" style="font-size:12px;">' + esc(actionTimeStr) + '</td>' +
   '</tr>';
 }
 
 function tkRenderCancelledRow(item, idx) {
   var stops = tkHistoryStops(item);
   var priceStr = item.price ? fmtMoney(item.price) : '—';
-  var tripLabel = item.time ? (esc(item.route) + ' — ' + esc(item.time)) : esc(item.route || '—');
+  var tripLabel = item.tripName || ((item.route || '—') + (item.time ? ' — ' + item.time : ''));
   var staffStr = getStaffCode(item.cancelStaff) || item.cancelStaff || '—';
+  var cancelTimeStr = item.cancelTime || (item.date ? (formatHistoryDate(item.date) + ' ' + (item.time || '')).trim() : '—');
   return '<tr>' +
     '<td style="text-align:center;font-weight:600;color:var(--text-sub);">' + (idx + 1) + '</td>' +
-    '<td>' + tripLabel + '</td>' +
+    '<td>' + esc(tripLabel) + '</td>' +
     '<td><b>' + esc(item.customerName || '—') + '</b></td>' +
     '<td class="mono">' + esc(item.phone || '—') + '</td>' +
     '<td>' + tkRouteHtml(stops.first, stops.last) + '</td>' +
@@ -146,7 +152,7 @@ function tkRenderCancelledRow(item, idx) {
     '<td style="font-weight:600;">' + priceStr + '</td>' +
     '<td style="color:#dc2626;font-weight:600;">' + esc(item.reason || 'Không có lý do') + '</td>' +
     '<td>' + esc(staffStr) + '</td>' +
-    '<td class="mono" style="color:var(--text-sub);font-size:13px;">' + esc(item.cancelTime || '—') + '</td>' +
+    '<td class="mono" style="font-size:12px;">' + esc(cancelTimeStr) + '</td>' +
   '</tr>';
 }
 

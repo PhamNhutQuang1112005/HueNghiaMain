@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — Quản lý nhà xe | Huệ Nghĩa Express</title>
+  <title>Admin — Quản lý nhà xe | Nhà Xe Huệ Nghĩa</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -14,30 +14,37 @@
        view admin đã có; các view mới (Trung chuyển/Danh sách vé) dựng đúng y html/class của TicketStaff
        nên tận dụng lại nguyên bộ CSS này thay vì chép tay. -->
   <link rel="stylesheet" href="../shared/css/booking-ui/02-zone1.css?v=109" />
-  <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=108" />
+  <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=111" />
   <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109" />
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
-  <link rel="stylesheet" href="admin/admin.css?v=116" />
+  <link rel="stylesheet" href="admin/admin.css?v=159" />
   <link rel="stylesheet" href="admin/admin-ts-modals.css?v=3" />
 </head>
 
 <body class="admin-body">
   <div class="app">
-    <!-- ===== TOPBAR ===== -->
+    <!-- ===== TOPBAR (logo về lại header như bản gốc, chỉ đổi nền đỏ) ===== -->
     <header class="topbar">
       <div class="brand">
         <div class="brand-badge">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9"/><path d="M4 16h16"/><path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
         </div>
         <div class="brand-text">
-          <div class="brand-text-row">
-            <b>HUỆ NGHĨA EXPRESS</b>
-            <span class="brand-tag">ADMIN</span>
-          </div>
+          <b>NHÀ XE HUỆ NGHĨA</b>
           <span class="brand-sub">Hệ thống quản lý nhà xe</span>
         </div>
       </div>
+      <button type="button" class="topbar-menu-btn" data-action="adminToggleSidebarCollapse" title="Thu gọn / Mở rộng menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <nav class="admin-breadcrumb" id="adminBreadcrumb" aria-label="breadcrumb"></nav>
       <div class="topbar-spacer"></div>
+      <button type="button" class="topbar-icon-btn" id="adminNotifBtn" data-action="adminOpenNotifPanel" title="Thông báo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="topbar-badge" id="adminNotifBadge" hidden>0</span>
+      </button>
+      <span class="topbar-divider"></span>
+      <div class="system-status-pill" title="Trạng thái hoạt động (tự đánh giá, chưa nối hệ thống giám sát thật)"><span class="status-pulse-dot"></span><span>Hệ thống hoạt động</span></div>
       <div class="user-menu" id="userMenu">
         <button type="button" class="user-chip" id="userChipBtn" data-action="toggleAdminUserMenu">
           <span class="avatar" id="userAvatar">A</span>
@@ -55,7 +62,8 @@
     <div class="admin-layout">
       <!-- ===== SIDEBAR ===== -->
       <nav class="admin-sidebar" id="adminSidebar">
-        <hr class="sidebar-header-divider" />
+     <div class="sidebar-scroll">
+      <hr class="sidebar-header-divider" />
         <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewDashboard"]'>
           <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
 
@@ -163,6 +171,12 @@
             </div>
           </div>
         </div>
+     </div>
+      <div class="sidebar-footer">
+        <hr class="sidebar-header-divider" />
+        <button type="button" class="admin-nav-item" data-action="adminLogout">
+          <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Đăng xuất</button>
+      </div>
       </nav>
 
       <!-- ===== MAIN ===== -->
@@ -351,35 +365,35 @@
   <script src="../auth/session.js?v=1"></script>
   <script src="../auth/permissions.js?v=1"></script>
   <script src="../auth/accounts.js?v=1"></script>
-  <script src="../shared/js/fleet-store.js?v=13"></script>
+  <script src="../shared/js/fleet-store.js?v=14"></script>
   <script src="../services/trip-service.js?v=1"></script>
   <script src="../services/pickup-service.js?v=1"></script>
   <script src="../services/shuttle-driver-service.js?v=1"></script>
   <!-- admin.js (1333 dòng) đã tách theo banner mục 1–8 thành các mảnh liền mạch — NẠP ĐÚNG
        THỨ TỰ (= thứ tự dòng file gốc); admin-settings-boot.js chứa dòng BOOT ở cuối nên phải nạp
        SAU cùng. Biến/hàm vẫn là global top-level như cũ. -->
-  <script src="admin/admin.js?v=26"></script>
+  <script src="admin/admin.js?v=29"></script>
   <script src="admin/admin-dashboard.js?v=3"></script>
-  <script src="admin/admin-station-directory.js?v=14"></script>
-  <script src="admin/admin-placeholders.js?v=1"></script>
-  <script src="admin/admin-stations.js?v=29"></script>
+  <script src="admin/admin-station-directory.js?v=15"></script>
+  <script src="admin/admin-placeholders.js?v=2"></script>
+  <script src="admin/admin-stations.js?v=30"></script>
   <script src="admin/admin-trips.js?v=13"></script>
   <script src="admin/admin-schedule.js?v=4"></script>
   <script src="admin/admin-calendar.js?v=1"></script>
-  <script src="admin/admin-transship.js?v=15"></script>
-  <script src="admin/admin-tickets.js?v=8"></script>
-  <script src="admin/admin-ticket-office.js?v=1"></script>
-  <script src="admin/admin-customers.js?v=1"></script>
-  <script src="admin/admin-vehicles.js?v=1"></script>
-  <script src="admin/admin-staff.js?v=1"></script>
-  <script src="admin/admin-accounts.js?v=1"></script>
-  <script src="admin/admin-staff-stats.js?v=1"></script>
+  <script src="admin/admin-transship.js?v=17"></script>
+  <script src="admin/admin-tickets.js?v=13"></script>
+  <script src="admin/admin-ticket-office.js?v=4"></script>
+  <script src="admin/admin-customers.js?v=6"></script>
+  <script src="admin/admin-vehicles.js?v=2"></script>
+  <script src="admin/admin-staff.js?v=2"></script>
+  <script src="admin/admin-accounts.js?v=2"></script>
+  <script src="admin/admin-staff-stats.js?v=4"></script>
   <script src="admin/admin-activity.js?v=1"></script>
-  <script src="admin/admin-seat-layouts.js?v=1"></script>
-  <script src="admin/admin-vehicle-seats.js?v=1"></script>
-  <script src="admin/admin-vehicle-categories.js?v=1"></script>
-  <script src="admin/admin-accounting.js?v=1"></script>
-  <script src="admin/admin-settings-boot.js?v=1"></script>
+  <script src="admin/admin-seat-layouts.js?v=2"></script>
+  <script src="admin/admin-vehicle-seats.js?v=2"></script>
+  <script src="admin/admin-vehicle-categories.js?v=10"></script>
+  <script src="admin/admin-accounting.js?v=2"></script>
+  <script src="admin/admin-settings-boot.js?v=2"></script>
 
 
   <script src="../shared/js/events.js?v=3"></script>

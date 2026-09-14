@@ -165,13 +165,12 @@ function renderSeatLayoutsView() {
   $('viewSeatLayouts').innerHTML =
     '<div class="seat-layouts-shell">' +
 
-      '<!-- FILTER TOOLBAR -->' +
-      '<div class="filter-toolbar" style="margin-bottom:20px;">' +
-        '<div class="filter-field">' +
+      '<div class="sd-toolbar">' +
+        '<div class="filter-field sd-field-search">' +
           '<label>Tìm kiếm</label>' +
           '<input type="text" value="' + esc(f.search) + '" placeholder="Tên sơ đồ, số ghế..." data-input-action="adminSeatLayoutFilterInput" data-args=\'["search","__this_value__"]\'>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Số tầng</label>' +
           '<select data-change-action="adminSeatLayoutFilterInput" data-args=\'["isDoubleDeck","__this_value__"]\'>' +
             '<option value="">Tất cả</option>' +
@@ -179,7 +178,7 @@ function renderSeatLayoutsView() {
             '<option value="false"' + (f.isDoubleDeck === 'false' ? ' selected' : '') + '>1 tầng</option>' +
           '</select>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Trạng thái</label>' +
           '<select data-change-action="adminSeatLayoutFilterInput" data-args=\'["active","__this_value__"]\'>' +
             '<option value="">Tất cả</option>' +
@@ -187,8 +186,9 @@ function renderSeatLayoutsView() {
             '<option value="false"' + (f.active === 'false' ? ' selected' : '') + '>Tắt</option>' +
           '</select>' +
         '</div>' +
-        '<div class="filter-spacer"></div>' +
-        '<button class="btn btn-primary" data-action="adminOpenSeatLayoutModal" data-args=\'[-1]\'>+ Tạo sơ đồ mới</button>' +
+        '<div class="sd-toolbar-actions">' +
+          '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenSeatLayoutModal" data-args=\'[-1]\'>+ Tạo sơ đồ mới</button>' +
+        '</div>' +
       '</div>' +
 
       '<div class="sl-card-grid">' + cardsHtml + '</div>' +
@@ -593,6 +593,7 @@ function adminToggleSeatLayoutActive(idx) {
   showToast('Đã cập nhật trạng thái.');
   renderSeatLayoutsView();
 }
+
 
 function adminDeleteSeatLayout(idx) {
   var list = getSeatLayouts();

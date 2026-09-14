@@ -31,7 +31,7 @@ function makeSeat(code, state, opts = {}) {
     '228 Trần Hưng Đạo, TP. Long Xuyên, An Giang',
     'Khách sạn Victoria Châu Đốc, An Giang'
   ];
-  const driverList = ['Trần Văn Hùng (TC-01)', 'Nguyễn Văn Nam (TC-03)', 'Phạm Quốc Bảo (TC-02)', 'Lê Hoàng Anh (TC-05)'];
+  const driverList = ['Trần Văn Hùng', 'Nguyễn Văn Nam (TC-03)', 'Phạm Quốc Bảo (TC-02)', 'Lê Hoàng Anh (TC-05)'];
 
   const tAddr = (isBooked && gType !== 'Khách trạm') ? transAddrs[Math.floor(Math.random() * transAddrs.length)] : '';
   const dAddr = (isBooked && gType !== 'Khách trạm' && (gType === 'Trung chuyển' || Math.random() > 0.4)) ? dropoffAddrs[Math.floor(Math.random() * dropoffAddrs.length)] : '';
@@ -202,7 +202,12 @@ function loadAllTrips() {
       console.error("Failed to parse trips", e);
     }
   }
-  return normalizeTemplateTrips([...DEFAULT_SGCD_TRIPS, ...DEFAULT_CDSG_TRIPS, ...DEFAULT_EXTRA_TEMPLATE_TRIPS]);
+  // localStorage rỗng (lần đầu mở app) — lưu ngay dữ liệu mẫu vào HN_TRIPS_KEY thay vì chỉ giữ trong
+  // biến allTripsMeta, để admin.html (đọc thẳng TripService.getAll(), không có seed riêng) thấy được
+  // phơi ngay từ đầu thay vì trống trơn cho tới khi TicketStaff có thao tác lưu đầu tiên.
+  const seeded = normalizeTemplateTrips([...DEFAULT_SGCD_TRIPS, ...DEFAULT_CDSG_TRIPS, ...DEFAULT_EXTRA_TEMPLATE_TRIPS]);
+  TripService.save(seeded);
+  return seeded;
 }
 
 // Suy chiều của 1 tuyến: ưu tiên FleetStore (chuẩn theo hướng Admin cấu hình, đúng cả với tuyến KHÔNG
@@ -315,7 +320,7 @@ if (!savedBank) {
     up: seatPlanUp,
     plate: '51F-123.45',
     vehicleType: 'Limousine 24 Phòng',
-    driver: 'Trần Văn Hùng (TC-01)',
+    driver: 'Trần Văn Hùng',
     helper: 'Nguyễn Thị Hương',
     cancelledSeats: []
   };
@@ -523,6 +528,80 @@ function switchTab(tab, el) {
   }
 }
 
+// ===== Phân trang kiểu Admin (tab Ghế xe) dùng chung cho các bảng: Hành khách / Ghế hủy / Rước đường /
+// Trung chuyển đón / Trung chuyển trả — mỗi bảng giữ 1 state riêng {page, pageSize, sig} rồi gọi
+// renderTsPagination() để vẽ thanh chân trang, cùng bộ class admin-table-footer/admin-page-* với trang Admin
+// (xem renderVehicleSeatPagination ở admin-vehicle-seats.js) để 2 khu vực đồng nhất giao diện phân trang.
+function tsPageState() {
+  return { page: 1, pageSize: 15, sig: '' };
+}
+
+// Đưa page về 1 mỗi khi bộ lọc đổi — so sánh "chữ ký" bộ lọc hiện tại (JSON các giá trị filter) với lần
+// render trước. Cần thiết vì các <select>/<input> lọc gọi thẳng hàm render (data-change-action="renderXxx"),
+// không có chỗ riêng để chặn và tự reset page trước khi render.
+function tsSyncPageOnFilterChange(state, sig) {
+  if (state.sig !== sig) { state.page = 1; state.sig = sig; }
+}
+
+function renderTsPagination(containerId, total, state, pageChangeFn, pageSizeFn) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+  if (state.page > totalPages) state.page = totalPages;
+  const page = state.page, pageSize = state.pageSize;
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  const pageBtn = (p, active) => `<button type="button" class="admin-page-btn${active ? ' active' : ''}"${p === page ? '' : ` data-action="${pageChangeFn}" data-args='[${p}]'`}>${p}</button>`;
+
+  let pageBtns = '';
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pageBtns += pageBtn(i, i === page);
+  } else {
+    pageBtns += pageBtn(1, page === 1);
+    if (page > 3) pageBtns += '<span class="admin-page-ellipsis">…</span>';
+    const from = Math.max(2, page - 1);
+    const to = Math.min(totalPages - 1, page + 1);
+    for (let j = from; j <= to; j++) pageBtns += pageBtn(j, j === page);
+    if (page < totalPages - 2) pageBtns += '<span class="admin-page-ellipsis">…</span>';
+    pageBtns += pageBtn(totalPages, page === totalPages);
+  }
+
+  container.innerHTML = `
+    <div class="admin-table-footer-left">
+      <select class="admin-page-size" data-change-action="${pageSizeFn}" data-args='["__this_value__"]'>
+        ${[10, 15, 25, 50].map(n => `<option value="${n}"${pageSize === n ? ' selected' : ''}>${n}</option>`).join('')}
+      </select>
+      <span class="admin-page-info">Hiển thị ${start} đến ${end} của ${total} mục</span>
+    </div>
+    <div class="admin-pagination">
+      <button type="button" class="admin-page-btn"${page <= 1 ? ' disabled' : ` data-action="${pageChangeFn}" data-args='[${page - 1}]'`}>Trước</button>
+      ${pageBtns}
+      <button type="button" class="admin-page-btn"${page >= totalPages ? ' disabled' : ` data-action="${pageChangeFn}" data-args='[${page + 1}]'`}>Tiếp</button>
+    </div>
+  `;
+}
+
+let PAX_PAGE = tsPageState();
+function paxPageChange(page) { PAX_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderPassengerList(); }
+function paxPageSizeChange(size) { PAX_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); PAX_PAGE.page = 1; renderPassengerList(); }
+
+let CANCELLED_PAGE = tsPageState();
+function cancelledPageChange(page) { CANCELLED_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderCancelledListTable(); }
+function cancelledPageSizeChange(size) { CANCELLED_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); CANCELLED_PAGE.page = 1; renderCancelledListTable(); }
+
+let ROADSIDE_PAGE = tsPageState();
+function roadsidePageChange(page) { ROADSIDE_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderRoadsideTable(); }
+function roadsidePageSizeChange(size) { ROADSIDE_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); ROADSIDE_PAGE.page = 1; renderRoadsideTable(); }
+
+let TS_PICKUP_PAGE = tsPageState();
+function tsPickupPageChange(page) { TS_PICKUP_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderTransshipTables(); }
+function tsPickupPageSizeChange(size) { TS_PICKUP_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); TS_PICKUP_PAGE.page = 1; renderTransshipTables(); }
+
+let TS_DROPOFF_PAGE = tsPageState();
+function tsDropoffPageChange(page) { TS_DROPOFF_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderTransshipTables(); }
+function tsDropoffPageSizeChange(size) { TS_DROPOFF_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); TS_DROPOFF_PAGE.page = 1; renderTransshipTables(); }
+
 function renderCancelledListTable() {
   const tbody = document.getElementById('cancelledTableBody');
   const hint = document.getElementById('cancelledResultHint');
@@ -533,18 +612,24 @@ function renderCancelledListTable() {
   if (!cancelledSeats || cancelledSeats.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#6b7280; font-size:14px;">Chưa có ghế nào bị hủy trong chuyến này</td></tr>`;
     if (hint) hint.textContent = 'Danh sách ghế đã hủy (0 ghế)';
+    const paginationEl = document.getElementById('cancelledTablePagination');
+    if (paginationEl) paginationEl.innerHTML = '';
     return;
   }
 
   if (hint) hint.textContent = `Danh sách ghế đã hủy (${cancelledSeats.length} ghế)`;
 
-  tbody.innerHTML = cancelledSeats.map((item, index) => {
+  const cancelledSliceStart = (CANCELLED_PAGE.page - 1) * CANCELLED_PAGE.pageSize;
+  const cancelledPageItems = cancelledSeats.slice(cancelledSliceStart, cancelledSliceStart + CANCELLED_PAGE.pageSize);
+
+  tbody.innerHTML = cancelledPageItems.map((item, index) => {
     const firstStopShort = shortenStopName(item.firstStop) || '—';
     const lastStopShort = shortenStopName(item.lastStop) || '—';
     const routeStr = `${firstStopShort} → ${lastStopShort}`;
     const priceStr = item.price ? item.price.toLocaleString('vi-VN') + 'đ' : '—';
     const reasonText = item.reason || 'Không có lý do';
     const timeText = item.cancelTime || '—';
+    index = cancelledSliceStart + index;
 
     return `
       <tr>
@@ -559,6 +644,8 @@ function renderCancelledListTable() {
       </tr>
     `;
   }).join('');
+
+  renderTsPagination('cancelledTablePagination', cancelledSeats.length, CANCELLED_PAGE, 'cancelledPageChange', 'cancelledPageSizeChange');
 }
 
 // Cột "Trạng thái" (2 bảng Trung chuyển đón/trả) — bấm để ghi/sửa ghi chú riêng (VD "đã gọi tài xế",
@@ -635,7 +722,7 @@ function tsBuildTransshipTicketData(r, currentTrip) {
   const ticketNo = item.ticketNo || ('TC-' + String(Math.floor(1000 + Math.random() * 9000)));
   const seatsText = r.seatCodes.join(', ');
   const customerName = item.customerName || 'Khách';
-  const phone = item.phone || '—';
+  const phone = maskPhoneForPrint(item.phone || '—');
   const route = currentTrip.route || 'Sài Gòn - An Giang';
   const time = currentTrip.time || '—';
   const unitPrice = item.price || 0;
@@ -657,7 +744,7 @@ function buildTransshipTicketPageHtml(d) {
   return `
     <div class="brand-header">
       <div class="brand-badge">HN</div>
-      <div class="brand-name">HUỆ NGHĨA EXPRESS</div>
+      <div class="brand-name">NHÀ XE HUỆ NGHĨA</div>
       <div class="brand-sub">Hệ thống Đặt vé & Trung chuyển Chuyên nghiệp</div>
     </div>
 
@@ -681,7 +768,7 @@ function buildTransshipTicketPageHtml(d) {
     <div class="dash-line"></div>
 
     <div class="footer-note">
-      <b>Cảm ơn quý khách đã chọn Huệ Nghĩa Express!</b><br>
+      <b>Cảm ơn quý khách đã chọn Nhà Xe Huệ Nghĩa!</b><br>
       Tổng đài đặt vé & hỗ trợ: <b>1900 63 64 99</b>
     </div>
   `;
@@ -979,6 +1066,9 @@ function renderTransshipTables() {
   const tsFPickup = tsFVal('tsFilterPickup');
   const tsFDropoff = tsFVal('tsFilterDropoff');
 
+  tsSyncPageOnFilterChange(TS_PICKUP_PAGE, JSON.stringify([tsFStatus, tsFPickup]));
+  tsSyncPageOnFilterChange(TS_DROPOFF_PAGE, JSON.stringify([tsFStatus, tsFDropoff]));
+
   if (pickupCntEl) pickupCntEl.textContent = `${pickupList.length} khách`;
   if (dropoffCntEl) dropoffCntEl.textContent = `${dropoffList.length} khách`;
   if (tabCntEl) tabCntEl.textContent = `(${pickupList.length} | ${dropoffList.length})`;
@@ -1028,7 +1118,10 @@ function renderTransshipTables() {
     if (pickupRowsFiltered.length === 0) {
       pickupBody.innerHTML = `<tr><td colspan="11" class="ts-empty">${pickupRows.length === 0 ? 'Không có hành khách cần trung chuyển đón trong chuyến này' : 'Không có khách nào khớp bộ lọc đang chọn'}</td></tr>`;
     } else {
-      pickupBody.innerHTML = pickupRowsFiltered.map((r, idx) => {
+      const pickupSliceStart = (TS_PICKUP_PAGE.page - 1) * TS_PICKUP_PAGE.pageSize;
+      const pickupPageRows = pickupRowsFiltered.slice(pickupSliceStart, pickupSliceStart + TS_PICKUP_PAGE.pageSize);
+      pickupBody.innerHTML = pickupPageRows.map((r, idx) => {
+        idx = pickupSliceStart + idx;
         const noteSafe = escapeHtml(r.note);
         const noteHtml = r.note
           ? `<div class="pax-note-row"><svg class="pax-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="pax-note-clamp">${noteSafe}</span></div>`
@@ -1056,6 +1149,7 @@ function renderTransshipTables() {
         `;
       }).join('');
     }
+    renderTsPagination('transshipPickupPagination', pickupRowsFiltered.length, TS_PICKUP_PAGE, 'tsPickupPageChange', 'tsPickupPageSizeChange');
   }
 
   // Render Table 2: DANH SÁCH TRUNG CHUYỂN TRẢ — cùng cách làm với bảng "đón" ở trên.
@@ -1087,7 +1181,10 @@ function renderTransshipTables() {
     if (dropoffRowsFiltered.length === 0) {
       dropoffBody.innerHTML = `<tr><td colspan="10" class="ts-empty">${dropoffRows.length === 0 ? 'Không có hành khách cần trung chuyển trả trong chuyến này' : 'Không có khách nào khớp bộ lọc đang chọn'}</td></tr>`;
     } else {
-      dropoffBody.innerHTML = dropoffRowsFiltered.map((r, idx) => {
+      const dropoffSliceStart = (TS_DROPOFF_PAGE.page - 1) * TS_DROPOFF_PAGE.pageSize;
+      const dropoffPageRows = dropoffRowsFiltered.slice(dropoffSliceStart, dropoffSliceStart + TS_DROPOFF_PAGE.pageSize);
+      dropoffBody.innerHTML = dropoffPageRows.map((r, idx) => {
+        idx = dropoffSliceStart + idx;
         const noteSafe = escapeHtml(r.note);
         const noteHtml = r.note
           ? `<div class="pax-note-row"><svg class="pax-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="pax-note-clamp">${noteSafe}</span></div>`
@@ -1111,6 +1208,7 @@ function renderTransshipTables() {
         `;
       }).join('');
     }
+    renderTsPagination('transshipDropoffPagination', dropoffRowsFiltered.length, TS_DROPOFF_PAGE, 'tsDropoffPageChange', 'tsDropoffPageSizeChange');
   }
 
   tsUpdatePrintActionBar();
@@ -1277,13 +1375,19 @@ function renderRoadsideTable() {
   const filtered = rsApplyFilters(rows, rsCurrentFilters());
 
   updateRoadsideTabCount(rows.length);
+  tsSyncPageOnFilterChange(ROADSIDE_PAGE, JSON.stringify(rsCurrentFilters()));
 
   if (!tbody) return;
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="11" class="ts-empty">${rows.length === 0 ? 'Không có khách rước đường trong chuyến này' : 'Không có khách nào khớp bộ lọc đang chọn'}</td></tr>`;
+    const paginationEl = document.getElementById('roadsideTablePagination');
+    if (paginationEl) paginationEl.innerHTML = '';
     return;
   }
-  tbody.innerHTML = filtered.map((r, idx) => {
+  const roadsideSliceStart = (ROADSIDE_PAGE.page - 1) * ROADSIDE_PAGE.pageSize;
+  const roadsidePageRows = filtered.slice(roadsideSliceStart, roadsideSliceStart + ROADSIDE_PAGE.pageSize);
+  tbody.innerHTML = roadsidePageRows.map((r, idx) => {
+    idx = roadsideSliceStart + idx;
     const noteSafe = escapeHtml(r.note);
     const noteHtml = r.note
       ? `<div class="pax-note-row"><svg class="pax-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="pax-note-clamp">${noteSafe}</span></div>`
@@ -1303,6 +1407,7 @@ function renderRoadsideTable() {
         <td class="pax-col-note" title="${noteSafe}">${noteHtml}</td>
       </tr>`;
   }).join('');
+  renderTsPagination('roadsideTablePagination', filtered.length, ROADSIDE_PAGE, 'roadsidePageChange', 'roadsidePageSizeChange');
 }
 
 function updateRoadsideTabCount(n) {
@@ -1433,12 +1538,20 @@ function renderPassengerList() {
     }
     return true;
   });
+
+  tsSyncPageOnFilterChange(PAX_PAGE, JSON.stringify([fFirst, fLast, fPaid]));
+
   const tbody = document.getElementById('paxTableBody');
   if (tbody) {
     if (groups.length === 0) {
       tbody.innerHTML = '<tr class="pax-empty-row"><td colspan="10">Không có hành khách phù hợp bộ lọc</td></tr>';
+      const paginationEl = document.getElementById('paxTablePagination');
+      if (paginationEl) paginationEl.innerHTML = '';
     } else {
-      tbody.innerHTML = groups.map((g, index) => {
+      const paxSliceStart = (PAX_PAGE.page - 1) * PAX_PAGE.pageSize;
+      const paxPageGroups = groups.slice(paxSliceStart, paxSliceStart + PAX_PAGE.pageSize);
+      tbody.innerHTML = paxPageGroups.map((g, index) => {
+        index = paxSliceStart + index;
         const s = g.main;
         const count = g.members.length;
         const seatCodes = g.members.map(m => m.code);
@@ -1494,6 +1607,7 @@ function renderPassengerList() {
         </tr>
         `;
       }).join('');
+      renderTsPagination('paxTablePagination', groups.length, PAX_PAGE, 'paxPageChange', 'paxPageSizeChange');
     }
   }
 
@@ -2124,7 +2238,7 @@ function buildTicketPageHtml(d) {
   return `
     <div class="brand-header">
       <div class="brand-badge">HN</div>
-      <div class="brand-name">HUỆ NGHĨA EXPRESS</div>
+      <div class="brand-name">NHÀ XE HUỆ NGHĨA</div>
       <div class="brand-sub">Hệ thống Đặt vé & Trung chuyển Chuyên nghiệp</div>
     </div>
 
@@ -2158,7 +2272,7 @@ function buildTicketPageHtml(d) {
     </div>
 
     <div class="footer-note">
-      <b>Cảm ơn quý khách đã chọn Huệ Nghĩa Express!</b><br>
+      <b>Cảm ơn quý khách đã chọn Nhà Xe Huệ Nghĩa!</b><br>
       Tổng đài đặt vé & hỗ trợ: <b>1900 63 64 99</b>
     </div>
   `;
@@ -2286,6 +2400,20 @@ function buildMultiTicketPrintHtml(dataList) {
   `;
 }
 
+// Che 4 số ở giữa SĐT khi hiện trên vé IN GIẤY (VD 0327234145 -> 032****145) — giữ 3 số đầu + 3 số cuối
+// đủ để khách/tài xế đối chiếu nhanh, nhưng không lộ trọn vẹn SĐT thật trên 1 tờ giấy ai cầm cũng đọc
+// được. Chỉ áp dụng lúc hiển thị trên vé in — KHÔNG đổi seat.phone thật (vẫn dùng nguyên cho tìm kiếm/
+// liên hệ trong toàn bộ ứng dụng). Có thể có NHIỀU SĐT gộp cách nhau bởi ", " (collectPhoneValues cho vé
+// nhóm nhiều khách) nên che riêng từng số một, không che nguyên cả chuỗi đã nối.
+function maskPhoneForPrint(phone) {
+  const raw = String(phone == null ? '' : phone).trim();
+  if (!raw || raw === '—') return raw || '—';
+  return raw.split(',').map(part => {
+    const p = part.trim();
+    return p.length <= 6 ? p : p.slice(0, 3) + '****' + p.slice(-3);
+  }).join(', ');
+}
+
 // Chuẩn bị dữ liệu hiển thị cho 1 tờ vé (không mở cửa sổ in) — tách khỏi printTicket() để dùng lại
 // được cho cả in nhiều vé gộp chung 1 cửa sổ (xem printTicketsSeparately()).
 function buildTicketPrintData(seats) {
@@ -2294,7 +2422,7 @@ function buildTicketPrintData(seats) {
   const seatsText = seats.map(s => s.code).join(', ');
   const ticketNo = firstSeat.ticketNo || ('SGAG-' + String(Math.floor(1000 + Math.random() * 9000)));
   const customerName = firstSeat.customerName || document.getElementById('f_name').value.trim() || 'Khách lẻ';
-  const phone = firstSeat.phone || collectPhoneValues('f_phone', 'f_phone_extra') || '—';
+  const phone = maskPhoneForPrint(firstSeat.phone || collectPhoneValues('f_phone', 'f_phone_extra') || '—');
   const fromStation = firstSeat.firstStop || getStationValue().trim() || '508 Kinh Dương Vương';
   const toStation = firstSeat.lastStop || document.getElementById('f_destination').value.trim() || 'Trạm Châu Đốc';
   const unitPrice = firstSeat.price || getEditedPrice();
@@ -3288,6 +3416,9 @@ function selectTrip(el, time, routeLabel) {
 
   // Sync state
   currentTripId = tripId;
+  // Đổi phơi khác -> các bảng phân trang (Hành khách/Ghế hủy/Rước đường/Trung chuyển) về lại trang 1,
+  // tránh còn kẹt ở 1 số trang không có dữ liệu của phơi cũ (danh sách khách mỗi phơi dài ngắn khác nhau).
+  [PAX_PAGE, CANCELLED_PAGE, ROADSIDE_PAGE, TS_PICKUP_PAGE, TS_DROPOFF_PAGE].forEach(st => { st.page = 1; });
   seatPlanDown = bank.down;
   seatPlanUp = bank.up;
   extraLeftoverSeats = bank.extraSeats || [];

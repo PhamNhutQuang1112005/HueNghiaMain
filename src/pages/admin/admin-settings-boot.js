@@ -56,4 +56,6 @@ function adminResetConfig() {
    --------------------------------------------------------- */
 initAdminUserMenu();
 initAdminNavGroups();
+initAdminSidebarTooltips();
+initAdminSidebarCollapse();
 switchAdminView('viewDashboard');

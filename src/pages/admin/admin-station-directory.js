@@ -214,22 +214,22 @@ function renderStationsView() {
       '<button type="button" class="station-subtab' + (currentTab === 'stop' ? ' active' : '') + '" data-action="adminSetStationSubTab" data-args=\'["stop"]\'>Điểm dừng</button>' +
     '</div>' +
     '<div class="sd-toolbar" style="gap:8px;">' +
-      '<div class="filter-field sd-field-search" style="flex:0 1 220px; min-width:170px; max-width:220px;">' +
+      '<div class="filter-field sd-field-search" style="flex:1 1 190px; min-width:150px; max-width:none;">' +
         '<label>Tìm</label>' +
         '<input type="text" id="sdSearch" value="' + esc(STATION_DIR_FILTER) + '" placeholder="Tên, mã..." data-input-action="adminStationDirSearch" data-args=\'["__this_value__"]\'></div>' +
-      '<div class="filter-field sd-field-region" style="flex:0 1 180px; min-width:150px;">' +
+      '<div class="filter-field sd-field-region" style="flex:1 1 190px; min-width:150px;">' +
         '<label>Tỉnh</label>' +
         '<select id="sdRegionFilter" data-change-action="adminStationDirFilterRegion" data-args=\'["__this_value__"]\'>' +
           '<option value="">Tất cả</option>' +
           regionMetaAll.map(function (rm) { return '<option value="' + esc(rm[0]) + '"' + (rm[0] === STATION_DIR_REGION ? ' selected' : '') + '>' + esc(rm[1]) + '</option>'; }).join('') +
         '</select></div>' +
-      '<div class="filter-field sd-field-region" style="flex:0 1 180px; min-width:150px;">' +
+      '<div class="filter-field sd-field-region" style="flex:1 1 190px; min-width:150px;">' +
         '<label>Trạm Chính</label>' +
         '<select id="sdMainFilter" data-change-action="adminStationDirFilterMain" data-args=\'["__this_value__"]\'>' +
           '<option value="">Tất cả</option>' +
           visibleMainOptions.map(function (m) { return '<option value="' + esc(m.id) + '"' + (m.id === (SUB_STATION_MAIN_FILTER || '') ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join('') +
         '</select></div>' +
-      '<div class="filter-field sd-field-region" style="flex:0 1 180px; min-width:150px;">' +
+      '<div class="filter-field sd-field-region" style="flex:1 1 190px; min-width:150px;">' +
         '<label>Trạm Phụ</label>' +
         '<select id="sdSubFilter" data-change-action="adminStationDirFilterSub" data-args=\'["__this_value__"]\'>' +
           '<option value="">Tất cả</option>' +

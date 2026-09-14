@@ -473,14 +473,14 @@
    nữa (15.5%→16.5%) bằng phần cột Ghi chú vừa bớt (nth-child(9)). */
 .pax-table.pax-table--history thead th:nth-child(2),
 .pax-table.pax-table--history tbody td:nth-child(2) {
-  width: 16.5%;
+  width: 18.5%;
   text-align: left;
 }
 
 /* Hành khách + SĐT — đủ rộng để tên và số hiện trên 1 hàng, không cần xuống dòng hay cắt bớt. */
 .pax-table.pax-table--history thead th:nth-child(3),
 .pax-table.pax-table--history tbody td:nth-child(3) {
-  width: 10%;
+  width: 11%;
   text-align: left;
 }
 
@@ -525,7 +525,7 @@
    bớt thêm 8%→7% dồn tiếp 1% lên 21%. */
 .pax-table.pax-table--history thead th:nth-child(5),
 .pax-table.pax-table--history tbody td:nth-child(5) {
-  width: 21%;
+  width: 19%;
   text-align: left;
 }
 
@@ -557,7 +557,7 @@
    (10.5%→9.5%) dồn sang cột Tên phơi (nth-child(2)). */
 .pax-table.pax-table--history thead th:nth-child(9),
 .pax-table.pax-table--history tbody td:nth-child(9) {
-  width: 9.5%;
+  width: 7.5%;
   text-align: left;
 }
 
@@ -576,7 +576,7 @@
    Hành trình (nth-child(5)). */
 .pax-table.pax-table--history thead th:nth-child(11),
 .pax-table.pax-table--history tbody td:nth-child(11) {
-  width: 7%;
+  width: 8%;
   text-align: center;
 }
 

@@ -291,6 +291,7 @@ function scanTripSeatBankHistory(matchSeatFn) {
           ticketNo: seat.ticketNo,
           route: tripMeta.route,
           time: tripMeta.time,
+          tripName: tripMeta.name || '',
           seat: seat.code,
           firstStop: seat.firstStop,
           lastStop: seat.lastStop,

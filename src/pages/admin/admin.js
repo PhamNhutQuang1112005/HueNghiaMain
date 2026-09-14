@@ -1,6 +1,6 @@
 /* =========================================================
    ADMIN.JS — Trang Admin "Quản lý nhà xe"
-   Nhà xe Huệ Nghĩa Express
+   Nhà Xe Huệ Nghĩa
    =========================================================
 
    Trung tâm quản trị: Hướng → Tuyến → Chuyến, Xe, Nhân viên. KHÔNG có DB/API
@@ -167,7 +167,73 @@ function switchAdminView(view) {
     var a = b.getAttribute('data-args') || '';
     b.classList.toggle('active', a.indexOf('"' + view + '"') !== -1);
   });
+  adminRenderBreadcrumb(view);
+  adminUpdateNotifBadge();
   VIEW_RENDERERS[view]();
+}
+
+/* ---------------------------------------------------------
+   BREADCRUMB (topbar) — "Quản trị hệ thống > <tên nhóm> > <tên trang>". Nhãn lấy tay theo đúng chữ
+   trên nút sidebar (admin.html) — không đọc lại DOM vì nhóm cha không map 1-1 rõ ràng qua data-args.
+   --------------------------------------------------------- */
+var ADMIN_BREADCRUMB_MAP = {
+  viewDashboard: { group: null, label: 'Dashboard' },
+  viewStations: { group: 'Quản lý vận tải', label: 'Trạm xe' },
+  viewDirections: { group: 'Quản lý vận tải', label: 'Tuyến xe' },
+  viewTrips: { group: 'Quản lý vận tải', label: 'Phơi xe' },
+  viewPricing: { group: 'Quản lý vận tải', label: 'Quản lý giá' },
+  viewSchedule: { group: 'Quản lý vận tải', label: 'Quản lý giờ' },
+  viewTransship: { group: 'Quản lý vận tải', label: 'Trung chuyển' },
+  viewTicketList: { group: 'Quản lý vận tải', label: 'Tổng đài' },
+  viewTicketOffice: { group: 'Quản lý vận tải', label: 'Phòng vé' },
+  viewCustomers: { group: 'Quản lý vận tải', label: 'Khách hàng' },
+  viewVehicles: { group: 'Thiết lập vận tải', label: 'Quản lý xe' },
+  viewVehicleCategories: { group: 'Thiết lập vận tải', label: 'Loại xe' },
+  viewSeatLayouts: { group: 'Thiết lập vận tải', label: 'Sơ đồ ghế' },
+  viewVehicleSeats: { group: 'Thiết lập vận tải', label: 'Ghế xe' },
+  viewStaff: { group: 'Nhân sự', label: 'Quản lý nhân viên' },
+  viewAccounts: { group: 'Nhân sự', label: 'Tài khoản' },
+  viewStaffStats: { group: 'Nhân sự', label: 'Thống kê nhân sự' },
+  viewAccountingReports: { group: 'Kế toán & Tài chính', label: 'Tổng quan & Báo cáo' },
+  viewAccountingThu: { group: 'Kế toán & Tài chính', label: 'Doanh thu (THU)' },
+  viewAccountingChi: { group: 'Kế toán & Tài chính', label: 'Chi phí (CHI)' },
+  viewAccountingLedgers: { group: 'Kế toán & Tài chính', label: 'Sổ & Bảng nghiệp vụ' },
+  viewActivity: { group: 'Hệ thống', label: 'Nhật ký hoạt động' },
+  viewSettings: { group: 'Hệ thống', label: 'Cài đặt' }
+};
+function adminRenderBreadcrumb(view) {
+  var el = $('adminBreadcrumb');
+  if (!el) return;
+  var meta = ADMIN_BREADCRUMB_MAP[view] || { group: null, label: view };
+  var segs = ['Quản trị hệ thống'];
+  if (meta.group) segs.push(meta.group);
+  segs.push(meta.label);
+  var sep = '<svg class="bc-sep" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>';
+  el.innerHTML = '<svg class="bc-home-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>' +
+    segs.map(function (s, i) {
+      var isLast = i === segs.length - 1;
+      return (i > 0 ? sep : '') + '<span class="bc-seg' + (isLast ? ' bc-current' : '') + '">' + esc(s) + '</span>';
+    }).join('');
+}
+
+/* ---------------------------------------------------------
+   CHUÔNG THÔNG BÁO (topbar) — badge = số phơi "chưa gán biển số" (cần xử lý), tính trực tiếp từ
+   TripService qua getTrips(); KHÔNG phải hệ thống thông báo thời gian thực (không có backend đẩy tin).
+   --------------------------------------------------------- */
+function adminNotifCount() {
+  var trips = (typeof getTrips === 'function') ? getTrips() : [];
+  return trips.filter(function (t) { return t && !t.plate && t.status !== 'Đã hủy' && !t.isTemplate; }).length;
+}
+function adminUpdateNotifBadge() {
+  var badge = $('adminNotifBadge');
+  if (!badge) return;
+  var n = adminNotifCount();
+  badge.textContent = n > 99 ? '99+' : String(n);
+  badge.hidden = n === 0;
+}
+function adminOpenNotifPanel() {
+  showToast(adminNotifCount() > 0 ? 'Có ' + adminNotifCount() + ' phơi xe chưa gán biển số — chuyển tới trang Phơi xe.' : 'Không có phơi nào cần chú ý.');
+  switchAdminView('viewTrips');
 }
 
 /* ---------------------------------------------------------
@@ -201,11 +267,34 @@ function initAdminNavGroups() {
   });
 }
 
+/* ---------------------------------------------------------
+   THU GỌN TOÀN BỘ SIDEBAR THÀNH DẠNG ICON — khác với accordion nhóm ở trên (ẩn/hiện từng nhóm con,
+   vẫn giữ full chữ); cái này thu hẹp --admin-sidebar-w về 1 cột icon, ẩn mọi nhãn chữ (kể cả logo
+   trong .sidebar-brand). Nhớ trạng thái qua localStorage như nhóm accordion ở trên. Trạng thái đóng/mở
+   riêng từng nhóm (adminToggleNavGroup) vẫn hoạt động bình thường kể cả khi đang thu gọn. */
+var ADMIN_SIDEBAR_COLLAPSE_KEY = 'hn_admin_sidebar_collapsed_v1';
+function adminToggleSidebarCollapse() {
+  var collapsed = !document.body.classList.contains('admin-sidebar-collapsed');
+  document.body.classList.toggle('admin-sidebar-collapsed', collapsed);
+  lsWrite(ADMIN_SIDEBAR_COLLAPSE_KEY, collapsed);
+}
+function initAdminSidebarCollapse() {
+  document.body.classList.toggle('admin-sidebar-collapsed', !!lsRead(ADMIN_SIDEBAR_COLLAPSE_KEY, false));
+}
+/* Gắn title = đúng nhãn chữ của nút cho MỌI nút nav (kể cả khi sidebar đang mở) — để khi thu gọn còn
+   icon, hover vẫn thấy tên qua tooltip trình duyệt mà không cần sửa tay từng nút trong admin.html. */
+function initAdminSidebarTooltips() {
+  document.querySelectorAll('.admin-nav-item, .admin-nav-group-toggle').forEach(function (btn) {
+    if (!btn.title) btn.title = btn.textContent.trim();
+  });
+}
+
 /* Admin sửa dữ liệu ở tab khác → render lại view đang mở. */
 window.addEventListener('storage', function (e) {
   if (!e.key) return;
   var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY];
   if (watched.indexOf(e.key) !== -1 && VIEW_RENDERERS[CURRENT_VIEW]) VIEW_RENDERERS[CURRENT_VIEW]();
+  if (e.key === HN_TRIPS_KEY) adminUpdateNotifBadge();
 });
 
 

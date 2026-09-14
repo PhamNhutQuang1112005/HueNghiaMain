@@ -16,14 +16,14 @@
 <link rel="stylesheet" href="../shared/css/booking-ui/02-zone1.css?v=112">
 <link rel="stylesheet" href="../shared/css/booking-ui/03-right-column.css?v=112">
 <link rel="stylesheet" href="../shared/css/booking-ui/04-overlay-modals.css?v=108">
-<link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=109">
+<link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=111">
 <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109">
 <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108">
 <link rel="stylesheet" href="../shared/css/booking-ui/08-phoi-management.css?v=108">
 <link rel="stylesheet" href="../shared/css/booking-ui/09-rebook-modal.css?v=110">
 <link rel="stylesheet" href="../shared/css/booking-ui/10-customer-history-seatmap.css?v=108">
 <link rel="stylesheet" href="../shared/css/booking-ui/11-responsive.css?v=108">
-<link rel="stylesheet" href="ticketstaff/ticketstaff.css?v=113">
+<link rel="stylesheet" href="ticketstaff/ticketstaff.css?v=115">
 </head>
 <body>
 
@@ -35,7 +35,7 @@
       <div class="brand-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9"/><path d="M4 16h16"/><path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
       </div>
-      <div class="brand-text"><b>HUỆ NGHĨA EXPRESS</b><span>Hệ thống quản lý nhà xe</span></div>
+      <div class="brand-text"><b>NHÀ XE HUỆ NGHĨA</b><span>Hệ thống quản lý nhà xe</span></div>
     </div>
 
     <div class="topbar-align-group">
@@ -372,24 +372,27 @@
           </button>
         </div>
 
-        <div class="pax-table-wrap">
-          <table class="pax-table pax-table--grid">
-            <thead>
-              <tr>
-                <th class="pax-col-stt">STT</th>
-                <th class="pax-col-name">Họ và tên</th>
-                <th class="pax-col-phone">SĐT</th>
-                <th class="pax-col-route">Hành trình</th>
-                <th class="pax-col-sl">SL</th>
-                <th class="pax-col-vt">Vị trí</th>
-                <th class="pax-col-paid">Đã thu</th>
-                <th class="pax-col-debt">Còn nợ</th>
-                <th class="pax-col-luggage">Baga</th>
-                <th class="pax-col-note">Ghi chú</th>
-              </tr>
-            </thead>
-            <tbody id="paxTableBody"></tbody>
-          </table>
+        <div class="pax-table-card">
+          <div class="pax-table-wrap">
+            <table class="pax-table pax-table--grid">
+              <thead>
+                <tr>
+                  <th class="pax-col-stt">STT</th>
+                  <th class="pax-col-name">Họ và tên</th>
+                  <th class="pax-col-phone">SĐT</th>
+                  <th class="pax-col-route">Hành trình</th>
+                  <th class="pax-col-sl">SL</th>
+                  <th class="pax-col-vt">Vị trí</th>
+                  <th class="pax-col-paid">Đã thu</th>
+                  <th class="pax-col-debt">Còn nợ</th>
+                  <th class="pax-col-luggage">Baga</th>
+                  <th class="pax-col-note">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody id="paxTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer" id="paxTablePagination"></div>
         </div>
       </section>
 
@@ -443,6 +446,7 @@
               <tbody id="transshipPickupBody"></tbody>
             </table>
           </div>
+          <div class="admin-table-footer" id="transshipPickupPagination"></div>
         </div>
 
         <!-- BẢNG 2: DANH SÁCH TRUNG CHUYỂN TRẢ -->
@@ -473,6 +477,7 @@
               <tbody id="transshipDropoffBody"></tbody>
             </table>
           </div>
+          <div class="admin-table-footer" id="transshipDropoffPagination"></div>
         </div>
       </section>
 
@@ -505,22 +510,25 @@
           </div>
         </div>
 
-        <div class="pax-table-wrap">
-          <table class="pax-table pax-table--cancelled pax-table--grid">
-            <thead>
-              <tr>
-                <th>STT</th>
-                <th>Vị trí</th>
-                <th>Họ và tên</th>
-                <th>SĐT</th>
-                <th>Chặng đi</th>
-                <th>Số tiền</th>
-                <th>Nguyên nhân hủy</th>
-                <th>Thời gian hủy</th>
-              </tr>
-            </thead>
-            <tbody id="cancelledTableBody"></tbody>
-          </table>
+        <div class="pax-table-card">
+          <div class="pax-table-wrap">
+            <table class="pax-table pax-table--cancelled pax-table--grid">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>Vị trí</th>
+                  <th>Họ và tên</th>
+                  <th>SĐT</th>
+                  <th>Chặng đi</th>
+                  <th>Số tiền</th>
+                  <th>Nguyên nhân hủy</th>
+                  <th>Thời gian hủy</th>
+                </tr>
+              </thead>
+              <tbody id="cancelledTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer" id="cancelledTablePagination"></div>
         </div>
       </section>
 
@@ -554,25 +562,28 @@
           </button>
         </div>
 
-        <div class="pax-table-wrap">
-          <table class="pax-table pax-table--grid pax-table--roadside">
-            <thead>
-              <tr>
-                <th class="pax-col-stt">STT</th>
-                <th class="pax-col-name">Họ và tên</th>
-                <th class="pax-col-phone">SĐT</th>
-                <th class="pax-col-stop">Trạm đi</th>
-                <th class="pax-col-stop">Trạm đến</th>
-                <th class="pax-col-pickup">Điểm rước</th>
-                <th class="pax-col-sl">SL</th>
-                <th class="pax-col-vt">Số ghế</th>
-                <th class="pax-col-total">Thành tiền</th>
-                <th class="pax-col-paid">Trạng thái</th>
-                <th class="pax-col-note">Ghi chú</th>
-              </tr>
-            </thead>
-            <tbody id="roadsideTableBody"></tbody>
-          </table>
+        <div class="pax-table-card">
+          <div class="pax-table-wrap">
+            <table class="pax-table pax-table--grid pax-table--roadside">
+              <thead>
+                <tr>
+                  <th class="pax-col-stt">STT</th>
+                  <th class="pax-col-name">Họ và tên</th>
+                  <th class="pax-col-phone">SĐT</th>
+                  <th class="pax-col-stop">Trạm đi</th>
+                  <th class="pax-col-stop">Trạm đến</th>
+                  <th class="pax-col-pickup">Điểm rước</th>
+                  <th class="pax-col-sl">SL</th>
+                  <th class="pax-col-vt">Số ghế</th>
+                  <th class="pax-col-total">Thành tiền</th>
+                  <th class="pax-col-paid">Trạng thái</th>
+                  <th class="pax-col-note">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody id="roadsideTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer" id="roadsideTablePagination"></div>
         </div>
       </section>
 
@@ -687,26 +698,29 @@
       </div>
 
       <div class="grid-wrap" style="flex: 1; overflow: auto; padding: 16px 20px 20px;">
-        <div class="pax-table-wrap pax-table-wrap--history" id="phHistoryTableWrap">
-          <table class="pax-table pax-table--history pax-table--grid">
-            <thead>
-              <tr>
-                <th>STT</th>
-                <th>Tên phơi</th>
-                <th>Hành khách</th>
-                <th>SDT</th>
-                <th>Hành trình</th>
-                <th>SL</th>
-                <th>Vị trí</th>
-                <th>Giá vé</th>
-                <th>Ghi chú</th>
-                <th>Mã NV</th>
-                <th>Thời gian</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="phHistoryTableBody"></tbody>
-          </table>
+        <div class="pax-table-card pax-table-card--flush" id="phHistoryTableWrap">
+          <div class="pax-table-wrap pax-table-wrap--history">
+            <table class="pax-table pax-table--history pax-table--grid">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>Tên phơi</th>
+                  <th>Hành khách</th>
+                  <th>SDT</th>
+                  <th>Hành trình</th>
+                  <th>SL</th>
+                  <th>Vị trí</th>
+                  <th>Giá vé</th>
+                  <th>Ghi chú</th>
+                  <th>Mã NV</th>
+                  <th>Thời gian</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="phHistoryTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer" id="phHistoryTablePagination"></div>
         </div>
         <div class="grid-empty" id="phHistoryEmpty" style="display:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -716,25 +730,28 @@
           <p>Không có lịch sử phù hợp với bộ lọc hiện tại.</p>
         </div>
 
-        <div class="pax-table-wrap" id="phCancelledTableWrap" style="display:none;">
-          <table class="pax-table pax-table--cancelled-all pax-table--grid">
-            <thead>
-              <tr>
-                <th>STT</th>
-                <th>Tên phơi</th>
-                <th>Họ và tên</th>
-                <th>SĐT</th>
-                <th>Hành trình</th>
-                <th>SL</th>
-                <th>Vị trí</th>
-                <th>Số tiền</th>
-                <th>Nguyên nhân</th>
-                <th>Nhân viên</th>
-                <th>Thời gian</th>
-              </tr>
-            </thead>
-            <tbody id="phCancelledTableBody"></tbody>
-          </table>
+        <div class="pax-table-card" id="phCancelledTableWrap" style="display:none;">
+          <div class="pax-table-wrap">
+            <table class="pax-table pax-table--cancelled-all pax-table--grid">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>Tên phơi</th>
+                  <th>Họ và tên</th>
+                  <th>SĐT</th>
+                  <th>Hành trình</th>
+                  <th>SL</th>
+                  <th>Vị trí</th>
+                  <th>Số tiền</th>
+                  <th>Nguyên nhân</th>
+                  <th>Nhân viên</th>
+                  <th>Thời gian</th>
+                </tr>
+              </thead>
+              <tbody id="phCancelledTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer" id="phCancelledTablePagination"></div>
         </div>
         <div class="grid-empty" id="phCancelledEmpty" style="display:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -932,25 +949,28 @@
 
       <div class="grid-wrap" style="padding: 0 20px 24px;">
         <div class="pk-table-gap-spacer"></div>
-        <div class="pk-table-wrap">
-          <table class="shuttle-table shuttle-table--grid">
-            <thead>
-              <tr>
-                <th class="col-stt">STT</th>
-                <th style="width: 165px;">Khách hàng</th>
-                <th style="width: 328px;">Hành trình</th>
-                <th style="width: 40px;">SL</th>
-                <th style="width: 98px;">Số ghế</th>
-                <th style="width: 140px;">Ghi chú</th>
-                <th style="width: 100px;">Thời gian</th>
-                <th style="width: 90px;">In lúc</th>
-                <th style="width: 180px;">Trung chuyển</th>
-                <th style="width: 180px;">Phòng vé</th>
-                <th class="col-check" style="width: 44px;"><input type="checkbox" id="pkCheckAll" data-action="pkToggleAllVisible" data-args='["__this__"]'></th>
-              </tr>
-            </thead>
-            <tbody id="pkPaxTableBody"></tbody>
-          </table>
+        <div class="pax-table-card pax-table-card--flush">
+          <div class="pk-table-wrap">
+            <table class="shuttle-table shuttle-table--grid">
+              <thead>
+                <tr>
+                  <th class="col-stt">STT</th>
+                  <th style="width: 165px;">Khách hàng</th>
+                  <th style="width: 328px;">Hành trình</th>
+                  <th style="width: 40px;">SL</th>
+                  <th style="width: 98px;">Số ghế</th>
+                  <th style="width: 140px;">Ghi chú</th>
+                  <th style="width: 100px;">Thời gian</th>
+                  <th style="width: 90px;">In lúc</th>
+                  <th style="width: 180px;">Trung chuyển</th>
+                  <th style="width: 180px;">Phòng vé</th>
+                  <th class="col-check" style="width: 44px;"><input type="checkbox" id="pkCheckAll" data-action="pkToggleAllVisible" data-args='["__this__"]'></th>
+                </tr>
+              </thead>
+              <tbody id="pkPaxTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer" id="pkPaxTablePagination"></div>
         </div>
         <div class="grid-empty" id="pkGridEmpty" style="display:none;">
           Không có hành khách nào phù hợp với điều kiện lọc hiện tại.
@@ -2099,7 +2119,7 @@
 <script src="../shared/js/seat-bank.js?v=3"></script>
 <script src="../auth/session.js?v=1"></script>
 <script src="../auth/permissions.js?v=1"></script>
-<script src="../shared/js/fleet-store.js?v=13"></script>
+<script src="../shared/js/fleet-store.js?v=14"></script>
 <script src="../services/trip-service.js?v=1"></script>
 <script src="../services/pickup-service.js?v=2"></script>
 <script src="../services/shuttle-driver-service.js?v=1"></script>
@@ -2107,16 +2127,16 @@
 <!-- booking.js (2028 dòng) tách theo banner: history → combobox → rebook+misc.
      NẠP ĐÚNG THỨ TỰ; các mảnh dùng chung biến/hàm global như khi còn 1 file.
      Xem ../shared/js/README-booking.md. -->
-<script src="../shared/js/booking.js?v=54"></script>
+<script src="../shared/js/booking.js?v=59"></script>
 <script src="../shared/js/booking-combobox.js?v=3"></script>
-<script src="../shared/js/booking-rebook.js?v=12"></script>
+<script src="../shared/js/booking-rebook.js?v=13"></script>
 <!-- ticketstaff.js (5264 dòng) tách theo banner: phần chính (đặt vé/ghế/phơi) →
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=150"></script>
+<script src="ticketstaff/ticketstaff.js?v=154"></script>
 <script src="ticketstaff/ticketstaff-account.js?v=3"></script>
-<script src="ticketstaff/ticketstaff-pickup.js?v=20"></script>
+<script src="ticketstaff/ticketstaff-pickup.js?v=21"></script>
 <script src="ticketstaff/ticketstaff-manifest-core.js?v=8"></script>
 <script src="ticketstaff/ticketstaff-manifest-ui.js?v=44"></script>
 <script src="../shared/js/events.js?v=3"></script>

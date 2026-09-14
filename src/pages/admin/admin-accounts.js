@@ -63,9 +63,6 @@ function renderAccountsView() {
     return true;
   });
 
-  var ICN_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-  var ICN_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-  var ICN_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
   var ICN_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg>';
 
   function acPermCountHtml(permissions) {
@@ -102,13 +99,8 @@ function renderAccountsView() {
           '<span class="status-dot"></span>' + (isActive ? 'Hoạt động' : 'Tạm khóa') +
         '</span>' +
       '</td>' +
-      '<td class="th-actions" style="text-align:center;">' +
-        '<div style="display:inline-flex; gap:6px; align-items:center;">' +
-          '<button type="button" class="btn btn-secondary btn-sm" data-action="adminOpenAccountModal" data-args=\'["' + esc(a.id) + '"]\'>' + ICN_EDIT + 'Sửa</button>' +
-          '<button type="button" class="btn btn-secondary btn-sm" data-action="adminOpenPassModal" data-args=\'["' + esc(a.id) + '"]\'>' + ICN_LOCK + 'Đổi MK</button>' +
-          '<button type="button" class="btn btn-sm ' + (isActive ? 'btn-secondary' : 'btn-primary') + '" data-action="adminToggleAccountActive" data-args=\'["' + esc(a.id) + '"]\'>' + (isActive ? 'Khóa' : 'Mở') + '</button>' +
-          '<button type="button" class="btn btn-danger btn-sm" data-action="adminDeleteAccount" data-args=\'["' + esc(a.id) + '"]\'>' + ICN_TRASH + '</button>' +
-        '</div>' +
+      '<td class="row-actions">' +
+        '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminAccountRowMenu" data-args=\'["__this__","' + esc(a.id) + '",' + (isActive ? 'true' : 'false') + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
     '</tr>';
   }
@@ -143,13 +135,12 @@ function renderAccountsView() {
         '</div>' +
       '</div>' +
 
-      '<!-- FILTER TOOLBAR -->' +
-      '<div class="filter-toolbar" style="margin-bottom:20px;">' +
-        '<div class="filter-field">' +
+      '<div class="sd-toolbar">' +
+        '<div class="filter-field sd-field-search">' +
           '<label>Tìm kiếm tài khoản</label>' +
           '<input type="text" value="' + esc(f.search) + '" placeholder="Tên đăng nhập, họ tên, vai trò..." data-input-action="adminAccountFilterInput" data-args=\'["search","__this_value__"]\'>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Vai trò</label>' +
           '<select data-change-action="adminAccountFilterInput" data-args=\'["role","__this_value__"]\'>' +
             '<option value="">Tất cả vai trò</option>' +
@@ -162,7 +153,7 @@ function renderAccountsView() {
             '<option value="driver"' + (f.role === 'driver' ? ' selected' : '') + '>Tài xế / Phụ xe</option>' +
           '</select>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Trạng thái</label>' +
           '<select data-change-action="adminAccountFilterInput" data-args=\'["status","__this_value__"]\'>' +
             '<option value="">Tất cả trạng thái</option>' +
@@ -170,25 +161,25 @@ function renderAccountsView() {
             '<option value="inactive"' + (f.status === 'inactive' ? ' selected' : '') + '>Tạm khóa</option>' +
           '</select>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Trạm xe</label>' +
           '<select data-change-action="adminAccountFilterInput" data-args=\'["station","__this_value__"]\'>' +
             '<option value="">Tất cả trạm</option>' +
             FleetStore.getMainStations().map(function (st) { return '<option value="' + esc(st.id) + '"' + (f.station === st.id ? ' selected' : '') + '>' + esc(st.name) + '</option>'; }).join('') +
           '</select>' +
         '</div>' +
-        '<button type="button" class="btn" data-action="adminResetAccountFilters">Đặt lại</button>' +
-        '<div class="filter-spacer"></div>' +
-        '<button type="button" class="btn btn-primary" data-action="adminOpenAccountModal" data-args=\'[""]\'>' + ICN_PLUS + 'Thêm tài khoản mới</button>' +
+        '<div class="sd-toolbar-actions">' +
+          '<button type="button" class="btn sd-btn" data-action="adminResetAccountFilters">Đặt lại</button>' +
+          '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenAccountModal" data-args=\'[""]\'>' + ICN_PLUS + 'Thêm tài khoản mới</button>' +
+        '</div>' +
       '</div>' +
 
-      '<!-- TABLE CARD -->' +
-      '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-        '<div class="ref-card-header" style="padding:18px 22px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-          '<div style="font-size:15px; font-weight:800; color:var(--black);">Danh sách tài khoản truy cập hệ thống</div>' +
-          '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">Hiển thị ' + filtered.length + ' / ' + totalCount + ' tài khoản</div>' +
+      '<div class="sd-blocks"><div class="sd-section-block">' +
+        '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+          '<span>Danh sách tài khoản truy cập hệ thống</span>' +
+          '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">Hiển thị ' + filtered.length + ' / ' + totalCount + ' tài khoản</span>' +
         '</div>' +
-        '<div class="table-wrap" style="border:0; border-radius:0; box-shadow:none;">' +
+        '<div class="sd-table-wrap">' +
           '<table class="admin-table">' +
             '<thead><tr>' +
               '<th style="width:60px; text-align:center;">STT</th>' +
@@ -198,13 +189,22 @@ function renderAccountsView() {
               '<th style="width:160px;">Trang đích</th>' +
               '<th style="width:130px;">Mật khẩu</th>' +
               '<th class="col-status" style="text-align:center; width:130px;">Trạng thái</th>' +
-              '<th class="th-actions" style="text-align:center; width:260px;">Thao tác</th>' +
+              '<th class="th-actions" style="width:120px;">Thao tác</th>' +
             '</tr></thead>' +
             '<tbody>' + rowsHtml + '</tbody>' +
           '</table>' +
         '</div>' +
-      '</div>' +
+      '</div></div>' +
     '</div>';
+}
+
+// Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
+function adminAccountRowMenu(btn, id, isActive) {
+  adminOpenRowMenu(btn, 'account:' + id,
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenAccountModal" data-args=\'["' + esc(id) + '"]\'>Sửa</button>' +
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenPassModal" data-args=\'["' + esc(id) + '"]\'>Đổi mật khẩu</button>' +
+    '<button type="button" class="admin-row-menu-item" data-action="adminToggleAccountActive" data-args=\'["' + esc(id) + '"]\'>' + (isActive ? 'Khóa' : 'Mở khóa') + '</button>' +
+    '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteAccount" data-args=\'["' + esc(id) + '"]\'>Xoá</button>');
 }
 
 function adminAccountFilterInput(field, val) {

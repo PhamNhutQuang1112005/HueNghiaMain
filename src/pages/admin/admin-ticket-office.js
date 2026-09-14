@@ -2,8 +2,8 @@
    PHÒNG VÉ (Admin) — tổng hợp lịch sử vòng đời phơi xe mà "Tổng đài" (viewTicketList, chỉ xem vé đã bán)
    không có: khi nào phơi khởi hành thật (xuất phơi), lịch sử Re-open, toàn bộ diễn biến 1 ngày (tạo/sửa/
    khởi hành/reopen/hủy gộp chung theo mốc thời gian), và danh sách phơi đã hủy. 4 tab con dựng kiểu
-   .acct-sub-tabs (y hệt "Sổ & Bảng nghiệp vụ" bên Kế toán, admin-accounting.js) NGAY TRONG 1 view, không
-   phải 4 mục sidebar riêng.
+   .station-subtabs + .sd-toolbar + .sd-section-block (y hệt trang Trạm Xe, admin-station-directory.js)
+   NGAY TRONG 1 view, không phải 4 mục sidebar riêng.
 
    Nguồn dữ liệu (chỉ đọc, không có CRUD riêng ở đây):
      - Khởi hành thật của phơi   → manifest TicketStaff 'hn_ts_manifests_v1' (createdAt = lúc xuất phơi;
@@ -39,7 +39,9 @@ function toTripLookup() {
   return map;
 }
 function toTripLabel(t, tripId) {
-  if (t) return (t.name || t.route || 'Phơi') + (t.time ? ' — ' + t.time : '');
+  // t.name đã tự gợi ý sẵn "Trạm đi - Trạm đến (giờ)" lúc tạo phơi (xem adminTripNameSuggest ở
+  // admin-trips.js) — nối thêm "— t.time" ở đây bị lặp giờ 2 lần. Hiện tên trần y hệt trang Phơi xe.
+  if (t) return t.name || t.route || 'Phơi';
   return 'Phơi #' + String(tripId || '—');
 }
 function toGoToTrip() { switchAdminView('viewTrips'); }
@@ -183,7 +185,7 @@ function toGetDailyEvents(dateStr) {
 function renderTicketOfficeView() {
   var tab = TICKET_OFFICE_TAB;
   var tabBtn = function (key, label) {
-    return '<button type="button" class="acct-sub-tab' + (tab === key ? ' active' : '') + '" data-action="setTicketOfficeTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
+    return '<button type="button" class="station-subtab' + (tab === key ? ' active' : '') + '" data-action="setTicketOfficeTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
   };
 
   var body;
@@ -193,7 +195,7 @@ function renderTicketOfficeView() {
   else body = toRenderCancelledTab();
 
   $('viewTicketOffice').innerHTML =
-    '<div class="acct-sub-tabs">' +
+    '<div class="station-subtabs">' +
       tabBtn('depart', 'Lịch sử khởi hành xe') +
       tabBtn('reopen', 'Lịch sử Re-open') +
       tabBtn('daily', 'Phơi trong ngày') +
@@ -217,13 +219,13 @@ function toResetFilter(tab, ns) {
 }
 
 function toCardHtml(title, countLabel, tableHtml) {
-  return '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-    '<div class="ref-card-header" style="padding:14px 20px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-      '<div style="font-size:14.5px; font-weight:800; color:var(--black);">' + esc(title) + '</div>' +
-      '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">' + esc(countLabel) + '</div>' +
+  return '<div class="sd-blocks"><div class="sd-section-block">' +
+    '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>' + esc(title) + '</span>' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + esc(countLabel) + '</span>' +
     '</div>' +
-    '<div class="table-wrap">' + tableHtml + '</div>' +
-  '</div>';
+    '<div class="sd-table-wrap">' + tableHtml + '</div>' +
+  '</div></div>';
 }
 
 function toRenderDepartTab() {
@@ -246,20 +248,20 @@ function toRenderDepartTab() {
       '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
       '<td><span class="ch-trip-link" data-action="toGoToTrip">' + esc(toTripLabel(r.trip, r.tripId)) + '</span></td>' +
       '<td class="mono">' + esc(r.plate) + '</td>' +
-      '<td>' + esc(r.driver) + (r.helper ? ' / ' + esc(r.helper) : '') + '</td>' +
-      '<td class="mono">' + esc(fmtDate(r.date)) + ' ' + esc(r.time || '—') + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(fmtStamp(r.createdAt)) + '</td>' +
+      '<td style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + esc(r.driver + (r.helper ? ' / ' + r.helper : '')) + '">' + esc(r.driver) + (r.helper ? ' / ' + esc(r.helper) : '') + '</td>' +
+      '<td class="mono" style="text-align:center;">' + esc(fmtDate(r.date)) + ' ' + esc(r.time || '—') + '</td>' +
+      '<td class="mono" style="text-align:center; color:var(--text-sub);">' + esc(fmtStamp(r.createdAt)) + '</td>' +
       '<td>' + toLifecycleBadge(r.status) + '</td>' +
       '<td>' + esc(r.createdBy) + '</td>' +
     '</tr>';
   }).join('');
 
-  var table = '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Tên phơi</th><th>Biển số</th><th>Tài xế / Phụ xe</th><th>Ngày giờ chạy</th><th>Thời điểm khởi hành</th><th>Trạng thái</th><th>NV chốt</th></tr></thead>' +
+  var table = '<table class="admin-table" style="table-layout:fixed;">' +
+    '<thead><tr><th style="width:50px;">STT</th><th style="width:255px;">Tên phơi</th><th style="width:113px;">Biển số</th><th style="width:250px; white-space:nowrap;">Tài xế / Phụ xe</th><th style="width:110px;">Giờ chạy</th><th style="width:110px;">Khởi hành</th><th style="width:110px;">Trạng thái</th><th style="width:100px;">NV chốt</th></tr></thead>' +
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có phơi nào khởi hành' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
-  return '<div class="filter-toolbar">' +
+  return '<div class="sd-toolbar">' +
       '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.depart) + '" placeholder="Tên phơi, biển số, tài xế..." data-input-action="toFilterInput" data-args=\'["depart","__this_value__"]\'></div>' +
       adminCalFieldHtml(ns, 'Ngày khởi hành') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["depart","' + ns + '"]\'>Đặt lại</button></div>' +
@@ -303,7 +305,7 @@ function toRenderReopenTab() {
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt Re-open nào' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
-  return '<div class="filter-toolbar">' +
+  return '<div class="sd-toolbar">' +
       '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.reopen) + '" placeholder="Tên phơi, nhân viên, lý do..." data-input-action="toFilterInput" data-args=\'["reopen","__this_value__"]\'></div>' +
       adminCalFieldHtml(ns, 'Ngày mở Re-open') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["reopen","' + ns + '"]\'>Đặt lại</button></div>' +
@@ -348,7 +350,7 @@ function toRenderDailyTab() {
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có diễn biến phơi nào trong ngày ' + esc(fmtDate(effDate)) + '.</p></div>');
 
-  return '<div class="filter-toolbar">' +
+  return '<div class="sd-toolbar">' +
       '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.daily) + '" placeholder="Tên phơi, nhân viên, nội dung..." data-input-action="toFilterInput" data-args=\'["daily","__this_value__"]\'></div>' +
       adminCalFieldHtml(ns, 'Xem theo ngày') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["daily","' + ns + '"]\'>Về hôm nay</button></div>' +
@@ -389,7 +391,7 @@ function toRenderCancelledTab() {
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có phơi nào bị hủy' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
-  return '<div class="filter-toolbar">' +
+  return '<div class="sd-toolbar">' +
       '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.cancelled) + '" placeholder="Tên phơi, biển số, người hủy..." data-input-action="toFilterInput" data-args=\'["cancelled","__this_value__"]\'></div>' +
       adminCalFieldHtml(ns, 'Ngày chạy') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["cancelled","' + ns + '"]\'>Đặt lại</button></div>' +

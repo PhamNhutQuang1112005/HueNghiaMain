@@ -278,7 +278,7 @@ function renderTransshipView() {
         '</div>' +
       '</div>' +
       '<div class="sd-table-wrap">' +
-        '<table class="shuttle-table shuttle-table--grid">' +
+        '<table class="admin-table shuttle-table">' +
           '<thead><tr>' +
             '<th class="col-stt">STT</th><th>Khách hàng</th><th>Hành trình</th><th>SL</th><th>Số ghế</th>' +
             '<th>Ghi chú</th><th>Thời gian</th><th>In lúc</th>' +
@@ -653,7 +653,7 @@ var ADMIN_TICKET_PRINT_STYLE =
 
 function adminTsTicketPageHtml(d) {
   return '' +
-    '<div class="brand-header"><div class="brand-badge">HN</div><div class="brand-name">HUỆ NGHĨA EXPRESS</div>' +
+    '<div class="brand-header"><div class="brand-badge">HN</div><div class="brand-name">NHÀ XE HUỆ NGHĨA</div>' +
       '<div class="brand-sub">Hệ thống Đặt vé & Trung chuyển Chuyên nghiệp</div></div>' +
     '<div class="ticket-title">VÉ XE KHÁCH</div><div class="dash-line"></div>' +
     '<div class="kv-row"><span class="kv-label">Mã vé:</span><span class="kv-val">' + esc(d.ticketNo) + '</span></div>' +
@@ -673,7 +673,7 @@ function adminTsTicketPageHtml(d) {
     '<div class="qr-container"><img class="qr-img" src="' + d.qrImgUrl + '" alt="QR">' +
       '<div style="font-weight:800;font-size:11.5px;margin-top:2px;">MÃ QR XÁC NHẬN LÊN XE</div>' +
       '<div style="font-size:10px;color:#555;">Quét mã QR để kiểm tra trạng thái lên xe</div></div>' +
-    '<div class="footer-note"><b>Cảm ơn quý khách đã chọn Huệ Nghĩa Express!</b><br>Tổng đài đặt vé & hỗ trợ: <b>1900 63 64 99</b></div>';
+    '<div class="footer-note"><b>Cảm ơn quý khách đã chọn Nhà Xe Huệ Nghĩa!</b><br>Tổng đài đặt vé & hỗ trợ: <b>1900 63 64 99</b></div>';
 }
 
 function adminTsPrintTickets(seats, trip) {

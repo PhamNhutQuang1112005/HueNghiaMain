@@ -161,7 +161,7 @@ function custBuildPickupAreaStats() {
 function renderCustomersView() {
   var tab = CUST_TAB;
   var tabBtn = function (key, label) {
-    return '<button type="button" class="acct-sub-tab' + (tab === key ? ' active' : '') + '" data-action="setCustomersTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
+    return '<button type="button" class="station-subtab' + (tab === key ? ' active' : '') + '" data-action="setCustomersTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
   };
 
   var body;
@@ -169,13 +169,34 @@ function renderCustomersView() {
   else if (tab === 'pickup_area') body = custRenderPickupAreaTab();
   else body = custRenderListTab();
 
+  // Tab + thanh tìm kiếm (chỉ tab "Danh sách" có) nằm CHUNG 1 hàng, tìm kiếm ghim sát phải
+  // (justify-content:space-between, chỉ 2 phần tử) thay vì xếp chồng 2 hàng như trước.
   $('viewCustomers').innerHTML =
-    '<div class="acct-sub-tabs">' +
-      tabBtn('list', 'Danh sách khách hàng') +
-      tabBtn('frequent', 'Khách thường xuyên') +
-      tabBtn('pickup_area', 'Khu vực hay rước khách') +
+    '<div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px;">' +
+      '<div class="station-subtabs" style="margin:0;">' +
+        tabBtn('list', 'Danh sách khách hàng') +
+        tabBtn('frequent', 'Khách thường xuyên') +
+        tabBtn('pickup_area', 'Khu vực hay rước khách') +
+      '</div>' +
+      (tab === 'list' ? custListToolbarHtml() : '') +
     '</div>' +
     body;
+
+  // Thanh tìm kiếm (ô + nút) dài đúng bằng khối 3 tab bên trái — .station-subtabs rộng theo nội dung
+  // (fit-content) nên đo width thật lúc render thay vì đoán 1 số cố định.
+  var tabsEl = $('viewCustomers').querySelector('.station-subtabs');
+  var toolbarEl = $('viewCustomers').querySelector('.sd-toolbar');
+  if (tabsEl && toolbarEl) toolbarEl.style.width = tabsEl.offsetWidth + 'px';
+}
+
+function custListToolbarHtml() {
+  return '<div class="sd-toolbar" style="margin:0;">' +
+      '<div class="filter-field sd-field-search" style="flex:1 1 auto; min-width:120px;">' +
+        '<label>Tìm kiếm</label>' +
+        '<input type="text" id="custSearch" value="' + esc(CUST_FILTERS.list) + '" placeholder="Mã KH, tên, số điện thoại..." data-input-action="custFilterInput" data-args=\'["list","__this_value__"]\'>' +
+      '</div>' +
+      '<button type="button" class="btn btn-primary" data-action="custSearchClick">Tìm kiếm</button>' +
+    '</div>';
 }
 
 function setCustomersTab(tab) { CUST_TAB = tab; renderCustomersView(); }
@@ -184,15 +205,22 @@ function custFilterInput(field, val) {
   CUST_FILTERS[field] = val || '';
   adminKeepFocus(renderCustomersView);
 }
+// Nút "Tìm kiếm" cạnh ô lọc (giống admin-trips.js:adminTripSearch) — lọc đã chạy live theo
+// data-input-action nên nút này chỉ đọc lại giá trị ô hiện tại rồi render, cho quen thao tác bấm nút.
+function custSearchClick() {
+  var el = $('custSearch');
+  CUST_FILTERS.list = (el && el.value) || '';
+  renderCustomersView();
+}
 
 function custCardHtml(title, countLabel, tableHtml) {
-  return '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-    '<div class="ref-card-header" style="padding:14px 20px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-      '<div style="font-size:14.5px; font-weight:800; color:var(--black);">' + esc(title) + '</div>' +
-      '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">' + esc(countLabel) + '</div>' +
+  return '<div class="sd-blocks"><div class="sd-section-block">' +
+    '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>' + esc(title) + '</span>' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + esc(countLabel) + '</span>' +
     '</div>' +
-    '<div class="table-wrap">' + tableHtml + '</div>' +
-  '</div>';
+    '<div class="sd-table-wrap">' + tableHtml + '</div>' +
+  '</div></div>';
 }
 
 function custRenderListTab() {
@@ -221,10 +249,7 @@ function custRenderListTab() {
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có khách hàng nào phù hợp.</p></div>');
 
-  return '<div class="filter-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(CUST_FILTERS.list) + '" placeholder="Mã KH, tên, số điện thoại..." data-input-action="custFilterInput" data-args=\'["list","__this_value__"]\'></div>' +
-    '</div>' +
-    custCardHtml('Danh sách khách hàng', all.length + ' khách hàng', table);
+  return custCardHtml('Danh sách khách hàng', all.length + ' khách hàng', table);
 }
 
 function custRenderFrequentTab() {
@@ -285,12 +310,7 @@ function custRenderPickupAreaTab() {
     '<tbody>' + unmatchedRowsHtml + '</tbody></table>' +
     (unmatchedRowsHtml ? '' : '<div class="grid-empty"><p>Không có địa điểm nào nằm ngoài danh mục.</p></div>');
 
-  return '<div style="font-size:12.5px; color:var(--text-sub); margin-bottom:14px; line-height:1.5;">' +
-      'Chỉ tính vé "Rước liền / Rước đường / Trung chuyển" (không tính khách tự ra trạm). Địa điểm rước do nhân viên ' +
-      'gõ tay lúc bán vé — chỉ gộp được vào Tỉnh/Trạm chính/Trạm phụ/Điểm dừng khi trùng khớp tên với danh mục trạm ' +
-      '(xem mục "Trạm xe"); phần không khớp được liệt kê riêng bên dưới để đối chiếu.' +
-    '</div>' +
-    custCardHtml('Khu vực hay rước khách (theo danh mục trạm)', stats.matched.length + ' khu vực', matchedTable) +
+  return custCardHtml('Khu vực hay rước khách (theo danh mục trạm)', stats.matched.length + ' khu vực', matchedTable) +
     '<div style="height:16px;"></div>' +
     custCardHtml('Chưa khớp danh mục trạm', stats.unmatched.length + ' địa điểm', unmatchedTable);
 }

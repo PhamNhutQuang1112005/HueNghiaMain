@@ -1,6 +1,6 @@
 /* =========================================================
    ADMIN-ACCOUNTING.JS — Module Kế toán & Tài chính Nhà xe
-   Nhà xe Huệ Nghĩa Express
+   Nhà Xe Huệ Nghĩa
    =========================================================
    Quản lý toàn bộ nghiệp vụ Kế toán Vận tải:
    1. THU (Doanh thu theo nguồn, phơi, tuyến, đầu xe, tài xế/phụ xe)
@@ -1897,7 +1897,7 @@
       var csvContent = '\uFEFF'; // UTF-8 BOM for Microsoft Excel Vietnamese support
 
       // Title Header
-      csvContent += 'BÁO CÁO KẾ TOÁN & TÀI CHÍNH - NHÀ XE HUỆ NGHĨA EXPRESS\n';
+      csvContent += 'BÁO CÁO KẾ TOÁN & TÀI CHÍNH - NHÀ XE HUỆ NGHĨA\n';
       csvContent += 'Thời điểm xuất báo cáo: ' + new Date().toLocaleString('vi-VN') + '\n\n';
 
       // Section 1: Summary P&L

@@ -102,6 +102,7 @@ function openPassengerHistoryView() {
   rebuildPhFilterOptions();
   phRenderCalendar();
   phUpdateCalTrigger();
+  PH_HISTORY_PAGE.page = 1;
   // Luôn quay về bảng lịch sử mặc định khi vào lại trang này — tránh giữ trạng thái "đang xem Ghế hủy"
   // từ lần trước, gây hiểu nhầm là trang chưa tải xong dữ liệu lịch sử mới.
   if (phCancelledViewActive) {
@@ -230,6 +231,12 @@ function phOnSearchInput(val) {
   phSearchInputDebounceTimer = setTimeout(renderPassengerHistoryTable, 300);
 }
 
+// Phân trang kiểu Admin (tab Ghế xe)/ticketstaff — dùng lại renderTsPagination/tsSyncPageOnFilterChange
+// định nghĩa ở ticketstaff.js (chỉ gọi BÊN TRONG hàm, lúc đó ticketstaff.js đã nạp xong). Khởi tạo state
+// bằng object literal thay vì gọi tsPageState() ở đây — booking.js nạp TRƯỚC ticketstaff.js nên gọi hàm
+// đó ngay ở cấp module (ngoài hàm) sẽ ReferenceError vì tsPageState chưa tồn tại lúc này.
+let PH_HISTORY_PAGE = { page: 1, pageSize: 15, sig: '' };
+
 function renderPassengerHistoryTable() {
   const searchVal = (document.getElementById('phSearchInput')?.value || '').trim().toLowerCase();
   const dirVal = document.getElementById('phFilterDirection')?.value || '';
@@ -257,15 +264,24 @@ function renderPassengerHistoryTable() {
   });
 
   // idx phải trỏ đúng vị trí trong mảng ĐANG HIỂN THỊ (đã lọc) — openEditFromHistory/goToTripFromHistory
-  // đọc lại đúng mảng này qua window._historyResults, cùng quy ước với customerHistoryView.
+  // đọc lại đúng mảng này qua window._historyResults, cùng quy ước với customerHistoryView. Giữ nguyên
+  // mảng ĐẦY ĐỦ (không cắt theo trang) vì các hàm đó tra idx tuyệt đối, không phải idx trong trang đang xem.
   window._historyResults = filtered;
   _historyResults = filtered;
 
+  tsSyncPageOnFilterChange(PH_HISTORY_PAGE, JSON.stringify([searchVal, phSelectedDateStr, dirVal, routeVal, timeVal, staffVal]));
+
   const tbody = document.getElementById('phHistoryTableBody');
   const emptyEl = document.getElementById('phHistoryEmpty');
-  if (tbody) tbody.innerHTML = filtered.map((r, idx) => renderPassengerHistoryRowHtml(r, idx)).join('');
+  const sliceStart = (PH_HISTORY_PAGE.page - 1) * PH_HISTORY_PAGE.pageSize;
+  const pageRows = filtered.slice(sliceStart, sliceStart + PH_HISTORY_PAGE.pageSize);
+  if (tbody) tbody.innerHTML = pageRows.map((r, i) => renderPassengerHistoryRowHtml(r, sliceStart + i)).join('');
   if (emptyEl) emptyEl.style.display = filtered.length ? 'none' : 'block';
+  renderTsPagination('phHistoryTablePagination', filtered.length, PH_HISTORY_PAGE, 'phHistoryPageChange', 'phHistoryPageSizeChange');
 }
+
+function phHistoryPageChange(page) { PH_HISTORY_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderPassengerHistoryTable(); }
+function phHistoryPageSizeChange(size) { PH_HISTORY_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); PH_HISTORY_PAGE.page = 1; renderPassengerHistoryTable(); }
 
 function renderPassengerHistoryRowHtml(r, idx) {
   const { firstStopHtml, lastStopHtml } = getHistoryStopsDisplay(r);
@@ -278,9 +294,12 @@ function renderPassengerHistoryRowHtml(r, idx) {
   const priceStr = r.price ? r.price.toLocaleString('vi-VN') + 'đ' : '—';
   const seatCount = r.seat ? r.seat.split(',').map(s => s.trim()).filter(Boolean).length : 0;
   // Cột "Thời gian" gộp luôn phần ngày (không còn cột "Ngày" riêng vì trùng thông tin) — lấy cả ngày
-  // lẫn giờ từ cùng 1 mốc seat.actionTime thay vì ghép với r.date (ngày khởi hành chuyến, có thể khác
-  // ngày nhân viên thao tác).
-  const actionTimeStr = r.actionTime ? `${formatHistoryDate(r.actionTime)} ${formatActionTime(r.actionTime)}` : '—';
+  // lẫn giờ từ cùng 1 mốc seat.actionTime. Ghế mẫu dựng sẵn (seed lúc khởi tạo trang, xem makeSeat())
+  // không có actionTime nên rơi về "—" trống trơn — dự phòng bằng ngày giờ khởi hành của chuyến (r.date/
+  // r.time, luôn có) để cột này không bao giờ trống hẳn.
+  const actionTimeStr = r.actionTime
+    ? `${formatHistoryDate(r.actionTime)} ${formatActionTime(r.actionTime)}`
+    : (r.date ? `${formatHistoryDate(r.date)} ${r.time || ''}`.trim() : '—');
   // Ghi chú của khách hàng — chỉ hiện chữ (không icon), line-clamp 2 dòng để không kéo dài chiều cao hàng.
   const noteSafe = escapeHtml(r.note || '');
   const noteHtml = r.note
@@ -299,7 +318,7 @@ function renderPassengerHistoryRowHtml(r, idx) {
     <tr>
       <td style="text-align:center; font-weight:600; color:#6b7280;">${idx + 1}</td>
       <td>
-        <span class="ch-trip-link" data-action="goToTripFromHistory" data-args='${JSON.stringify(["__event__", idx])}' title="Biển số xe: ${plate} • Loại xe: ${vehicleType} • Tài xế: ${driver} • Phụ xe: ${helper}">${r.route} — ${r.time}</span>
+        <span class="ch-trip-link" data-action="goToTripFromHistory" data-args='${JSON.stringify(["__event__", idx])}' title="Biển số xe: ${plate} • Loại xe: ${vehicleType} • Tài xế: ${driver} • Phụ xe: ${helper}">${r.tripName || `${r.route} — ${r.time}`}</span>
       </td>
       <td class="ch-col-ellipsis" title="${r.name || '—'}">${r.name || '—'}</td>
       <td class="mono ch-col-nowrap">${r.phone || '—'}</td>
@@ -353,12 +372,19 @@ function loadAllCancelledSeats() {
       results.push({
         ...item,
         route: (tripMeta && tripMeta.route) || '—',
-        time: (tripMeta && tripMeta.time) || ''
+        time: (tripMeta && tripMeta.time) || '',
+        date: (tripMeta && tripMeta.date) || '',
+        tripName: (tripMeta && tripMeta.name) || ''
       });
     });
   });
   return results.sort((a, b) => (b.cancelTime || '').localeCompare(a.cancelTime || ''));
 }
+
+// Cũng dùng object literal thay vì tsPageState() ở cấp module — xem giải thích ở PH_HISTORY_PAGE bên trên.
+let PH_CANCELLED_PAGE = { page: 1, pageSize: 15, sig: '' };
+function phCancelledPageChange(page) { PH_CANCELLED_PAGE.page = Math.max(1, parseInt(page, 10) || 1); renderPhCancelledTable(); }
+function phCancelledPageSizeChange(size) { PH_CANCELLED_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); PH_CANCELLED_PAGE.page = 1; renderPhCancelledTable(); }
 
 function renderPhCancelledTable() {
   const all = loadAllCancelledSeats();
@@ -369,19 +395,25 @@ function renderPhCancelledTable() {
   if (!all.length) {
     tbody.innerHTML = '';
     if (emptyEl) emptyEl.style.display = 'block';
+    const paginationEl = document.getElementById('phCancelledTablePagination');
+    if (paginationEl) paginationEl.innerHTML = '';
     return;
   }
   if (emptyEl) emptyEl.style.display = 'none';
 
-  tbody.innerHTML = all.map((item, idx) => {
+  const sliceStart = (PH_CANCELLED_PAGE.page - 1) * PH_CANCELLED_PAGE.pageSize;
+  const pageItems = all.slice(sliceStart, sliceStart + PH_CANCELLED_PAGE.pageSize);
+
+  tbody.innerHTML = pageItems.map((item, index) => {
+    const idx = sliceStart + index;
     // Hành trình trình bày giống hệt cột "Hành trình" bảng Lịch sử hành khách (chấm đỏ = điểm đi, ghim
     // xám = điểm đến, nối bằng 1 đường kẻ ngắn) — getHistoryStopsDisplay() chỉ cần firstStop/lastStop,
     // cancelledRecord không có guestType nên tự bỏ qua phần đón/trả trung chuyển, chỉ hiện đúng 2 trạm.
     const { firstStopHtml, lastStopHtml } = getHistoryStopsDisplay(item);
     const priceStr = item.price ? item.price.toLocaleString('vi-VN') + 'đ' : '—';
     const reasonText = item.reason || 'Không có lý do';
-    const timeText = item.cancelTime || '—';
-    const tripLabel = item.time ? `${item.route} — ${item.time}` : (item.route || '—');
+    const timeText = item.cancelTime || (item.date ? `${formatHistoryDate(item.date)} ${item.time || ''}`.trim() : '—');
+    const tripLabel = item.tripName || (item.time ? `${item.route} — ${item.time}` : (item.route || '—'));
     const staffStr = getStaffCode(item.cancelStaff) || item.cancelStaff || '—';
 
     return `
@@ -412,6 +444,7 @@ function renderPhCancelledTable() {
       </tr>
     `;
   }).join('');
+  renderTsPagination('phCancelledTablePagination', all.length, PH_CANCELLED_PAGE, 'phCancelledPageChange', 'phCancelledPageSizeChange');
 }
 
 function phToggleCancelledView() {
@@ -427,6 +460,7 @@ function phToggleCancelledView() {
     if (historyWrap) historyWrap.style.display = 'none';
     if (historyEmpty) historyEmpty.style.display = 'none';
     if (cancelledWrap) cancelledWrap.style.display = '';
+    PH_CANCELLED_PAGE.page = 1;
     renderPhCancelledTable();
   } else {
     if (cancelledWrap) cancelledWrap.style.display = 'none';

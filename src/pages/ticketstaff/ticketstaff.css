@@ -2432,3 +2432,109 @@
   .bulk-template-bar-fields { flex-wrap: wrap; }
   .bulk-template-date-field { flex: 1 1 140px; }
 }
+
+/* ===== Phân trang kiểu Admin (tab Ghế xe) áp cho các bảng ticketstaff (Hành khách/Ghế hủy/Rước đường/
+   Trung chuyển/Lịch sử/Rước liền) — cùng bộ class admin-table-footer/admin-page-* để 2 khu vực Admin +
+   Nhân viên bán vé đồng nhất giao diện phân trang. .pax-table-card bọc ngoài .pax-table-wrap để border/
+   bo góc chỉ vẽ 1 lần ở khung ngoài, gộp chung với thanh chân trang thành 1 khối. */
+.pax-table-card {
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+}
+.pax-table-card .pax-table-wrap {
+  border: none;
+  border-radius: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Biến thể "flush" cho các bảng vốn không có khung viền bao ngoài (VD bảng "Lịch sử", bảng "Rước liền"
+   #pkPaxTableBody — theo đúng định dạng bảng Phơi xe, không bọc card) — chỉ gộp bảng + thanh chân trang
+   thành 1 khối bố cục, KHÔNG vẽ viền/bo góc/nền ngoài, giữ nguyên phong cách flush đã có sẵn của bảng đó.
+   PHẢI trả overflow về visible (đè overflow:hidden của .pax-table-card gốc — vốn chỉ để cắt góc bo tròn,
+   biến thể này không có góc bo tròn nên không cần): bảng #pkPaxTableBody dùng .pk-table-wrap, KHÔNG tự có
+   overflow riêng như .pax-table-wrap (đã bị buộc overflow-y:auto qua overflow-x:auto) — nó dựa vào
+   .grid-wrap (tổ tiên xa hơn, có overflow:auto THẬT) làm điểm neo cho thead sticky. Nếu .pax-table-card
+   giữ overflow:hidden, nó sẽ chen vào làm "vùng cuộn" GẦN HƠN .grid-wrap nhưng lại không tự cuộn được gì
+   (không có chiều cao giới hạn riêng) — khiến thead sticky mất hiệu lực, header trôi mất khi cuộn trang. */
+.pax-table-card--flush {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.admin-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-gray);
+  flex-wrap: wrap;
+  background: var(--surface-2);
+  flex: 0 0 auto;
+}
+.admin-table-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-page-size {
+  height: 34px;
+  min-width: 72px;
+  padding: 0 10px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.admin-page-info {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.admin-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.admin-page-btn:hover:not(:disabled):not(.active) {
+  background: var(--surface-2);
+  border-color: var(--text-sub);
+}
+.admin-page-btn.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.admin-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.admin-page-ellipsis {
+  padding: 0 4px;
+  color: var(--text-sub);
+  font-weight: 700;
+}

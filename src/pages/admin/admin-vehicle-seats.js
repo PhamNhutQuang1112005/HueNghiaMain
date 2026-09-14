@@ -159,24 +159,20 @@ function renderVehicleSeatsView() {
       '<td>' + esc(getSeatFloorLabel(x.floor)) + '</td>' +
       '<td style="text-align:center;">' + getActiveBadge(x.active) + '</td>' +
       '<td style="text-align:center;">' + getDeletedBadge(x.deleted) + '</td>' +
-      '<td style="text-align:center;">' +
-        '<div style="display:flex; align-items:center; justify-content:center; gap:6px;">' +
-          '<button class="btn btn-sm" data-action="adminOpenVehicleSeatModal" data-args=\'[' + realIdx + ']\'>Sửa</button>' +
-          '<button class="btn btn-sm" data-action="adminToggleVehicleSeatActive" data-args=\'[' + realIdx + ']\'>' + (x.active ? 'Tắt' : 'Bật') + '</button>' +
-          '<button class="btn btn-sm btn-danger" data-action="adminDeleteVehicleSeat" data-args=\'[' + realIdx + ']\'>Xoá</button>' +
-        '</div>' +
+      '<td class="row-actions">' +
+        '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminVehicleSeatRowMenu" data-args=\'["__this__",' + realIdx + ',' + (x.active ? 'true' : 'false') + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
     '</tr>';
   }).join('') : '<tr><td colspan="6" class="empty-state">Không tìm thấy ghế xe nào.</td></tr>';
 
   $('viewVehicleSeats').innerHTML =
     '<div class="vehicle-seats-shell">' +
-      '<div class="filter-toolbar" style="margin-bottom:20px;">' +
-        '<div class="filter-field" style="flex:1 1 220px; min-width:220px;">' +
+      '<div class="sd-toolbar">' +
+        '<div class="filter-field sd-field-search">' +
           '<label>Tìm kiếm ghế xe</label>' +
-          '<input type="text" value="' + esc(f.search) + '" placeholder="Tên ghế, tầng, mô tả..." data-input-action="adminVehicleSeatFilterInput" data-args=\'["search","__this_value__"]\' style="width:100%; min-width:0;">' +
+          '<input type="text" value="' + esc(f.search) + '" placeholder="Tên ghế, tầng, mô tả..." data-input-action="adminVehicleSeatFilterInput" data-args=\'["search","__this_value__"]\'>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Tầng</label>' +
           '<select data-change-action="adminVehicleSeatFilterInput" data-args=\'["floor","__this_value__"]\'>' +
             '<option value="">Tất cả tầng</option>' +
@@ -185,7 +181,7 @@ function renderVehicleSeatsView() {
             }).join('') +
           '</select>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>Trạng thái</label>' +
           '<select data-change-action="adminVehicleSeatFilterInput" data-args=\'["active","__this_value__"]\'>' +
             '<option value="">Kích hoạt — Tất cả</option>' +
@@ -193,7 +189,7 @@ function renderVehicleSeatsView() {
             '<option value="false"' + (f.active === 'false' ? ' selected' : '') + '>Chưa kích hoạt</option>' +
           '</select>' +
         '</div>' +
-        '<div class="filter-field">' +
+        '<div class="filter-field sd-field-region">' +
           '<label>&nbsp;</label>' +
           '<select data-change-action="adminVehicleSeatFilterInput" data-args=\'["deleted","__this_value__"]\'>' +
             '<option value="">Đã xóa — Tất cả</option>' +
@@ -201,29 +197,38 @@ function renderVehicleSeatsView() {
             '<option value="true"' + (f.deleted === 'true' ? ' selected' : '') + '>Đã xóa</option>' +
           '</select>' +
         '</div>' +
-        '<div class="filter-spacer"></div>' +
-        '<button class="btn btn-primary" data-action="adminOpenVehicleSeatModal" data-args=\'[-1]\'>+ Tạo Mới</button>' +
+        '<div class="sd-toolbar-actions">' +
+          '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenVehicleSeatModal" data-args=\'[-1]\'>+ Tạo Mới</button>' +
+        '</div>' +
       '</div>' +
 
-      '<div class="ref-card admin-table-card">' +
-        '<div class="admin-table-wrap">' +
+      '<div class="sd-blocks"><div class="sd-section-block">' +
+        '<div class="sd-table-wrap">' +
           '<table class="admin-table">' +
             '<thead>' +
               '<tr>' +
-                '<th style="width:60px; text-align:center;">STT</th>' +
+                '<th class="num" style="width:60px;">STT</th>' +
                 '<th><button type="button" class="admin-th-sort" data-action="adminVehicleSeatToggleSort">Tên' + sortIcon + '</button></th>' +
                 '<th style="width:180px;">Tầng</th>' +
                 '<th style="text-align:center; width:130px;">Kích hoạt</th>' +
                 '<th style="text-align:center; width:110px;">Đã xóa</th>' +
-                '<th style="text-align:center; width:160px;">Hành động</th>' +
+                '<th class="th-actions" style="width:120px;">Thao tác</th>' +
               '</tr>' +
             '</thead>' +
             '<tbody>' + rowsHtml + '</tbody>' +
           '</table>' +
         '</div>' +
         renderVehicleSeatPagination(totalFiltered, pg.page, pg.pageSize) +
-      '</div>' +
+      '</div></div>' +
     '</div>';
+}
+
+// Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
+function adminVehicleSeatRowMenu(btn, idx, isActive) {
+  adminOpenRowMenu(btn, 'vehicle-seat:' + idx,
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenVehicleSeatModal" data-args=\'[' + idx + ']\'>Sửa</button>' +
+    '<button type="button" class="admin-row-menu-item" data-action="adminToggleVehicleSeatActive" data-args=\'[' + idx + ']\'>' + (isActive ? 'Tắt' : 'Bật') + '</button>' +
+    '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteVehicleSeat" data-args=\'[' + idx + ']\'>Xoá</button>');
 }
 
 function adminVehicleSeatFilterInput(key, val) {

@@ -35,13 +35,13 @@ function ssMatchName(a, b) {
   return !!a && !!b && a === b;
 }
 function ssCardHtml(title, countLabel, tableHtml) {
-  return '<div class="ref-card" style="padding:0; overflow:hidden;">' +
-    '<div class="ref-card-header" style="padding:14px 20px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">' +
-      '<div style="font-size:14.5px; font-weight:800; color:var(--black);">' + esc(title) + '</div>' +
-      '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">' + esc(countLabel) + '</div>' +
+  return '<div class="sd-blocks"><div class="sd-section-block">' +
+    '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>' + esc(title) + '</span>' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + esc(countLabel) + '</span>' +
     '</div>' +
-    '<div class="table-wrap">' + tableHtml + '</div>' +
-  '</div>';
+    '<div class="sd-table-wrap">' + tableHtml + '</div>' +
+  '</div></div>';
 }
 
 /* =====================================================================
@@ -82,14 +82,13 @@ function ssResetTripFilters(tab) {
   renderStaffStatsView();
 }
 
-function ssTripFilterToolbarHtml(tab, f, searchPlaceholder, dateCaption) {
-  return '<div class="filter-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="' + esc(searchPlaceholder) + '" data-input-action="ssTripFilterInput" data-args=\'["' + tab + '","search","__this_value__"]\'></div>' +
-      '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" data-change-action="ssTripFilterInput" data-args=\'["' + tab + '","dateFrom","__this_value__"]\'></div>' +
-      '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" data-change-action="ssTripFilterInput" data-args=\'["' + tab + '","dateTo","__this_value__"]\'></div>' +
-      '<button type="button" class="btn btn-secondary" data-action="ssResetTripFilters" data-args=\'["' + tab + '"]\'>Đặt lại</button>' +
-    '</div>' +
-    '<div style="font-size:12px; color:var(--text-sub); margin-bottom:14px;">' + esc(dateCaption) + '</div>';
+function ssTripFilterToolbarHtml(tab, f, searchPlaceholder) {
+  return '<div class="sd-toolbar" style="margin-bottom:16px;">' +
+      '<div class="filter-field sd-field-search"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="' + esc(searchPlaceholder) + '" data-input-action="ssTripFilterInput" data-args=\'["' + tab + '","search","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" style="background:var(--white); min-width:190px;" data-change-action="ssTripFilterInput" data-args=\'["' + tab + '","dateFrom","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" style="background:var(--white); min-width:190px;" data-change-action="ssTripFilterInput" data-args=\'["' + tab + '","dateTo","__this_value__"]\'></div>' +
+      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="ssResetTripFilters" data-args=\'["' + tab + '"]\'>Đặt lại</button></div>' +
+    '</div>';
 }
 
 function ssRenderDriverTripsTab() {
@@ -123,8 +122,7 @@ function ssRenderDriverTripsTab() {
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có tài xế nào.</p></div>');
 
-  return ssTripFilterToolbarHtml('driver', f, 'Mã NV, tên, SĐT...',
-      'Bộ lọc ngày chỉ áp dụng cho cột "Số phơi xe đã chạy" — lượt trung chuyển không lưu mốc thời gian nên luôn là tổng từ trước tới nay.') +
+  return ssTripFilterToolbarHtml('driver', f, 'Mã NV, tên, SĐT...') +
     ssCardHtml('Thống kê chuyến của tài xế', rows.length + ' tài xế', table);
 }
 
@@ -153,8 +151,7 @@ function ssRenderHelperTripsTab() {
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có phụ xe nào.</p></div>');
 
-  return ssTripFilterToolbarHtml('helper', f, 'Mã NV, tên, SĐT...',
-      'Trung chuyển hiện không có khái niệm phụ xe trong hệ thống nên chỉ thống kê phơi xe.') +
+  return ssTripFilterToolbarHtml('helper', f, 'Mã NV, tên, SĐT...') +
     ssCardHtml('Thống kê chuyến của phụ xe', rows.length + ' phụ xe', table);
 }
 
@@ -257,10 +254,10 @@ function ssRenderKetcaTab() {
     '<tbody>' + shuttleHtml + '</tbody></table>' +
     (shuttleHtml ? '' : '<div class="grid-empty"><p>Chưa có tài xế trung chuyển nào.</p></div>');
 
-  return '<div class="filter-toolbar">' +
+  return '<div class="sd-toolbar">' +
       '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateFrom","__this_value__"]\'></div>' +
       '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateTo","__this_value__"]\'></div>' +
-      '<button type="button" class="btn btn-secondary" data-action="ssResetKetcaFilter">Đặt lại</button>' +
+      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="ssResetKetcaFilter">Đặt lại</button></div>' +
     '</div>' +
     '<div style="font-size:12px; color:var(--text-sub); margin-bottom:14px; line-height:1.5;">' +
       'Bộ lọc ngày áp dụng cho 2 bảng Kết ca bên dưới (đọc từ đúng nút "Kết ca" trong TicketStaff). Mục ' +
@@ -279,7 +276,7 @@ function ssRenderKetcaTab() {
 function renderStaffStatsView() {
   var tab = STAFF_STATS_TAB;
   var tabBtn = function (key, label) {
-    return '<button type="button" class="acct-sub-tab' + (tab === key ? ' active' : '') + '" data-action="setStaffStatsTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
+    return '<button type="button" class="station-subtab' + (tab === key ? ' active' : '') + '" data-action="setStaffStatsTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
   };
 
   var body;
@@ -288,7 +285,7 @@ function renderStaffStatsView() {
   else body = ssRenderDriverTripsTab();
 
   $('viewStaffStats').innerHTML =
-    '<div class="acct-sub-tabs">' +
+    '<div class="station-subtabs">' +
       tabBtn('driver', 'Chuyến tài xế') +
       tabBtn('helper', 'Chuyến phụ xe') +
       tabBtn('ketca', 'Kết ca') +

@@ -926,6 +926,12 @@ function pkRenderDividerRowHtml(d) {
   </td></tr>`;
 }
 
+// Phân trang kiểu Admin (tab Ghế xe)/ticketstaff — dùng lại renderTsPagination/tsSyncPageOnFilterChange/
+// tsPageState định nghĩa ở ticketstaff.js (nạp trước file này trên ticketstaff.html nên gọi thẳng được).
+let PK_PAX_PAGE = tsPageState();
+function pkPaxPageChange(page) { PK_PAX_PAGE.page = Math.max(1, parseInt(page, 10) || 1); pkRenderPaxTable(); }
+function pkPaxPageSizeChange(size) { PK_PAX_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); PK_PAX_PAGE.page = 1; pkRenderPaxTable(); }
+
 function pkRenderPaxTable() {
   const tbody = document.getElementById('pkPaxTableBody');
   const gridEmpty = document.getElementById('pkGridEmpty');
@@ -1103,9 +1109,20 @@ function pkRenderPaxTable() {
     if (el) el.textContent = `(${countableRows.filter((row) => pkRowMatchesSubTab(row, tab)).length})`;
   });
 
-  // STT chỉ đánh số dòng khách thật, bỏ qua dòng thông báo/vạch (không có số thứ tự).
-  let realRowIdx = 0;
-  const rowsHtml = visibleRows.map((row) => {
+  // "Chọn tất cả" / "Không có hành khách phù hợp" dựa trên TOÀN BỘ danh sách đã lọc (mọi trang), không
+  // chỉ trang đang xem — nếu không, trang cuối trống có thể hiện nhầm thông báo "không có khách" dù vẫn
+  // còn khách ở các trang khác.
+  const selectableRows = visibleRows.filter(row => row.kind === 'pk' || row.kind === 'ts');
+
+  tsSyncPageOnFilterChange(PK_PAX_PAGE, JSON.stringify([pkFilterState, pkSelectedDateStr, pkSubTab]));
+
+  // Phân trang trên chính visibleRows (gộp cả dòng thông báo/vạch xen giữa) để giữ nguyên đúng thứ tự
+  // thời gian đã sắp — STT tiếp nối từ số dòng khách thật (pk/ts) đã có TRƯỚC trang hiện tại, không reset
+  // về 0 mỗi trang.
+  const pkSliceStart = (PK_PAX_PAGE.page - 1) * PK_PAX_PAGE.pageSize;
+  const pageRows = visibleRows.slice(pkSliceStart, pkSliceStart + PK_PAX_PAGE.pageSize);
+  let realRowIdx = visibleRows.slice(0, pkSliceStart).filter(row => row.kind === 'pk' || row.kind === 'ts').length;
+  const rowsHtml = pageRows.map((row) => {
     if (row.kind === 'notice') return pkRenderPhongVeNoticeRow(row.data);
     if (row.kind === 'divider') return pkRenderDividerRowHtml(row.data);
     const html = row.kind === 'pk'
@@ -1119,10 +1136,11 @@ function pkRenderPaxTable() {
   const visibleKeys = new Set(visibleRows.map(row => row.key));
   Array.from(pkSelectedIds).forEach(key => { if (!visibleKeys.has(key)) pkSelectedIds.delete(key); });
 
-  // "Chọn tất cả" chỉ tính trên dòng khách thật (dòng thông báo/vạch không có checkbox).
-  const selectableRows = visibleRows.filter(row => row.kind === 'pk' || row.kind === 'ts');
+  // "Chọn tất cả" phải khớp với những gì pkToggleAllVisible() thực sự chọn (đọc checkbox trong DOM, tức
+  // CHỈ trang đang xem) — chỉ tính trên dòng khách thật của trang hiện tại, không phải toàn bộ danh sách.
+  const pageSelectableRows = pageRows.filter(row => row.kind === 'pk' || row.kind === 'ts');
   const checkAllEl = document.getElementById('pkCheckAll');
-  if (checkAllEl) checkAllEl.checked = selectableRows.length > 0 && selectableRows.every(row => pkSelectedIds.has(row.key));
+  if (checkAllEl) checkAllEl.checked = pageSelectableRows.length > 0 && pageSelectableRows.every(row => pkSelectedIds.has(row.key));
 
   // Nút "In rước" chỉ hiện cho role trung chuyển — cập nhật lại mỗi lần render để luôn khớp đúng role
   // hiện tại.
@@ -1131,14 +1149,17 @@ function pkRenderPaxTable() {
 
   // "Không có hành khách phù hợp" chỉ dựa trên dòng khách THẬT (selectableRows) — 1 thông báo/vạch không
   // tính là khách, không được che mất câu báo trống này dù rowsHtml vẫn có nội dung.
-  if (!rowsHtml) {
+  if (!selectableRows.length) {
     tbody.innerHTML = '';
     if (gridEmpty) gridEmpty.style.display = 'block';
+    const paginationEl = document.getElementById('pkPaxTablePagination');
+    if (paginationEl) paginationEl.innerHTML = '';
     pkUpdateActionBar();
     return;
   }
-  if (gridEmpty) gridEmpty.style.display = selectableRows.length ? 'none' : 'block';
+  if (gridEmpty) gridEmpty.style.display = 'none';
   tbody.innerHTML = rowsHtml;
+  renderTsPagination('pkPaxTablePagination', visibleRows.length, PK_PAX_PAGE, 'pkPaxPageChange', 'pkPaxPageSizeChange');
   pkUpdateActionBar();
 }
 

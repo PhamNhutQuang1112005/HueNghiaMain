@@ -1,6 +1,6 @@
 /* =========================================================
    FLEET-STORE.JS — Store cấu hình đội xe dùng chung
-   Nhà xe Huệ Nghĩa Express
+   Nhà Xe Huệ Nghĩa
    =========================================================
 
    NGUỒN DỮ LIỆU DUY NHẤT cho: Hướng, Tuyến, Loại xe, Xe, Nhân viên.
