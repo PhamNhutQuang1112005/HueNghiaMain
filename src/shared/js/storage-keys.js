@@ -5,12 +5,6 @@ const HN_STORAGE_KEY = 'hn_trip_seat_bank_v12';
 const HN_TRIPS_KEY = 'hn_trips_meta_v9';
 const HN_PICKUP_PAX_KEY = 'hn_pickup_passengers_v6';
 const HN_CURRENT_USER_KEY = 'hn_current_user';
-// Nhật ký đăng nhập/đăng xuất TOÀN HỆ THỐNG — ghi tự động trong auth/session.js mỗi lần Session.set()/
-// clear() chạy (mọi trang có đăng nhập đều qua 2 hàm này), dùng để tính "giờ làm" cho màn Thống kê nhân
-// sự (admin/admin-staff-stats.js). [{ id, username, type: 'login'|'logout', ts }]. Đây là mốc đăng nhập
-// máy tính thật, KHÔNG phải chấm công tại chỗ — nhân viên tắt tab/trình duyệt mà không bấm "Đăng xuất"
-// sẽ không có mốc logout tương ứng (xem staffStatsBuildSessions() xử lý phiên bỏ ngỏ).
-const HN_STAFF_TIMELOG_KEY = 'hn_admin_staff_timelog_v1';
 const ZONE1_COLLAPSED_KEY = 'callcenter.zone1Collapsed';
 // Tài xế trung chuyển gán ở trang shuttle.html, đọc lại ở cột "Tài xế" bảng Trung chuyển đón
 // (ticketstaff.html/callcenter.html) — khoá theo "sđt_chặng" (chặng 'don' gộp cả khách Rước liền,

@@ -6,7 +6,7 @@
    và trạng thái tiêu chuẩn của Admin.
    ========================================================= */
 
-var ACCOUNT_FILTERS = { search: '', role: '', status: '' };
+var ACCOUNT_FILTERS = { search: '', role: '', status: '', station: '' };
 var HN_ADMIN_ACCOUNTS_KEY = 'hn_admin_accounts_v1';
 
 function getAccountsList() {
@@ -52,6 +52,7 @@ function renderAccountsView() {
   var filtered = accounts.filter(function (a) {
     if (!a) return false;
     if (f.role && a.role !== f.role) return false;
+    if (f.station && a.mainStationId !== f.station) return false;
     if (f.status === 'active' && a.active === false) return false;
     if (f.status === 'inactive' && a.active !== false) return false;
 
@@ -93,6 +94,7 @@ function renderAccountsView() {
         '</div>' +
       '</td>' +
       '<td>' + roleBadge + acPermCountHtml(a.permissions) + '</td>' +
+      '<td style="font-weight:600; color:var(--text-main);">' + esc(staffMainStationName(a.mainStationId) || '—') + '</td>' +
       '<td><span style="font-family:\'Roboto Mono\', monospace; font-size:12.5px; color:var(--text-sub);">' + esc(a.redirect || '—') + '</span></td>' +
       '<td><span style="font-family:\'Roboto Mono\', monospace; letter-spacing:2px; font-size:12px; color:var(--text-sub);">••••••</span></td>' +
       '<td class="col-status" style="text-align:center;">' +
@@ -168,6 +170,13 @@ function renderAccountsView() {
             '<option value="inactive"' + (f.status === 'inactive' ? ' selected' : '') + '>Tạm khóa</option>' +
           '</select>' +
         '</div>' +
+        '<div class="filter-field">' +
+          '<label>Trạm xe</label>' +
+          '<select data-change-action="adminAccountFilterInput" data-args=\'["station","__this_value__"]\'>' +
+            '<option value="">Tất cả trạm</option>' +
+            FleetStore.getMainStations().map(function (st) { return '<option value="' + esc(st.id) + '"' + (f.station === st.id ? ' selected' : '') + '>' + esc(st.name) + '</option>'; }).join('') +
+          '</select>' +
+        '</div>' +
         '<button type="button" class="btn" data-action="adminResetAccountFilters">Đặt lại</button>' +
         '<div class="filter-spacer"></div>' +
         '<button type="button" class="btn btn-primary" data-action="adminOpenAccountModal" data-args=\'[""]\'>' + ICN_PLUS + 'Thêm tài khoản mới</button>' +
@@ -185,6 +194,7 @@ function renderAccountsView() {
               '<th style="width:60px; text-align:center;">STT</th>' +
               '<th style="width:200px;">Tài khoản & Người dùng</th>' +
               '<th style="width:180px;">Vai trò hệ thống</th>' +
+              '<th style="width:150px;">Trạm xe</th>' +
               '<th style="width:160px;">Trang đích</th>' +
               '<th style="width:130px;">Mật khẩu</th>' +
               '<th class="col-status" style="text-align:center; width:130px;">Trạng thái</th>' +
@@ -205,7 +215,7 @@ function adminAccountFilterInput(field, val) {
 }
 
 function adminResetAccountFilters() {
-  ACCOUNT_FILTERS = { search: '', role: '', status: '' };
+  ACCOUNT_FILTERS = { search: '', role: '', status: '', station: '' };
   renderAccountsView();
 }
 
@@ -261,6 +271,8 @@ function adminOpenAccountModal(id) {
             '<option value="0"' + (acc && acc.active === false ? ' selected' : '') + '>Tạm khóa</option>' +
           '</select></div>' +
       '</div>' +
+
+      '<div class="fld"><label>Trạm xe</label><select id="acStation">' + staffMainStationOptionsHtml(acc ? acc.mainStationId : '') + '</select></div>' +
 
       acPermissionsFieldHtml(acc ? acc.permissions : []) +
 
@@ -345,6 +357,7 @@ function adminSaveAccount(e) {
   var role = ($('acRole') || {}).value || 'call_center';
   var redirect = ($('acRedirect') || {}).value || 'ticketstaff.html';
   var active = ($('acActive') || {}).value === '1';
+  var mainStationId = ($('acStation') || {}).value || '';
   var permissions = acReadSelectedPermissions();
 
   var roleLabels = {
@@ -368,6 +381,7 @@ function adminSaveAccount(e) {
       acc.roleLabel = roleLabels[role] || role;
       acc.redirect = redirect;
       acc.active = active;
+      acc.mainStationId = mainStationId;
       acc.permissions = permissions;
     }
   } else {
@@ -389,6 +403,7 @@ function adminSaveAccount(e) {
       roleLabel: roleLabels[role] || role,
       redirect: redirect,
       active: active,
+      mainStationId: mainStationId,
       permissions: permissions,
       createdAt: Date.now()
     });

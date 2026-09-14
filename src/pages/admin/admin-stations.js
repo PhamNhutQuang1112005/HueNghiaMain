@@ -434,6 +434,17 @@ function adminSaveStationPick(e) {
   }
 }
 
+/* "Loại xe" của 1 tuyến/mức giá — dùng lại đúng danh mục Loại xe (scope 'line') như modal "Tạo phơi xe"
+   (admin-trips.js) thay vì tự bịa danh sách riêng. Route đang sửa mà vehicleType không còn active/đã bị
+   xoá khỏi danh mục vẫn được giữ lại trong <select> (nối thêm) để không mất dữ liệu cũ khi sửa. */
+function routeVehicleTypeOptionsHtml(current) {
+  var vtypes = FleetStore.getVehicleTypes({ scope: 'line' }).filter(activeOf);
+  if (current && !vtypes.some(function (v) { return v.name === current; })) vtypes = vtypes.concat([{ name: current }]);
+  return vtypes.map(function (v) {
+    return '<option value="' + esc(v.name) + '"' + (v.name === current ? ' selected' : '') + '>' + esc(v.name) + '</option>';
+  }).join('');
+}
+
 function adminOpenRouteModal(id, directionId) {
   var routes = FleetStore.getRoutes();
   var r = id ? routes.find(function (x) { return x.id === id; }) : null;
@@ -452,6 +463,7 @@ function adminOpenRouteModal(id, directionId) {
         '<div class="fld"><label>Mã tuyến</label><input id="rmAbbr" value="' + (r ? esc(r.abbr || '') : '') + '" placeholder="SG-LX"></div>' +
         '<div class="fld"><label>Giá vé (đ) *</label><input id="rmPrice" type="number" min="0" step="5000" required value="' + (r ? (r.price || 0) : '') + '"></div>' +
       '</div>' +
+      '<div class="fld"><label>Loại xe *</label><select id="rmVehicleType" required>' + routeVehicleTypeOptionsHtml(r ? r.vehicleType : '') + '</select></div>' +
       '<div class="fld"><label><input type="checkbox" id="rmActive" ' + (!r || activeOf(r) ? 'checked' : '') + '> Đang hoạt động</label></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
     '</form>'
@@ -468,18 +480,19 @@ function adminSaveRoute(e) {
   var list = FleetStore.getRoutes();
   if (list.some(function (x) { return x.label === label && x.id !== id0; })) { showToast('Tên tuyến đã tồn tại.'); return; }
   var abbr = $('rmAbbr').value.trim();
+  var vehicleType = ($('rmVehicleType') || {}).value || '';
   var active = $('rmActive').checked;
 
   if (id0) {
     var r = list.find(function (x) { return x.id === id0; });
     var before = JSON.parse(JSON.stringify(r));
-    r.label = label; r.directionId = dirId; r.price = price; r.abbr = abbr; r.active = active;
+    r.label = label; r.directionId = dirId; r.price = price; r.abbr = abbr; r.vehicleType = vehicleType; r.active = active;
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'update', entity: 'route', entityId: id0, summary: 'Sửa tuyến ' + label, before: before, after: r });
   } else {
     var newId = dirId + '-' + Date.now().toString(36);
     var maxOrder = list.filter(function (x) { return x.directionId === dirId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
-    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, price: price, active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
+    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, price: price, vehicleType: vehicleType, active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
     list.push(nr);
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'create', entity: 'route', entityId: newId, summary: 'Thêm tuyến ' + label, after: nr });
@@ -493,6 +506,37 @@ function adminSaveRoute(e) {
   } else {
     renderDirectionsView();
   }
+}
+
+/* "Sao chép mẫu" (nút Sao chép ở bảng Quản lý giá) — nhân bản 1 tuyến/mức giá thành 1 dòng MỚI ngay lập
+   tức (không qua modal, vì modal Thêm/Sửa tuyến không có ô Trạm đi/Trạm đến — 2 trường đó chỉ sửa được
+   qua chip-editor trong bảng), copy đủ Giá/Loại xe/Trạm đi/Trạm đến/Tuyến chính rồi để admin đổi tên +
+   chỉnh lại cho nhanh thay vì gõ lại từ đầu. Tên tuyến phải là DUY NHẤT (adminSaveRoute kiểm tra) nên tự
+   thêm hậu tố "(Copy)"/"(Copy 2)"... cho tới khi không trùng. */
+function adminDuplicateRoute(id) {
+  var list = FleetStore.getRoutes();
+  var src = list.find(function (x) { return x.id === id; });
+  if (!src) return;
+
+  var baseLabel = src.label + ' (Copy)';
+  var label = baseLabel, n = 2;
+  while (list.some(function (x) { return x.label === label; })) { label = baseLabel + ' ' + n; n++; }
+
+  var newId = src.directionId + '-' + Date.now().toString(36);
+  var maxOrder = list.filter(function (x) { return x.directionId === src.directionId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
+  var copy = {
+    id: newId, directionId: src.directionId, label: label, abbr: src.abbr || '',
+    price: src.price || 0, doubleSeatPrice: src.doubleSeatPrice, vehicleType: src.vehicleType || '',
+    active: true, order: maxOrder + 1,
+    fromStations: (src.fromStations || []).slice(),
+    toStations: (src.toStations || []).slice(),
+    pickupStations: (src.pickupStations || []).slice()
+  };
+  list.push(copy);
+  FleetStore.setRoutes(list);
+  FleetStore.log({ action: 'create', entity: 'route', entityId: newId, summary: 'Sao chép tuyến từ "' + src.label + '" thành "' + label + '"', after: copy });
+  showToast('Đã sao chép "' + src.label + '" — đổi tên nếu cần.');
+  renderPricingView();
 }
 
 function adminDeleteRoute(id) {

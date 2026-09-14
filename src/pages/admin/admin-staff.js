@@ -2,9 +2,26 @@
    5. QUẢN LÝ NHÂN VIÊN
    ========================================================= */
 var STAFF_ROLES = [['ticket', 'Nhân viên vé'], ['driver', 'Tài xế'], ['helper', 'Phụ xe'], ['shuttle_driver', 'Tài xế trung chuyển']];
-var STAFF_FILTERS = { search: '', role: '', status: '' };
+var STAFF_FILTERS = { search: '', role: '', status: '', station: '' };
 
 function roleLabel(r) { var m = STAFF_ROLES.find(function (x) { return x[0] === r; }); return m ? m[1] : r; }
+
+/* "Trạm xe" của nhân viên/tài khoản = Trạm chính trong danh mục Tỉnh/Trạm chính/Trạm phụ/Điểm dừng
+   (FleetStore.getMainStations(), xem admin-station-directory.js — đây LÀ trang "Trạm xe" trong sidebar,
+   không phải danh sách trạm phẳng cũ). Dùng chung cho cả form Nhân viên (admin-staff.js) lẫn Tài khoản
+   (admin-accounts.js). */
+function staffMainStationOptionsHtml(selectedId) {
+  var stations = FleetStore.getMainStations();
+  return '<option value="">— Chưa gán trạm —</option>' +
+    stations.map(function (st) {
+      return '<option value="' + esc(st.id) + '"' + (selectedId === st.id ? ' selected' : '') + '>' + esc(st.name) + '</option>';
+    }).join('');
+}
+function staffMainStationName(id) {
+  if (!id) return '';
+  var st = FleetStore.getMainStations().find(function (m) { return m.id === id; });
+  return st ? st.name : '';
+}
 
 function roleBadge(r) {
   if (r === 'driver' || r === 'shuttle_driver') {
@@ -35,6 +52,7 @@ function renderStaffView() {
       if (!matchName && !matchCode && !matchPhone && !matchUser) return false;
     }
     if (f.role && s.role !== f.role) return false;
+    if (f.station && s.mainStationId !== f.station) return false;
     if (f.status === 'active' && !activeOf(s)) return false;
     if (f.status === 'inactive' && activeOf(s)) return false;
     return true;
@@ -51,12 +69,13 @@ function renderStaffView() {
       '<td>' + roleBadge(s.role) + '</td>' +
       '<td style="font-weight:700;color:var(--text-main);">' + esc(s.phone || '—') + '</td>' +
       '<td style="font-weight:600;color:var(--text-sub);">' + esc(s.license || '—') + '</td>' +
+      '<td style="font-weight:600;color:var(--text-main);">' + esc(staffMainStationName(s.mainStationId) || '—') + '</td>' +
       '<td class="col-status" style="text-align:center;">' + activeTag(activeOf(s)) + '</td>' +
       '<td class="row-actions" style="text-align:center;">' +
         '<button class="btn btn-sm" data-action="adminOpenStaffModal" data-args=\'[' + originalIdx + ']\'>Sửa</button> ' +
         '<button class="btn btn-sm btn-danger" data-action="adminDeleteStaff" data-args=\'[' + originalIdx + ']\'>Xoá</button>' +
       '</td></tr>';
-  }).join('') : '<tr><td colspan="7" class="empty-state">Không tìm thấy nhân viên phù hợp.</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-state">Không tìm thấy nhân viên phù hợp.</td></tr>';
 
   $('viewStaff').innerHTML =
     '<div class="staff-shell">' +
@@ -81,6 +100,13 @@ function renderStaffView() {
             '<option value="inactive"' + (f.status === 'inactive' ? ' selected' : '') + '>Tạm ngưng</option>' +
           '</select>' +
         '</div>' +
+        '<div class="filter-field">' +
+          '<label>Trạm xe</label>' +
+          '<select data-change-action="adminStaffFilterInput" data-args=\'["station","__this_value__"]\'>' +
+            '<option value="">Tất cả trạm</option>' +
+            FleetStore.getMainStations().map(function (st) { return '<option value="' + esc(st.id) + '"' + (f.station === st.id ? ' selected' : '') + '>' + esc(st.name) + '</option>'; }).join('') +
+          '</select>' +
+        '</div>' +
         '<div class="filter-spacer"></div>' +
         '<button class="btn btn-primary" data-action="adminOpenStaffModal" data-args=\'[-1]\'>Thêm nhân viên mới</button>' +
       '</div>' +
@@ -99,6 +125,7 @@ function renderStaffView() {
               '<th>Vai trò</th>' +
               '<th>SĐT liên hệ</th>' +
               '<th>Bằng lái</th>' +
+              '<th>Trạm xe</th>' +
               '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
               '<th class="th-actions" style="text-align:center;">Thao tác</th>' +
             '</tr></thead>' +
@@ -134,6 +161,7 @@ function adminOpenStaffModal(idx) {
         '<div class="fld"><label>Số điện thoại</label><input id="smPhone" value="' + (s ? esc(s.phone || '') : '') + '" placeholder="VD: 0912345678"></div>' +
         '<div class="fld"><label>Hạng bằng lái</label><input id="smLicense" value="' + (s ? esc(s.license || '') : '') + '" placeholder="VD: Bằng E, FC"></div>' +
       '</div>' +
+      '<div class="fld"><label>Trạm xe</label><select id="smStation">' + staffMainStationOptionsHtml(s ? s.mainStationId : '') + '</select></div>' +
       '<div class="fld"><label>Tài khoản đăng nhập hệ thống (nếu có)</label><input id="smUser" value="' + (s ? esc(s.username || '') : '') + '" placeholder="Tên đăng nhập hệ thống..."></div>' +
       '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="smActive" ' + (!s || activeOf(s) ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Đang trong thời gian làm việc</label></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu thông tin</button></div>' +
@@ -150,7 +178,7 @@ function adminSaveStaff(e) {
   var rec = {
     code: $('smCode').value.trim(), name: name, username: $('smUser').value.trim(),
     role: $('smRole').value, phone: $('smPhone').value.trim(), license: $('smLicense').value.trim(),
-    active: $('smActive').checked
+    mainStationId: $('smStation').value, active: $('smActive').checked
   };
   if (idx >= 0) {
     var before = all[idx];

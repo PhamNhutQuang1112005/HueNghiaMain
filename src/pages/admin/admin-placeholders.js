@@ -145,9 +145,10 @@ function renderPricingView() {
       '<td>' + esc(vehicleType) + '</td>' +
       '<td class="mono">' + priceHtml + '</td>' +
       '<td style="min-width:180px; max-width:220px; white-space:normal;">' + stationCells({ routeId: r.id, field: 'fromStations' }, r.fromStations || []) + '</td>' +
-      '<td style="min-width:180px; max-width:220px; white-space:normal;">' + stationCells({ routeId: r.id, field: 'toStations' }, r.toStations || []) + '</td>' +
+      '<td style="min-width:220px; max-width:280px; white-space:normal;">' + stationCells({ routeId: r.id, field: 'toStations' }, r.toStations || []) + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm" data-action="adminOpenRouteModal" data-args=\'["' + esc(r.id) + '"]\'>Sửa</button>' +
+        '<button type="button" class="btn btn-sm btn-secondary" data-action="adminDuplicateRoute" data-args=\'["' + esc(r.id) + '"]\' title="Sao chép Giá, Loại xe, Trạm đi, Trạm đến, Tuyến chính">Sao chép</button>' +
         '<button type="button" class="btn btn-sm btn-danger" data-action="adminDeleteRoute" data-args=\'["' + esc(r.id) + '"]\'>Xoá</button>' +
       '</td>' +
     '</tr>';
@@ -182,15 +183,15 @@ function renderPricingView() {
     '</div>' +
     '<div class="sd-section-block">' +
       '<div class="sd-table-wrap" style="overflow:auto;">' +
-        '<table class="admin-table" style="table-layout:fixed; min-width:930px;">' +
+        '<table class="admin-table" style="table-layout:fixed; min-width:1000px;">' +
           '<thead><tr>' +
             '<th class="num" style="width:48px;">STT</th>' +
-            '<th style="width:200px;">Tuyến chính</th>' +
+            '<th style="width:130px;">Tuyến chính</th>' +
             '<th style="width:160px;">Loại xe</th>' +
             '<th style="width:120px;">Giá</th>' +
             '<th style="width:210px;">Điểm đi</th>' +
-            '<th style="width:210px;">Điểm đến</th>' +
-            '<th style="width:140px;">Thao tác</th>' +
+            '<th style="width:280px;">Điểm đến</th>' +
+            '<th style="width:190px;">Thao tác</th>' +
           '</tr></thead><tbody>' + rows + '</tbody>' +
         '</table>' +
       '</div>' +
