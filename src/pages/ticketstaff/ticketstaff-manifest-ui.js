@@ -724,20 +724,126 @@ function renderShiftClosingPage() {
       <div class="stat-detail-row"><span>Tiền mặt (hệ thống)</span><span>${tsFormatMoney(report.cashAmount)}</span></div>
       <div class="stat-detail-row"><span>Chuyển khoản (hệ thống)</span><span>${tsFormatMoney(report.transferAmount)}</span></div>
       <div class="stat-detail-row"><span>Re-open</span><span>${report.reopenCount} lần • ${tsFormatMoney(report.reopenAmount)}</span></div>
-      <div class="stat-detail-row${report.penaltyAmount || report.violationDiffCount ? ' warn' : ''}"><span>Phạt / chênh lệch khách</span><span>${tsFormatMoney(report.penaltyAmount)} • ${report.violationDiffCount} khách</span></div>
     </div>
 
-    <div class="manifest-section-title">Doanh thu theo trạm</div>
-    ${tsRenderStationTableHtml(report.stationBreakdown)}
+    <div class="manifest-section-title">THU — Số vé theo mệnh giá / giờ khởi hành</div>
+    ${tsRenderTimeDenominationTableHtml(report.timeBreakdown, report.denominations)}
 
     <div class="manifest-section-title">Doanh thu theo nhân viên tạo phơi</div>
     ${tsRenderStaffTableHtml(report.staffBreakdown)}
+
+    <div class="manifest-section-title">CHI</div>
+    ${tsRenderShiftChiTableHtml()}
   `;
 
   document.getElementById('shiftActualCashInput').value = report.cashAmount || 0;
   document.getElementById('shiftActualTransferInput').value = report.transferAmount || 0;
   document.getElementById('shiftAckDiffCheckbox').checked = false;
   tsUpdateShiftReconcile();
+}
+
+// ---- Bảng THU: giờ khởi hành × mệnh giá (dạng lưới kiểu excel) ----
+// Mỗi dòng là 1 giờ khởi hành trong ca (nhiều phơi cùng giờ được cộng dồn chung 1 dòng), cột là mệnh giá
+// vé — lấy động từ report.denominations (KHÔNG hard-code), giống cách tsAggregateStationDenomination làm
+// cho bảng "Chi tiết mệnh giá" theo trạm.
+function tsRenderTimeDenominationTableHtml(timeBreakdown, denominations) {
+  const times = Object.keys(timeBreakdown || {}).sort();
+  if (!times.length) return '<p style="color:var(--text-sub);font-size:13px;">Chưa có dữ liệu theo giờ khởi hành.</p>';
+  const denoms = denominations || [];
+  const headCols = ['GIỜ KHỞI HÀNH', 'RƯỚC', 'FREE'].concat(denoms.map(d => tsFormatMoneyShort(d))).concat(['TỔNG VÉ', 'THÀNH TIỀN']);
+  const theadHtml = '<tr>' + headCols.map(h => `<th style="text-align:center;">${tsEsc(h)}</th>`).join('') + '</tr>';
+
+  let totalRuoc = 0, totalFree = 0, totalTicket = 0, totalAmount = 0;
+  const totalPerDenom = {};
+  const rows = times.map(t => {
+    const row = timeBreakdown[t];
+    totalRuoc += row.ruocCount || 0;
+    totalFree += row.freeCount || 0;
+    totalTicket += row.ticketCount || 0;
+    totalAmount += row.totalAmount || 0;
+    const cells = [
+      `<td style="text-align:center; font-weight:700;">${tsEsc(t)}</td>`,
+      `<td class="mono" style="text-align:center;">${row.ruocCount || 0}</td>`,
+      `<td class="mono" style="text-align:center;">${row.freeCount || 0}</td>`
+    ]
+      .concat(denoms.map(d => {
+        const count = row.denomCounts[d] || 0;
+        totalPerDenom[d] = (totalPerDenom[d] || 0) + count;
+        return `<td class="mono" style="text-align:center;">${count}</td>`;
+      }))
+      .concat([
+        `<td class="mono" style="text-align:center; font-weight:700;">${row.ticketCount || 0}</td>`,
+        `<td style="text-align:right;">${tsFormatMoney(row.totalAmount)}</td>`
+      ]);
+    return `<tr>${cells.join('')}</tr>`;
+  }).join('');
+
+  const totalCells = [
+    `<td style="text-align:center;">TỔNG</td>`,
+    `<td class="mono" style="text-align:center;">${totalRuoc}</td>`,
+    `<td class="mono" style="text-align:center;">${totalFree}</td>`
+  ]
+    .concat(denoms.map(d => `<td class="mono" style="text-align:center;">${totalPerDenom[d] || 0}</td>`))
+    .concat([
+      `<td class="mono" style="text-align:center;">${totalTicket}</td>`,
+      `<td style="text-align:right;">${tsFormatMoney(totalAmount)}</td>`
+    ]);
+  const totalRow = `<tr style="font-weight:800;">${totalCells.join('')}</tr>`;
+
+  return `
+    <div class="pax-table-wrap grid-table-wrap" style="margin-bottom:8px;">
+      <table class="pax-table lined-table">
+        <thead>${theadHtml}</thead>
+        <tbody>${rows}${totalRow}</tbody>
+      </table>
+    </div>`;
+}
+
+// ---- Bảng CHI: 3 cột trống (Lý do / Số tiền thu / Người duyệt) để nhân viên tự điền tay lúc kết ca —
+// KHÔNG có dữ liệu hệ thống nào đổ sẵn vào đây, chỉ lưu nguyên văn nhân viên gõ vào cùng bản ghi kết ca
+// (xem tsAddShiftChiRow/tsRemoveShiftChiRow/confirmShiftClosing).
+function tsRenderShiftChiTableHtml() {
+  return `
+    <div class="pax-table-wrap grid-table-wrap" style="margin-bottom:8px;">
+      <table class="pax-table lined-table">
+        <thead><tr><th>Lý do</th><th style="text-align:right; width:160px;">Số tiền thu</th><th>Người duyệt</th><th style="width:40px;"></th></tr></thead>
+        <tbody id="shiftChiTableBody">${tsRenderShiftChiRowHtml()}</tbody>
+      </table>
+    </div>
+    <button type="button" class="btn btn-secondary" data-action="tsAddShiftChiRow" style="align-self:flex-start; margin-bottom:14px;">+ Thêm dòng chi</button>`;
+}
+
+function tsRenderShiftChiRowHtml() {
+  return `
+    <tr>
+      <td><input type="text" class="shift-chi-input shift-chi-reason" placeholder="Lý do"></td>
+      <td><input type="number" class="shift-chi-input shift-chi-amount" min="0" step="1000" placeholder="0"></td>
+      <td><input type="text" class="shift-chi-input shift-chi-approver" placeholder="Người duyệt"></td>
+      <td style="text-align:center;"><button type="button" class="shift-chi-remove-btn" title="Xóa dòng" data-action="tsRemoveShiftChiRow" data-args='["__this__"]'>✕</button></td>
+    </tr>`;
+}
+
+function tsAddShiftChiRow() {
+  const body = document.getElementById('shiftChiTableBody');
+  if (!body) return;
+  body.insertAdjacentHTML('beforeend', tsRenderShiftChiRowHtml());
+}
+
+function tsRemoveShiftChiRow(el) {
+  const row = el.closest('tr');
+  const body = document.getElementById('shiftChiTableBody');
+  if (row && body && body.children.length > 1) row.remove();
+}
+
+// Đọc lại các dòng CHI nhân viên đã gõ tay — bỏ qua dòng để trắng hoàn toàn (không lưu rác vào bản ghi).
+function tsCollectShiftChiItems() {
+  const body = document.getElementById('shiftChiTableBody');
+  if (!body) return [];
+  return Array.from(body.querySelectorAll('tr')).map(row => ({
+    reason: (row.querySelector('.shift-chi-reason').value || '').trim(),
+    amount: parseInt(row.querySelector('.shift-chi-amount').value, 10) || 0,
+    approver: (row.querySelector('.shift-chi-approver').value || '').trim()
+  })).filter(item => item.reason || item.amount || item.approver);
 }
 
 function onShiftActualInput() {
@@ -778,8 +884,9 @@ function confirmShiftClosing() {
   const actualCash = parseInt(document.getElementById('shiftActualCashInput').value, 10) || 0;
   const actualTransfer = parseInt(document.getElementById('shiftActualTransferInput').value, 10) || 0;
   const diffAmount = (actualCash + actualTransfer) - tsCurrentShiftReport.totalAmount;
+  const chiItems = tsCollectShiftChiItems();
 
-  const record = tsConfirmShiftClosing(tsCurrentShiftReport, { actualCash, actualTransfer, diffAmount });
+  const record = tsConfirmShiftClosing(tsCurrentShiftReport, { actualCash, actualTransfer, diffAmount, chiItems });
   tsCurrentShiftReport = null;
   switchView('booking');
   renderTripLifecycleUI();

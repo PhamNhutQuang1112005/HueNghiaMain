@@ -1754,6 +1754,43 @@
   border: 1.5px solid var(--red);
 }
 
+/* Bảng CHI ở trang Kết ca — 3 cột trống nhân viên tự gõ tay (lý do/số tiền thu/người duyệt), không có
+   dữ liệu hệ thống đổ sẵn nên input để trơn, chỉ viền nhẹ cho dễ nhận input trong ô bảng. */
+.shift-chi-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-gray);
+  background: var(--white);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color .15s;
+}
+
+.shift-chi-input:focus {
+  border-color: var(--red);
+}
+
+.shift-chi-input.shift-chi-amount {
+  text-align: right;
+}
+
+.shift-chi-remove-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.shift-chi-remove-btn:hover {
+  color: var(--red);
+}
+
 /* Mục "Kết ca" trong dropdown tài khoản (cạnh tên đăng nhập) — cùng layout với .user-logout-btn (đã có
    sẵn ở shared/booking-ui.css) nhưng màu trung tính vì đây là điều hướng sang trang Kết ca, không phải
    hành động nguy hiểm như đăng xuất. */

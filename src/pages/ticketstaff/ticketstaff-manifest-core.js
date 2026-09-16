@@ -411,16 +411,22 @@ function tsGetManifestCurrentTotals(tripId) {
   return totals;
 }
 
-// Gom TOÀN BỘ chuyến đã khởi hành (DEPARTED/REOPEN_CLOSED — chưa kết ca) để hiển thị báo cáo Kết ca.
-// Chuyến còn SELLING/REOPEN (chưa chốt xong) không đưa vào kết ca.
+// Gom chuyến đã khởi hành (DEPARTED/REOPEN_CLOSED — chưa kết ca) CỦA ĐÚNG NHÂN VIÊN đang đăng nhập để
+// hiển thị báo cáo Kết ca — mỗi nhân viên (mã nhân viên riêng, qua getCurrentStaffLabel()/createdBy) chỉ
+// kết ca các phơi do chính mình tạo, không gom lẫn phơi của nhân viên khác. Chuyến còn SELLING/REOPEN
+// (chưa chốt xong) không đưa vào kết ca.
 function tsAggregateShiftClosing() {
   const manifests = getAllManifests();
+  const currentStaff = getCurrentStaffLabel();
   const eligibleTripIds = Object.keys(manifests).filter(tripId => {
-    const st = manifests[tripId].status;
-    return st === TRIP_LIFECYCLE_STATUS.DEPARTED || st === TRIP_LIFECYCLE_STATUS.REOPEN_CLOSED;
+    const m = manifests[tripId];
+    const st = m.status;
+    const isEligibleStatus = st === TRIP_LIFECYCLE_STATUS.DEPARTED || st === TRIP_LIFECYCLE_STATUS.REOPEN_CLOSED;
+    return isEligibleStatus && m.createdBy === currentStaff;
   });
 
   const report = {
+    staffId: currentStaff,
     tripIds: eligibleTripIds,
     tripCount: eligibleTripIds.length,
     ticketCount: 0,
@@ -431,11 +437,15 @@ function tsAggregateShiftClosing() {
     transferAmount: 0,
     stationBreakdown: {},
     staffBreakdown: {},
+    // THU theo giờ khởi hành × mệnh giá (mục "Kết ca" — bảng dạng lưới kiểu excel) — xem
+    // tsRenderTimeDenominationTableHtml() ở ticketstaff-manifest-ui.js.
+    timeBreakdown: {},
+    denominations: [],
     reopenCount: 0,
-    reopenAmount: 0,
-    penaltyAmount: 0,
-    violationDiffCount: 0
+    reopenAmount: 0
   };
+
+  const denomSet = new Set();
 
   eligibleTripIds.forEach(tripId => {
     const totals = tsGetManifestCurrentTotals(tripId);
@@ -458,15 +468,31 @@ function tsAggregateShiftClosing() {
     report.staffBreakdown[staffKey].tickets += totals.ticketCount;
     report.staffBreakdown[staffKey].amount += totals.totalAmount;
 
+    const timeKey = manifest.time || 'Chưa xác định';
+    if (!report.timeBreakdown[timeKey]) report.timeBreakdown[timeKey] = { ticketCount: 0, totalAmount: 0, ruocCount: 0, freeCount: 0, denomCounts: {} };
+    const timeRow = report.timeBreakdown[timeKey];
+    const denomBreakdown = tsGetManifestDenominationBreakdownForTrip(tripId);
+    if (denomBreakdown) {
+      denomBreakdown.stationOrder.forEach(st => {
+        const b = denomBreakdown.stations[st];
+        timeRow.ticketCount += b.totalCount;
+        timeRow.totalAmount += b.totalAmount;
+        timeRow.ruocCount += b.ruocCount;
+        timeRow.freeCount += b.freeCount;
+        Object.entries(b.denomCounts).forEach(([price, count]) => {
+          denomSet.add(Number(price));
+          timeRow.denomCounts[price] = (timeRow.denomCounts[price] || 0) + count;
+        });
+      });
+    }
+
     getReopenEventsForTrip(tripId).filter(e => e.status === 'CLOSED').forEach(e => {
       report.reopenCount += 1;
       report.reopenAmount += e.amountAdded || 0;
     });
-    getViolationsForTrip(tripId).forEach(v => {
-      report.penaltyAmount += Number(v.penaltyAmount) || 0;
-      report.violationDiffCount += Number(v.diffCount) || 0;
-    });
   });
+
+  report.denominations = Array.from(denomSet).sort((a, b) => a - b);
 
   return report;
 }
@@ -488,13 +514,16 @@ function tsConfirmShiftClosing(report, reconcile) {
     transferAmount: report.transferAmount,
     stationBreakdown: report.stationBreakdown,
     staffBreakdown: report.staffBreakdown,
+    timeBreakdown: report.timeBreakdown,
+    denominations: report.denominations,
     reopenCount: report.reopenCount,
     reopenAmount: report.reopenAmount,
-    penaltyAmount: report.penaltyAmount,
-    violationDiffCount: report.violationDiffCount,
     actualCash: reconcile.actualCash,
     actualTransfer: reconcile.actualTransfer,
-    diffAmount: reconcile.diffAmount
+    diffAmount: reconcile.diffAmount,
+    // Khoản CHI tự điền tay (lý do/số tiền thu/người duyệt) — nhân viên nhập tại lúc kết ca, không tính
+    // vào đối soát THU ở trên, chỉ lưu lại nguyên văn kèm bản ghi kết ca để tra cứu sau này.
+    chiItems: reconcile.chiItems || []
   };
   addShiftClosing(record);
 
@@ -520,6 +549,13 @@ function tsConfirmShiftClosing(report, reconcile) {
 // "Vé" ở đây đếm theo TICKET (nhóm ticketNo, giống ticketCount toàn hệ thống), không đếm theo hành
 // khách, để khớp đúng khái niệm "Tổng số vé" đã dùng xuyên suốt các bảng khác.
 function tsAggregateStationDenomination(predicateFn) {
+  return tsAggregateStationDenominationFromSeats(getAllBookedSeats(), predicateFn);
+}
+
+// Bản nhận thẳng danh sách ghế thay vì tự đọc getAllBookedSeats() (CHỈ đúng cho currentTripId đang mở
+// trên sơ đồ ghế) — dùng khi cần gom mệnh giá của 1 CHUYẾN KHÁC currentTripId (VD báo cáo Kết ca gom
+// nhiều chuyến khác nhau cùng lúc), giống lý do tsAggregateTicketsFromSeats tách ra khỏi tsAggregateTickets.
+function tsAggregateStationDenominationFromSeats(seats, predicateFn) {
   const stations = {};
   const stationOrder = [];
   function ensureStation(name) {
@@ -533,8 +569,7 @@ function tsAggregateStationDenomination(predicateFn) {
   // trống. Danh sách trạm đọc từ getTicketStations() (đã có sẵn, không hard-code KDV/LDH/XC).
   getTicketStations().forEach(ensureStation);
 
-  const seats = getAllBookedSeats().filter(predicateFn);
-  const groups = groupSeatsByTicket(seats);
+  const groups = groupSeatsByTicket(seats.filter(predicateFn));
   const denomSet = new Set();
 
   groups.forEach(g => {
@@ -587,6 +622,19 @@ function tsGetManifestCurrentDenominationBreakdown(tripId) {
   if (!manifest) return null;
   const closedEventIds = new Set(getReopenEventsForTrip(tripId).filter(e => e.status === 'CLOSED').map(e => e.id));
   return tsAggregateStationDenomination(s => s.soldPhase !== 'POST_DEPART' || closedEventIds.has(s.reopenEventId));
+}
+
+// Bản dùng cho tripId BẤT KỲ, không riêng currentTripId đang mở trên sơ đồ ghế — cần cho báo cáo Kết ca
+// vì 1 lần kết ca gom nhiều chuyến (nhiều tripId) khác nhau cùng lúc, không chỉ chuyến đang xem. Đọc
+// thẳng tripSeatBank[tripId] qua tsGetBankBookedSeats() (bank được giữ trong bộ nhớ cho MỌI chuyến, xem
+// chú thích ở tsGetBankBookedSeats) thay vì getAllBookedSeats() (chỉ đúng cho chuyến đang mở).
+function tsGetManifestDenominationBreakdownForTrip(tripId) {
+  const manifest = getManifest(tripId);
+  const bank = (typeof tripSeatBank !== 'undefined') ? tripSeatBank[tripId] : null;
+  if (!manifest || !bank) return null;
+  const closedEventIds = new Set(getReopenEventsForTrip(tripId).filter(e => e.status === 'CLOSED').map(e => e.id));
+  const seats = tsGetBankBookedSeats(bank);
+  return tsAggregateStationDenominationFromSeats(seats, s => s.soldPhase !== 'POST_DEPART' || closedEventIds.has(s.reopenEventId));
 }
 
 /* ===================== 5. MẪU IN PHƠI THEO KHU VỰC ===================== */
