@@ -26,6 +26,36 @@ function staffMainStationName(id) {
   return st ? st.name : '';
 }
 
+/* "Khu vực" + "Trạm" cho form Nhân viên — dùng ĐÚNG danh mục Khu vực (Tỉnh/Thành) + Trạm xe THẬT của
+   trang "Trạm xe" (FleetStore.getStations()/region, xem admin-station-directory.js), KHÁC với
+   staffMainStationOptionsHtml/getMainStations() ở trên (danh mục "Trạm chính" chưa có UI CRUD nào cả nên
+   luôn rỗng — trước đây chọn "Sài Gòn" không ra trạm nào để chọn tiếp vì chính "Sài Gòn" cũng chưa từng
+   là 1 lựa chọn có thật). Tái dùng đúng cặp hàm ssRegionOptions/ssRegionLabel/ssStationOptions/
+   ssStationRegion/ssWireSearchCombo đã có ở admin-staff-stats.js (cùng nạp trên trang admin.html, dùng
+   cho bộ lọc Kết ca) thay vì viết lại 1 bộ combobox khác. Lưu thẳng TÊN trạm vào staff.station (khớp quy
+   ước "trạm = tên, không id" xuyên suốt FleetStore.getStations()) — không lưu riêng field "khu vực" vì
+   suy được từ station.region, tránh 2 nguồn có thể lệch nhau. */
+var SM_REGION_KEY = ''; // khu vực đang chọn trong modal Nhân viên đang mở (Thêm/Sửa)
+
+function smAttachStationCombos() {
+  var regionInput = $('smRegionInput'), stationInput = $('smStationInput');
+  if (!regionInput || !stationInput) return;
+
+  ssWireSearchCombo('smRegionInput', 'smRegionDropdown', ssRegionOptions, function () { return SM_REGION_KEY; }, function (key, label) {
+    SM_REGION_KEY = key;
+    regionInput.value = label;
+    var dd = $('smRegionDropdown'); if (dd) dd.classList.remove('open');
+    // Đổi khu vực mà trạm đang chọn không còn thuộc khu vực mới → bỏ chọn trạm, tránh lưu nhầm trạm sai vùng.
+    if (stationInput.value && ssStationRegion(stationInput.value) !== key) stationInput.value = '';
+  });
+
+  ssWireSearchCombo('smStationInput', 'smStationDropdown', function () { return ssStationOptions(SM_REGION_KEY); }, function () { return stationInput.value; }, function (key, label) {
+    stationInput.value = label;
+    var dd = $('smStationDropdown'); if (dd) dd.classList.remove('open');
+    if (key) { SM_REGION_KEY = ssStationRegion(key); regionInput.value = ssRegionLabel(SM_REGION_KEY); }
+  });
+}
+
 function roleBadge(r) {
   if (r === 'driver' || r === 'shuttle_driver') {
     return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:var(--red-light);color:var(--red);font-size:11.5px;font-weight:700;">' + esc(roleLabel(r)) + '</span>';
@@ -55,7 +85,7 @@ function renderStaffView() {
       if (!matchName && !matchCode && !matchPhone && !matchUser) return false;
     }
     if (f.role && s.role !== f.role) return false;
-    if (f.station && s.mainStationId !== f.station) return false;
+    if (f.station && s.station !== f.station) return false;
     if (f.status === 'active' && !activeOf(s)) return false;
     if (f.status === 'inactive' && activeOf(s)) return false;
     return true;
@@ -72,12 +102,13 @@ function renderStaffView() {
       '<td>' + roleBadge(s.role) + '</td>' +
       '<td style="font-weight:700;color:var(--text-main);">' + esc(s.phone || '—') + '</td>' +
       '<td style="font-weight:600;color:var(--text-sub);">' + esc(s.license || '—') + '</td>' +
-      '<td style="font-weight:600;color:var(--text-main);">' + esc(staffMainStationName(s.mainStationId) || '—') + '</td>' +
+      '<td style="font-weight:600;color:var(--text-main);">' + esc(ssRegionLabel(ssStationRegion(s.station)) || '—') + '</td>' +
+      '<td style="font-weight:600;color:var(--text-main);">' + esc(s.station || '—') + '</td>' +
       '<td class="col-status" style="text-align:center;">' + activeTag(activeOf(s)) + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStaffRowMenu" data-args=\'["__this__",' + originalIdx + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td></tr>';
-  }).join('') : '<tr><td colspan="8" class="empty-state">Không tìm thấy nhân viên phù hợp.</td></tr>';
+  }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy nhân viên phù hợp.</td></tr>';
 
   $('viewStaff').innerHTML =
     '<div class="sd-toolbar">' +
@@ -104,7 +135,8 @@ function renderStaffView() {
         '<label>Trạm xe</label>' +
         '<select data-change-action="adminStaffFilterInput" data-args=\'["station","__this_value__"]\'>' +
           '<option value="">Tất cả trạm</option>' +
-          FleetStore.getMainStations().map(function (st) { return '<option value="' + esc(st.id) + '"' + (f.station === st.id ? ' selected' : '') + '>' + esc(st.name) + '</option>'; }).join('') +
+          FleetStore.getStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); })
+            .map(function (st) { return '<option value="' + esc(st.name) + '"' + (f.station === st.name ? ' selected' : '') + '>' + esc(st.name) + '</option>'; }).join('') +
         '</select>' +
       '</div>' +
       '<div class="sd-toolbar-actions">' +
@@ -125,7 +157,8 @@ function renderStaffView() {
             '<th>Vai trò</th>' +
             '<th>SĐT liên hệ</th>' +
             '<th>Bằng lái</th>' +
-            '<th>Trạm xe</th>' +
+            '<th>Khu vực</th>' +
+            '<th>Trạm</th>' +
             '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
             '<th class="th-actions">Thao tác</th>' +
           '</tr></thead>' +
@@ -152,6 +185,7 @@ function adminStaffFilterInput(field, val) {
 function adminOpenStaffModal(idx) {
   var all = FleetStore.getStaff();
   var s = idx >= 0 ? all[idx] : null;
+  SM_REGION_KEY = s && s.station ? ssStationRegion(s.station) : '';
   openAdminModal(
     '<h3>' + (s ? 'Sửa thông tin nhân viên' : 'Thêm nhân viên mới') + '</h3>' +
     '<form class="admin-form" data-submit-action="adminSaveStaff" data-args=\'["__event__"]\'>' +
@@ -167,12 +201,24 @@ function adminOpenStaffModal(idx) {
         '<div class="fld"><label>Số điện thoại</label><input id="smPhone" value="' + (s ? esc(s.phone || '') : '') + '" placeholder="VD: 0912345678"></div>' +
         '<div class="fld"><label>Hạng bằng lái</label><input id="smLicense" value="' + (s ? esc(s.license || '') : '') + '" placeholder="VD: Bằng E, FC"></div>' +
       '</div>' +
-      '<div class="fld"><label>Trạm xe</label><select id="smStation">' + staffMainStationOptionsHtml(s ? s.mainStationId : '') + '</select></div>' +
+      '<div class="fld-row">' +
+        '<div class="fld" style="position:relative;"><label>Khu vực</label>' +
+          '<div class="combo-input-wrap"><input type="text" id="smRegionInput" class="combo-input" autocomplete="off" placeholder="Chọn khu vực..." value="' + esc(ssRegionLabel(SM_REGION_KEY)) + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>' +
+          '<div class="dropdown-panel" id="smRegionDropdown"></div>' +
+        '</div>' +
+        '<div class="fld" style="position:relative;"><label>Trạm</label>' +
+          '<div class="combo-input-wrap"><input type="text" id="smStationInput" class="combo-input" autocomplete="off" placeholder="Chọn trạm..." value="' + (s ? esc(s.station || '') : '') + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>' +
+          '<div class="dropdown-panel" id="smStationDropdown"></div>' +
+        '</div>' +
+      '</div>' +
       '<div class="fld"><label>Tài khoản đăng nhập hệ thống (nếu có)</label><input id="smUser" value="' + (s ? esc(s.username || '') : '') + '" placeholder="Tên đăng nhập hệ thống..."></div>' +
       '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="smActive" ' + (!s || activeOf(s) ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Đang trong thời gian làm việc</label></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu thông tin</button></div>' +
     '</form>'
   );
+  smAttachStationCombos();
 }
 
 function adminSaveStaff(e) {
@@ -184,7 +230,7 @@ function adminSaveStaff(e) {
   var rec = {
     code: $('smCode').value.trim(), name: name, username: $('smUser').value.trim(),
     role: $('smRole').value, phone: $('smPhone').value.trim(), license: $('smLicense').value.trim(),
-    mainStationId: $('smStation').value, active: $('smActive').checked
+    station: $('smStationInput').value.trim(), active: $('smActive').checked
   };
   if (idx >= 0) {
     var before = all[idx];

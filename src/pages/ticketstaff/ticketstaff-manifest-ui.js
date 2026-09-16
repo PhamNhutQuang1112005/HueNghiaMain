@@ -796,14 +796,14 @@ function tsRenderTimeDenominationTableHtml(timeBreakdown, denominations) {
     </div>`;
 }
 
-// ---- Bảng CHI: 3 cột trống (Lý do / Số tiền thu / Người duyệt) để nhân viên tự điền tay lúc kết ca —
-// KHÔNG có dữ liệu hệ thống nào đổ sẵn vào đây, chỉ lưu nguyên văn nhân viên gõ vào cùng bản ghi kết ca
+// ---- Bảng CHI: 3 cột trống (Lý do chi / Số tiền chi / Người duyệt) để nhân viên tự điền tay lúc kết ca
+// — KHÔNG có dữ liệu hệ thống nào đổ sẵn vào đây, chỉ lưu nguyên văn nhân viên gõ vào cùng bản ghi kết ca
 // (xem tsAddShiftChiRow/tsRemoveShiftChiRow/confirmShiftClosing).
 function tsRenderShiftChiTableHtml() {
   return `
     <div class="pax-table-wrap grid-table-wrap" style="margin-bottom:8px;">
       <table class="pax-table lined-table">
-        <thead><tr><th>Lý do</th><th style="text-align:right; width:160px;">Số tiền thu</th><th>Người duyệt</th><th style="width:40px;"></th></tr></thead>
+        <thead><tr><th>Lý do chi</th><th style="text-align:right; width:160px;">Số tiền chi</th><th>Người duyệt</th><th style="width:40px;"></th></tr></thead>
         <tbody id="shiftChiTableBody">${tsRenderShiftChiRowHtml()}</tbody>
       </table>
     </div>
@@ -813,7 +813,7 @@ function tsRenderShiftChiTableHtml() {
 function tsRenderShiftChiRowHtml() {
   return `
     <tr>
-      <td><input type="text" class="shift-chi-input shift-chi-reason" placeholder="Lý do"></td>
+      <td><input type="text" class="shift-chi-input shift-chi-reason" placeholder="Lý do chi"></td>
       <td><input type="number" class="shift-chi-input shift-chi-amount" min="0" step="1000" placeholder="0"></td>
       <td><input type="text" class="shift-chi-input shift-chi-approver" placeholder="Người duyệt"></td>
       <td style="text-align:center;"><button type="button" class="shift-chi-remove-btn" title="Xóa dòng" data-action="tsRemoveShiftChiRow" data-args='["__this__"]'>✕</button></td>

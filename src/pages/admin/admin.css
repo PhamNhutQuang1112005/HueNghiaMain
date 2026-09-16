@@ -1062,6 +1062,34 @@ input:checked + .slider:before { transform: translateX(16px); }
 .filter-field input:focus, .filter-field select:focus, .admin-form input:not([type="checkbox"]):not([type="radio"]):focus, .admin-form select:focus, .admin-form textarea:focus { outline: none; background: var(--white); border-color: var(--red); box-shadow: var(--ring); }
 .filter-spacer { flex: 1 1 auto; }
 
+/* Combobox gõ-để-lọc "Khu vực"/"Trạm" trong modal (.admin-form) — VD "Thêm nhân viên mới"
+   (admin-staff.js) — ghi đè lại rule ".admin-form input" phía trên vì nó có độ đặc thù cao hơn
+   ".combo-input" đơn lẻ, nếu không sẽ lồng thêm 1 lớp viền/nền/padding lên input bên trong
+   .combo-input-wrap (cùng lý do đã ghi đè cho .sd-toolbar .filter-field, xem phía trên trong file này). */
+.admin-form .fld .combo-input-wrap {
+  height: 38px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: 0 14px;
+}
+.admin-form .fld .combo-input-wrap:focus-within {
+  border-color: var(--red);
+  background: var(--white);
+  box-shadow: var(--ring);
+}
+.admin-form .fld .combo-input-wrap input.combo-input {
+  height: auto;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
 /* Phơi xe — thanh lọc PHẲNG (bỏ panel card) + cân đối chiều ngang: 5 ô lọc giãn đều, nút bám 2 đầu.
    Ô lọc kiểu TicketStaff (viền 1.5px #CBCDCD, nền trắng, 35px, nhãn nhỏ trên). */
 .tf-toolbar {
@@ -1284,6 +1312,33 @@ table.admin-table {
 }
 .sd-toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
 .sd-toolbar .sd-btn { flex: 0 0 auto; height: 35px; }
+
+/* Combobox gõ-để-lọc "Khu vực"/"Trạm" ở toolbar Kết ca (admin-staff-stats.js, ssKetcaToolbarHtml) — tái
+   dùng khung .combo-input-wrap/.combo-input gốc (booking-ui/02-zone1.css, style TicketStaff) nhưng phải
+   ghi đè lại ở đây: rule ".filter-field input" (phía trên, dùng chung cho input/select thường trong mọi
+   toolbar admin) có độ đặc thù cao hơn ".combo-input" đơn lẻ nên tự lồng thêm 1 lớp viền/nền/padding lên
+   input bên trong .combo-input-wrap, thành khung lồng khung xấu nếu không ghi đè. */
+.sd-toolbar .filter-field .combo-input-wrap {
+  height: 35px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  padding: 0 10px;
+}
+.sd-toolbar .filter-field .combo-input-wrap:focus-within {
+  border-color: var(--red);
+}
+.sd-toolbar .filter-field .combo-input-wrap input.combo-input {
+  height: auto;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
 
 /* Thanh lọc Phòng vé dùng .sd-toolbar (khung Trạm Xe) nhưng field không có class sd-field-*
    nên mặc định không co giãn — cân lại: ô Tìm kiếm rộng hơn, ô Ngày vừa đủ, Đặt lại đẩy sát phải.

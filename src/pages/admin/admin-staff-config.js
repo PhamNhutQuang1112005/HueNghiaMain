@@ -18,12 +18,13 @@ function renderStaffConfigView() {
       '<td><b>' + esc(r.label) + '</b></td>' +
       '<td class="mono">' + esc(r.key) + '</td>' +
       '<td style="text-align:center;">' + usedCount + '</td>' +
+      '<td class="mono" style="color:var(--text-sub);">' + esc(r.redirect || 'ticketstaff.html') + '</td>' +
       '<td>' + (permCount ? permCount + ' quyền đã gán' : '<span class="hint-inline">Chưa gán quyền</span>') + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStaffRoleRowMenu" data-args=\'["__this__","' + esc(r.key) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="6" class="empty-state">Chưa có loại nhân viên nào.</td></tr>';
+  }).join('') : '<tr><td colspan="7" class="empty-state">Chưa có loại nhân viên nào.</td></tr>';
 
   $('viewStaffConfig').innerHTML =
     '<div class="sd-toolbar">' +
@@ -43,6 +44,7 @@ function renderStaffConfigView() {
             '<th>Tên loại nhân viên</th>' +
             '<th>Mã</th>' +
             '<th style="text-align:center;">Số nhân viên</th>' +
+            '<th>Trang đích đăng nhập</th>' +
             '<th>Cụm phân quyền</th>' +
             '<th class="th-actions">Thao tác</th>' +
           '</tr></thead>' +
@@ -64,6 +66,10 @@ function adminOpenStaffRoleModal(key) {
     '<h3>' + (r ? 'Sửa loại nhân viên' : 'Thêm loại nhân viên') + '</h3>' +
     '<form class="admin-form" data-submit-action="adminSaveStaffRole" data-args=\'["__event__"' + (r ? ',"' + esc(r.key) + '"' : '') + ']\'>' +
       '<div class="fld"><label>Tên loại nhân viên <span class="req">*</span></label><input id="srLabel" required value="' + (r ? esc(r.label) : '') + '" placeholder="VD: Nhân viên kho, Nhân viên vệ sinh..."></div>' +
+      '<div class="fld"><label>Trang đích đăng nhập <span class="req">*</span></label>' +
+        '<select id="srRedirect">' + adminRedirectPageOptionsHtml(r ? r.redirect : 'ticketstaff.html') + '</select>' +
+        '<p class="hint-inline">Trang mở ra khi tài khoản thuộc loại nhân viên này đăng nhập — dùng chung cho modal Tài khoản.</p>' +
+      '</div>' +
       acPermissionsFieldHtml(r ? r.permissions : []) +
       '<div class="modal-actions">' +
         '<button type="button" class="btn" data-action="closeAdminModal">Huỷ</button>' +
@@ -78,6 +84,7 @@ function adminSaveStaffRole(e, key) {
   e.preventDefault();
   var fields = {
     label: $('srLabel').value.trim(),
+    redirect: $('srRedirect').value,
     permissions: acReadSelectedPermissions()
   };
   if (!fields.label) { showToast('Nhập tên loại nhân viên.'); return; }

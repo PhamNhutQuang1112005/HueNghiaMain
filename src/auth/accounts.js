@@ -73,3 +73,44 @@ window.AUTH_ACCOUNTS = [
     color: '#FBBF24'
   }
 ];
+
+/* ---------------------------------------------------------
+   Danh sách tài khoản "SỐNG" (getAccountsList/saveAccountsList) — bản đọc/ghi được qua
+   localStorage[HN_ADMIN_ACCOUNTS_KEY], seed lần đầu từ AUTH_ACCOUNTS ở trên. Đây LÀ NGUỒN THẬT trang
+   Admin > Tài khoản (admin-accounts.js) dùng để thêm/sửa/xoá/khoá tài khoản qua UI, và login.js PHẢI
+   xác thực qua đây (KHÔNG dùng thẳng AUTH_ACCOUNTS tĩnh) — trước đây login.js chỉ so khớp với
+   AUTH_ACCOUNTS (mảng hard-code, không đổi lúc chạy) nên tài khoản admin vừa tạo/sửa ở trang Tài khoản
+   không bao giờ đăng nhập được, dù đã lưu đúng vào localStorage.
+   Định nghĩa ở đây (không phải admin-accounts.js) vì index.html (trang đăng nhập) không nạp file admin,
+   chỉ nạp auth/accounts.js — 2 trang vì vậy luôn đọc/ghi cùng 1 hàm, không lệch logic seed.
+   --------------------------------------------------------- */
+function getAccountsList() {
+  var list = null;
+  try {
+    var raw = localStorage.getItem(HN_ADMIN_ACCOUNTS_KEY);
+    list = raw === null ? null : JSON.parse(raw);
+  } catch (e) { list = null; }
+
+  if (!Array.isArray(list) || list.length === 0) {
+    list = (window.AUTH_ACCOUNTS || []).map(function (a) {
+      return {
+        id: 'acc_' + a.username,
+        username: a.username,
+        password: a.password || '123456',
+        fullName: a.roleLabel || a.username,
+        role: a.role,
+        roleLabel: a.roleLabel,
+        redirect: a.redirect || 'ticketstaff.html',
+        active: true,
+        createdAt: Date.now()
+      };
+    });
+    saveAccountsList(list);
+  }
+  return list;
+}
+
+function saveAccountsList(list) {
+  try { localStorage.setItem(HN_ADMIN_ACCOUNTS_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }
+  catch (e) { /* ignore quota/lỗi ghi */ }
+}

@@ -5,6 +5,11 @@ const HN_STORAGE_KEY = 'hn_trip_seat_bank_v12';
 const HN_TRIPS_KEY = 'hn_trips_meta_v9';
 const HN_PICKUP_PAX_KEY = 'hn_pickup_passengers_v6';
 const HN_CURRENT_USER_KEY = 'hn_current_user';
+// Bản "sống" của danh sách tài khoản đăng nhập — bắt đầu là bản sao window.AUTH_ACCOUNTS
+// (auth/accounts.js) nhưng lưu ở localStorage để trang Admin > Tài khoản thêm/sửa/xoá được qua UI
+// (getAccountsList()/saveAccountsList(), định nghĩa chung ở auth/accounts.js — index.html lẫn admin.html
+// đều nạp file đó nên trang đăng nhập (login.js) và trang Admin luôn đọc/ghi ĐÚNG 1 danh sách).
+const HN_ADMIN_ACCOUNTS_KEY = 'hn_admin_accounts_v1';
 const ZONE1_COLLAPSED_KEY = 'callcenter.zone1Collapsed';
 // Tài xế trung chuyển gán ở trang shuttle.html, đọc lại ở cột "Tài xế" bảng Trung chuyển đón
 // (ticketstaff.html/callcenter.html) — khoá theo "sđt_chặng" (chặng 'don' gộp cả khách Rước liền,

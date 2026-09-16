@@ -49,12 +49,19 @@ loginForm.addEventListener("submit", (e) => {
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
 
-  const account = AUTH_ACCOUNTS.find(
+  // getAccountsList() (auth/accounts.js) — bản "sống" trong localStorage mà trang Admin > Tài khoản
+  // thêm/sửa/xoá qua UI, KHÔNG phải mảng AUTH_ACCOUNTS tĩnh — nếu so thẳng AUTH_ACCOUNTS thì tài khoản
+  // admin vừa tạo/sửa sẽ không bao giờ đăng nhập được.
+  const account = getAccountsList().find(
     (acc) => acc.username === username && acc.password === password
   );
 
   if (!account){
     showError("Sai tài khoản hoặc mật khẩu. Vui lòng kiểm tra lại.");
+    return;
+  }
+  if (account.active === false){
+    showError("Tài khoản này đã bị khóa. Vui lòng liên hệ quản trị viên.");
     return;
   }
 

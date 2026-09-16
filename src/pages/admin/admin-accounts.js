@@ -7,33 +7,28 @@
    ========================================================= */
 
 var ACCOUNT_FILTERS = { search: '', role: '', status: '', station: '' };
-var HN_ADMIN_ACCOUNTS_KEY = 'hn_admin_accounts_v1';
+// HN_ADMIN_ACCOUNTS_KEY: shared/js/storage-keys.js. getAccountsList()/saveAccountsList(): auth/accounts.js
+// (dùng chung với login.js — xem chú thích ở đó) — KHÔNG định nghĩa lại ở đây.
 
-function getAccountsList() {
-  var list = lsRead(HN_ADMIN_ACCOUNTS_KEY, null);
-  if (!Array.isArray(list) || list.length === 0) {
-    var seed = (window.AUTH_ACCOUNTS || []).map(function (a) {
-      return {
-        id: 'acc_' + a.username,
-        username: a.username,
-        password: a.password || '123456',
-        fullName: a.roleLabel || a.username,
-        role: a.role,
-        roleLabel: a.roleLabel,
-        redirect: a.redirect || 'ticketstaff.html',
-        active: true,
-        createdAt: Date.now()
-      };
-    });
-    list = seed;
-    lsWrite(HN_ADMIN_ACCOUNTS_KEY, list);
-  }
-  return list;
+// Danh sách "Vai trò hệ thống" chọn lúc tạo/sửa tài khoản — NGUỒN DUY NHẤT là Cấu hình nhân sự
+// (FleetStore.getStaffRoles(), Nhân sự > Cấu hình nhân sự) để 2 nơi luôn khớp nhau: thêm loại nhân viên
+// mới ở đó sẽ tự hiện ra ở đây, không còn mảng 7 vai trò gắn cứng riêng như trước. Chỉ 'admin' (Quản trị
+// viên hệ thống) giữ cố định — không phải 1 loại nhân viên thật, không thuộc danh sách nhân sự.
+// Mỗi phần tử: [key, label, redirect].
+function acAllRoles() {
+  return [['admin', 'Quản trị viên hệ thống', 'admin.html']].concat(
+    FleetStore.getStaffRoles().map(function (r) { return [r.key, r.label, r.redirect || 'ticketstaff.html']; })
+  );
+}
+function acRoleLabel(key) {
+  var r = acAllRoles().find(function (x) { return x[0] === key; });
+  return r ? r[1] : key;
+}
+function acRoleRedirect(key) {
+  var r = acAllRoles().find(function (x) { return x[0] === key; });
+  return r ? r[2] : 'ticketstaff.html';
 }
 
-function saveAccountsList(list) {
-  lsWrite(HN_ADMIN_ACCOUNTS_KEY, list);
-}
 
 function renderAccountsView() {
   var accounts = getAccountsList();
@@ -144,13 +139,9 @@ function renderAccountsView() {
           '<label>Vai trò</label>' +
           '<select data-change-action="adminAccountFilterInput" data-args=\'["role","__this_value__"]\'>' +
             '<option value="">Tất cả vai trò</option>' +
-            '<option value="admin"' + (f.role === 'admin' ? ' selected' : '') + '>Quản trị viên hệ thống</option>' +
-            '<option value="call_center"' + (f.role === 'call_center' ? ' selected' : '') + '>Nhân viên tổng đài</option>' +
-            '<option value="ticket_office"' + (f.role === 'ticket_office' ? ' selected' : '') + '>Nhân viên phòng vé</option>' +
-            '<option value="shuttle_dispatch"' + (f.role === 'shuttle_dispatch' ? ' selected' : '') + '>Điều hành trung chuyển</option>' +
-            '<option value="dispatch_manager"' + (f.role === 'dispatch_manager' ? ' selected' : '') + '>Điều hành bến xe</option>' +
-            '<option value="accountant"' + (f.role === 'accountant' ? ' selected' : '') + '>Kế toán / Thu ngân</option>' +
-            '<option value="driver"' + (f.role === 'driver' ? ' selected' : '') + '>Tài xế / Phụ xe</option>' +
+            acAllRoles().map(function (r) {
+              return '<option value="' + esc(r[0]) + '"' + (f.role === r[0] ? ' selected' : '') + '>' + esc(r[1]) + '</option>';
+            }).join('') +
           '</select>' +
         '</div>' +
         '<div class="filter-field sd-field-region">' +
@@ -227,17 +218,9 @@ function adminOpenAccountModal(id) {
   var isEdit = !!acc;
   var title = isEdit ? 'Chỉnh sửa tài khoản' : 'Thêm tài khoản mới';
 
-  var roles = [
-    ['admin', 'Quản trị viên hệ thống', 'admin.html'],
-    ['call_center', 'Nhân viên tổng đài (Bán vé)', 'ticketstaff.html'],
-    ['ticket_office', 'Nhân viên phòng vé (Thu tiền)', 'ticketstaff.html'],
-    ['shuttle_dispatch', 'Điều hành trung chuyển', 'ticketstaff.html'],
-    ['dispatch_manager', 'Điều hành bến xe', 'dieuhanh.html'],
-    ['accountant', 'Kế toán / Thu ngân', 'ketoan.html'],
-    ['driver', 'Tài xế / Phụ xe', 'taixe.html']
-  ];
+  var roles = acAllRoles();
 
-  var curRole = acc ? acc.role : 'call_center';
+  var curRole = acc ? acc.role : (roles[1] ? roles[1][0] : 'admin');
 
   openAdminModal(
     '<h3>' + esc(title) + '</h3>' +
@@ -335,17 +318,7 @@ function adminAccountRoleChange() {
   var role = ($('acRole') || {}).value || '';
   var redInput = $('acRedirect');
   if (!redInput) return;
-
-  var map = {
-    'admin': 'admin.html',
-    'call_center': 'ticketstaff.html',
-    'ticket_office': 'ticketstaff.html',
-    'shuttle_dispatch': 'ticketstaff.html',
-    'dispatch_manager': 'dieuhanh.html',
-    'accountant': 'ketoan.html',
-    'driver': 'taixe.html'
-  };
-  if (map[role]) redInput.value = map[role];
+  redInput.value = acRoleRedirect(role);
 }
 
 function adminSaveAccount(e) {
@@ -354,21 +327,11 @@ function adminSaveAccount(e) {
   var username = ($('acUser') || {}).value || '';
   var password = ($('acPass') || {}).value || '';
   var fullName = ($('acName') || {}).value || '';
-  var role = ($('acRole') || {}).value || 'call_center';
+  var role = ($('acRole') || {}).value || 'ticket';
   var redirect = ($('acRedirect') || {}).value || 'ticketstaff.html';
   var active = ($('acActive') || {}).value === '1';
   var mainStationId = ($('acStation') || {}).value || '';
   var permissions = acReadSelectedPermissions();
-
-  var roleLabels = {
-    'admin': 'Quản trị viên hệ thống',
-    'call_center': 'Nhân viên tổng đài',
-    'ticket_office': 'Nhân viên phòng vé',
-    'shuttle_dispatch': 'Điều hành trung chuyển',
-    'dispatch_manager': 'Điều hành bến xe',
-    'accountant': 'Kế toán / Thu ngân',
-    'driver': 'Tài xế / Phụ xe'
-  };
 
   var list = getAccountsList();
 
@@ -378,7 +341,7 @@ function adminSaveAccount(e) {
       if (password.trim()) acc.password = password.trim();
       acc.fullName = fullName || acc.username;
       acc.role = role;
-      acc.roleLabel = roleLabels[role] || role;
+      acc.roleLabel = acRoleLabel(role);
       acc.redirect = redirect;
       acc.active = active;
       acc.mainStationId = mainStationId;
@@ -400,7 +363,7 @@ function adminSaveAccount(e) {
       password: password.trim(),
       fullName: fullName || username.trim(),
       role: role,
-      roleLabel: roleLabels[role] || role,
+      roleLabel: acRoleLabel(role),
       redirect: redirect,
       active: active,
       mainStationId: mainStationId,

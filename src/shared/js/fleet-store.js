@@ -583,14 +583,32 @@
   // trong admin-staff.js (ticket/driver/helper/shuttle_driver), nay chuyển vào đây để admin tự thêm/sửa/
   // xoá được qua UI. Giữ nguyên 4 key cũ khi seed lần đầu để không "mồ côi" staff.role đã lưu trước đó.
   // Mỗi loại còn mang theo `permissions` (mảng key theo window.PERMISSION_GROUPS, auth/permissions.js)
-  // = "cụm phân quyền" mặc định cấp cho nhân viên thuộc loại này.
+  // = "cụm phân quyền" mặc định cấp cho nhân viên thuộc loại này, và `redirect` (trang đích khi đăng
+  // nhập) — đây là NGUỒN DUY NHẤT cho danh sách "Vai trò hệ thống" ở modal Thêm tài khoản
+  // (admin-accounts.js, acAllRoles()) thay vì mảng gắn cứng riêng như trước, để 2 nơi luôn khớp nhau:
+  // thêm loại nhân viên mới ở đây sẽ tự hiện ra khi tạo tài khoản. call_center/ticket_office/
+  // shuttle_dispatch/dispatch_manager/accountant thêm MỚI ở đây (khác 4 key gốc ticket/driver/helper/
+  // shuttle_driver) để khớp đúng 7 "Vai trò hệ thống" cũ của Tài khoản (trừ 'admin' — không phải 1 loại
+  // nhân viên, vẫn giữ cố định riêng ở acAllRoles()). KHÔNG xoá/đổi tên 'ticket' dù trùng ý nghĩa với
+  // 'call_center' — staff cũ (NV01-04) đang tham chiếu key này, đổi sẽ mồ côi dữ liệu.
   var SEED_STAFF_ROLES = [
-    { key: 'ticket', label: 'Nhân viên vé', permissions: [] },
-    { key: 'driver', label: 'Tài xế', permissions: [] },
-    { key: 'helper', label: 'Phụ xe', permissions: [] },
-    { key: 'shuttle_driver', label: 'Tài xế trung chuyển', permissions: [] }
+    { key: 'ticket', label: 'Nhân viên vé', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'driver', label: 'Tài xế', permissions: [], redirect: 'taixe.html' },
+    { key: 'helper', label: 'Phụ xe', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'shuttle_driver', label: 'Tài xế trung chuyển', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'call_center', label: 'Nhân viên tổng đài', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'ticket_office', label: 'Nhân viên phòng vé', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'dispatch_manager', label: 'Điều hành bến xe', permissions: [], redirect: 'dieuhanh.html' },
+    { key: 'accountant', label: 'Kế toán / Thu ngân', permissions: [], redirect: 'ketoan.html' }
   ];
-  function getStaffRoles() { return readJSON(HN_STAFF_ROLES_KEY, clone(SEED_STAFF_ROLES)); }
+  function getStaffRoles() {
+    var list = readJSON(HN_STAFF_ROLES_KEY, null);
+    if (!Array.isArray(list)) return clone(SEED_STAFF_ROLES);
+    // Dữ liệu cũ lưu trước khi có field `redirect` — mặc định ticketstaff.html thay vì để trống, tránh
+    // modal Tài khoản tự điền trang đích rỗng cho các loại nhân viên đã tồn tại từ trước.
+    return list.map(function (r) { return r && !r.redirect ? Object.assign({}, r, { redirect: 'ticketstaff.html' }) : r; });
+  }
   function setStaffRoles(a) { writeJSON(HN_STAFF_ROLES_KEY, Array.isArray(a) ? a : []); }
   function addStaffRole(fields) {
     var label = String((fields && fields.label) || '').trim();
@@ -602,7 +620,8 @@
     var item = {
       key: String((fields && fields.key) || makeStationId('role')),
       label: label,
-      permissions: Array.isArray(fields && fields.permissions) ? fields.permissions : []
+      permissions: Array.isArray(fields && fields.permissions) ? fields.permissions : [],
+      redirect: String((fields && fields.redirect) || 'ticketstaff.html')
     };
     list.push(item);
     setStaffRoles(list);
@@ -619,6 +638,7 @@
     }
     list[idx].label = label;
     list[idx].permissions = Array.isArray(fields && fields.permissions) ? fields.permissions : [];
+    list[idx].redirect = String((fields && fields.redirect) || 'ticketstaff.html');
     setStaffRoles(list);
     return { ok: true, item: list[idx] };
   }
