@@ -168,6 +168,23 @@
   color: #B45309;
 }
 
+/* Kết quả "vé rước liền" trong dropdown tìm kiếm header (renderLiveSearchResults, booking-combobox.js) —
+   tag riêng để phân biệt với kết quả vé bán/đặt thường (sold/hold ở trên). */
+.src-status.pickup {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.search-results-group-label {
+  padding: 6px 14px 2px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-sub);
+  background: var(--surface-2);
+}
+
 .pill-btn svg {
   width: 12px;
   height: 12px;

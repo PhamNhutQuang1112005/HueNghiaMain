@@ -649,6 +649,38 @@ function pkOnSearchInput(val) {
   }, 300);
 }
 
+// Tìm khách "rước liền" theo SĐT/tên — dùng cho thanh tìm kiếm ở header (renderLiveSearchResults,
+// booking-combobox.js) và khi Enter/bấm tìm mà không có vé bán/đặt nào khớp (openCustomerHistory) —
+// trước đây 2 chỗ đó chỉ tìm trong tripSeatBank (searchCustomerByPhone), khách chỉ có mặt ở danh sách
+// rước liền (chưa gán ghế) tìm không ra. So SĐT theo đúng công thức searchCustomerByPhone() (bỏ khoảng
+// trắng/dấu gạch, quy đổi +84 -> 0); còn lại so theo tên đã chuẩn hoá (normalizeSearchText, format.js).
+function matchPickupPassengers(query) {
+  const raw = (query || '').toString().trim();
+  if (!raw) return [];
+  const rawNoSpace = raw.replace(/[\s.\-]/g, '');
+  const isPhone = /^\+?[0-9]+$/.test(rawNoSpace);
+  const normPhone = rawNoSpace.replace(/^\+84/, '0');
+  const normText = normalizeSearchText(raw);
+  return (pickupPassengers || []).filter(p => {
+    if (!p) return false;
+    if (isPhone) return (p.phone || '').replace(/[\s.\-]/g, '').replace(/^\+84/, '0').includes(normPhone);
+    return !!(p.name && normalizeSearchText(p.name).includes(normText));
+  });
+}
+
+// Nhảy sang tab "Trung chuyển" (rước liền) và lọc sẵn theo đúng từ khoá vừa gõ ở thanh tìm kiếm header —
+// switchView('pickup') tự xoá #searchInput nên phải tự gán lại pkFilterState.search + #pkSearchInput
+// SAU KHI switchView() chạy xong.
+function goToPickupFromSearch(query) {
+  switchView('pickup');
+  const pkField = document.getElementById('pkSearchInput');
+  if (pkField) pkField.value = query || '';
+  pkFilterState.search = query || '';
+  pkRenderPaxTable();
+  const dropdown = document.getElementById('searchResults');
+  if (dropdown) dropdown.classList.remove('open');
+}
+
 /* ---- Modal thông tin khách rước (chuyển từ callcenter.js qua) ---- */
 function refreshPickupPrice() {
   const station = document.getElementById('pickupStation').value.trim();

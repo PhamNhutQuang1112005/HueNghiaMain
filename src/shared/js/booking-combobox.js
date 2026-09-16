@@ -175,10 +175,39 @@ function stopSuggestionsForStation(stationInputId) {
     .filter(n => !seen[n] && (seen[n] = true));
 }
 
+// Tra Trạm được gắn với 1 điểm dừng (Admin > Trạm xe, field stationName) theo ĐÚNG tên điểm dừng đang
+// gõ — dùng để tự động điền Trạm đi/Trạm đến khi chọn Trung chuyển đi/đến (panel đặt vé bên dưới lẫn
+// modal "Bộ lọc nâng cao" Zone 1, xem zone1AutoFillStationFromTransship trong ticketstaff.js). Chỉ khớp
+// khi trùng đúng tên 1 điểm dừng có thật, không khớp gì trong lúc còn đang gõ dở.
+function stationNameForStop(stopName) {
+  const name = (stopName || '').trim();
+  if (!name) return '';
+  const stops = (window.FleetStore && FleetStore.getStopStations) ? FleetStore.getStopStations() : [];
+  const match = stops.find(s => s && s.name === name);
+  return match ? (match.stationName || '') : '';
+}
+
+// Chọn Trung chuyển đi/đến (điểm dừng) → tự điền Trạm đi/Trạm đến tương ứng — VD chọn "Ngã tư Bảy Hiền"
+// (gắn với "508 Kinh Dương Vương") ở ô Trung chuyển đi thì Trạm đi tự thành "508 Kinh Dương Vương",
+// không cần chọn tay thêm lần nữa. Tự dispatch 'input' trên ô trạm (gán .value bằng JS không tự bắn
+// event) để data-input-action="refreshTicket" chạy lại, giống hệt cách selectValue() làm ở trên.
+function autoFillStationFromTransship(transshipInputId, stationInputId) {
+  const stationName = stationNameForStop(document.getElementById(transshipInputId)?.value);
+  if (!stationName) return;
+  const stationEl = document.getElementById(stationInputId);
+  if (stationEl && stationEl.value !== stationName) {
+    stationEl.value = stationName;
+    stationEl.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
 initDatalistCombobox('f_transship', null, 'Không tìm thấy địa điểm', () => stopSuggestionsForStation('f_station_select'));
 initDatalistCombobox('f_arrival_transfer', null, 'Không tìm thấy địa điểm', () => stopSuggestionsForStation('f_destination'));
 initDatalistCombobox('f_station_select', 'departureStationList', 'Không tìm thấy trạm');
 initDatalistCombobox('f_destination', 'destinationStationList', 'Không tìm thấy trạm');
+
+document.getElementById('f_transship')?.addEventListener('input', () => autoFillStationFromTransship('f_transship', 'f_station_select'));
+document.getElementById('f_arrival_transfer')?.addEventListener('input', () => autoFillStationFromTransship('f_arrival_transfer', 'f_destination'));
 
 function onRebookGuestTypeChange() {
   const type = document.getElementById('rbGuestType')?.value || 'Khách trạm';
@@ -216,6 +245,14 @@ function openCustomerHistory(phone, pushHistory = true) {
   _rawHistoryResults = results;
 
   if (!results.length) {
+    // Không có vé đã bán/đặt (tripSeatBank) nhưng khách có thể chỉ mới ở danh sách "rước liền" (chưa gán
+    // ghế) — chuyển sang đúng tab đó đã lọc sẵn thay vì báo "không tìm thấy" oan, xem matchPickupPassengers()
+    // /goToPickupFromSearch() (ticketstaff-pickup.js).
+    const pickupMatches = (typeof matchPickupPassengers === 'function') ? matchPickupPassengers(phone) : [];
+    if (pickupMatches.length && typeof goToPickupFromSearch === 'function') {
+      goToPickupFromSearch(phone);
+      return;
+    }
     showToast('Không tìm thấy vé phù hợp với: ' + phone, 'error');
     return;
   }
@@ -499,6 +536,11 @@ function renderLiveSearchResults(query) {
   });
   const topCustMatches = Array.from(customerMap.values()).slice(0, 5);
 
+  // Khách "rước liền" (pickupPassengers, ticketstaff-pickup.js) khớp SĐT/tên — hiện kèm kết quả vé bán/
+  // đặt ở trên, có tag riêng để phân biệt vì đây KHÔNG phải vé đã có ghế (bấm vào chuyển sang tab
+  // "Trung chuyển" đã lọc sẵn thay vì mở màn Lịch sử khách hàng như kết quả vé thường).
+  const topPickupMatches = (typeof matchPickupPassengers === 'function') ? matchPickupPassengers(query).slice(0, 5) : [];
+
   let html = '';
   if (topCustMatches.length) {
     html += topCustMatches.map(m => {
@@ -509,6 +551,21 @@ function renderLiveSearchResults(query) {
             <div class="src-name">${m.name || 'Khách hàng'}${phoneDisp}</div>
             <div class="src-meta">${m.route} • ${m.time} • Ghế ${m.seat}</div>
           </div>
+        </div>`;
+    }).join('');
+  }
+  if (topPickupMatches.length) {
+    html += '<div class="search-results-group-label">Vé rước liền</div>';
+    html += topPickupMatches.map(p => {
+      const phoneDisp = p.phone ? ` (<span style="color:var(--red);font-weight:700;">${p.phone}</span>)` : '';
+      const meta = [p.fromStation, p.toStation].filter(Boolean).join(' → ') || 'Chưa rõ tuyến';
+      return `
+        <div class="search-result-row" data-action="goToPickupFromSearch" data-args='${JSON.stringify([p.phone || p.name || ''])}'>
+          <div>
+            <div class="src-name">${p.name || 'Khách hàng'}${phoneDisp}</div>
+            <div class="src-meta">${meta}</div>
+          </div>
+          <span class="src-status pickup">Rước liền</span>
         </div>`;
     }).join('');
   }

@@ -103,6 +103,13 @@
     <!-- ===== ZONE 1 ===== -->
     <aside class="zone1">
       <div style="position:relative;">
+        <button type="button" class="filter-select" id="zone1AdvFilterBtn" data-action="openZone1AdvFilterModal" title="Lọc phơi xe theo Trạm đi/Trạm đến/Trung chuyển">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+          <span id="zone1AdvFilterLabel">Bộ lọc nâng cao</span>
+        </button>
+      </div>
+
+      <div style="position:relative;">
         <label class="field-label" for="directionTrigger">Hướng đi</label>
         <div class="combo-input-wrap">
           <input type="text" class="combo-input" id="directionTrigger" autocomplete="off" placeholder="Tìm hướng đi..." value="Sài Gòn - An Giang">
@@ -200,6 +207,7 @@
         <div class="more-trips">Xem thêm phơi xe <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
       </div>
     </aside>
+
 
     <button type="button" class="zone1-toggle-handle" id="zone1ToggleBtn" data-action="toggleZone1" aria-label="Ẩn hoặc hiện zone 1" title="Ẩn hoặc hiện zone 1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1968,6 +1976,52 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" data-action="closeModal" data-args='["tsStatusNoteModal"]'>Đóng</button>
       <button class="btn btn-primary" data-action="saveTransshipStatusNote">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: BỘ LỌC NÂNG CAO (Zone 1 — lọc phơi xe theo Trạm đi/Trạm đến/Trung chuyển) =====
+     4 ô đều là searchable combobox (initDatalistCombobox, xem booking-combobox.js). Trạm đi/Trạm đến đọc
+     danh mục trạm từ Admin theo đúng tuyến/hướng đang chọn ở Zone 1 (zone1AdvFilterStationOptions —
+     dùng lại stationsForRoute(), tức "trạm có thể nhận" khai báo bên Admin > Tuyến xe). Trung chuyển
+     đi/đến gợi ý điểm dừng (Admin > Trạm xe > Điểm dừng, FleetStore.getStopStations()) đã gắn với đúng
+     Trạm đi/Trạm đến đang gõ (tái dùng stopSuggestionsForStation() có sẵn). -->
+<div class="modal-overlay" id="zone1AdvFilterModal">
+  <div class="modal" style="width:560px;">
+    <h3>Bộ lọc nâng cao</h3>
+    <div class="form-row" style="--cols:2;">
+      <div class="form-field">
+        <label for="advFilterFromStation">Trạm đi</label>
+        <input type="text" id="advFilterFromStation" placeholder="Chọn trạm đi..." autocomplete="off">
+        <datalist id="advFilterFromStationList"></datalist>
+      </div>
+      <div class="form-field">
+        <label for="advFilterToStation">Trạm đến</label>
+        <input type="text" id="advFilterToStation" placeholder="Chọn trạm đến..." autocomplete="off">
+        <datalist id="advFilterToStationList"></datalist>
+      </div>
+    </div>
+    <div class="form-row" style="--cols:2;">
+      <div class="form-field">
+        <label for="advFilterTransshipFrom">Trung chuyển đi</label>
+        <input type="text" id="advFilterTransshipFrom" placeholder="Chọn trung chuyển đi..." autocomplete="off">
+      </div>
+      <div class="form-field">
+        <label for="advFilterTransshipTo">Trung chuyển đến</label>
+        <input type="text" id="advFilterTransshipTo" placeholder="Chọn trung chuyển đến..." autocomplete="off">
+      </div>
+    </div>
+    <!-- Hiện khi đã chọn ĐỦ Trạm đi + Trạm đến — liệt kê giá của MỌI loại xe áp dụng cho đúng cặp trạm
+         này, đọc trực tiếp từ Admin > Quản lý giá (FleetStore.getRoutes(), field price/doubleSeatPrice/
+         vehicleType) — xem zone1RenderAdvFilterPriceList() (ticketstaff.js). -->
+    <div id="advFilterPriceWrap" style="display:none;">
+      <label class="field-label">Giá vé theo loại xe</label>
+      <div id="advFilterPriceList" class="adv-filter-price-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-action="clearZone1AdvFilter">Xóa lọc</button>
+      <button class="btn btn-secondary" data-action="closeModal" data-args='["zone1AdvFilterModal"]'>Hủy</button>
+      <button class="btn btn-primary" data-action="applyZone1AdvFilter">Áp dụng</button>
     </div>
   </div>
 </div>

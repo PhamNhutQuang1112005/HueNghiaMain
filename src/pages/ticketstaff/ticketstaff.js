@@ -404,6 +404,10 @@ splitAccidentalTicketGroups();
 
 let currentTripId = '1';
 let zone1HourFilter = 'all'; // lọc zone1 theo giờ (dropdown #zone1HourFilter) — khai báo sớm vì renderSeats() gọi renderZone1TripList() ngay khi script vừa nạp
+// Bộ lọc nâng cao Zone 1 (Trạm đi/Trạm đến/Trung chuyển đi/Trung chuyển đến) — khai báo sớm cùng lý do
+// với zone1HourFilter ở trên: renderZone1TripList() gọi zone1TripMatchesAdvFilter() (đọc biến này) ngay
+// khi script vừa nạp; các hàm mở modal/áp dụng/xoá bộ lọc nằm ở cuối file, gần renderZone1TripList().
+let zone1AdvFilter = { fromStation: '', toStation: '', transshipFrom: '', transshipTo: '' };
 let currentView = 'booking'; // 'booking' | 'history' — goToTripFromHistory() (shared/booking.js) đọc biến này để tự chuyển về màn đặt vé khi cần
 
 window.addEventListener('storage', (e) => {
@@ -4979,11 +4983,174 @@ function renderZone1TripList() {
   const selDateStr = zone1DateStr(selectedDate);
   const matchesDateFilter = t => !t.date || t.date === selDateStr;
 
-  // Chỉ hiện phơi của HƯỚNG đang chọn (1 trong 4), khớp bộ lọc giờ + ngày + TUYẾN (theo trạm đi/đến).
+  // Chỉ hiện phơi của HƯỚNG đang chọn (1 trong 4), khớp bộ lọc giờ + ngày + TUYẾN (theo trạm đi/đến) +
+  // Bộ lọc nâng cao (Trạm đi/Trạm đến/Trung chuyển đi/Trung chuyển đến — xem zone1TripMatchesAdvFilter).
   const list = (tripsByDirection[selectedDirection] || [])
-    .filter(t => matchesHourFilter(t) && matchesDateFilter(t) && zone1TripMatchesRoute(t));
+    .filter(t => matchesHourFilter(t) && matchesDateFilter(t) && zone1TripMatchesRoute(t) && zone1TripMatchesAdvFilter(t));
   sgcdWrap.innerHTML = zone1SortByDeparture(list).map(mapTrip).join('') ||
     '<div class="z1-empty" style="padding:14px;text-align:center;color:var(--text-sub);font-size:12.5px;">Không có phơi xe phù hợp với bộ lọc</div>';
   cdsgWrap.innerHTML = '';
 }
+
+/* ---- Zone 1 "Bộ lọc nâng cao": Trạm đi / Trạm đến / Trung chuyển đi / Trung chuyển đến -----------------
+   4 ô đều là searchable combobox (initDatalistCombobox, booking-combobox.js). Trạm đi/Trạm đến đọc danh
+   mục "trạm có thể nhận" khai báo bên Admin > Tuyến xe cho đúng Hướng/Tuyến đang chọn ở Zone 1 (tái dùng
+   stationsForRoute() — cùng công thức đang dùng cho panel đặt vé). Trung chuyển đi/đến gợi ý điểm dừng
+   khai báo bên Admin > Trạm xe (FleetStore.getStopStations(), field stationName) đã gắn với đúng Trạm
+   đi/Trạm đến đang gõ (tái dùng stopSuggestionsForStation() có sẵn trong booking-combobox.js) — giống
+   hệt cơ chế 4 ô Trạm đi/Trạm đến/Trung chuyển đi/Trung chuyển đến của panel đặt vé (Zone 4).
+   zone1AdvFilter khai báo sớm ở gần đầu file (cạnh zone1HourFilter) — xem chú thích ở đó. */
+
+function zone1AdvFilterActiveCount() {
+  return Object.values(zone1AdvFilter).filter(Boolean).length;
+}
+
+function zone1UpdateAdvFilterBtn() {
+  const btn = document.getElementById('zone1AdvFilterBtn');
+  const label = document.getElementById('zone1AdvFilterLabel');
+  const n = zone1AdvFilterActiveCount();
+  if (label) label.textContent = n ? `Bộ lọc nâng cao (${n})` : 'Bộ lọc nâng cao';
+  if (btn) btn.classList.toggle('open', n > 0);
+}
+
+// Danh mục Trạm đi/Trạm đến cho modal — theo ĐÚNG Hướng/Tuyến đang chọn ở Zone 1, không phải toàn bộ
+// danh mục trạm (khớp đúng câu "trạm có thể nhận bên Admin > Tuyến xe" của nghiệp vụ).
+function zone1AdvFilterStationOptions() {
+  const routeLabel = (selectedRoute && selectedRoute !== 'all') ? selectedRoute : (directionLabels[selectedDirection] || '');
+  return stationsForRoute(routeLabel);
+}
+
+function zone1PopulateAdvFilterDatalists() {
+  const { from, to } = zone1AdvFilterStationOptions();
+  const tags = names => names.map(n => `<option value="${n}"></option>`).join('');
+  const fromList = document.getElementById('advFilterFromStationList');
+  const toList = document.getElementById('advFilterToStationList');
+  if (fromList) fromList.innerHTML = tags(from);
+  if (toList) toList.innerHTML = tags(to);
+}
+
+// Chọn Trung chuyển đi/đến (điểm dừng, Admin > Trạm xe) → tự động điền luôn Trạm đi/Trạm đến tương ứng —
+// bản Zone 1 của autoFillStationFromTransship()/stationNameForStop() (booking-combobox.js, đã dùng cho
+// panel đặt vé chính); tách riêng vì còn phải gọi thêm zone1RenderAdvFilterPriceList() sau khi điền.
+function zone1AutoFillStationFromTransship(transshipInputId, stationInputId) {
+  const stationName = stationNameForStop(document.getElementById(transshipInputId)?.value);
+  if (!stationName) return;
+  const stationEl = document.getElementById(stationInputId);
+  if (stationEl && stationEl.value !== stationName) stationEl.value = stationName;
+  zone1RenderAdvFilterPriceList();
+}
+
+// Đủ Trạm đi + Trạm đến trong modal Bộ lọc nâng cao → liệt kê giá của MỌI loại xe áp dụng cho đúng cặp
+// trạm đó, đọc thẳng từ Admin > Quản lý giá (FleetStore.getRoutes() — mỗi route ở đó là 1 dòng "Tuyến +
+// Loại xe + Giá", xem renderPricingView()/adminSaveRoute() ở admin-placeholders.js/admin-stations.js).
+// Khớp theo fromStations/toStations của route (không theo route.label) vì 1 cặp trạm có thể thuộc nhiều
+// route (nhiều loại xe) khác nhau. Gọi lại mỗi khi Trạm đi/Trạm đến đổi (event 'input', xem cuối file).
+function zone1RenderAdvFilterPriceList() {
+  const wrap = document.getElementById('advFilterPriceWrap');
+  const list = document.getElementById('advFilterPriceList');
+  if (!wrap || !list) return;
+  const from = document.getElementById('advFilterFromStation')?.value?.trim() || '';
+  const to = document.getElementById('advFilterToStation')?.value?.trim() || '';
+  if (!from || !to) {
+    wrap.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+
+  const routes = (window.FleetStore ? FleetStore.getRoutes() : []).filter(r =>
+    r && r.active !== false
+    && Array.isArray(r.fromStations) && r.fromStations.indexOf(from) !== -1
+    && Array.isArray(r.toStations) && r.toStations.indexOf(to) !== -1
+  );
+
+  wrap.style.display = '';
+  if (!routes.length) {
+    list.innerHTML = '<div class="adv-price-empty">Chưa có giá được thiết lập cho cặp trạm này trong Admin &gt; Quản lý giá.</div>';
+    return;
+  }
+
+  const money = n => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
+  list.innerHTML = routes.map(r => {
+    const single = Number(r.price) || 0;
+    const double = Number(r.doubleSeatPrice) || 0;
+    const vehicleType = escapeHtml(r.vehicleType || 'Chưa đặt loại xe');
+    const priceHtml = (single > 0 && double > 0)
+      ? `<span class="adv-price-badge"><em>Ghế đơn</em>${money(single)}</span><span class="adv-price-badge"><em>Ghế đôi</em>${money(double)}</span>`
+      : `<span class="adv-price-badge">${money(single || double)}</span>`;
+    return `<div class="adv-price-row"><span class="adv-price-vehicle">${vehicleType}</span><span class="adv-price-values">${priceHtml}</span></div>`;
+  }).join('');
+}
+
+function openZone1AdvFilterModal() {
+  zone1PopulateAdvFilterDatalists();
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  setVal('advFilterFromStation', zone1AdvFilter.fromStation);
+  setVal('advFilterToStation', zone1AdvFilter.toStation);
+  setVal('advFilterTransshipFrom', zone1AdvFilter.transshipFrom);
+  setVal('advFilterTransshipTo', zone1AdvFilter.transshipTo);
+  zone1RenderAdvFilterPriceList();
+  const modal = document.getElementById('zone1AdvFilterModal');
+  if (modal) modal.classList.add('open');
+}
+
+function applyZone1AdvFilter() {
+  const getVal = id => document.getElementById(id)?.value?.trim() || '';
+  zone1AdvFilter = {
+    fromStation: getVal('advFilterFromStation'),
+    toStation: getVal('advFilterToStation'),
+    transshipFrom: getVal('advFilterTransshipFrom'),
+    transshipTo: getVal('advFilterTransshipTo')
+  };
+  zone1UpdateAdvFilterBtn();
+  closeModal('zone1AdvFilterModal');
+  renderZone1TripList();
+}
+
+function clearZone1AdvFilter() {
+  zone1AdvFilter = { fromStation: '', toStation: '', transshipFrom: '', transshipTo: '' };
+  ['advFilterFromStation', 'advFilterToStation', 'advFilterTransshipFrom', 'advFilterTransshipTo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  zone1RenderAdvFilterPriceList();
+  zone1UpdateAdvFilterBtn();
+  closeModal('zone1AdvFilterModal');
+  renderZone1TripList();
+}
+
+// 1 phơi có khớp Bộ lọc nâng cao không: Trạm đi/Trạm đến so trực tiếp với trip.fromStation/toStation
+// (như zone1TripMatchesRoute). Trung chuyển đi/đến là dữ liệu THEO TỪNG GHẾ (transshipStation/
+// arrivalTransfer, gán lúc bán/đặt vé — xem confirmRebook()/sellTicket()), không phải của cả phơi, nên
+// phơi khớp nếu có ÍT NHẤT 1 ghế đã có khách (state khác 'empty'/'hidden') trùng đúng nơi trung chuyển
+// đang lọc.
+function zone1TripMatchesAdvFilter(t) {
+  const f = zone1AdvFilter;
+  if (f.fromStation && t.fromStation !== f.fromStation) return false;
+  if (f.toStation && t.toStation !== f.toStation) return false;
+  if (f.transshipFrom || f.transshipTo) {
+    const bank = tripSeatBank[t.id];
+    const seats = bank ? [...(bank.down || []), ...(bank.up || [])] : [];
+    const matched = seats.some(s => s && s.state !== 'empty' && s.state !== 'hidden'
+      && (!f.transshipFrom || s.transshipStation === f.transshipFrom)
+      && (!f.transshipTo || s.arrivalTransfer === f.transshipTo));
+    if (!matched) return false;
+  }
+  return true;
+}
+
+initDatalistCombobox('advFilterFromStation', 'advFilterFromStationList', 'Không tìm thấy trạm');
+initDatalistCombobox('advFilterToStation', 'advFilterToStationList', 'Không tìm thấy trạm');
+initDatalistCombobox('advFilterTransshipFrom', null, 'Không tìm thấy địa điểm', () => stopSuggestionsForStation('advFilterFromStation'));
+initDatalistCombobox('advFilterTransshipTo', null, 'Không tìm thấy địa điểm', () => stopSuggestionsForStation('advFilterToStation'));
+
+// Trạm đi/Trạm đến đổi (gõ tay hoặc chọn từ dropdown — selectValue() trong initDatalistCombobox tự bắn
+// event 'input') → cập nhật lại ngay danh sách giá theo loại xe bên dưới modal.
+['advFilterFromStation', 'advFilterToStation'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', zone1RenderAdvFilterPriceList);
+});
+
+// Chọn Trung chuyển đi/đến → tự điền Trạm đi/Trạm đến tương ứng (zone1AutoFillStationFromTransship).
+document.getElementById('advFilterTransshipFrom')?.addEventListener('input', () => zone1AutoFillStationFromTransship('advFilterTransshipFrom', 'advFilterFromStation'));
+document.getElementById('advFilterTransshipTo')?.addEventListener('input', () => zone1AutoFillStationFromTransship('advFilterTransshipTo', 'advFilterToStation'));
 

@@ -2538,3 +2538,49 @@
   color: var(--text-sub);
   font-weight: 700;
 }
+
+/* Modal "Bộ lọc nâng cao" (Zone 1) — danh sách giá theo loại xe, hiện khi đã chọn đủ Trạm đi + Trạm đến
+   (zone1RenderAdvFilterPriceList()). Đọc thẳng từ Admin > Quản lý giá (FleetStore.getRoutes()). */
+.adv-filter-price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.adv-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  font-size: 13.5px;
+}
+.adv-price-row .adv-price-vehicle {
+  font-weight: 700;
+  color: var(--text-main);
+}
+.adv-price-row .adv-price-values {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.adv-price-row .adv-price-badge {
+  font-weight: 800;
+  color: var(--red);
+  white-space: nowrap;
+}
+.adv-price-row .adv-price-badge em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-right: 3px;
+}
+.adv-price-empty {
+  font-size: 13px;
+  color: var(--text-sub);
+  padding: 8px 2px;
+}
