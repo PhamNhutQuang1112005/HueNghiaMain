@@ -53,3 +53,4 @@ const HN_ACCOUNTING_FIXED_ASSETS_KEY = 'hn_accounting_fixed_assets_v1';
 const HN_ACCOUNTING_DEBTS_KEY = 'hn_accounting_debts_v1';
 const HN_ACCOUNTING_PAYROLL_KEY = 'hn_accounting_payroll_v1';
 const HN_ACCOUNTING_INSPECTION_KEY = 'hn_accounting_inspection_v1';
+const HN_ACCOUNTING_EXPENSE_REQUESTS_KEY = 'hn_accounting_expense_requests_v1';

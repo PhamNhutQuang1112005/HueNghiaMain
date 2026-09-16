@@ -160,6 +160,7 @@ var VIEW_RENDERERS = {
   viewAccountingReports: function () { renderAccountingReportsView(); },
   viewAccountingThu: function () { renderAccountingThuView(); },
   viewAccountingChi: function () { renderAccountingChiView(); },
+  viewAccountingExpenseRequests: function () { renderAccountingExpenseRequestsView(); },
   viewAccountingLedgers: function () { renderAccountingLedgersView(); },
   viewStaffConfig: function () { renderStaffConfigView(); },
   viewStaff: function () { renderStaffView(); },
@@ -209,6 +210,7 @@ var ADMIN_BREADCRUMB_MAP = {
   viewAccountingReports: { group: 'Kế toán & Tài chính', label: 'Tổng quan & Báo cáo' },
   viewAccountingThu: { group: 'Kế toán & Tài chính', label: 'Doanh thu (THU)' },
   viewAccountingChi: { group: 'Kế toán & Tài chính', label: 'Chi phí (CHI)' },
+  viewAccountingExpenseRequests: { group: 'Kế toán & Tài chính', label: 'Tạo yêu cầu chi' },
   viewAccountingLedgers: { group: 'Kế toán & Tài chính', label: 'Sổ & Bảng nghiệp vụ' },
   viewActivity: { group: 'Hệ thống', label: 'Nhật ký hoạt động' },
   viewSettings: { group: 'Hệ thống', label: 'Cài đặt' }

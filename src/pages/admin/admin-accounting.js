@@ -95,6 +95,15 @@
       ];
       lsWrite(HN_ACCOUNTING_INSPECTION_KEY, seedInspection);
     }
+
+    // 7. EXPENSE REQUESTS (Yêu cầu chi — chờ duyệt trước khi thành Phiếu Chi thật)
+    if (!localStorage.getItem(HN_ACCOUNTING_EXPENSE_REQUESTS_KEY)) {
+      var seedExpenseRequests = [
+        { id: 'YCC-001', date: today, requester: 'Nguyễn Thị Hoa', mainGroup: 'Chi phí trực tiếp vận hành', category: 'Bảo trì, sửa chữa xe', plate: '67B-099.11', payee: 'Gara Ô tô An Giang Auto', amount: 7200000, reason: 'Đề nghị tạm ứng thay má phanh & bảo dưỡng định kỳ xe 67B-099.11', status: 'Chờ duyệt', rejectReason: '', approvedVoucherId: '' },
+        { id: 'YCC-002', date: today, requester: 'Lê Văn Nam', mainGroup: 'Chi phí trực tiếp vận hành', category: 'Nhiên liệu (Dầu DIESEL)', plate: '67B-012.34', payee: 'Cây xăng Petrolimex Số 5', amount: 4800000, reason: 'Tạm ứng đổ dầu chuyến đi An Giang', status: 'Đã duyệt', rejectReason: '', approvedVoucherId: 'CHI-001' }
+      ];
+      lsWrite(HN_ACCOUNTING_EXPENSE_REQUESTS_KEY, seedExpenseRequests);
+    }
   }
 
   // Read helpers — Tự động đồng bộ dữ liệu THẬT từ Tổng đài (Trips, SeatBank) & FleetStore (Vehicles, Staff)
@@ -322,6 +331,9 @@
     return stored;
   }
   function saveInspections(list) { lsWrite(HN_ACCOUNTING_INSPECTION_KEY, list); }
+
+  function getExpenseRequests() { return lsRead(HN_ACCOUNTING_EXPENSE_REQUESTS_KEY, []); }
+  function saveExpenseRequests(list) { lsWrite(HN_ACCOUNTING_EXPENSE_REQUESTS_KEY, list); }
 
   // Expose seed init globally
   seedAccountingDefaults();
@@ -1452,6 +1464,213 @@
 
 
   /* ---------------------------------------------------------
+     VIEW: TẠO YÊU CẦU CHI (viewAccountingExpenseRequests) — Tách riêng khỏi Phiếu Chi (viewAccountingChi)
+     vì đây là bước ĐỀ NGHỊ/CHỜ DUYỆT trước khi thành phiếu chi thật: nhân viên tạo yêu cầu → Kế toán
+     duyệt (sinh 1 phiếu CHI mới vào HN_ACCOUNTING_VOUCHERS_KEY, gắn ngược approvedVoucherId để truy vết)
+     hoặc từ chối (bắt buộc nhập lý do, theo đúng pattern modal xóa phiếu confirmDeleteVoucher ở trên).
+     --------------------------------------------------------- */
+  var EXP_REQ_STATUS_FILTER = 'all';
+
+  window.onExpReqStatusFilter = function (v) { EXP_REQ_STATUS_FILTER = v; renderAccountingExpenseRequestsView(); };
+
+  window.renderAccountingExpenseRequestsView = function () {
+    var all = getExpenseRequests();
+    var list = EXP_REQ_STATUS_FILTER === 'all' ? all : all.filter(function (r) { return r.status === EXP_REQ_STATUS_FILTER; });
+
+    var pendingList = all.filter(function (r) { return r.status === 'Chờ duyệt'; });
+    var approvedAmt = all.filter(function (r) { return r.status === 'Đã duyệt'; }).reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+    var pendingAmt = pendingList.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+
+    var html = '<div class="acct-header-bar">' +
+      '<div><h2 class="acct-title">Tạo Yêu Cầu Chi</h2>' +
+      '<p class="acct-subtitle">Đề nghị tạm ứng / chi tiền trước khi lập phiếu chi thật — Kế toán duyệt mới sinh Phiếu Chi vào sổ CHI</p></div>' +
+      '<button class="acct-btn acct-btn-primary" onclick="openAddExpenseRequestModal()"><svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo Yêu Cầu Chi Mới</button>' +
+      '</div>';
+
+    html += '<div class="acct-stats-grid">' +
+      '<div class="acct-stat-card card-c4"><div class="stat-lbl">ĐANG CHỜ DUYỆT</div><div class="stat-val text-c4">' + pendingList.length + ' yêu cầu</div><div class="stat-sub">Tổng đề nghị: ' + fmtMoney(pendingAmt) + '</div></div>' +
+      '<div class="acct-stat-card card-c1"><div class="stat-lbl">ĐÃ DUYỆT → PHIẾU CHI</div><div class="stat-val text-c1">' + fmtMoney(approvedAmt) + '</div></div>' +
+      '<div class="acct-stat-card card-c2"><div class="stat-lbl">TỔNG SỐ YÊU CẦU</div><div class="stat-val text-c2">' + all.length + '</div></div>' +
+      '</div>';
+
+    html += '<div class="acct-filter-bar">' +
+      '<select class="acct-select" onchange="onExpReqStatusFilter(this.value)">' +
+      '<option value="all"' + (EXP_REQ_STATUS_FILTER === 'all' ? ' selected' : '') + '>Tất cả trạng thái</option>' +
+      '<option value="Chờ duyệt"' + (EXP_REQ_STATUS_FILTER === 'Chờ duyệt' ? ' selected' : '') + '>Chờ duyệt</option>' +
+      '<option value="Đã duyệt"' + (EXP_REQ_STATUS_FILTER === 'Đã duyệt' ? ' selected' : '') + '>Đã duyệt</option>' +
+      '<option value="Từ chối"' + (EXP_REQ_STATUS_FILTER === 'Từ chối' ? ' selected' : '') + '>Từ chối</option>' +
+      '</select>' +
+      '</div>';
+
+    html += '<div class="report-box"><table class="acct-table"><thead><tr>' +
+      '<th>Mã YC</th><th>Ngày đề nghị</th><th>Người đề nghị</th><th>Nhóm chi phí</th><th>Hạng mục</th><th>Đơn vị/Người nhận</th><th>Số tiền đề nghị</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th>' +
+      '</tr></thead><tbody>';
+
+    if (list.length === 0) {
+      html += '<tr><td colspan="10" class="text-center py-4 text-sub">Chưa có yêu cầu chi nào phù hợp</td></tr>';
+    } else {
+      list.forEach(function (r) {
+        var badge = '<span class="badge badge-warning">Chờ duyệt</span>';
+        if (r.status === 'Đã duyệt') badge = '<span class="badge badge-success">Đã duyệt (' + esc(r.approvedVoucherId || '') + ')</span>';
+        else if (r.status === 'Từ chối') badge = '<span class="badge badge-danger">Từ chối</span>';
+
+        var actions = '';
+        if (r.status === 'Chờ duyệt') {
+          actions += '<button class="acct-icon-btn" title="Duyệt & lập phiếu chi" onclick="approveExpenseRequest(\'' + r.id + '\')" style="color:#16A34A;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>' +
+            '<button class="acct-icon-btn" title="Từ chối" onclick="rejectExpenseRequest(\'' + r.id + '\')" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+        }
+        actions += '<button class="acct-icon-btn del-btn" title="Xóa yêu cầu" onclick="deleteExpenseRequest(\'' + r.id + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>';
+
+        html += '<tr>' +
+          '<td><strong>' + esc(r.id) + '</strong></td>' +
+          '<td>' + fmtDate(r.date) + '</td>' +
+          '<td>' + esc(r.requester) + '</td>' +
+          '<td><span class="badge badge-tag">' + esc(r.mainGroup || '—') + '</span></td>' +
+          '<td><strong>' + esc(r.category) + '</strong>' + (r.plate && r.plate !== '—' ? ' <small class="text-sub">(' + esc(r.plate) + ')</small>' : '') + '</td>' +
+          '<td>' + esc(r.payee) + '</td>' +
+          '<td class="text-red font-bold">' + fmtMoney(r.amount) + '</td>' +
+          '<td><small>' + esc(r.reason || '') + (r.status === 'Từ chối' && r.rejectReason ? '<br><span class="text-red">Lý do từ chối: ' + esc(r.rejectReason) + '</span>' : '') + '</small></td>' +
+          '<td>' + badge + '</td>' +
+          '<td>' + actions + '</td>' +
+          '</tr>';
+      });
+    }
+
+    html += '</tbody></table></div>';
+    $('viewAccountingExpenseRequests').innerHTML = html;
+  };
+
+  window.openAddExpenseRequestModal = function () {
+    var today = todayISO();
+    var code = 'YCC-' + Math.floor(100 + Math.random() * 900);
+
+    var formHtml = '<div class="modal-form-box">' +
+      '<div class="modal-head"><h3>Tạo Yêu Cầu Chi Mới</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
+      '<form onsubmit="saveExpenseRequestForm(event)">' +
+      '<div class="form-grid">' +
+      '<div class="form-group"><label>Mã yêu cầu</label><input type="text" id="erId" class="acct-input" value="' + code + '" required /></div>' +
+      '<div class="form-group"><label>Ngày đề nghị</label><input type="date" id="erDate" class="acct-input" value="' + today + '" required /></div>' +
+      '<div class="form-group"><label>Người đề nghị</label><input type="text" id="erRequester" class="acct-input" placeholder="Họ tên người đề nghị" required /></div>' +
+      '<div class="form-group"><label>Nhóm chi phí chính</label><select id="erMainGroup" class="acct-select"><option value="Chi phí trực tiếp vận hành">Chi phí trực tiếp vận hành</option><option value="Chi phí cố định">Chi phí cố định</option><option value="Chi phí khác">Chi phí khác</option></select></div>' +
+      '<div class="form-group"><label>Hạng mục chi</label><select id="erCategory" class="acct-select">' + acctChiCategoryOptionsHtml() + '</select></div>' +
+      '<div class="form-group"><label>Số tiền đề nghị (VNĐ)</label><input type="number" id="erAmount" class="acct-input" placeholder="0" min="1000" required /></div>' +
+      '<div class="form-group"><label>Biển số xe (nếu có)</label><input type="text" id="erPlate" class="acct-input" placeholder="VD: 67B-012.34" /></div>' +
+      '<div class="form-group"><label>Đơn vị / Người nhận tiền</label><input type="text" id="erPayee" class="acct-input" placeholder="VD: Gara, Cây xăng, Nhân viên..." required /></div>' +
+      '<div class="form-group col-span-2"><label>Lý do đề nghị chi</label><textarea id="erReason" class="acct-input" rows="2" placeholder="Lý do, mục đích khoản chi..." required></textarea></div>' +
+      '</div>' +
+      '<div class="modal-foot"><button type="button" class="acct-btn" onclick="closeAdminModal()">Hủy bỏ</button><button type="submit" class="acct-btn acct-btn-primary">Gửi Yêu Cầu Chi</button></div>' +
+      '</form></div>';
+
+    openAdminModal(formHtml, false);
+  };
+
+  window.saveExpenseRequestForm = function (e) {
+    e.preventDefault();
+    var newReq = {
+      id: $('erId').value.trim(),
+      date: $('erDate').value,
+      requester: $('erRequester').value.trim(),
+      mainGroup: $('erMainGroup').value,
+      category: $('erCategory').value,
+      amount: Number($('erAmount').value) || 0,
+      plate: $('erPlate').value.trim() || '—',
+      payee: $('erPayee').value.trim(),
+      reason: $('erReason').value.trim(),
+      status: 'Chờ duyệt',
+      rejectReason: '',
+      approvedVoucherId: ''
+    };
+
+    var list = getExpenseRequests();
+    list.unshift(newReq);
+    saveExpenseRequests(list);
+    closeAdminModal();
+    showToast('Đã gửi yêu cầu chi ' + newReq.id + '!');
+    renderAccountingExpenseRequestsView();
+  };
+
+  window.approveExpenseRequest = function (id) {
+    var list = getExpenseRequests();
+    var req = list.find(function (r) { return r.id === id; });
+    if (!req || req.status !== 'Chờ duyệt') return;
+
+    var voucherId = 'CHI-' + Math.floor(1000 + Math.random() * 9000);
+    var vouchers = getVouchers();
+    vouchers.unshift({
+      id: voucherId,
+      type: 'CHI',
+      mainGroup: req.mainGroup,
+      category: req.category,
+      plate: req.plate || '—',
+      driver: req.requester,
+      amount: req.amount,
+      payee: req.payee,
+      date: todayISO(),
+      paymentMethod: 'Tiền mặt',
+      status: 'Đã chi',
+      note: 'Duyệt từ yêu cầu chi ' + req.id + ': ' + req.reason
+    });
+    saveVouchers(vouchers);
+
+    req.status = 'Đã duyệt';
+    req.approvedVoucherId = voucherId;
+    saveExpenseRequests(list);
+
+    showToast('Đã duyệt yêu cầu ' + req.id + ' → lập phiếu chi ' + voucherId + '!');
+    renderAccountingExpenseRequestsView();
+  };
+
+  window.rejectExpenseRequest = function (id) {
+    var list = getExpenseRequests();
+    var req = list.find(function (r) { return r.id === id; });
+    if (!req || req.status !== 'Chờ duyệt') return;
+
+    var formHtml = '<div class="modal-form-box">' +
+      '<div class="modal-head"><h3>Từ Chối Yêu Cầu Chi ' + esc(req.id) + '</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
+      '<form onsubmit="confirmRejectExpenseRequest(event, \'' + esc(req.id) + '\')">' +
+      '<div class="form-group" style="margin-bottom: 20px;">' +
+      '<label style="font-weight: 700; color: #DC2626; margin-bottom: 6px; display: block;">Lý do từ chối <span style="color:red">*</span></label>' +
+      '<textarea id="erRejectReason" class="acct-input" rows="3" placeholder="Nhập lý do từ chối yêu cầu này (bắt buộc)..." required style="width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid #CBD5E1; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #1E293B;"></textarea>' +
+      '</div>' +
+      '<div class="modal-foot" style="display: flex; justify-content: flex-end; gap: 12px;">' +
+      '<button type="button" class="acct-btn" onclick="closeAdminModal()" style="padding: 10px 20px; font-weight: 600;">Hủy bỏ</button>' +
+      '<button type="submit" class="acct-btn" style="background: #C20D08; color: #fff; border-color: #C20D08; font-weight: 700; padding: 10px 20px;">Xác Nhận Từ Chối</button>' +
+      '</div>' +
+      '</form></div>';
+
+    openAdminModal(formHtml);
+  };
+
+  window.confirmRejectExpenseRequest = function (e, id) {
+    e.preventDefault();
+    var reasonInput = $('erRejectReason');
+    var reason = reasonInput ? reasonInput.value.trim() : '';
+    if (!reason) {
+      showToast('Vui lòng nhập lý do từ chối!');
+      return;
+    }
+
+    var list = getExpenseRequests();
+    var req = list.find(function (r) { return r.id === id; });
+    if (!req) return;
+
+    req.status = 'Từ chối';
+    req.rejectReason = reason;
+    saveExpenseRequests(list);
+    closeAdminModal();
+    showToast('Đã từ chối yêu cầu ' + id + '!');
+    renderAccountingExpenseRequestsView();
+  };
+
+  window.deleteExpenseRequest = function (id) {
+    var list = getExpenseRequests().filter(function (r) { return r.id !== id; });
+    saveExpenseRequests(list);
+    showToast('Đã xóa yêu cầu chi ' + id + '!');
+    renderAccountingExpenseRequestsView();
+  };
+
+
+  /* ---------------------------------------------------------
      VIEW 4: CÁC SỔ & BẢNG NGHIỆP VỤ (viewAccountingLedgers)
      --------------------------------------------------------- */
   var CURRENT_LEDGER_TAB = 'fuel'; // 'cashbank', 'debts', 'assets', 'fuel', 'payroll', 'inspection'
@@ -1623,6 +1842,12 @@
   /* ---------------------------------------------------------
      MODALS FOR CREATING ACCOUNTING VOUCHERS & RECORDS
      --------------------------------------------------------- */
+  // Dùng chung giữa Phiếu Chi (openAddVoucherModal) và Yêu cầu Chi (openAddExpenseRequestModal) —
+  // 1 yêu cầu chi khi được duyệt sẽ sinh ra đúng 1 phiếu chi cùng danh mục hạng mục này.
+  function acctChiCategoryOptionsHtml() {
+    return '<option value="Nhiên liệu (Dầu DIESEL)">Nhiên liệu (Xăng / Dầu)</option><option value="Lương & Phụ cấp chuyến">Lương & Phụ cấp chuyến tài xế/phụ xe</option><option value="Bến bãi & BOT">Bến bãi, Phí ra vào bến, Phí đường bộ (BOT)</option><option value="Bảo trì, sửa chữa xe">Bảo trì, sửa chữa xe định kỳ & đột xuất</option><option value="Lốp, ắc quy, dầu nhớt">Lốp, ắc quy, dầu nhớt (hao mòn)</option><option value="Rửa xe, vệ sinh xe">Rửa xe, vệ sinh xe</option><option value="Bảo hiểm xe">Bảo hiểm xe (Bắt buộc / Thân vỏ)</option><option value="Đăng kiểm, phù hiệu, logo">Đăng kiểm, phù hiệu, logo, thuế trước bạ</option><option value="Lương nhân viên văn phòng">Lương nhân viên văn phòng / bán vé</option><option value="Thuê văn phòng/bến bãi">Thuê văn phòng / Bãi đậu xe</option><option value="Phạt vi phạm giao thông">Phạt vi phạm giao thông (Tách riêng tài xế)</option><option value="Lãi vay ngân hàng">Lãi vay mua xe ngân hàng</option>';
+  }
+
   window.openAddVoucherModal = function (type) {
     var isThu = type === 'THU';
     var title = isThu ? 'Thêm Phiếu Thu Mới (Doanh thu)' : 'Thêm Phiếu Chi Mới (Chi phí)';
@@ -1631,7 +1856,7 @@
 
     var catOptions = isThu ?
       '<option value="Vé lẻ">Vé lẻ (bán tại bến / điểm đón)</option><option value="Vé đặt trước">Vé đặt trước (Online / Tổng đài)</option><option value="Hoa hồng đại lý">Hoa hồng đại lý bán hộ</option>' :
-      '<option value="Nhiên liệu (Dầu DIESEL)">Nhiên liệu (Xăng / Dầu)</option><option value="Lương & Phụ cấp chuyến">Lương & Phụ cấp chuyến tài xế/phụ xe</option><option value="Bến bãi & BOT">Bến bãi, Phí ra vào bến, Phí đường bộ (BOT)</option><option value="Bảo trì, sửa chữa xe">Bảo trì, sửa chữa xe định kỳ & đột xuất</option><option value="Lốp, ắc quy, dầu nhớt">Lốp, ắc quy, dầu nhớt (hao mòn)</option><option value="Rửa xe, vệ sinh xe">Rửa xe, vệ sinh xe</option><option value="Bảo hiểm xe">Bảo hiểm xe (Bắt buộc / Thân vỏ)</option><option value="Đăng kiểm, phù hiệu, logo">Đăng kiểm, phù hiệu, logo, thuế trước bạ</option><option value="Lương nhân viên văn phòng">Lương nhân viên văn phòng / bán vé</option><option value="Thuê văn phòng/bến bãi">Thuê văn phòng / Bãi đậu xe</option><option value="Phạt vi phạm giao thông">Phạt vi phạm giao thông (Tách riêng tài xế)</option><option value="Lãi vay ngân hàng">Lãi vay mua xe ngân hàng</option>';
+      acctChiCategoryOptionsHtml();
 
     var formHtml = '<div class="modal-form-box">' +
       '<div class="modal-head"><h3>' + title + '</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +

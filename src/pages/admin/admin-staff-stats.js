@@ -1,22 +1,26 @@
 /* =========================================================
-   THỐNG KÊ NHÂN SỰ (Admin) — 3 tab con trong nhóm "Nhân sự":
+   THỐNG KÊ NHÂN SỰ (Admin) — 5 tab con trong nhóm "Nhân sự":
      1. Chuyến tài xế — số "phơi xe" đã KHỞI HÀNH THẬT (manifest hn_ts_manifests_v1, không phải bank.driver
         vì trường đó chỉ là "đang chỉ định", có thể đổi trước giờ chạy — xem adminTripDisplayStatus bên
         admin-trips.js) + số lượt trung chuyển đã nhận (ShuttleDriverService, khớp theo TÊN vì dữ liệu
         này chỉ lưu tên tài xế dạng chữ, không có staffId).
      2. Chuyến phụ xe — tương tự mục 1 nhưng chỉ tính phơi xe (trung chuyển KHÔNG có khái niệm phụ xe
         trong toàn bộ hệ thống — không có role 'shuttle_helper' nào cả, xem STAFF_ROLES admin-staff.js).
-     3. Kết ca — đọc lại đúng 1 nguồn "Kết ca" có sẵn của TicketStaff (hn_ts_shift_closings_v1,
-        tsConfirmShiftClosing trong ticketstaff-manifest-core.js), rồi tách hiển thị theo VAI TRÒ TÀI
-        KHOẢN của người đã kết ca (tra staffId → Nhân viên → username → Tài khoản → role):
-          - 'call_center' (Nhân viên tổng đài)  → chỉ hiện tổng vé/khách đã đặt trong ca.
-          - 'ticket_office' (Nhân viên phòng vé, role MỚI thêm theo yêu cầu — trước đây chỉ có
+     3-5. Kết ca — đọc lại đúng 1 nguồn "Kết ca" có sẵn của TicketStaff (hn_ts_shift_closings_v1,
+        tsConfirmShiftClosing trong ticketstaff-manifest-core.js), rồi tách thành 3 tab riêng theo VAI
+        TRÒ TÀI KHOẢN của người đã kết ca (tra staffId → Nhân viên → username → Tài khoản → role), thay
+        vì gộp cả 3 bảng vào 1 trang như trước (khó quan sát khi phải cuộn qua 3 bảng dài):
+          - "Kết ca — Tổng đài" ('call_center', mặc định khi không xác định được role) → chỉ hiện tổng
+            vé/khách đã đặt trong ca.
+          - "Kết ca — Phòng vé" ('ticket_office', role MỚI thêm theo yêu cầu — trước đây chỉ có
             'call_center' dùng chung cho cả đặt vé lẫn thu tiền) → hiện đủ số liệu tiền: doanh thu,
             tiền ứng tài xế, thu tiền mặt/chuyển khoản, kiểm đếm thực tế, chênh lệch thiếu/đủ.
-          - Trung chuyển KHÔNG có sự kiện "kết ca" nào trong hệ thống (không tạo manifest/shift-closing
-            nào cả) — mục "Trung chuyển" ở tab này vì vậy chỉ là tổng số lượt đã nhận TỪ TRƯỚC TỚI NAY
-            (ShuttleDriverService, cùng logic đếm với tab "Chuyến tài xế"), không phải 1 sự kiện kết ca
-            thật và không lọc được theo ngày.
+          - "Kết ca — Trung chuyển": Trung chuyển KHÔNG có sự kiện "kết ca" nào trong hệ thống (không
+            tạo manifest/shift-closing nào cả) — tab này vì vậy chỉ là tổng số lượt đã nhận TỪ TRƯỚC TỚI
+            NAY (ShuttleDriverService, cùng logic đếm với tab "Chuyến tài xế"), không phải 1 sự kiện kết
+            ca thật và không lọc được theo ngày.
+        2 tab Tổng đài/Phòng vé dùng chung 1 bộ lọc ngày (SS_KETCA_FILTER) vì cùng đọc từ 1 nguồn dữ liệu
+        kết ca, chỉ tách hiển thị theo role.
 
    Khớp tài xế/phụ xe/người kết ca bằng so TÊN (case-insensitive) vì manifest.driver/helper, staffId kết
    ca và ShuttleDriverService chỉ lưu chuỗi tên/nhãn nhập tay, không lưu id cứng — cùng hạn chế như việc
@@ -185,7 +189,7 @@ function ssKetcaFilterInput(field, val) {
 }
 function ssResetKetcaFilter() { SS_KETCA_FILTER = { dateFrom: '', dateTo: '' }; renderStaffStatsView(); }
 
-function ssRenderKetcaTab() {
+function ssGetKetcaRows() {
   var f = SS_KETCA_FILTER;
   var all = ssShiftClosingList().filter(function (r) {
     if (!r) return false;
@@ -203,6 +207,20 @@ function ssRenderKetcaTab() {
     if (role === 'ticket_office') phongVeRows.push(row);
     else tongDaiRows.push(row); // mặc định (call_center hoặc chưa xác định được role) → xem như tổng đài
   });
+  return { tongDaiRows: tongDaiRows, phongVeRows: phongVeRows };
+}
+
+function ssKetcaToolbarHtml() {
+  var f = SS_KETCA_FILTER;
+  return '<div class="sd-toolbar">' +
+      '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateFrom","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateTo","__this_value__"]\'></div>' +
+      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="ssResetKetcaFilter">Đặt lại</button></div>' +
+    '</div>';
+}
+
+function ssRenderKetcaTongDaiTab() {
+  var tongDaiRows = ssGetKetcaRows().tongDaiRows;
 
   var tongDaiHtml = tongDaiRows.map(function (x, idx) {
     var r = x.record;
@@ -219,6 +237,13 @@ function ssRenderKetcaTab() {
     '<thead><tr><th style="width:50px;">STT</th><th>Nhân viên</th><th>Thời gian kết ca</th><th>Số phơi</th><th>Tổng vé đã đặt/bán</th><th>Tổng khách</th></tr></thead>' +
     '<tbody>' + tongDaiHtml + '</tbody></table>' +
     (tongDaiHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt kết ca nào của nhân viên tổng đài.</p></div>');
+
+  return ssKetcaToolbarHtml() +
+    ssCardHtml('Kết ca — Nhân viên tổng đài', tongDaiRows.length + ' lượt', tongDaiTable);
+}
+
+function ssRenderKetcaPhongVeTab() {
+  var phongVeRows = ssGetKetcaRows().phongVeRows;
 
   var phongVeHtml = phongVeRows.map(function (x, idx) {
     var r = x.record;
@@ -238,6 +263,11 @@ function ssRenderKetcaTab() {
     '<tbody>' + phongVeHtml + '</tbody></table>' +
     (phongVeHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt kết ca nào của nhân viên phòng vé.</p></div>');
 
+  return ssKetcaToolbarHtml() +
+    ssCardHtml('Kết ca — Nhân viên phòng vé', phongVeRows.length + ' lượt', phongVeTable);
+}
+
+function ssRenderKetcaTrungChuyenTab() {
   var shuttleStaff = FleetStore.getStaff().filter(function (s) { return s.role === 'shuttle_driver'; })
     .map(function (s) { return { staff: s, legs: ssCountShuttleLegs(s.name) }; })
     .sort(function (a, b) { return b.legs - a.legs; });
@@ -254,19 +284,10 @@ function ssRenderKetcaTab() {
     '<tbody>' + shuttleHtml + '</tbody></table>' +
     (shuttleHtml ? '' : '<div class="grid-empty"><p>Chưa có tài xế trung chuyển nào.</p></div>');
 
-  return '<div class="sd-toolbar">' +
-      '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateFrom","__this_value__"]\'></div>' +
-      '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateTo","__this_value__"]\'></div>' +
-      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="ssResetKetcaFilter">Đặt lại</button></div>' +
+  return '<div style="font-size:12px; color:var(--text-sub); margin-bottom:14px; line-height:1.5;">' +
+      'Trung chuyển không có sự kiện "kết ca" thật trong hệ thống nên mục này luôn là tổng số lượt đã ' +
+      'nhận từ trước tới nay, không lọc được theo ngày.' +
     '</div>' +
-    '<div style="font-size:12px; color:var(--text-sub); margin-bottom:14px; line-height:1.5;">' +
-      'Bộ lọc ngày áp dụng cho 2 bảng Kết ca bên dưới (đọc từ đúng nút "Kết ca" trong TicketStaff). Mục ' +
-      '"Trung chuyển" không có sự kiện kết ca thật trong hệ thống nên luôn là tổng số lượt từ trước tới nay.' +
-    '</div>' +
-    ssCardHtml('Kết ca — Nhân viên tổng đài', tongDaiRows.length + ' lượt', tongDaiTable) +
-    '<div style="height:16px;"></div>' +
-    ssCardHtml('Kết ca — Nhân viên phòng vé', phongVeRows.length + ' lượt', phongVeTable) +
-    '<div style="height:16px;"></div>' +
     ssCardHtml('Trung chuyển — Số chuyến đã thực hiện', shuttleStaff.length + ' tài xế', shuttleTable);
 }
 
@@ -281,14 +302,18 @@ function renderStaffStatsView() {
 
   var body;
   if (tab === 'helper') body = ssRenderHelperTripsTab();
-  else if (tab === 'ketca') body = ssRenderKetcaTab();
+  else if (tab === 'ketca_tongdai') body = ssRenderKetcaTongDaiTab();
+  else if (tab === 'ketca_phongve') body = ssRenderKetcaPhongVeTab();
+  else if (tab === 'ketca_trungchuyen') body = ssRenderKetcaTrungChuyenTab();
   else body = ssRenderDriverTripsTab();
 
   $('viewStaffStats').innerHTML =
     '<div class="station-subtabs">' +
       tabBtn('driver', 'Chuyến tài xế') +
       tabBtn('helper', 'Chuyến phụ xe') +
-      tabBtn('ketca', 'Kết ca') +
+      tabBtn('ketca_tongdai', 'Kết ca — Tổng đài') +
+      tabBtn('ketca_phongve', 'Kết ca — Phòng vé') +
+      tabBtn('ketca_trungchuyen', 'Kết ca — Trung chuyển') +
     '</div>' +
     body;
 }
