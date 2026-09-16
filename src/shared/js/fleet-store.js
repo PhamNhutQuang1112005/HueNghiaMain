@@ -579,6 +579,56 @@
   }
   function setStaff(a) { writeJSON(HN_STAFF_KEY, Array.isArray(a) ? a : []); }
 
+  // "Loại nhân viên" (Cấu hình nhân sự > Loại nhân viên) — trước đây là mảng hard-code STAFF_ROLES
+  // trong admin-staff.js (ticket/driver/helper/shuttle_driver), nay chuyển vào đây để admin tự thêm/sửa/
+  // xoá được qua UI. Giữ nguyên 4 key cũ khi seed lần đầu để không "mồ côi" staff.role đã lưu trước đó.
+  // Mỗi loại còn mang theo `permissions` (mảng key theo window.PERMISSION_GROUPS, auth/permissions.js)
+  // = "cụm phân quyền" mặc định cấp cho nhân viên thuộc loại này.
+  var SEED_STAFF_ROLES = [
+    { key: 'ticket', label: 'Nhân viên vé', permissions: [] },
+    { key: 'driver', label: 'Tài xế', permissions: [] },
+    { key: 'helper', label: 'Phụ xe', permissions: [] },
+    { key: 'shuttle_driver', label: 'Tài xế trung chuyển', permissions: [] }
+  ];
+  function getStaffRoles() { return readJSON(HN_STAFF_ROLES_KEY, clone(SEED_STAFF_ROLES)); }
+  function setStaffRoles(a) { writeJSON(HN_STAFF_ROLES_KEY, Array.isArray(a) ? a : []); }
+  function addStaffRole(fields) {
+    var label = String((fields && fields.label) || '').trim();
+    if (!label) return { ok: false, reason: 'Tên loại nhân viên không được để trống.' };
+    var list = getStaffRoles();
+    if (list.some(function (r) { return String(r.label || '').toLowerCase() === label.toLowerCase(); })) {
+      return { ok: false, reason: 'Loại nhân viên này đã tồn tại.' };
+    }
+    var item = {
+      key: String((fields && fields.key) || makeStationId('role')),
+      label: label,
+      permissions: Array.isArray(fields && fields.permissions) ? fields.permissions : []
+    };
+    list.push(item);
+    setStaffRoles(list);
+    return { ok: true, item: item };
+  }
+  function updateStaffRole(key, fields) {
+    var list = getStaffRoles();
+    var idx = list.findIndex(function (r) { return r && r.key === key; });
+    if (idx === -1) return { ok: false, reason: 'Không tìm thấy loại nhân viên.' };
+    var label = String((fields && fields.label) || '').trim();
+    if (!label) return { ok: false, reason: 'Tên loại nhân viên không được để trống.' };
+    if (list.some(function (r, i) { return i !== idx && String(r.label || '').toLowerCase() === label.toLowerCase(); })) {
+      return { ok: false, reason: 'Tên loại nhân viên đã tồn tại.' };
+    }
+    list[idx].label = label;
+    list[idx].permissions = Array.isArray(fields && fields.permissions) ? fields.permissions : [];
+    setStaffRoles(list);
+    return { ok: true, item: list[idx] };
+  }
+  function removeStaffRole(key) {
+    var used = getStaff().filter(function (s) { return s && s.role === key; }).length;
+    if (used) return { ok: false, reason: 'Loại nhân viên này đang gán cho ' + used + ' nhân viên. Đổi loại cho các nhân viên đó trước.' };
+    setStaffRoles(getStaffRoles().filter(function (r) { return r && r.key !== key; }));
+    return { ok: true };
+  }
+
   function getActivity() { return readJSON(HN_ADMIN_ACTIVITY_KEY, []); }
   function pushActivity(entry) {
     var list = getActivity();
@@ -897,6 +947,11 @@
     setVehicles: setVehicles,
     getStaff: getStaff,
     setStaff: setStaff,
+    getStaffRoles: getStaffRoles,
+    setStaffRoles: setStaffRoles,
+    addStaffRole: addStaffRole,
+    updateStaffRole: updateStaffRole,
+    removeStaffRole: removeStaffRole,
     getActivity: getActivity,
     pushActivity: pushActivity,
     buildTripDirectionsCfg: buildTripDirectionsCfg,
@@ -913,7 +968,7 @@
     log: log,
     // Cho phép Admin "Khôi phục mặc định": xoá các key cấu hình rồi seed lại.
     resetToSeed: function () {
-      [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY].forEach(function (k) {
+      [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY].forEach(function (k) {
         localStorage.removeItem(k);
       });
       seedAll();

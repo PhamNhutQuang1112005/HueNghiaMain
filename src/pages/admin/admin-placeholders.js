@@ -14,18 +14,6 @@ function renderStopsView() {
   $('viewStops').innerHTML = renderComingSoon('Điểm dừng', 'Danh sách các điểm có thể rước theo trạm — tính năng sẽ có ở bản cập nhật sau.');
 }
 
-function renderBookTicketView() {
-  $('viewBookTicket').innerHTML = renderComingSoon('Đặt vé', 'Đặt vé cho khách từ trang quản trị — tính năng sẽ có ở bản cập nhật sau.');
-}
-
-function renderSellTicketView() {
-  $('viewSellTicket').innerHTML = renderComingSoon('Bán vé', 'Bán vé trực tiếp từ trang quản trị — tính năng sẽ có ở bản cập nhật sau.');
-}
-
-function renderPickupCustomerView() {
-  $('viewPickupCustomer').innerHTML = renderComingSoon('Đón khách', 'Quản lý danh sách khách cần đón — tính năng sẽ có ở bản cập nhật sau.');
-}
-
 function renderRecruitmentView() {
   $('viewRecruitment').innerHTML = renderComingSoon('Thông báo tuyển dụng', 'Danh sách thông báo tuyển dụng — tính năng sẽ có ở bản cập nhật sau.');
 }

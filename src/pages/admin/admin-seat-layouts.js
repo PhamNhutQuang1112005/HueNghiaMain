@@ -23,6 +23,19 @@ var DEFAULT_SEAT_LAYOUTS = [
 
 var SEAT_LAYOUT_FILTERS = { search: '', isDoubleDeck: '', active: '' };
 
+/* Ghế tài xế — mã giả (không thuộc dãy A../B..) luôn hiện là Ô ĐẦU TIÊN của lưới ghế tầng dưới (ngay
+   trước A1, cùng kích cỡ/cách hiển thị như 1 ghế khách bình thường — không phải thanh riêng to hơn),
+   cho MỌI sơ đồ ghế. Không tính vào "số ghế" (chỗ ngồi khách) nên KHÔNG đưa vào slBuildCodes — chỉ
+   dùng chung 2 map có sẵn hiddenSeats[]/seatNames{} (coi như 1 "mã ghế" bình thường) để tái dùng
+   nguyên logic click-ẩn/hiện + double-click đổi tên đã có, khỏi phải thêm state hay cột dữ liệu riêng. */
+var SL_DRIVER_CODE = '__driver__';
+var SL_DRIVER_DEFAULT_LABEL = 'Tài xế';
+function slDefaultLabelFor(code) { return code === SL_DRIVER_CODE ? SL_DRIVER_DEFAULT_LABEL : code; }
+/* Đếm ô ẩn KHÔNG tính ghế tài xế — ghế tài xế không phải chỗ khách nên không ảnh hưởng số "X ghế ẩn". */
+function slRealHiddenCount(hiddenSeats) {
+  return (hiddenSeats || []).filter(function (c) { return c !== SL_DRIVER_CODE; }).length;
+}
+
 /* ---------------------------------------------------------
    STORAGE
    --------------------------------------------------------- */
@@ -75,25 +88,29 @@ function slMiniPreview(layout) {
   var codes  = slBuildCodes(seats, hidden);
   var cols   = seats > 24 ? 3 : 2;
 
-  function renderFloor(arr, floorLabel) {
+  var driverHidden = hidden.indexOf(SL_DRIVER_CODE) !== -1;
+
+  function renderFloor(arr, floorLabel, isFront) {
     var cells = arr.map(function(s) {
       if (s.hidden) return '<span class="sl-mini-cell sl-mini-hidden"></span>';
       return '<span class="sl-mini-cell"></span>';
     }).join('');
+    /* Ghế tài xế = ô đầu tiên của lưới tầng dưới, cùng kích cỡ .sl-mini-cell như ghế khách. */
+    var driverHtml = isFront ? '<span class="sl-mini-cell sl-mini-driver' + (driverHidden ? ' sl-mini-hidden' : '') + '" title="Ghế tài xế"></span>' : '';
     return '<div class="sl-mini-floor">' +
              (floorLabel ? '<span class="sl-mini-floor-lbl">' + floorLabel + '</span>' : '') +
-             '<div class="sl-mini-grid" style="grid-template-columns:repeat(' + cols + ',1fr);">' + cells + '</div>' +
+             '<div class="sl-mini-grid" style="grid-template-columns:repeat(' + cols + ',1fr);">' + driverHtml + cells + '</div>' +
            '</div>';
   }
 
   var html = '<div class="sl-mini-wrap">';
   if (dbl) {
     html += '<div class="sl-mini-floors">' +
-              renderFloor(codes.down, 'T1') +
-              renderFloor(codes.up,   'T2') +
+              renderFloor(codes.down, 'T1', true) +
+              renderFloor(codes.up,   'T2', false) +
             '</div>';
   } else {
-    html += renderFloor(codes.down, '');
+    html += renderFloor(codes.down, '', true);
   }
   html += '</div>';
   return html;
@@ -129,7 +146,7 @@ function renderSeatLayoutsView() {
     var activeBadge = x.active
       ? '<span class="status-badge dang-ban"><span class="status-dot"></span>Kích hoạt</span>'
       : '<span class="status-badge da-huy"><span class="status-dot"></span>Tắt</span>';
-    var hiddenCount = (x.hiddenSeats || []).length;
+    var hiddenCount = slRealHiddenCount(x.hiddenSeats);
     var hiddenNote  = hiddenCount > 0
       ? '<span style="font-size:11px;color:var(--text-sub);font-weight:600;">' + hiddenCount + ' ô ẩn</span>'
       : '';
@@ -252,12 +269,13 @@ function _slBuildCombinedHtml(item) {
   var seats   = _slEditorState.seats;
   var dbl     = _slEditorState.isDoubleDeck;
   var hidden  = _slEditorState.hiddenSeats;
-  var visible = seats - hidden.length;
+  var hiddenCount = slRealHiddenCount(hidden);
+  var visible = seats - hiddenCount;
   var title   = isNew ? 'Tạo sơ đồ ghế mới' : 'Chỉnh sửa — ' + esc(item.name);
 
   var counterHtml = seats > 0
     ? visible + ' ghế · ' + (dbl ? '2 tầng' : '1 tầng') +
-      (hidden.length > 0 ? ' · <span style="color:#F59E0B;">' + hidden.length + ' ẩn</span>' : '')
+      (hiddenCount > 0 ? ' · <span style="color:#F59E0B;">' + hiddenCount + ' ẩn</span>' : '')
     : 'Nhập số ghế để xem sơ đồ';
 
   return (
@@ -308,6 +326,7 @@ function _slBuildCombinedHtml(item) {
         '<div class="sl-editor-legend-item"><span class="sl-editor-legend-dot sl-normal"></span>Ghế bình thường</div>' +
         '<div class="sl-editor-legend-item"><span class="sl-editor-legend-dot sl-hidden-dot"></span>Ô ẩn</div>' +
         '<div class="sl-editor-legend-item"><span class="sl-editor-legend-dot sl-custom-dot"></span>Tên tuỳ chỉnh</div>' +
+        '<div class="sl-editor-legend-item"><span class="sl-editor-legend-dot sl-driver-dot"></span>Ghế tài xế</div>' +
         '<button type="button" class="btn btn-sm" style="margin-left:auto;" onclick="adminSeatLayoutEditorReset()">' +
           '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.65"/></svg>' +
           'Đặt lại' +
@@ -378,7 +397,21 @@ function _slRenderGrid() {
   var codes = slBuildCodes(seats, hidden);
   var useCols3 = seats > 24;
 
-  function floorHtml(arr, floorLabel) {
+  /* Ghế tài xế — Ô ĐẦU TIÊN của lưới ghế tầng dưới (ngay trước A1), cùng class .sl-editor-cell nên
+     kích cỡ/cách hiển thị giống hệt 1 ghế khách bình thường, chỉ khác viền để phân biệt. Tái dùng
+     nguyên hiddenSeats[]/seatNames{} như 1 mã ghế bình thường (xem SL_DRIVER_CODE đầu file) nên
+     click-ẩn/hiện + double-click đổi tên hoạt động y hệt ghế thường, không cần thêm handler riêng. */
+  function driverSeatHtml() {
+    var code = SL_DRIVER_CODE;
+    var isHidden = hidden.indexOf(code) !== -1;
+    var displayName = _slEditorState.seatNames[code] || SL_DRIVER_DEFAULT_LABEL;
+    var isCustom = !!_slEditorState.seatNames[code];
+    return '<div class="sl-editor-cell sl-editor-driver' + (isHidden ? ' sl-editor-hidden' : '') + '" data-seat="' + code + '">' +
+      '<span class="sl-editor-cell-code' + (isCustom ? ' sl-custom-name' : '') + '">' + esc(displayName) + '</span>' +
+    '</div>';
+  }
+
+  function floorHtml(arr, floorLabel, isFront) {
     var cells = arr.map(function(s) {
       var cls = 'sl-editor-cell' + (s.hidden ? ' sl-editor-hidden' : '');
       var displayName = _slEditorState.seatNames[s.code] || s.code;
@@ -391,13 +424,13 @@ function _slRenderGrid() {
     }).join('');
     var lbl = floorLabel ? '<div class="sl-editor-floor-label">' + floorLabel + '</div>' : '';
     var gridCls = 'sl-editor-grid' + (useCols3 ? ' sl-cols-3' : '');
-    return '<div class="sl-editor-floor">' + lbl + '<div class="' + gridCls + '">' + cells + '</div></div>';
+    return '<div class="sl-editor-floor">' + lbl + '<div class="' + gridCls + '">' + (isFront ? driverSeatHtml() : '') + cells + '</div></div>';
   }
 
   body.innerHTML = '<div class="sl-editor-floors">' +
     (dbl
-      ? floorHtml(codes.down, 'TẦNG DƯỚI') + floorHtml(codes.up, 'TẦNG TRÊN')
-      : floorHtml(codes.down, '')) +
+      ? floorHtml(codes.down, 'TẦNG DƯỚI', true) + floorHtml(codes.up, 'TẦNG TRÊN', false)
+      : floorHtml(codes.down, '', true)) +
   '</div>';
 
   _slUpdateCounter();
@@ -408,15 +441,15 @@ function _slUpdateCounter() {
   var el = document.getElementById('slCounter');
   if (!el) return;
   var seats   = _slEditorState.seats;
-  var hidden  = _slEditorState.hiddenSeats;
-  var visible = seats - hidden.length;
+  var hiddenCount = slRealHiddenCount(_slEditorState.hiddenSeats);
+  var visible = seats - hiddenCount;
   var dbl     = _slEditorState.isDoubleDeck;
   if (seats <= 0) {
     el.innerHTML = 'Nhập số ghế để xem sơ đồ';
     return;
   }
   el.innerHTML = visible + ' ghế · ' + (dbl ? '2 tầng' : '1 tầng') +
-    (hidden.length > 0 ? ' · <span style="color:#F59E0B;">' + hidden.length + ' ẩn</span>' : '');
+    (hiddenCount > 0 ? ' · <span style="color:#F59E0B;">' + hiddenCount + ' ẩn</span>' : '');
 }
 
 /* Gắn mouse events vào grid */
@@ -433,7 +466,7 @@ function _slEditorAttachEvents() {
     _slEditorState.isDragging = false; /* huỷ drag nếu đang kéo */
 
     var code = cell.getAttribute('data-seat');
-    var currentName = _slEditorState.seatNames[code] || code;
+    var currentName = _slEditorState.seatNames[code] || slDefaultLabelFor(code);
     var codeSpan = cell.querySelector('.sl-editor-cell-code');
 
     /* Chuyển span thành input inline */
@@ -449,13 +482,14 @@ function _slEditorAttachEvents() {
 
     function commit() {
       var newName = input.value.trim();
-      if (newName && newName !== code) {
+      var defaultLabel = slDefaultLabelFor(code);
+      if (newName && newName !== defaultLabel) {
         _slEditorState.seatNames[code] = newName;
-      } else if (!newName || newName === code) {
+      } else if (!newName || newName === defaultLabel) {
         delete _slEditorState.seatNames[code];
       }
       /* Xoá input, khôi phục span với tên mới */
-      var displayName = _slEditorState.seatNames[code] || code;
+      var displayName = _slEditorState.seatNames[code] || defaultLabel;
       var isCustom = !!_slEditorState.seatNames[code];
       codeSpan.textContent = displayName;
       codeSpan.className = 'sl-editor-cell-code' + (isCustom ? ' sl-custom-name' : '');

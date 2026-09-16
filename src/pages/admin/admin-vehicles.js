@@ -131,6 +131,11 @@ function adminOpenVehicleModal(idx) {
         '<div class="fld" style="justify-content:flex-end;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="vmActive" ' + (!v || activeOf(v) ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Sẵn sàng hoạt động</label></div>' +
       '</div>' +
       '<div class="fld"><label>Ghi chú</label><input id="vmNote" value="' + (v ? esc(v.note || '') : '') + '" placeholder="Ghi chú phương tiện..."></div>' +
+      '<div class="form-section-label" style="margin-top:4px;">Ghế tài xế (trên sơ đồ ghế)</div>' +
+      '<div class="fld-row">' +
+        '<div class="fld"><label>Tên hiển thị</label><input id="vmDriverSeatName" value="' + (v ? esc(v.driverSeatName || '') : '') + '" placeholder="VD: Tài xế, Trần Văn Hùng..."></div>' +
+        '<div class="fld" style="justify-content:flex-end;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="vmDriverSeatHidden" ' + (v && v.driverSeatHidden ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Ẩn ghế tài xế trên sơ đồ</label></div>' +
+      '</div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu thông tin</button></div>' +
     '</form>'
   );
@@ -161,7 +166,9 @@ function adminSaveVehicle(e) {
     seats: parseInt($('vmSeats').value, 10) || 0, active: $('vmActive').checked,
     note: $('vmNote').value.trim(),
     driverDefault: (idx >= 0 && all[idx] && all[idx].driverDefault) || '',
-    helperDefault: (idx >= 0 && all[idx] && all[idx].helperDefault) || ''
+    helperDefault: (idx >= 0 && all[idx] && all[idx].helperDefault) || '',
+    driverSeatName: $('vmDriverSeatName').value.trim() || 'Tài xế',
+    driverSeatHidden: $('vmDriverSeatHidden').checked
   };
   if (idx >= 0) {
     var before = all[idx];

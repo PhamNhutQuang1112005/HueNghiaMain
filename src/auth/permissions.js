@@ -29,9 +29,10 @@
     isAdmin: function () {
       return role() === 'admin';
     },
-    // Ở chế độ ĐIỀU HÀNH trung chuyển (thay vì phòng vé) tại tab "Trung chuyển".
+    // Ở chế độ ĐIỀU HÀNH trung chuyển (thay vì phòng vé) tại tab "Trung chuyển" — admin luôn có đủ
+    // quyền cao nhất nên cũng được tính là chế độ điều hành (vd bấm "Đón khách" từ sidebar Admin).
     isShuttleDispatch: function () {
-      return role() === 'shuttle_dispatch';
+      return role() === 'shuttle_dispatch' || role() === 'admin';
     }
   };
 })();

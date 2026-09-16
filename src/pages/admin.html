@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=111" />
   <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109" />
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
-  <link rel="stylesheet" href="admin/admin.css?v=159" />
+  <link rel="stylesheet" href="admin/admin.css?v=163" />
   <link rel="stylesheet" href="admin/admin-ts-modals.css?v=3" />
 </head>
 
@@ -75,11 +75,11 @@
         <div class="admin-nav-group-wrap" id="navGroupVeWrap">
           <div class="admin-nav-group-inner">
             <div class="admin-nav-group" id="navGroupVe">
-              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewBookTicket"]'>
+              <button type="button" class="admin-nav-item" data-action="adminGoToTicketStaff" data-args='["booking"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>Đặt vé</button>
-              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewSellTicket"]'>
+              <button type="button" class="admin-nav-item" data-action="adminGoToTicketStaff" data-args='["booking"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 11v2M13 17v2"/></svg>Bán vé</button>
-              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewPickupCustomer"]'>
+              <button type="button" class="admin-nav-item" data-action="adminGoToTicketStaff" data-args='["pickup"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14"/><path d="M5 17a2 2 0 0 1-2-2v-3.2a1 1 0 0 1 .3-.7l2.6-2.6A2 2 0 0 1 7.3 8H16a2 2 0 0 1 1.6.8l2.1 2.8a1 1 0 0 0 .5.3l1.4.4a1 1 0 0 1 .7 1v1.7a2 2 0 0 1-2 2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Đón khách</button>
             </div>
           </div>
@@ -102,8 +102,6 @@
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"/><path d="M2 16h20"/><path d="M4 16v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2M17 16v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2"/><path d="M7 8h10"/><circle cx="7.5" cy="12.5" r="1"/><circle cx="16.5" cy="12.5" r="1"/></svg>Phơi xe</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewPricing"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Quản lý giá</button>
-              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewSchedule"]'>
-                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Quản lý giờ</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTransship"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14"/><path d="M5 17a2 2 0 0 1-2-2v-3.2a1 1 0 0 1 .3-.7l2.6-2.6A2 2 0 0 1 7.3 8H16a2 2 0 0 1 1.6.8l2.1 2.8a1 1 0 0 0 .5.3l1.4.4a1 1 0 0 1 .7 1v1.7a2 2 0 0 1-2 2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Trung chuyển</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewTicketList"]'>
@@ -144,6 +142,8 @@
         <div class="admin-nav-group-wrap" id="navGroupNhanSuWrap">
           <div class="admin-nav-group-inner">
             <div class="admin-nav-group">
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewStaffConfig"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.31.22.65.22 1v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Cấu hình nhân sự</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewStaff"]'>
                 <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Quản lý nhân viên</button>
               <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewAccounts"]'>
@@ -202,16 +202,12 @@
       <!-- ===== MAIN ===== -->
       <main class="admin-main" id="adminMain">
         <section class="admin-view" id="viewDashboard"></section>
-        <section class="admin-view" id="viewBookTicket" hidden></section>
-        <section class="admin-view" id="viewSellTicket" hidden></section>
-        <section class="admin-view" id="viewPickupCustomer" hidden></section>
         <section class="admin-view" id="viewStations" hidden></section>
         <section class="admin-view" id="viewSubStations" hidden></section>
         <section class="admin-view" id="viewStops" hidden></section>
         <section class="admin-view" id="viewDirections" hidden></section>
         <section class="admin-view" id="viewTrips" hidden></section>
         <section class="admin-view" id="viewPricing" hidden></section>
-        <section class="admin-view" id="viewSchedule" hidden></section>
         <section class="admin-view" id="viewTransship" hidden></section>
         <section class="admin-view" id="viewTicketList" hidden></section>
         <section class="admin-view" id="viewTicketOffice" hidden></section>
@@ -227,6 +223,7 @@
         <section class="admin-view" id="viewAccountingChi" hidden></section>
         <section class="admin-view" id="viewAccountingLedgers" hidden></section>
 
+        <section class="admin-view" id="viewStaffConfig" hidden></section>
         <section class="admin-view" id="viewStaff" hidden></section>
         <section class="admin-view" id="viewAccounts" hidden></section>
         <section class="admin-view" id="viewStaffStats" hidden></section>
@@ -382,38 +379,38 @@
     <span id="toastText"></span>
   </div>
 
-  <script src="../shared/js/storage-keys.js?v=8"></script>
+  <script src="../shared/js/storage-keys.js?v=9"></script>
   <script src="../shared/js/format.js?v=9"></script>
   <script src="../shared/js/constants.js?v=5"></script>
   <script src="../shared/js/seat-bank.js?v=3"></script>
   <script src="../auth/session.js?v=1"></script>
-  <script src="../auth/permissions.js?v=1"></script>
+  <script src="../auth/permissions.js?v=2"></script>
   <script src="../auth/accounts.js?v=1"></script>
-  <script src="../shared/js/fleet-store.js?v=15"></script>
+  <script src="../shared/js/fleet-store.js?v=16"></script>
   <script src="../services/trip-service.js?v=1"></script>
   <script src="../services/pickup-service.js?v=1"></script>
   <script src="../services/shuttle-driver-service.js?v=1"></script>
   <!-- admin.js (1333 dòng) đã tách theo banner mục 1–8 thành các mảnh liền mạch — NẠP ĐÚNG
        THỨ TỰ (= thứ tự dòng file gốc); admin-settings-boot.js chứa dòng BOOT ở cuối nên phải nạp
        SAU cùng. Biến/hàm vẫn là global top-level như cũ. -->
-  <script src="admin/admin.js?v=30"></script>
+  <script src="admin/admin.js?v=31"></script>
   <script src="admin/admin-dashboard.js?v=3"></script>
   <script src="admin/admin-station-directory.js?v=16"></script>
-  <script src="admin/admin-placeholders.js?v=3"></script>
+  <script src="admin/admin-placeholders.js?v=4"></script>
   <script src="admin/admin-stations.js?v=30"></script>
   <script src="admin/admin-trips.js?v=13"></script>
-  <script src="admin/admin-schedule.js?v=4"></script>
   <script src="admin/admin-calendar.js?v=1"></script>
   <script src="admin/admin-transship.js?v=17"></script>
   <script src="admin/admin-tickets.js?v=13"></script>
   <script src="admin/admin-ticket-office.js?v=4"></script>
   <script src="admin/admin-customers.js?v=7"></script>
-  <script src="admin/admin-vehicles.js?v=2"></script>
-  <script src="admin/admin-staff.js?v=2"></script>
+  <script src="admin/admin-vehicles.js?v=3"></script>
+  <script src="admin/admin-staff.js?v=3"></script>
   <script src="admin/admin-accounts.js?v=2"></script>
+  <script src="admin/admin-staff-config.js?v=2"></script>
   <script src="admin/admin-staff-stats.js?v=4"></script>
   <script src="admin/admin-activity.js?v=1"></script>
-  <script src="admin/admin-seat-layouts.js?v=2"></script>
+  <script src="admin/admin-seat-layouts.js?v=4"></script>
   <script src="admin/admin-vehicle-seats.js?v=2"></script>
   <script src="admin/admin-vehicle-categories.js?v=10"></script>
   <script src="admin/admin-accounting.js?v=2"></script>
@@ -421,5 +418,6 @@
 
 
   <script src="../shared/js/events.js?v=3"></script>
+  <script src="admin/admin-search-select.js?v=1"></script>
 </body>
 </html>

@@ -2102,7 +2102,7 @@
 <div class="seat-menu" id="seatMenu"></div>
 <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="m5 13 4 4L19 7"/></svg><span id="toastText"></span></div>
 
-<script src="../shared/js/storage-keys.js?v=8"></script>
+<script src="../shared/js/storage-keys.js?v=9"></script>
 <script src="../shared/js/format.js?v=9"></script>
 <script src="../shared/js/constants.js?v=5"></script>
 <script src="../data/sample-seat-pool.js?v=3"></script>
@@ -2110,8 +2110,8 @@
 <script src="../data/sample-trip-templates.js?v=7"></script>
 <script src="../shared/js/seat-bank.js?v=3"></script>
 <script src="../auth/session.js?v=1"></script>
-<script src="../auth/permissions.js?v=1"></script>
-<script src="../shared/js/fleet-store.js?v=15"></script>
+<script src="../auth/permissions.js?v=2"></script>
+<script src="../shared/js/fleet-store.js?v=16"></script>
 <script src="../services/trip-service.js?v=1"></script>
 <script src="../services/pickup-service.js?v=2"></script>
 <script src="../services/shuttle-driver-service.js?v=1"></script>
@@ -2126,11 +2126,24 @@
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=154"></script>
+<script src="ticketstaff/ticketstaff.js?v=156"></script>
 <script src="ticketstaff/ticketstaff-account.js?v=3"></script>
 <script src="ticketstaff/ticketstaff-pickup.js?v=21"></script>
 <script src="ticketstaff/ticketstaff-manifest-core.js?v=8"></script>
 <script src="ticketstaff/ticketstaff-manifest-ui.js?v=44"></script>
 <script src="../shared/js/events.js?v=3"></script>
+<script>
+  // Cho phép mở thẳng 1 tab cụ thể qua query string (?view=booking|pickup|history|phoi) — dùng khi
+  // Admin bấm "Đặt vé"/"Bán vé"/"Đón khách" ở sidebar (nhóm "Vận hành vé", xem adminGoToTicketStaff()
+  // trong admin.js) để điều hướng sang đây đúng ngay màn cần, khỏi phải tự bấm lại tab. Đặt ở CUỐI
+  // cùng, SAU MỌI <script> khác — switchView('pickup') gọi tới pkRenderCalendar()/pkIsShuttleDispatchRole()
+  // (ticketstaff-pickup.js) nên gọi sớm hơn (vd giữa ticketstaff.js) sẽ ReferenceError, làm hỏng luôn
+  // phần script CÒN LẠI của file đang chạy dở (đã từng xảy ra, xem lịch sử sửa). 'booking' là tab mặc
+  // định (currentView đã là 'booking') nên bỏ qua, khỏi gọi switchView() thừa.
+  (function () {
+    var view = new URLSearchParams(window.location.search).get('view');
+    if (view && view !== 'booking' && typeof switchView === 'function') switchView(view);
+  })();
+</script>
 </body>
 </html>

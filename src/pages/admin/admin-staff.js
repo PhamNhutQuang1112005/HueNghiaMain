@@ -1,10 +1,13 @@
 /* =========================================================
    5. QUẢN LÝ NHÂN VIÊN
    ========================================================= */
-var STAFF_ROLES = [['ticket', 'Nhân viên vé'], ['driver', 'Tài xế'], ['helper', 'Phụ xe'], ['shuttle_driver', 'Tài xế trung chuyển']];
+// Danh mục "Loại nhân viên" nay cấu hình được ở Nhân sự > Cấu hình nhân sự (admin-staff-config.js,
+// FleetStore.getStaffRoles()) thay vì hard-code — giữ hàm này để nơi khác trong file khỏi phải gọi
+// FleetStore trực tiếp và lỡ đổi shape.
+function getStaffRoleList() { return FleetStore.getStaffRoles(); }
 var STAFF_FILTERS = { search: '', role: '', status: '', station: '' };
 
-function roleLabel(r) { var m = STAFF_ROLES.find(function (x) { return x[0] === r; }); return m ? m[1] : r; }
+function roleLabel(r) { var m = getStaffRoleList().find(function (x) { return x.key === r; }); return m ? m.label : r; }
 
 /* "Trạm xe" của nhân viên/tài khoản = Trạm chính trong danh mục Tỉnh/Trạm chính/Trạm phụ/Điểm dừng
    (FleetStore.getMainStations(), xem admin-station-directory.js — đây LÀ trang "Trạm xe" trong sidebar,
@@ -86,7 +89,7 @@ function renderStaffView() {
         '<label>Vai trò</label>' +
         '<select data-change-action="adminStaffFilterInput" data-args=\'["role","__this_value__"]\'>' +
           '<option value="">Tất cả vai trò</option>' +
-          STAFF_ROLES.map(function (r) { return '<option value="' + r[0] + '"' + (f.role === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') +
+          getStaffRoleList().map(function (r) { return '<option value="' + r.key + '"' + (f.role === r.key ? ' selected' : '') + '>' + r.label + '</option>'; }).join('') +
         '</select>' +
       '</div>' +
       '<div class="filter-field sd-field-region">' +
@@ -158,7 +161,7 @@ function adminOpenStaffModal(idx) {
         '<div class="fld"><label>Mã nhân viên</label><input id="smCode" value="' + (s ? esc(s.code || '') : '') + '" placeholder="VD: NV-001"></div>' +
       '</div>' +
       '<div class="fld"><label>Vai trò đảm nhiệm *</label><select id="smRole">' +
-        STAFF_ROLES.map(function (r) { return '<option value="' + r[0] + '"' + (s && s.role === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') +
+        getStaffRoleList().map(function (r) { return '<option value="' + r.key + '"' + (s && s.role === r.key ? ' selected' : '') + '>' + r.label + '</option>'; }).join('') +
       '</select></div>' +
       '<div class="fld-row">' +
         '<div class="fld"><label>Số điện thoại</label><input id="smPhone" value="' + (s ? esc(s.phone || '') : '') + '" placeholder="VD: 0912345678"></div>' +

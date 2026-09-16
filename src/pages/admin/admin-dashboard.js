@@ -181,16 +181,12 @@ function renderDashboard() {
   var vehShuttle = FleetStore.getVehicles({ scope: 'shuttle' });
   var staff = FleetStore.getStaff();
   var manifests = Object.keys(getManifests()).length;
-  var scheduleItems = typeof getScheduleItems === 'function'
-    ? getScheduleItems()
-    : lsRead(HN_SCHEDULE_HOURS_KEY, []);
 
   var activeDirs = dirs.filter(activeOf).length;
   var activeRoutes = routes.filter(activeOf).length;
   var activeVehLine = vehLine.filter(activeOf).length;
   var activeVehShuttle = vehShuttle.filter(activeOf).length;
   var activeStaff = staff.filter(activeOf).length;
-  var activeSchedule = scheduleItems.filter(function (x) { return x && x.active !== false && !x.deleted; }).length;
 
   var todaySelling = todayTrips.filter(function (t) { return t.status === 'Đang bán'; }).length;
   var todayDeparted = todayTrips.filter(function (t) { return t.status === 'Khởi hành' || t.status === 'Đã khởi hành'; }).length;
@@ -320,9 +316,6 @@ function renderDashboard() {
         dbToggleCard('Xe Trung Chuyển',
           '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14"/><path d="M5 17a2 2 0 0 1-2-2v-3.2a1 1 0 0 1 .3-.7l2.6-2.6A2 2 0 0 1 7.3 8H16a2 2 0 0 1 1.6.8l2.1 2.8a1 1 0 0 0 .5.3l1.4.4a1 1 0 0 1 .7 1v1.7a2 2 0 0 1-2 2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
           activeVehShuttle, vehShuttle.length, 'xe hoạt động', 'viewVehicles', 'db-toggle-card--c2', activeVehShuttle > 0) +
-        dbToggleCard('Quản Lý Giờ',
-          '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
-          activeSchedule, scheduleItems.length, 'khung giờ', 'viewSchedule', 'db-toggle-card--c3', activeSchedule > 0) +
         dbToggleCard('Nhân Sự',
           '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
           activeStaff, staff.length, 'nhân sự', 'viewStaff', 'db-toggle-card--c4', activeStaff > 0) +

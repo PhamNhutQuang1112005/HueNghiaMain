@@ -46,7 +46,7 @@
   /* 4 Signature Dashboard Theme Colors */
   --db-c1: #C20D08; /* Xe Tuyến - Crimson Red */
   --db-c2: #EA580C; /* Xe Trung Chuyển - Bright Orange */
-  --db-c3: #F59E0B; /* Quản Lý Giờ - Yellow Gold */
+  --db-c3: #F59E0B; /* Yellow Gold (dùng chung: trạng thái cảnh báo, badge, gradient...) */
   --db-c4: #D97706; /* Nhân Sự - Warm Amber */
 
   --db-c1-soft: #FEE2E2;
@@ -1552,8 +1552,34 @@ table.admin-table {
 .admin-form .fld-row > .fld { flex: 1 1 0; min-width: 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-subtle); }
 
+/* "Search dropdown" thay cho MỌI <select> gốc bên Admin (admin-search-select.js) — <select> gốc bị ẩn
+   (.admin-ss-native), 1 input gõ-tìm chèn cạnh nó bên trong .admin-ss-wrap. Đặt .admin-ss-wrap làm flex
+   item thay cho <select> cũ trong .filter-field/.fld nên kế thừa nguyên khung layout (width/gap) sẵn có,
+   .admin-ss-input lại khớp thẳng rule "<container> input" đã có (.filter-field input, .admin-form
+   input:not(...)) nên tự có cùng height/border/font với input thường, không cần khai báo lại kích thước. */
+.admin-ss-wrap { position: relative; display: block; width: 100%; }
+.admin-ss-native { display: none !important; }
+.admin-ss-input { width: 100%; cursor: pointer; }
+.admin-ss-input.admin-ss-disabled { cursor: not-allowed; opacity: 0.6; }
+.admin-ss-dropdown {
+  position: fixed; z-index: 200; background: var(--white); border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-modal); overflow-y: auto; display: none;
+}
+.admin-ss-dropdown.open { display: block; }
+.admin-ss-option { padding: 8px 12px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; }
+.admin-ss-option:hover, .admin-ss-option.highlighted { background: var(--surface-2); }
+.admin-ss-option-disabled { color: var(--text-sub); cursor: default; opacity: 0.55; pointer-events: none; }
+.admin-ss-empty { padding: 10px 12px; font-size: 12.5px; color: var(--text-sub); }
+
 /* Khung "Phân quyền theo chức năng" trong modal Thêm/Sửa tài khoản (admin-accounts.js,
-   acPermissionsFieldHtml) — 4 nhóm quyền dạng thẻ, 2 cột trên màn rộng, 1 cột trên di động. */
+   acPermissionsFieldHtml) — 4 nhóm quyền dạng thẻ, 2 cột trên màn rộng, 1 cột trên di động. Dùng chung
+   cho cả modal "Thêm/Sửa tài khoản" (admin-accounts.js) lẫn "Thêm/Sửa loại nhân viên"
+   (admin-staff-config.js) — cả 2 đều gọi acPermissionsFieldHtml() nên nội dung dễ CAO HƠN màn hình
+   (~25 checkbox chia 4 nhóm). Modal mặc định không giới hạn chiều cao/không tự cuộn, nên khi đó cả
+   overlay phải cuộn theo kiểu "trôi tự do" — mất luôn nút Lưu/Huỷ khỏi tầm nhìn cho tới khi cuộn hết.
+   Bắt .admin-form tự cuộn bên trong + giới hạn theo viewport (giống .modal:has(> .trip-form) đã làm)
+   để modal luôn vừa màn hình dù màn hình cao/thấp thế nào. */
+.modal:has(.acc-perm-groups) > .admin-form { max-height: calc(100vh - 150px); overflow-y: auto; }
 .acc-perm-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 @media (max-width: 620px) { .acc-perm-groups { grid-template-columns: 1fr; } }
 .acc-perm-group { border: 1px solid var(--border-gray); border-radius: var(--radius-md); background: var(--surface-2); padding: 12px 14px; }
@@ -2402,6 +2428,16 @@ table.admin-table {
   background: transparent;
   border-color: transparent;
 }
+/* Ghế tài xế — ô ĐẦU TIÊN của lưới tầng dưới (đã có class .sl-mini-cell nên cùng kích cỡ ghế khách),
+   chỉ đổi màu nền/viền đậm hơn để phân biệt. */
+.sl-mini-driver {
+  background: #1E293B;
+  border-color: #1E293B;
+}
+.sl-mini-driver.sl-mini-hidden {
+  background: transparent;
+  border-color: transparent;
+}
 
 /* ===== SƠ ĐỒ GHẾ — EDITOR (modal fill) ===== */
 .sl-editor-legend {
@@ -2436,6 +2472,10 @@ table.admin-table {
 .sl-editor-legend-dot.sl-hidden-dot {
   background: #F1F5F9;
   border: 2px dashed #94A3B8;
+}
+.sl-editor-legend-dot.sl-driver-dot {
+  background: #F8FAFC;
+  border: 2px solid #0F172A;
 }
 
 .sl-editor-body {
@@ -2516,6 +2556,12 @@ table.admin-table {
   overflow: hidden;
   box-sizing: border-box;
 }
+/* Ghế tài xế — là 1 ô TRONG lưới (.sl-editor-grid), ngay trước A1, kích cỡ/cách hiển thị giống hệt
+   ghế khách (không thêm flex/kích thước riêng) — chỉ đổi màu viền/nền để phân biệt. */
+.sl-editor-driver {
+  border-color: #0F172A;
+  background: #F8FAFC;
+}
 .sl-editor-cell:hover {
   border-color: var(--red);
   background: #FFF5F5;
@@ -2591,8 +2637,7 @@ table.admin-table {
    Toàn bộ style cho nhóm "Quản lý vận tải" (Trạm xe / Điểm dừng / Tuyến xe / Phơi xe /
    Quản lý giá / Trung chuyển / Danh sách vé) lấy nguyên từ bản admin trong folder HueNghia.
    Nạp CUỐI FILE nên thắng mọi rule trùng tên ở phần "overhaul" phía trên cho đúng các màn
-   hình vận tải; các nhóm khác (Dashboard / Xe & nhân sự) giữ nguyên. "Quản lý giờ" vẫn
-   dùng admin-schedule.js hiện có, không đụng tới.
+   hình vận tải; các nhóm khác (Dashboard / Xe & nhân sự) giữ nguyên.
    ========================================================= */
 
 .admin-form .fld > label .req { color: var(--red); font-weight: 800; margin-left: 1px; }

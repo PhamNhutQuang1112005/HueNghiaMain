@@ -118,6 +118,16 @@ function adminLogout() {
   Session.clear();
   window.location.href = 'index.html';
 }
+
+// Nhóm "Vận hành vé" (Đặt vé/Bán vé/Đón khách) không phải view dựng trong admin.html — đây là các
+// tính năng thật của trang ticketstaff.html (nhân viên phòng vé). Bấm vào là điều hướng thẳng sang đó,
+// mở đúng tab tương ứng (đọc query string ?view=... — xem ticketstaff.js). Session admin hiện tại giữ
+// nguyên khi sang trang, và role 'admin' đã được Auth.isShuttleDispatch() (auth/permissions.js) coi là
+// đủ quyền điều hành trung chuyển nên tab "Trung chuyển" mở ở chế độ đầy đủ, không bị giới hạn như
+// role bán vé thường.
+function adminGoToTicketStaff(view) {
+  window.location.href = 'ticketstaff.html?view=' + encodeURIComponent(view || 'booking');
+}
 document.addEventListener('click', function (e) {
   var m = $('userMenu');
   if (m && m.classList.contains('open') && !m.contains(e.target)) m.classList.remove('open');
@@ -133,16 +143,12 @@ var CURRENT_VIEW = 'viewDashboard';
 // wrapper không cần forward gì — hành vi y hệt bảng tham chiếu trực tiếp cũ.
 var VIEW_RENDERERS = {
   viewDashboard: function () { renderDashboard(); },
-  viewBookTicket: function () { renderBookTicketView(); },
-  viewSellTicket: function () { renderSellTicketView(); },
-  viewPickupCustomer: function () { renderPickupCustomerView(); },
   viewStations: function () { renderStationsView(); },
   viewSubStations: function () { renderSubStationsView(); },
   viewStops: function () { renderStopsView(); },
   viewDirections: function () { renderDirectionsView(); },
   viewTrips: function () { renderTripsView(); },
   viewPricing: function () { renderPricingView(); },
-  viewSchedule: function () { renderScheduleView(); },
   viewTransship: function () { renderTransshipView(); },
   viewTicketList: function () { renderTicketListView(); },
   viewTicketOffice: function () { renderTicketOfficeView(); },
@@ -155,6 +161,7 @@ var VIEW_RENDERERS = {
   viewAccountingThu: function () { renderAccountingThuView(); },
   viewAccountingChi: function () { renderAccountingChiView(); },
   viewAccountingLedgers: function () { renderAccountingLedgersView(); },
+  viewStaffConfig: function () { renderStaffConfigView(); },
   viewStaff: function () { renderStaffView(); },
   viewAccounts: function () { renderAccountsView(); },
   viewStaffStats: function () { renderStaffStatsView(); },
@@ -182,14 +189,10 @@ function switchAdminView(view) {
    --------------------------------------------------------- */
 var ADMIN_BREADCRUMB_MAP = {
   viewDashboard: { group: null, label: 'Dashboard' },
-  viewBookTicket: { group: 'Vận hành vé', label: 'Đặt vé' },
-  viewSellTicket: { group: 'Vận hành vé', label: 'Bán vé' },
-  viewPickupCustomer: { group: 'Vận hành vé', label: 'Đón khách' },
   viewStations: { group: 'Quản lý vận tải', label: 'Trạm xe' },
   viewDirections: { group: 'Quản lý vận tải', label: 'Tuyến xe' },
   viewTrips: { group: 'Quản lý vận tải', label: 'Phơi xe' },
   viewPricing: { group: 'Quản lý vận tải', label: 'Quản lý giá' },
-  viewSchedule: { group: 'Quản lý vận tải', label: 'Quản lý giờ' },
   viewTransship: { group: 'Quản lý vận tải', label: 'Trung chuyển' },
   viewTicketList: { group: 'Quản lý vận tải', label: 'Tổng đài' },
   viewTicketOffice: { group: 'Quản lý vận tải', label: 'Phòng vé' },
@@ -198,6 +201,7 @@ var ADMIN_BREADCRUMB_MAP = {
   viewVehicleCategories: { group: 'Thiết lập vận tải', label: 'Loại xe' },
   viewSeatLayouts: { group: 'Thiết lập vận tải', label: 'Sơ đồ ghế' },
   viewVehicleSeats: { group: 'Thiết lập vận tải', label: 'Ghế xe' },
+  viewStaffConfig: { group: 'Nhân sự', label: 'Cấu hình nhân sự' },
   viewStaff: { group: 'Nhân sự', label: 'Quản lý nhân viên' },
   viewAccounts: { group: 'Nhân sự', label: 'Tài khoản' },
   viewStaffStats: { group: 'Nhân sự', label: 'Thống kê nhân sự' },
@@ -300,7 +304,7 @@ function initAdminSidebarTooltips() {
 /* Admin sửa dữ liệu ở tab khác → render lại view đang mở. */
 window.addEventListener('storage', function (e) {
   if (!e.key) return;
-  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY];
+  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY];
   if (watched.indexOf(e.key) !== -1 && VIEW_RENDERERS[CURRENT_VIEW]) VIEW_RENDERERS[CURRENT_VIEW]();
   if (e.key === HN_TRIPS_KEY) adminUpdateNotifBadge();
 });
