@@ -726,18 +726,15 @@ function renderShiftClosingPage() {
       <div class="stat-detail-row"><span>Re-open</span><span>${report.reopenCount} lần • ${tsFormatMoney(report.reopenAmount)}</span></div>
     </div>
 
-    <div class="manifest-section-title">THU — Số vé theo mệnh giá / giờ khởi hành</div>
+    <div class="manifest-section-title">THU</div>
     ${tsRenderTimeDenominationTableHtml(report.timeBreakdown, report.denominations)}
-
-    <div class="manifest-section-title">Doanh thu theo nhân viên tạo phơi</div>
-    ${tsRenderStaffTableHtml(report.staffBreakdown)}
 
     <div class="manifest-section-title">CHI</div>
     ${tsRenderShiftChiTableHtml()}
   `;
 
-  document.getElementById('shiftActualCashInput').value = report.cashAmount || 0;
-  document.getElementById('shiftActualTransferInput').value = report.transferAmount || 0;
+  document.getElementById('shiftActualCashInput').value = Math.round((report.cashAmount || 0) / 1000).toLocaleString('vi-VN');
+  document.getElementById('shiftActualTransferInput').value = Math.round((report.transferAmount || 0) / 1000).toLocaleString('vi-VN');
   document.getElementById('shiftAckDiffCheckbox').checked = false;
   tsUpdateShiftReconcile();
 }
@@ -810,7 +807,7 @@ function tsRenderShiftChiTableHtml() {
         <tbody id="shiftChiTableBody">${tsRenderShiftChiRowHtml()}</tbody>
       </table>
     </div>
-    <button type="button" class="btn btn-secondary" data-action="tsAddShiftChiRow" style="align-self:flex-start; margin-bottom:14px;">+ Thêm dòng chi</button>`;
+    <button type="button" class="btn btn-secondary" data-action="tsAddShiftChiRow" style="align-self:flex-start; margin-bottom:4px;">+ Thêm dòng chi</button>`;
 }
 
 function tsRenderShiftChiRowHtml() {
@@ -846,29 +843,43 @@ function tsCollectShiftChiItems() {
   })).filter(item => item.reason || item.amount || item.approver);
 }
 
+// Ô nhập text (không phải type=number) để có thể tự chèn dấu chấm ngăn cách nghìn ngay khi đang gõ
+// (vd gõ "3920" → hiện "3.920") — input[type=number] không cho phép ký tự "." xen giữa các chữ số.
+function tsFormatShiftActualInput(el) {
+  const digits = (el.value || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  el.value = digits ? parseInt(digits, 10).toLocaleString('vi-VN') : '';
+}
+
 function onShiftActualInput() {
+  tsFormatShiftActualInput(this);
   tsUpdateShiftReconcile();
 }
 
+// Ô nhập tiền mặt/chuyển khoản chỉ cho gõ phần số nghìn (đuôi ".000đ" hiển thị cố định trong ô, xem
+// .rc-input-suffix trong ticketstaff.css) — giá trị thực tế bằng số gõ (đã bỏ dấu chấm ngăn cách) nhân 1000.
+function tsReadShiftActualInput(id) {
+  const digits = (document.getElementById(id).value || '').replace(/\D/g, '');
+  return (parseInt(digits, 10) || 0) * 1000;
+}
+
+// Khung "Đối soát" (#shiftReconcileBox) giờ TĨNH trong HTML — 2 ô nhập tiền mặt/chuyển khoản nằm ngay
+// trong các dòng đối soát, không còn form riêng bên ngoài. Hàm này CHỈ cập nhật textContent/class của
+// các phần tử hiển thị kết quả (tổng hệ thống/tổng thực tế/hộp chênh lệch), KHÔNG innerHTML lại cả khối
+// — nếu innerHTML lại sẽ xoá rồi tạo mới 2 input đang gõ dở, làm mất focus/con trỏ sau mỗi ký tự gõ.
 function tsUpdateShiftReconcile() {
   if (!tsCurrentShiftReport) return;
   const report = tsCurrentShiftReport;
-  const actualCash = parseInt(document.getElementById('shiftActualCashInput').value, 10) || 0;
-  const actualTransfer = parseInt(document.getElementById('shiftActualTransferInput').value, 10) || 0;
+  const actualCash = tsReadShiftActualInput('shiftActualCashInput');
+  const actualTransfer = tsReadShiftActualInput('shiftActualTransferInput');
   const actualTotal = actualCash + actualTransfer;
   const diff = actualTotal - report.totalAmount;
 
-  const box = document.getElementById('shiftReconcileBox');
-  box.innerHTML = `
-    <div class="manifest-section-title">Đối soát</div>
-    <div class="reconcile-row"><span>Tổng doanh thu hệ thống</span><span class="rc-value">${tsFormatMoney(report.totalAmount)}</span></div>
-    <div class="reconcile-row"><span>Tiền mặt kiểm đếm thực tế</span><span class="rc-value">${tsFormatMoney(actualCash)}</span></div>
-    <div class="reconcile-row"><span>Chuyển khoản xác nhận thực tế</span><span class="rc-value">${tsFormatMoney(actualTransfer)}</span></div>
-    <div class="reconcile-total"><span>Tổng thực tế</span><span>${tsFormatMoney(actualTotal)}</span></div>
-    <div class="reconcile-diff-box ${diff === 0 ? 'ok' : 'warn'}">
-      ${diff === 0 ? 'KHỚP — không có chênh lệch' : 'CHÊNH LỆCH: ' + tsFormatSignedMoney(diff)}
-    </div>
-  `;
+  document.getElementById('shiftReconcileSystemTotal').textContent = tsFormatMoney(report.totalAmount);
+  document.getElementById('shiftReconcileActualTotal').textContent = tsFormatMoney(actualTotal);
+  const diffBox = document.getElementById('shiftReconcileDiffBox');
+  diffBox.className = 'reconcile-diff-box ' + (diff === 0 ? 'ok' : 'warn');
+  diffBox.textContent = diff === 0 ? 'KHỚP — không có chênh lệch' : 'CHÊNH LỆCH: ' + tsFormatSignedMoney(diff);
+
   document.getElementById('btnConfirmShiftClosing').dataset.diff = diff;
 }
 
@@ -881,8 +892,8 @@ function confirmShiftClosing() {
     showToast('Vui lòng xác nhận đã kiểm tra số liệu đối soát trước khi kết ca');
     return;
   }
-  const actualCash = parseInt(document.getElementById('shiftActualCashInput').value, 10) || 0;
-  const actualTransfer = parseInt(document.getElementById('shiftActualTransferInput').value, 10) || 0;
+  const actualCash = tsReadShiftActualInput('shiftActualCashInput');
+  const actualTransfer = tsReadShiftActualInput('shiftActualTransferInput');
   const diffAmount = (actualCash + actualTransfer) - tsCurrentShiftReport.totalAmount;
   const chiItems = tsCollectShiftChiItems();
 
@@ -1035,22 +1046,6 @@ function tsRenderDenominationTableHtml(breakdown, templateKey, totals, advanceAm
       </table>
     </div>
     ${summaryTableHtml}`;
-}
-
-function tsRenderStaffTableHtml(staffBreakdown) {
-  const staffIds = Object.keys(staffBreakdown || {});
-  if (!staffIds.length) return '<p style="color:var(--text-sub);font-size:13px;">Chưa có dữ liệu.</p>';
-  const rows = staffIds.map(id => {
-    const v = staffBreakdown[id];
-    return `<tr><td>${tsEsc(id)}</td><td class="mono" style="text-align:center;">${v.tickets}</td><td style="text-align:right;">${tsFormatMoney(v.amount)}</td></tr>`;
-  }).join('');
-  return `
-    <div class="pax-table-wrap" style="margin-bottom:8px;">
-      <table class="pax-table">
-        <thead><tr><th>Nhân viên tạo phơi</th><th style="text-align:center;">Số vé</th><th style="text-align:right;">Doanh thu</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
 }
 
 function tsRenderReopenHistoryTableHtml(events) {

@@ -1069,16 +1069,17 @@ input:checked + .slider:before { transform: translateX(16px); }
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  padding: 0;
+  padding: 0 0 4px;
   margin-bottom: 16px;
   gap: 10px;
   flex-wrap: nowrap;          /* tất cả (5 ô lọc + 4 nút) nằm CÙNG 1 hàng */
+  overflow-x: auto;           /* không đủ chỗ thì cuộn ngang thay vì bóp/chồng lấn các ô lọc lên nhau */
 }
 .tf-toolbar .filter-field { flex: 1 1 0; min-width: 96px; gap: 4px; }
 .tf-toolbar .filter-spacer { display: none; }
 .tf-toolbar .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
-.tf-toolbar .filter-field > input,
-.tf-toolbar .filter-field > select {
+.tf-toolbar .filter-field input,
+.tf-toolbar .filter-field select {
   width: 100%;
   min-width: 0;
   height: 35px;
@@ -1089,8 +1090,8 @@ input:checked + .slider:before { transform: translateX(16px); }
   font-size: 12.5px;
   font-weight: 600;
 }
-.tf-toolbar .filter-field > input:focus,
-.tf-toolbar .filter-field > select:focus { outline: none; background: #fff; border-color: var(--red); box-shadow: none; }
+.tf-toolbar .filter-field input:focus,
+.tf-toolbar .filter-field select:focus { outline: none; background: #fff; border-color: var(--red); box-shadow: none; }
 .tf-toolbar > .btn { flex: 0 0 auto; height: 35px; }
 @media (max-width: 900px) {
   .tf-toolbar { flex-wrap: wrap; }

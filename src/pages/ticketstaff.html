@@ -1005,17 +1005,32 @@
     <!-- ===== TRANG KẾT CA (mở từ dropdown tài khoản, không phải modal) ===== -->
     <div id="shiftClosingView" class="main-view-container" style="display:none; flex-direction:column;">
       <div id="shiftClosingBody"></div>
-      <div class="form-row" style="--cols:2;">
-        <div class="form-field">
-          <label for="shiftActualCashInput">Tiền mặt kiểm đếm thực tế (đ) <span style="color:var(--red);">*</span></label>
-          <input type="number" id="shiftActualCashInput" min="0" step="10000" placeholder="0" data-input-action="onShiftActualInput">
+      <!-- "Đối soát" — khung tĩnh (không dựng lại bằng innerHTML mỗi lần gõ như trước, xem
+           tsUpdateShiftReconcile()) vì 2 ô nhập tiền mặt/chuyển khoản nằm NGAY TRONG các dòng đối soát
+           này (không còn form riêng bên ngoài) — dựng lại toàn bộ khối bằng innerHTML mỗi lần gõ sẽ xoá
+           rồi tạo lại đúng 2 input đang gõ dở, làm mất focus/con trỏ sau mỗi ký tự. tsUpdateShiftReconcile()
+           giờ chỉ cập nhật textContent/class của #shiftReconcileSystemTotal, #shiftReconcileActualTotal,
+           #shiftReconcileDiffBox — không đụng tới 2 input. -->
+      <div id="shiftReconcileBox">
+        <div class="manifest-section-title">Đối soát</div>
+        <div class="reconcile-row"><span>Tổng doanh thu hệ thống</span><span class="rc-value" id="shiftReconcileSystemTotal">0đ</span></div>
+        <div class="reconcile-row">
+          <span>Tiền mặt kiểm đếm thực tế (đ) <span style="color:var(--red);">*</span></span>
+          <span class="rc-input-wrap">
+            <input type="text" inputmode="numeric" id="shiftActualCashInput" class="rc-input" placeholder="0" data-input-action="onShiftActualInput">
+            <span class="rc-input-suffix">.000đ</span>
+          </span>
         </div>
-        <div class="form-field">
-          <label for="shiftActualTransferInput">Chuyển khoản xác nhận thực tế (đ) <span style="color:var(--red);">*</span></label>
-          <input type="number" id="shiftActualTransferInput" min="0" step="10000" placeholder="0" data-input-action="onShiftActualInput">
+        <div class="reconcile-row">
+          <span>Chuyển khoản xác nhận thực tế (đ) <span style="color:var(--red);">*</span></span>
+          <span class="rc-input-wrap">
+            <input type="text" inputmode="numeric" id="shiftActualTransferInput" class="rc-input" placeholder="0" data-input-action="onShiftActualInput">
+            <span class="rc-input-suffix">.000đ</span>
+          </span>
         </div>
+        <div class="reconcile-total"><span>Tổng thực tế</span><span id="shiftReconcileActualTotal">0đ</span></div>
+        <div class="reconcile-diff-box ok" id="shiftReconcileDiffBox">KHỚP — không có chênh lệch</div>
       </div>
-      <div id="shiftReconcileBox"></div>
       <label class="checkbox-inline" style="margin-top:10px; align-self:flex-start;">
         <input type="checkbox" id="shiftAckDiffCheckbox">
         Tôi đã kiểm tra và xác nhận số liệu đối soát ở trên là chính xác

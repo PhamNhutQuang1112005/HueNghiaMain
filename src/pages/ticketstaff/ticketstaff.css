@@ -1753,6 +1753,46 @@
   font-family: 'Roboto Mono', monospace;
 }
 
+/* 2 ô nhập tiền mặt/chuyển khoản kiểm đếm thực tế — nằm NGAY trong dòng đối soát (thay vì 1 form riêng
+   bên ngoài như trước), nên căn phải + đóng khung gọn như 1 ô số liệu, không kéo dài hết chiều ngang.
+   Nhân viên chỉ gõ phần số nghìn (vd "50"), đuôi ".000đ" cố định hiển thị sẵn trong ô — giá trị thực tế
+   dùng để tính tổng = số gõ x 1000 (xem tsReadShiftActualInput() trong ticketstaff-manifest-ui.js). */
+.reconcile-row .rc-input-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 160px;
+  max-width: 45%;
+}
+
+.reconcile-row .rc-input {
+  width: 100%;
+  text-align: right;
+  font-weight: 800;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+  color: var(--text-main);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 46px 6px 9px;
+}
+
+.reconcile-row .rc-input-suffix {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+  color: var(--text-main);
+  pointer-events: none;
+}
+
+.reconcile-row .rc-input:focus {
+  outline: 2px solid var(--red);
+  outline-offset: 0;
+}
+
 .reconcile-total {
   display: flex;
   justify-content: space-between;
