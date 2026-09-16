@@ -1,9 +1,8 @@
 /* =========================================================
    KHÁCH HÀNG (Admin) — tổng hợp danh sách khách hàng DUY NHẤT theo số điện thoại từ toàn bộ vé đã bán/
    giữ chỗ (dùng lại adminScanTicketRows() của admin-tickets.js, KHÔNG quét lại seat bank lần nữa), cộng
-   2 bảng thống kê: khách đi thường xuyên, và khu vực hay được "rước khách" (Tỉnh/Trạm chính/Trạm phụ/
-   Điểm dừng — danh mục 3 cấp trong admin-station-directory.js, xem FleetStore.getMainStations()/
-   getSubStations()/getStopStations()).
+   2 bảng thống kê: khách đi thường xuyên, và khu vực hay được "rước khách" (Trạm xe/Điểm dừng — danh
+   mục 2 cấp trong admin-station-directory.js, xem FleetStore.getStations()/getStopStations()).
 
    Hệ thống KHÔNG có sẵn "mã khách hàng" hay bảng khách hàng gốc — điểm đi/điểm đến trên vé cũng chỉ là
    text tự do (transshipStation/pickupAddress do nhân viên gõ tay, KHÔNG khớp cứng vào danh mục trạm).
@@ -87,36 +86,19 @@ function custPickupLocText(r) {
   return r.transshipStation || r.pickupAddress || '';
 }
 
-function custMatchStationHierarchy(text, mains, subs, stops) {
+function custMatchStationHierarchy(text, stations, stops) {
   var t = String(text || '').trim().toLowerCase();
   if (!t) return null;
 
   var stop = stops.find(function (s) { return s && s.name && (s.name.toLowerCase() === t || t.indexOf(s.name.toLowerCase()) !== -1); });
   if (stop) {
-    var subOfStop = subs.find(function (s) { return s.id === stop.subStationId; });
-    var mainOfStop = mains.find(function (m) { return m.id === (subOfStop ? subOfStop.mainStationId : stop.mainStationId); });
-    return {
-      province: stop.province || (subOfStop && subOfStop.province) || (mainOfStop && mainOfStop.province) || 'Chưa rõ tỉnh',
-      mainStation: mainOfStop ? mainOfStop.name : '—',
-      subStation: subOfStop ? subOfStop.name : '—',
-      stop: stop.name
-    };
+    var stationOfStop = stations.find(function (s) { return s && s.name === stop.stationName; });
+    return { station: stationOfStop ? stationOfStop.name : (stop.stationName || '—'), stop: stop.name };
   }
 
-  var sub = subs.find(function (s) { return s && s.name && (s.name.toLowerCase() === t || t.indexOf(s.name.toLowerCase()) !== -1); });
-  if (sub) {
-    var mainOfSub = mains.find(function (m) { return m.id === sub.mainStationId; });
-    return {
-      province: sub.province || (mainOfSub && mainOfSub.province) || 'Chưa rõ tỉnh',
-      mainStation: mainOfSub ? mainOfSub.name : '—',
-      subStation: sub.name,
-      stop: '—'
-    };
-  }
-
-  var main = mains.find(function (m) { return m && m.name && (m.name.toLowerCase() === t || t.indexOf(m.name.toLowerCase()) !== -1); });
-  if (main) {
-    return { province: main.province || 'Chưa rõ tỉnh', mainStation: main.name, subStation: '—', stop: '—' };
+  var station = stations.find(function (s) { return s && s.name && (s.name.toLowerCase() === t || t.indexOf(s.name.toLowerCase()) !== -1); });
+  if (station) {
+    return { station: station.name, stop: '—' };
   }
 
   return null;
@@ -124,19 +106,18 @@ function custMatchStationHierarchy(text, mains, subs, stops) {
 
 function custBuildPickupAreaStats() {
   var rows = adminScanTicketRows();
-  var mains = FleetStore.getMainStations();
-  var subs = FleetStore.getSubStations();
+  var stations = FleetStore.getStations();
   var stops = FleetStore.getStopStations();
 
-  var matched = {};   // key: "Tỉnh||Trạm chính||Trạm phụ||Điểm dừng" -> count
+  var matched = {};   // key: "Trạm xe||Điểm dừng" -> count
   var unmatched = {}; // raw text -> count
 
   rows.forEach(function (r) {
     var text = custPickupLocText(r);
     if (!text) return;
-    var hit = custMatchStationHierarchy(text, mains, subs, stops);
+    var hit = custMatchStationHierarchy(text, stations, stops);
     if (hit) {
-      var key = hit.province + '||' + hit.mainStation + '||' + hit.subStation + '||' + hit.stop;
+      var key = hit.station + '||' + hit.stop;
       matched[key] = (matched[key] || 0) + 1;
     } else {
       unmatched[text] = (unmatched[text] || 0) + 1;
@@ -145,7 +126,7 @@ function custBuildPickupAreaStats() {
 
   var matchedList = Object.keys(matched).map(function (key) {
     var p = key.split('||');
-    return { province: p[0], mainStation: p[1], subStation: p[2], stop: p[3], count: matched[key] };
+    return { station: p[0], stop: p[1], count: matched[key] };
   }).sort(function (a, b) { return b.count - a.count; });
 
   var unmatchedList = Object.keys(unmatched).map(function (text) {
@@ -284,16 +265,14 @@ function custRenderPickupAreaTab() {
   var matchedRowsHtml = stats.matched.map(function (m, idx) {
     return '<tr>' +
       '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
-      '<td>' + esc(m.province) + '</td>' +
-      '<td>' + esc(m.mainStation) + '</td>' +
-      '<td>' + esc(m.subStation) + '</td>' +
+      '<td>' + esc(m.station) + '</td>' +
       '<td>' + esc(m.stop) + '</td>' +
       '<td class="mono" style="text-align:center; font-weight:800;">' + m.count + '</td>' +
     '</tr>';
   }).join('');
 
   var matchedTable = '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Tỉnh</th><th>Trạm chính</th><th>Trạm phụ</th><th>Điểm dừng</th><th>Số lượt rước</th></tr></thead>' +
+    '<thead><tr><th style="width:50px;">STT</th><th>Trạm xe</th><th>Điểm dừng</th><th>Số lượt rước</th></tr></thead>' +
     '<tbody>' + matchedRowsHtml + '</tbody></table>' +
     (matchedRowsHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt rước khách nào khớp được danh mục trạm.</p></div>');
 

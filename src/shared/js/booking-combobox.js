@@ -4,8 +4,10 @@
 // trạng thái "không tìm thấy", không điều khiển được bằng bàn phím. initDatalistCombobox() dựng 1 kiểu
 // dropdown chung cho cả 3, gắn thẳng vào <body> với position:fixed (tính lại toạ độ theo input mỗi lần
 // mở/cuộn/resize) để không bao giờ bị .panel-body (overflow-y:auto) cắt mất dù các ô này đều nằm trong
-// đó. Danh sách gợi ý đọc từ đúng <datalist> có sẵn của từng ô (không thêm/đổi dữ liệu).
-function initDatalistCombobox(inputId, datalistId, emptyMessage) {
+// đó. Danh sách gợi ý đọc từ đúng <datalist> có sẵn của từng ô (không thêm/đổi dữ liệu) — trừ khi truyền
+// optionsFn (vd 2 ô "Trung chuyển đi"/"Trung chuyển đến": gợi ý phải tính LẠI mỗi lần mở theo đúng
+// trạm đang chọn, xem stopSuggestionsForStation() bên dưới), lúc đó đọc từ hàm này thay vì DOM datalist.
+function initDatalistCombobox(inputId, datalistId, emptyMessage, optionsFn) {
   const input = document.getElementById(inputId);
   if (!input) return;
 
@@ -20,6 +22,7 @@ function initDatalistCombobox(inputId, datalistId, emptyMessage) {
   let justSelected = false;
 
   function getOptionValues() {
+    if (typeof optionsFn === 'function') return optionsFn();
     return Array.from(document.querySelectorAll(`#${datalistId} option`))
       .map(o => o.value)
       .filter(Boolean);
@@ -157,7 +160,23 @@ function initDatalistCombobox(inputId, datalistId, emptyMessage) {
   window.addEventListener('resize', () => { if (isOpen()) positionDropdown(); });
 }
 
-initDatalistCombobox('f_transship', 'stopPointList', 'Không tìm thấy địa điểm');
+// Gợi ý "Trung chuyển đi"/"Địa điểm rước" (f_transship) và "Trung chuyển đến" (f_arrival_transfer) —
+// đọc Điểm dừng khai báo bên Admin (FleetStore.getStopStations(), field stationName) rồi lọc đúng theo
+// Trạm đi/Trạm đến đang gõ ở ô kế bên (đọc LIVE lúc mở dropdown nên không cần đồng bộ theo mọi chỗ set
+// giá trị trạm bằng JS). Trạm chưa có điểm dừng nào khai báo → danh sách rỗng, KHÔNG chặn gõ tự do.
+function stopSuggestionsForStation(stationInputId) {
+  const stationEl = document.getElementById(stationInputId);
+  const stationName = (stationEl && stationEl.value || '').trim();
+  const stops = (window.FleetStore && FleetStore.getStopStations) ? FleetStore.getStopStations() : [];
+  const seen = {};
+  return stops
+    .filter(s => s && s.name && (!stationName || s.stationName === stationName))
+    .map(s => s.name)
+    .filter(n => !seen[n] && (seen[n] = true));
+}
+
+initDatalistCombobox('f_transship', null, 'Không tìm thấy địa điểm', () => stopSuggestionsForStation('f_station_select'));
+initDatalistCombobox('f_arrival_transfer', null, 'Không tìm thấy địa điểm', () => stopSuggestionsForStation('f_destination'));
 initDatalistCombobox('f_station_select', 'departureStationList', 'Không tìm thấy trạm');
 initDatalistCombobox('f_destination', 'destinationStationList', 'Không tìm thấy trạm');
 

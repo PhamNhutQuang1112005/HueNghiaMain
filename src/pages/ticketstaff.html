@@ -1299,14 +1299,6 @@
             <input type="text" id="f_station_select" placeholder="Chọn trạm đi..." data-input-action="refreshTicket" autocomplete="off">
             <!-- populateStationPickers() (ticketstaff.js) đổ danh mục trạm từ FleetStore -->
             <datalist id="departureStationList"></datalist>
-            <datalist id="stopPointList">
-              <option value="Ngã tư Bình Phước">
-              <option value="Cầu vượt Sóng Thần">
-              <option value="Ngã ba An Sương">
-              <option value="Bến xe An Sương">
-              <option value="Vòng xoay Phú Lâm">
-              <option value="Ngã tư Ga">
-            </datalist>
           </div>
           <div class="form-field" id="f_transship_wrap" style="display:none;">
             <label id="f_transship_label">Trung chuyển đi <span style="color:var(--red);">*</span></label>
@@ -2119,7 +2111,7 @@
 <script src="../shared/js/seat-bank.js?v=3"></script>
 <script src="../auth/session.js?v=1"></script>
 <script src="../auth/permissions.js?v=1"></script>
-<script src="../shared/js/fleet-store.js?v=14"></script>
+<script src="../shared/js/fleet-store.js?v=15"></script>
 <script src="../services/trip-service.js?v=1"></script>
 <script src="../services/pickup-service.js?v=2"></script>
 <script src="../services/shuttle-driver-service.js?v=1"></script>
@@ -2127,8 +2119,8 @@
 <!-- booking.js (2028 dòng) tách theo banner: history → combobox → rebook+misc.
      NẠP ĐÚNG THỨ TỰ; các mảnh dùng chung biến/hàm global như khi còn 1 file.
      Xem ../shared/js/README-booking.md. -->
-<script src="../shared/js/booking.js?v=59"></script>
-<script src="../shared/js/booking-combobox.js?v=3"></script>
+<script src="../shared/js/booking.js?v=60"></script>
+<script src="../shared/js/booking-combobox.js?v=4"></script>
 <script src="../shared/js/booking-rebook.js?v=13"></script>
 <!-- ticketstaff.js (5264 dòng) tách theo banner: phần chính (đặt vé/ghế/phơi) →
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.

@@ -133,6 +133,9 @@ var CURRENT_VIEW = 'viewDashboard';
 // wrapper không cần forward gì — hành vi y hệt bảng tham chiếu trực tiếp cũ.
 var VIEW_RENDERERS = {
   viewDashboard: function () { renderDashboard(); },
+  viewBookTicket: function () { renderBookTicketView(); },
+  viewSellTicket: function () { renderSellTicketView(); },
+  viewPickupCustomer: function () { renderPickupCustomerView(); },
   viewStations: function () { renderStationsView(); },
   viewSubStations: function () { renderSubStationsView(); },
   viewStops: function () { renderStopsView(); },
@@ -179,6 +182,9 @@ function switchAdminView(view) {
    --------------------------------------------------------- */
 var ADMIN_BREADCRUMB_MAP = {
   viewDashboard: { group: null, label: 'Dashboard' },
+  viewBookTicket: { group: 'Vận hành vé', label: 'Đặt vé' },
+  viewSellTicket: { group: 'Vận hành vé', label: 'Bán vé' },
+  viewPickupCustomer: { group: 'Vận hành vé', label: 'Đón khách' },
   viewStations: { group: 'Quản lý vận tải', label: 'Trạm xe' },
   viewDirections: { group: 'Quản lý vận tải', label: 'Tuyến xe' },
   viewTrips: { group: 'Quản lý vận tải', label: 'Phơi xe' },

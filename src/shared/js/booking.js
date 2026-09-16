@@ -972,7 +972,8 @@ function onGuestTypeChange() {
   stationLabel.textContent = 'Trạm đi';
 
   // "Địa điểm rước" (Rước đường) và "Trung chuyển đi" (Trung chuyển) dùng chung 1 ô combobox (input +
-  // datalist stopPointList) — vừa gõ tự do vừa chọn gợi ý, khác nhau ở nhãn/placeholder hiển thị.
+  // gợi ý Điểm dừng lọc theo Trạm đi, xem stopSuggestionsForStation() trong booking-combobox.js) — vừa
+  // gõ tự do vừa chọn gợi ý, khác nhau ở nhãn/placeholder hiển thị.
   const isTransshipLike = (type === 'Trung chuyển');
   const needsTransship = (type === 'Trung chuyển' || type === 'Rước đường');
   transshipInput.style.display = needsTransship ? 'block' : 'none';

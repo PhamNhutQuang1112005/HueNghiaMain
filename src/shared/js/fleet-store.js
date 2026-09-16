@@ -420,26 +420,19 @@
     return { ok: true };
   }
   function addStopStation(fields) {
-    var provinceKey = String((fields && fields.provinceKey) || '').trim();
-    var mainStationId = String((fields && fields.mainStationId) || '').trim();
-    var subStationId = String((fields && fields.subStationId) || '').trim();
+    var stationName = String((fields && fields.stationName) || '').trim();
     var name = String((fields && fields.name) || '').trim();
-    if (!provinceKey) return { ok: false, reason: 'Chọn tỉnh/thành.' };
-    if (!mainStationId) return { ok: false, reason: 'Chọn trạm chính.' };
-    if (!subStationId) return { ok: false, reason: 'Chọn trạm phụ.' };
+    if (!stationName) return { ok: false, reason: 'Chọn trạm xe.' };
     if (!name) return { ok: false, reason: 'Tên điểm dừng không được để trống.' };
-    var main = getMainStations().find(function (s) { return s && s.id === mainStationId; });
-    var sub = getSubStations().find(function (s) { return s && s.id === subStationId; });
-    if (!main || !sub) return { ok: false, reason: 'Trạm chính / trạm phụ không hợp lệ.' };
+    var station = getStations().find(function (s) { return s && s.name === stationName; });
+    if (!station) return { ok: false, reason: 'Trạm xe không hợp lệ.' };
     var list = getStopStations();
-    if (list.some(function (s) { return s && s.subStationId === subStationId && String(s.name || '').toLowerCase() === name.toLowerCase(); })) {
-      return { ok: false, reason: 'Điểm dừng này đã tồn tại trong trạm phụ.' };
+    if (list.some(function (s) { return s && s.stationName === stationName && String(s.name || '').toLowerCase() === name.toLowerCase(); })) {
+      return { ok: false, reason: 'Điểm dừng này đã tồn tại trong trạm xe.' };
     }
     var item = {
       id: String((fields && fields.id) || makeStationId('stop')),
-      provinceKey: provinceKey,
-      mainStationId: mainStationId,
-      subStationId: subStationId,
+      stationName: stationName,
       name: name,
       code: String((fields && fields.code) || '').trim(),
       address: String((fields && fields.address) || '').trim(),
@@ -453,26 +446,19 @@
     var list = getStopStations();
     var idx = list.findIndex(function (s) { return s && s.id === id; });
     if (idx === -1) return { ok: false, reason: 'Không tìm thấy điểm dừng.' };
-    var provinceKey = String((fields && fields.provinceKey) || '').trim();
-    var mainStationId = String((fields && fields.mainStationId) || '').trim();
-    var subStationId = String((fields && fields.subStationId) || '').trim();
+    var stationName = String((fields && fields.stationName) || '').trim();
     var name = String((fields && fields.name) || '').trim();
-    if (!provinceKey) return { ok: false, reason: 'Chọn tỉnh/thành.' };
-    if (!mainStationId) return { ok: false, reason: 'Chọn trạm chính.' };
-    if (!subStationId) return { ok: false, reason: 'Chọn trạm phụ.' };
+    if (!stationName) return { ok: false, reason: 'Chọn trạm xe.' };
     if (!name) return { ok: false, reason: 'Tên điểm dừng không được để trống.' };
-    var main = getMainStations().find(function (s) { return s && s.id === mainStationId; });
-    var sub = getSubStations().find(function (s) { return s && s.id === subStationId; });
-    if (!main || !sub) return { ok: false, reason: 'Trạm chính / trạm phụ không hợp lệ.' };
+    var station = getStations().find(function (s) { return s && s.name === stationName; });
+    if (!station) return { ok: false, reason: 'Trạm xe không hợp lệ.' };
     if (String(list[idx].name || '').toLowerCase() !== name.toLowerCase() && list.some(function (s, i) {
-      return i !== idx && s && s.subStationId === subStationId && String(s.name || '').toLowerCase() === name.toLowerCase();
+      return i !== idx && s && s.stationName === stationName && String(s.name || '').toLowerCase() === name.toLowerCase();
     })) {
-      return { ok: false, reason: 'Điểm dừng này đã tồn tại trong trạm phụ.' };
+      return { ok: false, reason: 'Điểm dừng này đã tồn tại trong trạm xe.' };
     }
     var current = list[idx];
-    current.provinceKey = provinceKey;
-    current.mainStationId = mainStationId;
-    current.subStationId = subStationId;
+    current.stationName = stationName;
     current.name = name;
     current.code = String((fields && fields.code) || '').trim();
     current.address = String((fields && fields.address) || '').trim();
