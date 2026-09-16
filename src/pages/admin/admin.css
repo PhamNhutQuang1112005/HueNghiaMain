@@ -2428,8 +2428,12 @@ table.admin-table {
   background: transparent;
   border-color: transparent;
 }
-/* Ghế tài xế — ô ĐẦU TIÊN của lưới tầng dưới (đã có class .sl-mini-cell nên cùng kích cỡ ghế khách),
-   chỉ đổi màu nền/viền đậm hơn để phân biệt. */
+/* Ghế tài xế (ghế phụ) — đứng riêng 1 hàng phía trên lưới ghế khách (KHÔNG còn là ô đầu tiên của lưới
+   ghế khách), đã có class .sl-mini-cell nên cùng kích cỡ ghế khách, chỉ đổi màu nền/viền đậm hơn để
+   phân biệt. */
+.sl-mini-driver-row {
+  margin-bottom: 2px;
+}
 .sl-mini-driver {
   background: #1E293B;
   border-color: #1E293B;
@@ -2556,8 +2560,18 @@ table.admin-table {
   overflow: hidden;
   box-sizing: border-box;
 }
-/* Ghế tài xế — là 1 ô TRONG lưới (.sl-editor-grid), ngay trước A1, kích cỡ/cách hiển thị giống hệt
-   ghế khách (không thêm flex/kích thước riêng) — chỉ đổi màu viền/nền để phân biệt. */
+/* Ghế tài xế (ghế phụ) — đứng RIÊNG 1 hàng phía trên lưới ghế khách (.sl-editor-driver-row), không còn
+   là ô đầu tiên của lưới ghế khách nữa (trước đây chiếm vị trí đáng lẽ của A1, đẩy lệch cả dãy ghế).
+   .sl-editor-driver-row dùng chung class lưới (sl-editor-grid[.sl-cols-3]) chỉ để chiều rộng ô khớp
+   đúng 1 cột của lưới ghế khách bên dưới — ép flex/chiều cao riêng (không kéo giãn theo chiều cao còn
+   lại như lưới ghế khách) + thêm khoảng cách + viền chấm để tách bạch trực quan với "ghế xe" bên dưới. */
+.sl-editor-grid.sl-editor-driver-row {
+  flex: 0 0 auto;
+  grid-auto-rows: minmax(30px, auto);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-gray, #E2E8F0);
+}
 .sl-editor-driver {
   border-color: #0F172A;
   background: #F8FAFC;

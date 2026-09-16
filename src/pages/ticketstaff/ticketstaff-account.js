@@ -20,6 +20,11 @@
     if (userEl) userEl.textContent = user.username || '';
   }
 
+  // Đăng nhập ticketstaff bằng tài khoản role 'admin' (Auth.isAdmin(), auth/permissions.js) → hiện nút
+  // "Quản trị hệ thống" cạnh user-chip để quay lại admin.html; tài khoản thường (nhân viên) không thấy.
+  const adminBtn = document.getElementById('btnGoToAdmin');
+  if (adminBtn) adminBtn.style.display = (typeof Auth !== 'undefined' && Auth.isAdmin()) ? 'inline-flex' : 'none';
+
   function closeMenu() {
     menu.classList.remove('open');
     chipBtn.setAttribute('aria-expanded', 'false');
@@ -50,6 +55,13 @@
     window.location.href = 'index.html';
   });
 })();
+
+// Nút "Quản trị hệ thống" trên header (#btnGoToAdmin, chỉ hiện với role 'admin' — xem initUserMenu() ở
+// trên) — cùng thư mục với ticketstaff.html nên chỉ cần đường dẫn tương đối, giữ nguyên phiên đăng nhập
+// (admin.html tự đọc lại Session, không cần đăng nhập lại).
+function goToAdminPanel() {
+  window.location.href = 'admin.html';
+}
 
 /* ===================== CUSTOMER HISTORY SEARCH ===================== */
 

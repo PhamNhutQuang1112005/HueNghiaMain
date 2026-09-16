@@ -95,11 +95,24 @@ function slMiniPreview(layout) {
       if (s.hidden) return '<span class="sl-mini-cell sl-mini-hidden"></span>';
       return '<span class="sl-mini-cell"></span>';
     }).join('');
-    /* Ghế tài xế = ô đầu tiên của lưới tầng dưới, cùng kích cỡ .sl-mini-cell như ghế khách. */
-    var driverHtml = isFront ? '<span class="sl-mini-cell sl-mini-driver' + (driverHidden ? ' sl-mini-hidden' : '') + '" title="Ghế tài xế"></span>' : '';
+    /* Ghế tài xế (ghế phụ) đứng riêng 1 hàng phía trên lưới ghế khách — không còn là ô đầu tiên của
+       lưới ghế khách nữa (xem chú thích ở floorHtml()/_slRenderGrid() — cùng lý do). Tầng sau (T2, 2
+       tầng) không có ghế tài xế nhưng vẫn cần hàng "giữ chỗ" ẩn cao bằng hàng đó để hàng ghế đầu tiên
+       của 2 tầng thẳng hàng ngang với nhau, không lệch theo hàng "Tài xế" bên tầng trước. */
+    var driverHtml = '';
+    if (isFront) {
+      driverHtml = '<div class="sl-mini-grid sl-mini-driver-row" style="grid-template-columns:repeat(' + cols + ',1fr);">' +
+          '<span class="sl-mini-cell sl-mini-driver' + (driverHidden ? ' sl-mini-hidden' : '') + '" title="Ghế tài xế"></span>' +
+        '</div>';
+    } else if (dbl) {
+      driverHtml = '<div class="sl-mini-grid sl-mini-driver-row" style="grid-template-columns:repeat(' + cols + ',1fr);">' +
+          '<span class="sl-mini-cell" style="visibility:hidden;"></span>' +
+        '</div>';
+    }
     return '<div class="sl-mini-floor">' +
              (floorLabel ? '<span class="sl-mini-floor-lbl">' + floorLabel + '</span>' : '') +
-             '<div class="sl-mini-grid" style="grid-template-columns:repeat(' + cols + ',1fr);">' + driverHtml + cells + '</div>' +
+             driverHtml +
+             '<div class="sl-mini-grid" style="grid-template-columns:repeat(' + cols + ',1fr);">' + cells + '</div>' +
            '</div>';
   }
 
@@ -424,7 +437,20 @@ function _slRenderGrid() {
     }).join('');
     var lbl = floorLabel ? '<div class="sl-editor-floor-label">' + floorLabel + '</div>' : '';
     var gridCls = 'sl-editor-grid' + (useCols3 ? ' sl-cols-3' : '');
-    return '<div class="sl-editor-floor">' + lbl + '<div class="' + gridCls + '">' + (isFront ? driverSeatHtml() : '') + cells + '</div></div>';
+    /* Ghế tài xế (ghế phụ, không phải chỗ khách) đứng RIÊNG 1 hàng phía trên — dùng chung class lưới
+       (gridCls) chỉ để chiều rộng ô khớp đúng 1 cột của lưới ghế khách bên dưới, KHÔNG còn là ô ĐẦU
+       TIÊN của lưới ghế khách nữa (trước đây chiếm luôn vị trí đáng lẽ của A1, đẩy cả dãy ghế lệch
+       1 ô — nhìn như "Tài xế" là ghế A1). Chỉ tầng trước (isFront) có ghế tài xế thật; tầng sau (Tầng
+       trên, 2 tầng) không có ghế tài xế nhưng vẫn cần 1 hàng "giữ chỗ" cao bằng hàng đó (ô rỗng, ẩn) để
+       hàng ghế đầu tiên của 2 tầng (A1.. / B1..) thẳng hàng ngang với nhau — không phải B1.. thẳng hàng
+       với "Tài xế" bên tầng dưới như trước. Sơ đồ 1 tầng không có tầng nào khác để so hàng nên bỏ qua. */
+    var driverRow = '';
+    if (isFront) {
+      driverRow = '<div class="' + gridCls + ' sl-editor-driver-row">' + driverSeatHtml() + '</div>';
+    } else if (dbl) {
+      driverRow = '<div class="' + gridCls + ' sl-editor-driver-row sl-editor-driver-row-spacer"><div class="sl-editor-cell" style="visibility:hidden;"></div></div>';
+    }
+    return '<div class="sl-editor-floor">' + lbl + driverRow + '<div class="' + gridCls + '">' + cells + '</div></div>';
   }
 
   body.innerHTML = '<div class="sl-editor-floors">' +
@@ -533,6 +559,17 @@ function _slEditorAttachEvents() {
     _slEditorState.dragMode = _slEditorState.hiddenSeats.indexOf(code) === -1 ? 'hide' : 'show';
     _slEditorState.isDragging = true;
     toggleCell(cell);
+
+    /* Đăng ký lại listener 'mouseup' MỖI LẦN bấm (không phải 1 lần duy nhất lúc gắn event ở
+       _slEditorAttachEvents() như trước) — bug cũ: listener {once:true} chỉ đăng ký 1 lần nên bị tiêu
+       thụ (tự gỡ) ngay ở lượt mouseup ĐẦU TIÊN của trang (kể cả 1 click thường, không kéo), khiến từ
+       lượt bấm ghế THỨ HAI trở đi không còn listener nào đặt lại isDragging về false nữa → isDragging
+       kẹt ở true vĩnh viễn, làm mousemove (chỉ RÊ chuột qua, không giữ nút) qua ghế khác cũng tự động
+       toggle theo như đang kéo chọn. Gắn listener mới ngay tại đây (mỗi mousedown) đảm bảo luôn có đúng
+       1 listener chờ sẵn để tắt isDragging khi thả chuột, dù bấm bao nhiêu lần. */
+    document.addEventListener('mouseup', function _onUp() {
+      _slEditorState.isDragging = false;
+    }, { once: true });
   });
 
   body.addEventListener('mousemove', function(e) {
@@ -541,11 +578,6 @@ function _slEditorAttachEvents() {
     if (!cell) return;
     toggleCell(cell);
   });
-
-  document.addEventListener('mouseup', function _onUp() {
-    _slEditorState.isDragging = false;
-    document.removeEventListener('mouseup', _onUp);
-  }, { once: true });
 }
 
 /* Đặt lại — hiện tất cả ô */

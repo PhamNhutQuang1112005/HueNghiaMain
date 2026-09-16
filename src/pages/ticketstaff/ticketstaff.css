@@ -77,6 +77,36 @@
   color: var(--red);
 }
 
+/* Nút "Quản trị hệ thống" trên header — chỉ hiện khi đăng nhập ticketstaff bằng tài khoản role 'admin'
+   (xem #btnGoToAdmin trong ticketstaff.html + initUserMenu() trong ticketstaff-account.js). Đặt cạnh
+   user-chip nên dùng viền đỏ dạng "ghost" thay vì nền đặc để không cạnh tranh với chip tài khoản. */
+.admin-panel-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--red);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--red);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.admin-panel-link-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  flex: 0 0 auto;
+}
+.admin-panel-link-btn:hover {
+  background: var(--red);
+  color: var(--white);
+}
+
 @keyframes calopen {
   from {
     opacity: 0;

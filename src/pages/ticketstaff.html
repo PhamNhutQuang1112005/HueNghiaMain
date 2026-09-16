@@ -74,6 +74,14 @@
 
     <div class="topbar-spacer"></div>
 
+    <!-- Chỉ hiện với tài khoản role 'admin' (Auth.isAdmin(), auth/permissions.js) — vào ticketstaff bằng
+         quyền admin thì có lối tắt quay lại trang Quản trị hệ thống, xem initUserMenu() (ticketstaff-
+         account.js) toggle display + goToAdminPanel(). Ẩn mặc định (style inline) cho tài khoản thường. -->
+    <button type="button" class="admin-panel-link-btn" id="btnGoToAdmin" data-action="goToAdminPanel" style="display:none;" title="Về trang Quản trị hệ thống">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z"/></svg>
+      Quản trị hệ thống
+    </button>
+
     <div class="user-menu" id="userMenu">
       <button type="button" class="user-chip" id="userChipBtn" aria-haspopup="true" aria-expanded="false">
         <div class="avatar" id="userAvatar">L</div>
