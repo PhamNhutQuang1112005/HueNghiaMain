@@ -445,19 +445,15 @@ function routeVehicleTypeOptionsHtml(current) {
   }).join('');
 }
 
-// Xe "24 Phòng" (Limousine) bán 2 mức giá Đơn/Đôi; các loại xe khác chỉ 1 mức giá (lưu chung vào
-// route.price, cột "Giá vé ghế đôi" ẩn đi). Modal Thêm/Sửa tuyến dùng chung 1 hàm nhận diện này với
-// buildSeatPriceMeta ở admin-placeholders.js để 2 nơi luôn khớp nhau.
-function routeVehicleHasDoubleSeat(vehicleType) {
-  return /24\s*Phòng|24\s*phong/i.test(String(vehicleType || ''));
-}
-
+// Mỗi tuyến có 2 ô giá độc lập: Ghế đơn và Ghế đôi (không còn phụ thuộc vào Loại xe như trước). Điền cả
+// 2 ô thì cột "Giá" ở bảng Quản lý giá hiện cả 2 mức (Đơn/Đôi, như xe 24 Phòng hiện nay); chỉ điền 1 ô thì
+// cột "Giá" chỉ hiện đúng 1 mức đó (như các xe còn lại). Logic quyết định hasDouble nằm ở buildSeatPriceMeta
+// (admin-placeholders.js), dựa trên chính 2 giá trị route.price/route.doubleSeatPrice.
 function adminOpenRouteModal(id, directionId) {
   var routes = FleetStore.getRoutes();
   var r = id ? routes.find(function (x) { return x.id === id; }) : null;
   var dirs = FleetStore.getDirections().slice().sort(byOrder);
   var parentId = r ? r.directionId : (directionId || SELECTED_DIR_ID || (dirs[0] && dirs[0].id));
-  var hasDouble = routeVehicleHasDoubleSeat(r ? r.vehicleType : '');
   openAdminModal(
     '<h3>' + (r ? 'Sửa tuyến' : 'Thêm tuyến') + '</h3>' +
     '<form class="admin-form" data-submit-action="adminSaveRoute" data-args=\'["__event__"]\'>' +
@@ -469,23 +465,16 @@ function adminOpenRouteModal(id, directionId) {
         '<input id="rmLabel" required value="' + (r ? esc(r.label) : '') + '" placeholder="VD: Sài Gòn - An Giang"></div>' +
       '<div class="fld-row">' +
         '<div class="fld"><label>Mã tuyến</label><input id="rmAbbr" value="' + (r ? esc(r.abbr || '') : '') + '" placeholder="SG-LX"></div>' +
-        '<div class="fld"><label>Loại xe *</label><select id="rmVehicleType" required data-change-action="adminRouteVehicleTypeChange">' + routeVehicleTypeOptionsHtml(r ? r.vehicleType : '') + '</select></div>' +
+        '<div class="fld"><label>Loại xe *</label><select id="rmVehicleType" required>' + routeVehicleTypeOptionsHtml(r ? r.vehicleType : '') + '</select></div>' +
       '</div>' +
       '<div class="fld-row">' +
-        '<div class="fld"><label id="rmPriceLabel">' + (hasDouble ? 'Giá vé ghế đơn (đ) *' : 'Giá vé (đ) *') + '</label><input id="rmPrice" type="number" min="0" step="5000" required value="' + (r ? (r.price || 0) : '') + '"></div>' +
-        '<div class="fld" id="rmDoublePriceFld"' + (hasDouble ? '' : ' style="display:none;"') + '><label>Giá vé ghế đôi (đ)</label><input id="rmDoublePrice" type="number" min="0" step="5000" placeholder="Để trống = tự tính" value="' + (r && r.doubleSeatPrice ? r.doubleSeatPrice : '') + '"></div>' +
+        '<div class="fld"><label>Giá vé ghế đơn (đ)</label><input id="rmPrice" type="number" min="0" step="5000" placeholder="Bỏ trống nếu không bán" value="' + (r && r.price ? r.price : '') + '"></div>' +
+        '<div class="fld"><label>Giá vé ghế đôi (đ)</label><input id="rmDoublePrice" type="number" min="0" step="5000" placeholder="Bỏ trống nếu không bán" value="' + (r && r.doubleSeatPrice ? r.doubleSeatPrice : '') + '"></div>' +
       '</div>' +
       '<div class="fld"><label><input type="checkbox" id="rmActive" ' + (!r || activeOf(r) ? 'checked' : '') + '> Đang hoạt động</label></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
     '</form>'
   );
-}
-
-// Đổi Loại xe trong modal Thêm/Sửa tuyến → hiện/ẩn ô "Giá vé ghế đôi" ngay, không cần đóng mở lại modal.
-function adminRouteVehicleTypeChange() {
-  var hasDouble = routeVehicleHasDoubleSeat($('rmVehicleType').value);
-  $('rmPriceLabel').textContent = hasDouble ? 'Giá vé ghế đơn (đ) *' : 'Giá vé (đ) *';
-  $('rmDoublePriceFld').style.display = hasDouble ? '' : 'none';
 }
 
 function adminSaveRoute(e) {
@@ -494,27 +483,25 @@ function adminSaveRoute(e) {
   var label = $('rmLabel').value.trim();
   var dirId = $('rmDir').value;
   var price = parseInt($('rmPrice').value, 10) || 0;
+  var doublePrice = parseInt($('rmDoublePrice').value, 10) || 0;
   if (!label || !dirId) { showToast('Nhập đủ Tên tuyến và hướng.'); return; }
+  if (!price && !doublePrice) { showToast('Nhập ít nhất 1 trong 2 giá vé (ghế đơn hoặc ghế đôi).'); return; }
   var list = FleetStore.getRoutes();
   if (list.some(function (x) { return x.label === label && x.id !== id0; })) { showToast('Tên tuyến đã tồn tại.'); return; }
   var abbr = $('rmAbbr').value.trim();
   var vehicleType = ($('rmVehicleType') || {}).value || '';
   var active = $('rmActive').checked;
-  var hasDouble = routeVehicleHasDoubleSeat(vehicleType);
-  var doublePrice = hasDouble ? (parseInt($('rmDoublePrice').value, 10) || 0) : 0;
 
   if (id0) {
     var r = list.find(function (x) { return x.id === id0; });
     var before = JSON.parse(JSON.stringify(r));
-    r.label = label; r.directionId = dirId; r.price = price; r.abbr = abbr; r.vehicleType = vehicleType; r.active = active;
-    if (hasDouble) r.doubleSeatPrice = doublePrice;
+    r.label = label; r.directionId = dirId; r.price = price; r.doubleSeatPrice = doublePrice; r.abbr = abbr; r.vehicleType = vehicleType; r.active = active;
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'update', entity: 'route', entityId: id0, summary: 'Sửa tuyến ' + label, before: before, after: r });
   } else {
     var newId = dirId + '-' + Date.now().toString(36);
     var maxOrder = list.filter(function (x) { return x.directionId === dirId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
-    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, price: price, vehicleType: vehicleType, active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
-    if (hasDouble) nr.doubleSeatPrice = doublePrice;
+    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, price: price, doubleSeatPrice: doublePrice, vehicleType: vehicleType, active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
     list.push(nr);
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'create', entity: 'route', entityId: newId, summary: 'Thêm tuyến ' + label, after: nr });

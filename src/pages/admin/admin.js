@@ -155,6 +155,7 @@ var VIEW_RENDERERS = {
   viewStaff: function () { renderStaffView(); },
   viewAccounts: function () { renderAccountsView(); },
   viewStaffStats: function () { renderStaffStatsView(); },
+  viewRecruitment: function () { renderRecruitmentView(); },
   viewActivity: function () { renderActivityView(); },
   viewSettings: function () { renderSettingsView(); }
 };
@@ -194,6 +195,7 @@ var ADMIN_BREADCRUMB_MAP = {
   viewStaff: { group: 'Nhân sự', label: 'Quản lý nhân viên' },
   viewAccounts: { group: 'Nhân sự', label: 'Tài khoản' },
   viewStaffStats: { group: 'Nhân sự', label: 'Thống kê nhân sự' },
+  viewRecruitment: { group: 'Nhân sự', label: 'Thông báo tuyển dụng' },
   viewAccountingReports: { group: 'Kế toán & Tài chính', label: 'Tổng quan & Báo cáo' },
   viewAccountingThu: { group: 'Kế toán & Tài chính', label: 'Doanh thu (THU)' },
   viewAccountingChi: { group: 'Kế toán & Tài chính', label: 'Chi phí (CHI)' },

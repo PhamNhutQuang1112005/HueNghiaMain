@@ -14,6 +14,10 @@ function renderStopsView() {
   $('viewStops').innerHTML = renderComingSoon('Điểm dừng', 'Danh sách các điểm có thể rước theo trạm — tính năng sẽ có ở bản cập nhật sau.');
 }
 
+function renderRecruitmentView() {
+  $('viewRecruitment').innerHTML = renderComingSoon('Thông báo tuyển dụng', 'Danh sách thông báo tuyển dụng — tính năng sẽ có ở bản cập nhật sau.');
+}
+
 var PRICING_FILTERS = { search: '', direction: '', route: '' };
 
 function routeVehicleType(r, idx) {
@@ -22,16 +26,17 @@ function routeVehicleType(r, idx) {
   return 'Xe 45 chỗ';
 }
 
-function buildSeatPriceMeta(r, vehicleType) {
+// hasDouble chỉ true khi cả 2 ô giá (Ghế đơn + Ghế đôi) đều được điền ở modal Thêm/Sửa tuyến — lúc đó
+// cột "Giá" hiện cả 2 mức (Đơn/Đôi). Nếu chỉ điền 1 ô thì chỉ hiện đúng giá của ô đó (only).
+function buildSeatPriceMeta(r) {
   var single = Number(r && r.price) || 0;
-  var hasDouble = routeVehicleHasDoubleSeat(vehicleType);
   var double = Number(r && r.doubleSeatPrice) || 0;
-  if (!double && hasDouble) double = Math.round(single * 1.15);
-  if (!double) double = single;
+  var hasDouble = single > 0 && double > 0;
   return {
     single: single,
     double: double,
-    hasDouble: hasDouble
+    hasDouble: hasDouble,
+    only: single || double
   };
 }
 
@@ -90,7 +95,7 @@ function renderPricingView() {
   }
 
   function priceBadgeHtml(priceMeta) {
-    if (!priceMeta.hasDouble) return '<span class="price-badge">' + esc(fmtMoney(priceMeta.single)) + '</span>';
+    if (!priceMeta.hasDouble) return '<span class="price-badge">' + esc(fmtMoney(priceMeta.only)) + '</span>';
     return '<div class="price-badge-stack">' +
       '<span class="price-badge"><em>Đơn</em>' + esc(fmtMoney(priceMeta.single)) + '</span>' +
       '<span class="price-badge"><em>Đôi</em>' + esc(fmtMoney(priceMeta.double)) + '</span>' +
@@ -99,7 +104,7 @@ function renderPricingView() {
 
   function routeRowHtml(r, idx) {
     var vehicleType = routeVehicleType(r, idx);
-    var priceMeta = buildSeatPriceMeta(r, vehicleType);
+    var priceMeta = buildSeatPriceMeta(r);
     return '<tr>' +
       '<td class="num">' + (idx + 1) + '</td>' +
       '<td><strong>' + esc(r.label || '—') + '</strong></td>' +
