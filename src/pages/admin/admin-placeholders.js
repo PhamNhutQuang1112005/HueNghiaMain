@@ -19,6 +19,7 @@ function renderRecruitmentView() {
 }
 
 var PRICING_FILTERS = { search: '', direction: '', route: '' };
+var PRICE_SEL = {}; // id tuyến đang tick chọn (bảng Quản lý giá) — dùng cho "Xoá"/"Cập nhật giá" hàng loạt
 
 function routeVehicleType(r, idx) {
   if (r && r.vehicleType) return r.vehicleType;
@@ -77,6 +78,10 @@ function renderPricingView() {
     return true;
   }).sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
 
+  // Dọn lựa chọn của khung giá không còn hiển thị (đổi bộ lọc).
+  var visRouteIds = {}; filteredRoutes.forEach(function (r) { visRouteIds[r.id] = true; });
+  Object.keys(PRICE_SEL).forEach(function (id) { if (!visRouteIds[id]) delete PRICE_SEL[id]; });
+
   var routeOptions = routes.filter(function (r) {
     var dirId = routeDirId(r);
     if (PRICING_FILTERS.direction && dirId !== PRICING_FILTERS.direction) return false;
@@ -105,7 +110,8 @@ function renderPricingView() {
   function routeRowHtml(r, idx) {
     var vehicleType = routeVehicleType(r, idx);
     var priceMeta = buildSeatPriceMeta(r);
-    return '<tr>' +
+    var sel = !!PRICE_SEL[r.id];
+    return '<tr data-row-key="' + esc(r.id) + '" class="' + (sel ? 'selected-row' : '') + '">' +
       '<td class="num">' + (idx + 1) + '</td>' +
       '<td><strong>' + esc(r.label || '—') + '</strong></td>' +
       '<td class="pr-vehicle">' + esc(vehicleType) + '</td>' +
@@ -115,22 +121,26 @@ function renderPricingView() {
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminPriceRowMenu" data-args=\'["__this__","' + esc(r.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminPriceToggleRow" data-args=\'["' + esc(r.id) + '","__this__"]\'></td>' +
     '</tr>';
   }
 
-  var rows = filteredRoutes.length ? filteredRoutes.map(routeRowHtml).join('') : '<tr><td colspan="7" class="empty-state">Không có tuyến nào phù hợp với bộ lọc.</td></tr>';
+  var rows = filteredRoutes.length ? filteredRoutes.map(routeRowHtml).join('') : '<tr><td colspan="8" class="empty-state">Không có tuyến nào phù hợp với bộ lọc.</td></tr>';
+
+  var allChecked = filteredRoutes.length && filteredRoutes.every(function (r) { return PRICE_SEL[r.id]; });
 
   var tableHtml = '<div class="sd-section-block">' +
     '<div class="sd-table-wrap" style="overflow:auto;">' +
-      '<table class="admin-table pricing-table" style="table-layout:fixed; min-width:900px;">' +
+      '<table class="admin-table pricing-table" style="table-layout:fixed; min-width:940px;">' +
         '<thead><tr>' +
           '<th class="num" style="width:44px; white-space:nowrap;">STT</th>' +
           '<th style="width:160px;">Tuyến chính</th>' +
           '<th class="pr-vehicle" style="width:130px;">Loại xe</th>' +
           '<th class="pr-price" style="width:95px;">Giá</th>' +
-          '<th style="width:247px;">Điểm đi</th>' +
-          '<th style="width:258px;">Điểm đến</th>' +
+          '<th style="width:227px;">Điểm đi</th>' +
+          '<th style="width:238px;">Điểm đến</th>' +
           '<th class="th-actions" style="width:100px;">Thao tác</th>' +
+          '<th class="col-check"><input type="checkbox" id="prCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminPriceToggleAll" data-args=\'["__this__"]\'></th>' +
         '</tr></thead><tbody>' + rows + '</tbody>' +
       '</table>' +
     '</div>' +
@@ -163,6 +173,134 @@ function renderPricingView() {
       '<button type="button" class="btn btn-primary" data-action="adminOpenRouteModal" data-args=\'["", "' + esc(PRICING_FILTERS.direction || SELECTED_DIR_ID || '') + '"]\'>+ Thêm giá</button>' +
       '<button type="button" class="btn" data-action="adminResetPricingFilters">Đặt lại</button>' +
     '</div>' +
-    tableHtml;
+    tableHtml +
+    '<div class="bulk-bar" id="prActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="prActionHint">Đã chọn 0 khung giá</span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminPriceClearSel">Hủy</button>' +
+        '<button type="button" class="btn" id="prBulkUpdateBtn" data-action="adminPriceOpenBulkUpdate">Cập nhật giá</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminPriceDeleteSelected">Xoá các khung giá đã chọn</button>' +
+      '</div>' +
+    '</div>';
+  adminPriceSyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Quản lý giá (checkbox cuối bảng) để xoá/cập nhật giá hàng loạt.
+   "Cập nhật giá" chỉ bật khi các khung giá đã chọn đang cùng 1 mức giá và cùng loại (chỉ Đơn hoặc chỉ
+   Đôi — loại trừ khung có cả 2 mức, vì lúc đó không rõ nên đổi giá nào hàng loạt). ---- */
+function adminPriceGroupInfo() {
+  var ids = Object.keys(PRICE_SEL);
+  if (!ids.length) return null;
+  var routes = FleetStore.getRoutes();
+  var items = ids.map(function (id) { return routes.find(function (r) { return r.id === id; }); }).filter(Boolean);
+  if (!items.length) return null;
+  var types = items.map(function (r) {
+    var m = buildSeatPriceMeta(r);
+    if (m.hasDouble) return 'both';
+    return m.single ? 'single' : 'double';
+  });
+  var prices = items.map(function (r) { return buildSeatPriceMeta(r).only; });
+  var type = types[0];
+  var price = prices[0];
+  var sameType = type !== 'both' && types.every(function (t) { return t === type; });
+  var samePrice = prices.every(function (p) { return p === price; });
+  return { ids: items.map(function (r) { return r.id; }), type: type, price: price, count: items.length, valid: sameType && samePrice };
+}
+
+function adminPriceSyncBar() {
+  var bar = $('prActionBar');
+  if (!bar) return;
+  var ids = Object.keys(PRICE_SEL);
+  if (!ids.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('prActionHint'); if (hint) hint.textContent = 'Đã chọn ' + ids.length + ' khung giá';
+  var group = adminPriceGroupInfo();
+  var updateBtn = $('prBulkUpdateBtn');
+  if (updateBtn) {
+    var ok = !!(group && group.valid);
+    updateBtn.disabled = !ok;
+    updateBtn.title = ok ? '' : 'Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá và cùng loại (chỉ Đơn hoặc chỉ Đôi).';
+  }
+}
+
+function adminPriceToggleRow(id, cb) {
+  if (cb.checked) PRICE_SEL[id] = true; else delete PRICE_SEL[id];
+  var tr = document.querySelector('#viewPricing tr[data-row-key="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('prCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewPricing tbody td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminPriceSyncBar();
+}
+
+function adminPriceToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewPricing tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var id = null;
+    try { id = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (!id) return;
+    if (cb.checked) PRICE_SEL[id] = true; else delete PRICE_SEL[id];
+  });
+  renderPricingView();
+}
+
+function adminPriceClearSel() { PRICE_SEL = {}; renderPricingView(); }
+
+function adminPriceDeleteSelected() {
+  var ids = Object.keys(PRICE_SEL);
+  if (!ids.length) return;
+  var routes = FleetStore.getRoutes();
+  var deletable = [], blocked = [];
+  ids.forEach(function (id) {
+    var r = routes.find(function (x) { return x.id === id; });
+    var chk = FleetStore.canDeleteRoute(id);
+    if (chk.ok) deletable.push(id); else blocked.push((r ? r.label : id) + ' (' + chk.reason + ')');
+  });
+  if (!deletable.length) { showToast('Không thể xoá: tất cả khung giá đã chọn đang được dùng.'); return; }
+  var msg = 'Xoá ' + deletable.length + ' khung giá đã chọn?' + (blocked.length ? '\nBỏ qua ' + blocked.length + ' khung giá đang được dùng: ' + blocked.join(', ') : '');
+  if (!confirm(msg)) return;
+  var deletableSet = {}; deletable.forEach(function (id) { deletableSet[id] = true; });
+  var list = routes.filter(function (x) { return !deletableSet[x.id]; });
+  FleetStore.setRoutes(list);
+  deletable.forEach(function (id) {
+    FleetStore.log({ action: 'delete', entity: 'route', entityId: id, summary: 'Xoá khung giá ' + id });
+    delete PRICE_SEL[id];
+  });
+  showToast('Đã xoá ' + deletable.length + ' khung giá.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' khung giá đang dùng.' : ''));
+  renderPricingView();
+}
+
+function adminPriceOpenBulkUpdate() {
+  var group = adminPriceGroupInfo();
+  if (!group || !group.valid) { showToast('Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá và cùng loại (chỉ Đơn hoặc chỉ Đôi).'); return; }
+  var typeLabel = group.type === 'single' ? 'Ghế đơn' : 'Ghế đôi';
+  openAdminModal(
+    '<h3>Cập nhật giá hàng loạt</h3>' +
+    '<p class="hint-inline">Áp dụng cho ' + group.count + ' khung giá (' + esc(typeLabel) + '), đang cùng giá ' + esc(fmtMoney(group.price)) + '.</p>' +
+    '<form class="admin-form" data-submit-action="adminSaveBulkPriceUpdate" data-args=\'["__event__"]\'>' +
+      '<div class="fld"><label>Giá mới (đ) *</label><input id="pmBulkPrice" type="number" min="0" step="5000" required value="' + group.price + '"></div>' +
+      '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
+    '</form>'
+  );
+}
+
+function adminSaveBulkPriceUpdate(e) {
+  e.preventDefault();
+  var group = adminPriceGroupInfo();
+  if (!group || !group.valid) { showToast('Danh sách đã chọn thay đổi, thử lại.'); closeAdminModal(); renderPricingView(); return; }
+  var newPrice = parseInt($('pmBulkPrice').value, 10);
+  if (!newPrice || newPrice <= 0) { showToast('Nhập giá hợp lệ.'); return; }
+  var field = group.type === 'single' ? 'price' : 'doubleSeatPrice';
+  var list = FleetStore.getRoutes();
+  group.ids.forEach(function (id) {
+    var r = list.find(function (x) { return x.id === id; });
+    if (!r) return;
+    var before = JSON.parse(JSON.stringify(r));
+    r[field] = newPrice;
+    FleetStore.log({ action: 'update', entity: 'route', entityId: id, summary: 'Cập nhật giá hàng loạt ' + r.label, before: before, after: r });
+  });
+  FleetStore.setRoutes(list);
+  closeAdminModal();
+  showToast('Đã cập nhật giá cho ' + group.ids.length + ' khung giá.');
+  renderPricingView();
 }
 

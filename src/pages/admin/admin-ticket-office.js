@@ -119,7 +119,14 @@ function toGetCancelledTrips() {
   });
   return trips.map(function (t) {
     var log = lastCancel[t.id];
-    return { trip: t, cancelledAt: log ? log.ts : null, cancelledBy: log ? log.user : '—' };
+    // Lý do hủy ưu tiên t.cancelReason (ghi thẳng lên phơi lúc hủy — admin lẫn TicketStaff đều ghi qua
+    // đây), fallback rút từ summary log cũ (trước khi có t.cancelReason) dạng "... — Lý do: ...".
+    var reason = t.cancelReason || '';
+    if (!reason && log && log.summary) {
+      var m = /Lý do:\s*(.+)$/.exec(log.summary);
+      if (m) reason = m[1];
+    }
+    return { trip: t, cancelledAt: log ? log.ts : null, cancelledBy: log ? log.user : '—', reason: reason };
   }).sort(function (a, b) { return (b.cancelledAt || 0) - (a.cancelledAt || 0); });
 }
 
@@ -367,7 +374,7 @@ function toRenderCancelledTab() {
   var rows = toGetCancelledTrips().filter(function (r) {
     if (selectedDate && r.trip.date !== selectedDate) return false;
     if (kw) {
-      var hay = (toTripLabel(r.trip, r.trip.id) + ' ' + (r.trip.plate || '') + ' ' + r.cancelledBy).toLowerCase();
+      var hay = (toTripLabel(r.trip, r.trip.id) + ' ' + (r.trip.plate || '') + ' ' + r.cancelledBy + ' ' + r.reason).toLowerCase();
       if (hay.indexOf(kw) === -1) return false;
     }
     return true;
@@ -381,18 +388,19 @@ function toRenderCancelledTab() {
       '<td class="mono">' + esc(t.plate || '—') + '</td>' +
       '<td class="mono">' + esc(fmtDate(t.date)) + ' ' + esc(t.time || '—') + '</td>' +
       '<td>' + esc(t.route || '—') + '</td>' +
+      '<td title="' + esc(r.reason || '') + '"><span class="pax-note-clamp">' + esc(r.reason || '—') + '</span></td>' +
       '<td class="mono" style="color:var(--text-sub);">' + (r.cancelledAt ? esc(fmtStamp(r.cancelledAt)) : '—') + '</td>' +
       '<td>' + esc(r.cancelledBy) + '</td>' +
     '</tr>';
   }).join('');
 
   var table = '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Tên phơi</th><th>Biển số</th><th>Ngày giờ chạy</th><th>Tuyến</th><th>Thời điểm hủy</th><th>Người hủy</th></tr></thead>' +
+    '<thead><tr><th style="width:50px;">STT</th><th>Tên phơi</th><th>Biển số</th><th>Ngày giờ chạy</th><th>Tuyến</th><th>Lý do hủy</th><th>Thời điểm hủy</th><th>Người hủy</th></tr></thead>' +
     '<tbody>' + rowsHtml + '</tbody></table>' +
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có phơi nào bị hủy' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
   return '<div class="sd-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.cancelled) + '" placeholder="Tên phơi, biển số, người hủy..." data-input-action="toFilterInput" data-args=\'["cancelled","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.cancelled) + '" placeholder="Tên phơi, biển số, người hủy, lý do..." data-input-action="toFilterInput" data-args=\'["cancelled","__this_value__"]\'></div>' +
       adminCalFieldHtml(ns, 'Ngày chạy') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["cancelled","' + ns + '"]\'>Đặt lại</button></div>' +
     '</div>' +

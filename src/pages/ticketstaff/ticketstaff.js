@@ -4316,6 +4316,8 @@ function renderTable(trips) {
 }
 
 // Nút "Hủy phơi xe" trong modal "Chỉnh sửa phơi xe" (chỉ hiện khi sửa phơi có sẵn — xem openEditModal).
+// Mở modal #cancelTripModal bắt buộc nhập lý do (giống #reopenModal) thay vì confirm() — áp dụng chung
+// cho cả role phòng vé lẫn tổng đài (2 role đều dùng chung trang ticketstaff.html này).
 function cancelTripFromModal() {
   const id = document.getElementById("editTripId").value;
   const trip = allTripsMeta.find(t => t.id === id);
@@ -4337,23 +4339,45 @@ function cancelTripFromModal() {
     bookedCount = combined.filter(s => ['sold', 'hold', 'free', 'cargo'].includes(s.state)).length;
   }
 
-  let confirmed = false;
-  if (bookedCount > 0) {
-    confirmed = confirm(`CẢNH BÁO (BR-07): Phơi xe này đang có ${bookedCount} ghế đã bán/đặt. Bạn có chắc chắn muốn HỦY phơi xe này và bồi thường/chuyển khách?`);
-    if (confirmed) {
-      confirmed = confirm("Xác nhận hủy phơi xe một lần nữa (Thao tác không thể hoàn tác)?");
-    }
-  } else {
-    confirmed = confirm(`Bạn có chắc chắn muốn hủy phơi xe "${trip.name || trip.time}"?`);
+  document.getElementById('cancelTripId').value = id;
+  document.getElementById('cancelTripInfo').textContent = trip.name || trip.time || '—';
+  document.getElementById('cancelTripReasonInput').value = '';
+  document.getElementById('cancelTripWarnBox').innerHTML = bookedCount > 0
+    ? `<div class="warn-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        CẢNH BÁO (BR-07): Phơi xe này đang có ${bookedCount} ghế đã bán/đặt — hủy sẽ cần bồi thường/chuyển khách.
+      </div>`
+    : '';
+
+  // Đóng modal Chỉnh sửa trước — cả 2 dùng chung .modal-overlay (z-index bằng nhau), không đóng lại thì
+  // modal Chỉnh sửa (đứng sau trong DOM) đè lên, modal Hủy phơi xe mở ở dưới nhưng không thấy được.
+  closeSingleModal();
+  document.getElementById('cancelTripModal').classList.add('open');
+}
+
+// Xác nhận hủy trong modal #cancelTripModal — lý do bắt buộc, lưu vào trip.cancelReason (đọc lại ở tab
+// "Phơi đã hủy" bên Phòng vé Admin) và ghi FleetStore.log để hiện trong Nhật ký hoạt động chung.
+function confirmCancelTripModal() {
+  const id = document.getElementById('cancelTripId').value;
+  const trip = allTripsMeta.find(t => t.id === id);
+  if (!trip) { closeModal('cancelTripModal'); return; }
+
+  const reason = document.getElementById('cancelTripReasonInput').value.trim();
+  if (!reason) {
+    showToast('Vui lòng nhập lý do hủy phơi xe');
+    return;
   }
 
-  if (confirmed) {
-    trip.status = 'Đã hủy';
-    saveData();
-    refreshTripsList();
-    applyFilters();
-    closeSingleModal();
+  trip.status = 'Đã hủy';
+  trip.cancelReason = reason;
+  saveData();
+  if (window.FleetStore && typeof FleetStore.log === 'function') {
+    FleetStore.log({ action: 'cancel', entity: 'trip', entityId: id, summary: 'Huỷ chuyến ' + (trip.name || id) + ' — Lý do: ' + reason });
   }
+  closeModal('cancelTripModal');
+  refreshTripsList();
+  applyFilters();
+  showToast('Đã hủy phơi xe.');
 }
 
 // Nút "Bán vé" trên thẻ phơi (trang Phơi xe) — chuyển sang tab Đặt vé và chọn sẵn đúng phơi đó ở Zone 1

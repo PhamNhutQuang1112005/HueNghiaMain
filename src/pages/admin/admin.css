@@ -1247,6 +1247,9 @@ table.admin-table {
    co lại được (flex item min-width:auto) nên tràn ra ngoài, đè lên cột kế bên. Cho phép chip tự co và
    xuống dòng bên trong chính nó thay vì tràn. */
 .rt-pickup.chip-editor .chip { min-width: 0; max-width: 100%; white-space: normal; word-break: break-word; }
+.rt-table th.col-stt, .rt-table td.col-stt { width: 28px; text-align: center; font-weight: 600; padding-left: 4px; padding-right: 4px; }
+.rt-table th.col-check, .rt-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.rt-table tbody tr.selected-row { background: var(--red-light); }
 
 /* Trang Quản lý giá — 1 bảng gộp chung như cũ; giá hiển thị dạng badge tròn (.price-badge) thay vì
    chữ trần. Sửa giá (đơn lẫn đôi) làm chung trong modal Sửa tuyến — bảng chỉ để xem. */
@@ -1256,6 +1259,8 @@ table.admin-table {
 .pricing-table td.pr-price { text-align: center; }
 .pricing-table td.pr-vehicle,
 .pricing-table th.pr-vehicle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pricing-table th.col-check, .pricing-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.pricing-table tbody tr.selected-row { background: var(--red-light); }
 
 .price-badge-stack { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .price-badge {
@@ -1787,6 +1792,19 @@ table.admin-table {
   padding: 10px 14px;
   resize: vertical;
   line-height: 1.45;
+}
+/* Cảnh báo trong modal admin (VD: phơi đang hủy còn ghế đã bán/giữ) — cùng tông với .warn-box bên
+   TicketStaff (shared/css/booking-ui/04-overlay-modals.css), admin.css không nạp file đó nên khai riêng. */
+.warn-box {
+  display: flex;
+  gap: 8px;
+  background: var(--red-light);
+  border: 1px solid #FBD5D4;
+  color: #B91C1C;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
 }
 @media (max-width: 640px) {
   .admin-form .form-toggle-grid,
@@ -2842,7 +2860,7 @@ table.admin-table {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1.5px solid var(--border-gray);
+  border: 2px solid var(--text-sub);
   background: #fff;
   display: flex;
   align-items: center;
@@ -2851,6 +2869,31 @@ table.admin-table {
 }
 .phoi-card-selectable.selected .phoi-card-select-check { border-color: var(--red); background: var(--red); }
 .phoi-card-select-check svg { width: 12px; height: 12px; }
+
+/* Nút tròn tick chọn hủy — nằm sẵn trên mỗi thẻ phơi thường (góc PHẢI, cùng vị trí với nốt tròn chọn
+   của thẻ phơi mẫu .phoi-card-select-check), chỉ hiện với phơi còn hủy được (adminTripCancelable). Đẩy
+   .phoi-route-btn (icon "Xem lộ trình") lùi sang trái để nhường đúng góc phải ngoài cùng cho nốt tick.
+   Tick vào tự hiện thanh tác vụ (Hủy / Chọn tất cả / Hủy phơi xe) — không cần bật "chế độ" riêng. */
+.phoi-card.has-cancel-check .phoi-card-top { padding-right: 66px; }
+.phoi-card.has-cancel-check .phoi-route-btn { right: 36px; }
+.phoi-cancel-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-sub);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  cursor: pointer;
+}
+.phoi-cancel-check.on { border-color: var(--red); background: var(--red); }
+.phoi-cancel-check svg { width: 12px; height: 12px; }
+.phoi-card.cancel-picked { border-color: var(--red); background: var(--red-light); }
 
 .bulk-toggle-active { background: var(--red); border-color: var(--red); color: #fff; }
 .bulk-toggle-active:hover { background: var(--red-hover); border-color: var(--red-hover); }

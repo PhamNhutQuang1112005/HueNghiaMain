@@ -1686,6 +1686,27 @@
   </div>
 </div>
 
+<!-- ===== MODAL: HỦY PHƠI XE (bắt buộc nhập lý do — role phòng vé + tổng đài, xem cancelTripFromModal) ===== -->
+<div class="modal-overlay" id="cancelTripModal">
+  <div class="modal">
+    <h3>Hủy phơi xe</h3>
+    <input type="hidden" id="cancelTripId">
+    <div class="form-field">
+      <label>Phơi xe</label>
+      <div id="cancelTripInfo" class="readonly-line">—</div>
+    </div>
+    <div id="cancelTripWarnBox"></div>
+    <div class="form-field">
+      <label for="cancelTripReasonInput">Lý do hủy <span style="color:var(--red);">*</span></label>
+      <textarea id="cancelTripReasonInput" rows="3" placeholder="VD: Xe hỏng đột xuất, không đủ khách..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-action="closeModal" data-args='["cancelTripModal"]'>Đóng</button>
+      <button class="btn btn-danger-outline" data-action="confirmCancelTripModal">Xác nhận hủy phơi xe</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: GHI NHẬN KHÁCH NGOÀI PHƠI ===== -->
 <div class="modal-overlay" id="violationModal">
   <div class="modal">
@@ -2203,7 +2224,7 @@
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=156"></script>
+<script src="ticketstaff/ticketstaff.js?v=157"></script>
 <script src="ticketstaff/ticketstaff-account.js?v=3"></script>
 <script src="ticketstaff/ticketstaff-pickup.js?v=21"></script>
 <script src="ticketstaff/ticketstaff-manifest-core.js?v=8"></script>

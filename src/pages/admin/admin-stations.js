@@ -8,6 +8,7 @@
 var SELECTED_DIR_ID = null;
 var SELECTED_ROUTE_ID = null;
 var ROUTE_FILTER = ''; // ô tìm tuyến ở trang Tuyến xe (lọc theo tên / mã tuyến trong hướng đang chọn)
+var ROUTE_SEL = {}; // id tuyến đang tick chọn (bảng Tuyến) — dùng cho hành động "Xoá các tuyến đã chọn"
 var STATION_GROUPS = [['fromStations', 'Trạm điểm đi'], ['toStations', 'Trạm điểm đến'], ['pickupStations', 'Trạm có thể nhận thêm khách']];
 var REGION_META = [['saigon', 'Trạm Sài Gòn'], ['binhduong', 'Trạm Bình Dương'], ['angiang', 'Trạm An Giang']];
 // hn_admin_regions_v1: mảng { key, title?, custom?, hidden? }
@@ -95,6 +96,10 @@ function renderDirectionsView() {
     (sel ? '<button class="btn btn-sm btn-primary st-tb-btn" data-action="adminOpenRouteModal" data-args=\'["","' + esc(sel.id) + '"]\'>+ Thêm tuyến</button>' : '') +
   '</div>';
 
+  // Dọn lựa chọn của tuyến không còn hiển thị (đổi hướng / lọc lại).
+  var visRouteIds = {}; shownRoutes.forEach(function (r) { visRouteIds[r.id] = true; });
+  Object.keys(ROUTE_SEL).forEach(function (id) { if (!visRouteIds[id]) delete ROUTE_SEL[id]; });
+
   var tableHtml = sel ? renderRoutesTable(shownRoutes, !!rq)
     : '<div class="empty-state">Chưa có hướng nào. Bấm “+ Thêm hướng” để tạo.</div>';
 
@@ -102,7 +107,15 @@ function renderDirectionsView() {
     '<div class="st-right">' +
       toolbar +
       '<section class="st-col st-col-routes">' + tableHtml + '</section>' +
+    '</div>' +
+    '<div class="bulk-bar" id="rtActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="rtActionHint">Đã chọn 0 tuyến</span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminRouteClearSel">Hủy</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminRouteDeleteSelected">Xoá các tuyến đã chọn</button>' +
+      '</div>' +
     '</div>';
+  adminRouteSyncBar();
 }
 
 function adminRouteSearch(v) { ROUTE_FILTER = v || ''; adminKeepFocus(renderDirectionsView); }
@@ -225,7 +238,7 @@ function adminRestoreRegion(key) {
 
 
 function renderRoutesTable(routes, filtered) {
-  var routeRows = routes.length ? routes.map(function (r) {
+  var routeRows = routes.length ? routes.map(function (r, i) {
     var pk = r.pickupStations || [];
     var chips = pk.map(function (s, i) {
       return '<span class="chip">' + esc(s) + '<button title="Bỏ trạm" data-action="adminRemoveRouteStation" data-args=\'["' + esc(r.id) + '","pickupStations",' + i + ']\'>&times;</button></span>';
@@ -234,16 +247,78 @@ function renderRoutesTable(routes, filtered) {
       (chips || '<span class="hint-inline">Chưa có trạm.</span>') +
       '<button class="btn btn-sm btn-ghost" data-action="adminOpenStationPicker" data-args=\'["' + esc(r.id) + '","pickupStations"]\'>+ chọn trạm</button>' +
     '</div>';
-    return '<tr><td class="mono rt-col-abbr">' + esc(r.abbr || '—') + '</td><td>' + esc(r.label) + '</td>' +
+    var sel = !!ROUTE_SEL[r.id];
+    return '<tr data-row-key="' + esc(r.id) + '" class="' + (sel ? 'selected-row' : '') + '">' +
+      '<td class="col-stt">' + (i + 1) + '</td>' +
+      '<td class="mono rt-col-abbr">' + esc(r.abbr || '—') + '</td><td>' + esc(r.label) + '</td>' +
       '<td class="rt-pickup-cell rt-col-pickup">' + pkCell + '</td>' +
       '<td class="col-status">' + activeTag(activeOf(r)) + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminRouteRowMenu" data-args=\'["__this__","' + esc(r.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
-      '</td></tr>';
-  }).join('') : '<tr><td colspan="5" class="empty-state">' + (filtered ? 'Không tìm thấy tuyến phù hợp.' : 'Hướng này chưa có tuyến nào.') + '</td></tr>';
+      '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminRouteToggleRow" data-args=\'["' + esc(r.id) + '","__this__"]\'></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="7" class="empty-state">' + (filtered ? 'Không tìm thấy tuyến phù hợp.' : 'Hướng này chưa có tuyến nào.') + '</td></tr>';
 
-  return '<div class="table-wrap" style="border:0;border-radius:0;"><table class="admin-table rt-table"><thead><tr><th class="rt-col-abbr">Mã</th><th>Tên tuyến chính</th><th class="rt-col-pickup">Trạm có thể nhận</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' +
+  var allChecked = routes.length && routes.every(function (r) { return ROUTE_SEL[r.id]; });
+  return '<div class="table-wrap" style="border:0;border-radius:0;"><table class="admin-table rt-table"><thead><tr>' +
+    '<th class="col-stt">STT</th><th class="rt-col-abbr">Mã</th><th>Tên tuyến chính</th><th class="rt-col-pickup">Trạm có thể nhận</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th>' +
+    '<th class="col-check"><input type="checkbox" id="rtCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminRouteToggleAll" data-args=\'["__this__"]\'></th>' +
+    '</tr></thead><tbody>' +
     routeRows + '</tbody></table></div>';
+}
+
+/* ---- Chọn nhiều dòng trong bảng Tuyến (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminRouteSyncBar() {
+  var bar = $('rtActionBar');
+  if (!bar) return;
+  var ids = Object.keys(ROUTE_SEL);
+  if (!ids.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('rtActionHint'); if (hint) hint.textContent = 'Đã chọn ' + ids.length + ' tuyến';
+}
+function adminRouteToggleRow(id, cb) {
+  if (cb.checked) ROUTE_SEL[id] = true; else delete ROUTE_SEL[id];
+  var tr = document.querySelector('.st-col-routes tr[data-row-key="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('rtCheckAll');
+  if (all) all.checked = document.querySelectorAll('.st-col-routes td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminRouteSyncBar();
+}
+function adminRouteToggleAll(cb) {
+  var boxes = document.querySelectorAll('.st-col-routes tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var id = null;
+    try { id = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (!id) return;
+    if (cb.checked) ROUTE_SEL[id] = true; else delete ROUTE_SEL[id];
+  });
+  renderDirectionsView();
+}
+function adminRouteClearSel() { ROUTE_SEL = {}; renderDirectionsView(); }
+function adminRouteDeleteSelected() {
+  var ids = Object.keys(ROUTE_SEL);
+  if (!ids.length) return;
+  var routes = FleetStore.getRoutes();
+  var deletable = [], blocked = [];
+  ids.forEach(function (id) {
+    var r = routes.find(function (x) { return x.id === id; });
+    var chk = FleetStore.canDeleteRoute(id);
+    if (chk.ok) deletable.push(id); else blocked.push((r ? r.label : id) + ' (' + chk.reason + ')');
+  });
+  if (!deletable.length) { showToast('Không thể xoá: tất cả tuyến đã chọn đang được dùng.'); return; }
+  var msg = 'Xoá ' + deletable.length + ' tuyến đã chọn?' + (blocked.length ? '\nBỏ qua ' + blocked.length + ' tuyến đang được dùng: ' + blocked.join(', ') : '');
+  if (!confirm(msg)) return;
+  var deletableSet = {}; deletable.forEach(function (id) { deletableSet[id] = true; });
+  var list = routes.filter(function (x) { return !deletableSet[x.id]; });
+  FleetStore.setRoutes(list);
+  deletable.forEach(function (id) {
+    FleetStore.log({ action: 'delete', entity: 'route', entityId: id, summary: 'Xoá tuyến ' + id });
+    if (SELECTED_ROUTE_ID === id) SELECTED_ROUTE_ID = null;
+    delete ROUTE_SEL[id];
+  });
+  showToast('Đã xoá ' + deletable.length + ' tuyến.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' tuyến đang dùng.' : ''));
+  renderDirectionsView();
 }
 
 // Cột "Thao tác" bảng tuyến — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).

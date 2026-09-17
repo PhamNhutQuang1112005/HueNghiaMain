@@ -18,6 +18,14 @@ function tripRouteDirectionId(route) {
 }
 var ADMIN_BULK = { mode: false, ids: [] }; // "Tạo phơi xe hàng loạt" — chọn phơi mẫu (isTemplate) rồi nhân bản theo khoảng ngày
 var ADMIN_TPL_MODE = false; // đang mở modal ở chế độ "Tạo phơi mẫu" (gắn isTemplate cho phơi mới) — xem adminOpenTripModal
+var ADMIN_CANCEL_IDS = []; // id các phơi đang tick chọn (nút tròn trên mỗi thẻ phơi) để hủy 1/nhiều/tất cả cùng lúc
+
+// Phơi còn hủy được: chưa hủy và chưa khởi hành (mọi trạng thái vòng đời sau khi xuất phơi — Khởi hành/
+// Re-open/Đóng Re-open/Đã kết ca — coi như đã chạy, không cho hủy nữa).
+function adminTripCancelable(t, bank) {
+  var label = adminTripDisplayStatus(t, bank).label;
+  return label === 'Đang bán' || label === 'Chưa chỉ định';
+}
 
 function fld(label, inner) { return '<div class="filter-field"><label>' + esc(label) + '</label>' + inner + '</div>'; }
 function uniq(a) { return Array.from(new Set(a)); }
@@ -115,6 +123,10 @@ function renderTripsView() {
       '</div>';
   }
 
+  // Dọn lựa chọn "hủy" của phơi không còn hiển thị (đổi bộ lọc / vào chế độ tạo hàng loạt).
+  var visTripIds = {}; list.forEach(function (t) { visTripIds[t.id] = true; });
+  ADMIN_CANCEL_IDS = ADMIN_CANCEL_IDS.filter(function (id) { return visTripIds[id]; });
+
   function tripCard(t) {
     if (ADMIN_BULK.mode) {
       // Danh sách PHƠI MẪU: mọi thẻ luôn hiện "Chưa chỉ định" (mẫu không mang trạng thái/biển số sống).
@@ -128,7 +140,15 @@ function renderTripsView() {
     var ds = adminTripDisplayStatus(t, seatBank[t.id]);
     var cls = ds.cls, label = ds.label;
     var sellDisabled = cls === 'da-huy' || cls === 'da-khoi-hanh';
-    return '<div class="phoi-card status-' + cls + '" data-action="adminOpenTripModal" data-args=\'["' + esc(t.id) + '"]\'>' +
+    // Nút tròn tick chọn (góc trái thẻ, giống thẻ phơi mẫu) — chỉ phơi CHƯA khởi hành mới hủy được nên
+    // chỉ những thẻ đó mới có nút này.
+    var cancelable = adminTripCancelable(t, seatBank[t.id]);
+    var picked = cancelable && ADMIN_CANCEL_IDS.indexOf(t.id) !== -1;
+    var checkHtml = cancelable
+      ? '<div class="phoi-cancel-check' + (picked ? ' on' : '') + '" data-action="adminToggleCancelSelect" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + (picked ? ICN_CHECK : '') + '</div>'
+      : '';
+    return '<div class="phoi-card status-' + cls + (cancelable ? ' has-cancel-check' : '') + (picked ? ' cancel-picked' : '') + '" data-action="adminOpenTripModal" data-args=\'["' + esc(t.id) + '"]\'>' +
+      checkHtml +
       '<button type="button" class="phoi-route-btn" title="Xem lộ trình" data-action="adminShowTripRoute" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + ICN_ROUTE + '</button>' +
       cardInner(t, cls, label) +
       '<div class="phoi-card-footer">' +
@@ -145,8 +165,11 @@ function renderTripsView() {
 
   var today = todayISO();
   var allSelected = list.length > 0 && list.every(function (t) { return ADMIN_BULK.ids.indexOf(t.id) !== -1; });
-  var bulkBar = ADMIN_BULK.mode
-    ? '<div class="bulk-bar">' +
+  var cancelableIds = list.filter(function (t) { return adminTripCancelable(t, seatBank[t.id]); }).map(function (t) { return t.id; });
+  var allCancelSelected = cancelableIds.length > 0 && cancelableIds.every(function (id) { return ADMIN_CANCEL_IDS.indexOf(id) !== -1; });
+  var bulkBar = '';
+  if (ADMIN_BULK.mode) {
+    bulkBar = '<div class="bulk-bar">' +
         '<span class="bulk-bar-hint">' + (ADMIN_BULK.ids.length ? 'Đã chọn ' + ADMIN_BULK.ids.length + '/' + list.length + ' phơi mẫu' : 'Chọn các phơi mẫu bên trên để tạo hàng loạt theo khoảng ngày') + '</span>' +
         '<div class="bulk-bar-fields">' +
           '<div class="filter-field"><label>Từ ngày</label><input type="date" id="bkFrom" value="' + today + '" min="' + today + '"></div>' +
@@ -155,11 +178,21 @@ function renderTripsView() {
           '<button class="btn btn-secondary" data-action="adminToggleBulkMode">Hủy</button>' +
           '<button class="btn btn-primary" data-action="adminBulkCreate"' + (ADMIN_BULK.ids.length ? '' : ' disabled') + '>Tạo hàng loạt</button>' +
         '</div>' +
-      '</div>'
-    : '';
+      '</div>';
+  } else if (ADMIN_CANCEL_IDS.length) {
+    // Thanh tác vụ nổi lên khi có ít nhất 1 phơi được tick — Hủy (bỏ chọn) | Chọn tất cả | Hủy phơi xe.
+    bulkBar = '<div class="bulk-bar">' +
+        '<span class="bulk-bar-hint">Đã chọn ' + ADMIN_CANCEL_IDS.length + ' phơi</span>' +
+        '<div class="bulk-bar-fields">' +
+          '<button class="btn btn-secondary" data-action="adminClearCancelSel">Hủy</button>' +
+          '<button class="btn btn-secondary" data-action="adminCancelSelectAll" data-args=\'' + JSON.stringify([cancelableIds]) + '\'>' + (allCancelSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả') + '</button>' +
+          '<button class="btn btn-danger" data-action="adminOpenBulkCancelModal">Hủy phơi xe</button>' +
+        '</div>' +
+      '</div>';
+  }
 
-  // .has-bulk-bar: chừa chỗ dưới lưới cho thanh chọn phơi mẫu (position:fixed, dính đáy màn hình).
-  var body = '<div class="phoi-grid-wrap' + (ADMIN_BULK.mode ? ' has-bulk-bar' : '') + '">' + grid + '</div>' + bulkBar;
+  // .has-bulk-bar: chừa chỗ dưới lưới cho thanh chọn phơi mẫu / chọn phơi để hủy (position:fixed, dính đáy màn hình).
+  var body = '<div class="phoi-grid-wrap' + ((ADMIN_BULK.mode || ADMIN_CANCEL_IDS.length) ? ' has-bulk-bar' : '') + '">' + grid + '</div>' + bulkBar;
 
   $('viewTrips').innerHTML =
     '<div class="filter-toolbar tf-toolbar">' +
@@ -233,6 +266,7 @@ function adminShowTripRoute(id) {
 function adminToggleBulkMode() {
   ADMIN_BULK.mode = !ADMIN_BULK.mode;
   ADMIN_BULK.ids = [];
+  if (ADMIN_BULK.mode) ADMIN_CANCEL_IDS = [];
   renderTripsView();
 }
 function adminToggleBulkSelect(id) {
@@ -245,6 +279,27 @@ function adminBulkSelectAll() {
   var allSel = ids.length > 0 && ids.every(function (id) { return ADMIN_BULK.ids.indexOf(id) !== -1; });
   ADMIN_BULK.ids = allSel ? [] : ids;
   renderTripsView();
+}
+
+/* ---- Nút tròn tick trên mỗi thẻ phơi (chỉ phơi chưa khởi hành) — chọn 1/nhiều/tất cả để hủy cùng lúc.
+   Không còn "chế độ" riêng: nút tick luôn có sẵn trên thẻ, thanh tác vụ tự hiện khi có ≥1 phơi được chọn. ---- */
+function adminToggleCancelSelect(id) {
+  var i = ADMIN_CANCEL_IDS.indexOf(id);
+  if (i === -1) ADMIN_CANCEL_IDS.push(id); else ADMIN_CANCEL_IDS.splice(i, 1);
+  renderTripsView();
+}
+function adminCancelSelectAll(ids) {
+  var allSel = ids.length > 0 && ids.every(function (id) { return ADMIN_CANCEL_IDS.indexOf(id) !== -1; });
+  ADMIN_CANCEL_IDS = allSel ? [] : ids.slice();
+  renderTripsView();
+}
+function adminClearCancelSel() {
+  ADMIN_CANCEL_IDS = [];
+  renderTripsView();
+}
+function adminOpenBulkCancelModal() {
+  if (!ADMIN_CANCEL_IDS.length) { showToast('Chưa chọn phơi nào.'); return; }
+  adminOpenCancelReasonModal(ADMIN_CANCEL_IDS.slice());
 }
 function adminBulkCreate() {
   if (!ADMIN_BULK.ids.length) { showToast('Chưa chọn phơi mẫu nào.'); return; }
@@ -567,14 +622,61 @@ function hasSoldSeats(bank) {
 }
 
 function adminCancelTrip(id) {
-  if (!confirm('Đánh dấu chuyến này là "Đã hủy"?')) return;
+  adminOpenCancelReasonModal([id]);
+}
+
+/* ---- Bắt buộc nhập lý do trước khi hủy phơi (1 phơi từ modal Chỉnh sửa, hoặc nhiều phơi từ "Hủy phơi
+   hàng loạt") — lý do được lưu vào t.cancelReason (đọc lại ở tab "Phơi đã hủy" bên Phòng vé Admin) và
+   ghi vào nhật ký hoạt động chung (FleetStore.log) để hiện trong "Nhật ký hoạt động". ---- */
+function adminOpenCancelReasonModal(ids) {
   var trips = getTrips();
-  var t = trips.find(function (x) { return x.id === id; });
-  if (!t) return;
-  t.status = 'Đã hủy';
+  var targets = ids.map(function (id) { return trips.find(function (x) { return x.id === id; }); })
+    .filter(function (t) { return t && t.status !== 'Đã hủy'; });
+  if (!targets.length) { showToast('Không có phơi hợp lệ để hủy.'); return; }
+
+  var seatBank = lsRead(HN_STORAGE_KEY, {});
+  var bookedTotal = targets.reduce(function (sum, t) {
+    var bank = seatBank[t.id];
+    if (!bank) return sum;
+    var combined = (bank.down || []).concat(bank.up || []);
+    return sum + combined.filter(function (s) { return s && (s.state === 'sold' || s.state === 'hold'); }).length;
+  }, 0);
+  var title = targets.length === 1
+    ? ('Hủy phơi "' + esc(targets[0].name || targets[0].route || '') + '"')
+    : ('Hủy ' + targets.length + ' phơi đã chọn');
+  var warn = bookedTotal
+    ? '<div class="warn-box" style="margin:0 0 14px;">Cảnh báo: đang có ' + bookedTotal + ' ghế đã bán/giữ trong ' +
+      (targets.length === 1 ? 'phơi này' : 'các phơi này') + ' — hủy sẽ cần bồi thường/chuyển khách.</div>'
+    : '';
+
+  openAdminModal(
+    '<h3>' + title + '</h3>' +
+    '<form class="admin-form" data-submit-action="adminConfirmCancelTrips" data-args=\'["__event__",' + JSON.stringify(targets.map(function (t) { return t.id; })) + ']\'>' +
+      warn +
+      '<div class="fld"><label>Lý do hủy <span class="req">*</span></label><textarea id="cxReason" rows="3" required placeholder="Nhập lý do hủy phơi xe..."></textarea></div>' +
+      '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Đóng</button><button type="submit" class="btn btn-danger">Xác nhận hủy</button></div>' +
+    '</form>'
+  );
+}
+
+function adminConfirmCancelTrips(e, ids) {
+  e.preventDefault();
+  var reason = ($('cxReason').value || '').trim();
+  if (!reason) { showToast('Vui lòng nhập lý do hủy.'); return; }
+  var trips = getTrips();
+  var cancelledCount = 0;
+  ids.forEach(function (id) {
+    var t = trips.find(function (x) { return x.id === id; });
+    if (!t || t.status === 'Đã hủy') return;
+    t.status = 'Đã hủy';
+    t.cancelReason = reason;
+    FleetStore.log({ action: 'cancel', entity: 'trip', entityId: id, summary: 'Huỷ chuyến ' + (t.name || id) + ' — Lý do: ' + reason });
+    cancelledCount++;
+  });
   setTrips(trips);
-  FleetStore.log({ action: 'cancel', entity: 'trip', entityId: id, summary: 'Huỷ chuyến ' + (t.name || id) });
-  showToast('Đã huỷ chuyến.');
+  closeAdminModal();
+  ADMIN_CANCEL_IDS = [];
+  showToast('Đã huỷ ' + cancelledCount + ' phơi.');
   renderTripsView();
 }
 
