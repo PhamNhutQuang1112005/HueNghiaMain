@@ -2,6 +2,7 @@
    4. QUẢN LÝ XE
    ========================================================= */
 var VEHICLE_FILTERS = { search: '', scope: '', status: '' };
+var VEHICLE_SEL = {}; // biển số xe đang tick chọn (bảng Xe) — dùng cho hành động "Xoá các xe đã chọn"
 
 function renderVehiclesView() {
   var all = FleetStore.getVehicles();
@@ -26,13 +27,19 @@ function renderVehiclesView() {
     return true;
   });
 
-  var rows = filtered.length ? filtered.map(function (v) {
+  // Dọn lựa chọn của xe không còn hiển thị (đổi bộ lọc) — tránh xoá nhầm xe đã ẩn khỏi danh sách.
+  var visPlates = {}; filtered.forEach(function (v) { visPlates[v.plate] = true; });
+  Object.keys(VEHICLE_SEL).forEach(function (p) { if (!visPlates[p]) delete VEHICLE_SEL[p]; });
+
+  var rows = filtered.length ? filtered.map(function (v, i) {
     var originalIdx = all.indexOf(v);
     var scopeBadge = v.scope === 'shuttle'
       ? '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#E0F2FE;color:#0369A1;font-size:11.5px;font-weight:700;">Trung chuyển</span>'
       : '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:var(--red-light);color:var(--red);font-size:11.5px;font-weight:700;">Xe tuyến</span>';
+    var sel = !!VEHICLE_SEL[v.plate];
 
-    return '<tr>' +
+    return '<tr data-row-key="' + esc(v.plate) + '" class="' + (sel ? 'selected-row' : '') + '">' +
+      '<td class="col-stt">' + (i + 1) + '</td>' +
       '<td><span class="trip-plate-inline" style="font-size:13px;padding:3px 10px;">' + esc(v.plate) + '</span></td>' +
       '<td style="font-weight:800;color:var(--black);font-size:14px;">' + esc(v.vehicleType || '—') + '</td>' +
       '<td style="text-align:center;font-weight:800;font-size:14px;color:var(--black);">' + (v.seats || 0) + '</td>' +
@@ -41,8 +48,12 @@ function renderVehiclesView() {
       '<td style="color:var(--text-sub);">' + (v.note ? esc(v.note) : '—') + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminVehicleRowMenu" data-args=\'["__this__",' + originalIdx + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
-      '</td></tr>';
-  }).join('') : '<tr><td colspan="7" class="empty-state">Không tìm thấy xe phù hợp.</td></tr>';
+      '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminVehicleToggleRow" data-args=\'["' + esc(v.plate) + '","__this__"]\'></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy xe phù hợp.</td></tr>';
+
+  var allChecked = filtered.length && filtered.every(function (v) { return VEHICLE_SEL[v.plate]; });
 
   $('viewVehicles').innerHTML =
     '<div class="sd-toolbar">' +
@@ -77,8 +88,9 @@ function renderVehiclesView() {
         '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">Hiển thị ' + filtered.length + ' / ' + totalCount + ' xe</span>' +
       '</div>' +
       '<div class="sd-table-wrap">' +
-        '<table class="admin-table">' +
+        '<table class="admin-table veh-table">' +
           '<thead><tr>' +
+            '<th class="col-stt">STT</th>' +
             '<th>Biển số</th>' +
             '<th>Loại xe</th>' +
             '<th style="text-align:center;">Số ghế</th>' +
@@ -86,11 +98,72 @@ function renderVehiclesView() {
             '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
             '<th>Ghi chú</th>' +
             '<th class="th-actions">Thao tác</th>' +
+            '<th class="col-check"><input type="checkbox" id="vehCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminVehicleToggleAll" data-args=\'["__this__"]\'></th>' +
           '</tr></thead>' +
           '<tbody>' + rows + '</tbody>' +
         '</table>' +
       '</div>' +
-    '</div></div>';
+    '</div></div>' +
+
+    '<div class="bulk-bar" id="vehActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="vehActionHint">Đã chọn 0 xe</span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminVehicleClearSel">Hủy</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminVehicleDeleteSelected">Xoá các xe đã chọn</button>' +
+      '</div>' +
+    '</div>';
+  adminVehicleSyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Xe (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminVehicleSyncBar() {
+  var bar = $('vehActionBar');
+  if (!bar) return;
+  var plates = Object.keys(VEHICLE_SEL);
+  if (!plates.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('vehActionHint'); if (hint) hint.textContent = 'Đã chọn ' + plates.length + ' xe';
+}
+function adminVehicleToggleRow(plate, cb) {
+  if (cb.checked) VEHICLE_SEL[plate] = true; else delete VEHICLE_SEL[plate];
+  var tr = document.querySelector('#viewVehicles tr[data-row-key="' + (window.CSS && CSS.escape ? CSS.escape(plate) : plate) + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('vehCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewVehicles td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminVehicleSyncBar();
+}
+function adminVehicleToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewVehicles tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var plate = null;
+    try { plate = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (!plate) return;
+    if (cb.checked) VEHICLE_SEL[plate] = true; else delete VEHICLE_SEL[plate];
+  });
+  renderVehiclesView();
+}
+function adminVehicleClearSel() { VEHICLE_SEL = {}; renderVehiclesView(); }
+function adminVehicleDeleteSelected() {
+  var plates = Object.keys(VEHICLE_SEL);
+  if (!plates.length) return;
+  var all = FleetStore.getVehicles();
+  var deletable = [], blocked = [];
+  plates.forEach(function (plate) {
+    var chk = FleetStore.canDeleteVehicle(plate);
+    if (chk.ok) deletable.push(plate); else blocked.push(plate + ' (' + chk.reason + ')');
+  });
+  if (!deletable.length) { showToast('Không thể xoá: tất cả xe đã chọn đang được dùng.'); return; }
+  var msg = 'Xoá ' + deletable.length + ' xe đã chọn?' + (blocked.length ? '\nBỏ qua ' + blocked.length + ' xe đang được dùng: ' + blocked.join(', ') : '');
+  if (!confirm(msg)) return;
+  var deletableSet = {}; deletable.forEach(function (plate) { deletableSet[plate] = true; });
+  var list = all.filter(function (v) { return !deletableSet[v.plate]; });
+  FleetStore.setVehicles(list);
+  deletable.forEach(function (plate) {
+    FleetStore.log({ action: 'delete', entity: 'vehicle', entityId: plate, summary: 'Xoá xe ' + plate });
+    delete VEHICLE_SEL[plate];
+  });
+  showToast('Đã xoá ' + deletable.length + ' xe.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' xe đang dùng.' : ''));
+  renderVehiclesView();
 }
 
 // Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).

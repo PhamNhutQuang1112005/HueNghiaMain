@@ -1262,6 +1262,20 @@ table.admin-table {
 .pricing-table th.col-check, .pricing-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
 .pricing-table tbody tr.selected-row { background: var(--red-light); }
 
+.veh-table th.col-stt, .veh-table td.col-stt { width: 28px; text-align: center; font-weight: 600; padding-left: 4px; padding-right: 4px; }
+.veh-table th.col-check, .veh-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.veh-table tbody tr.selected-row { background: var(--red-light); }
+
+.vc-table th.col-check, .vc-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.vc-table tbody tr.selected-row { background: var(--red-light); }
+
+.vs-table th.col-check, .vs-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.vs-table tbody tr.selected-row { background: var(--red-light); }
+
+.staff-table th.col-stt, .staff-table td.col-stt { width: 28px; text-align: center; font-weight: 600; padding-left: 4px; padding-right: 4px; }
+.staff-table th.col-check, .staff-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.staff-table tbody tr.selected-row { background: var(--red-light); }
+
 .price-badge-stack { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .price-badge {
   display: inline-flex;

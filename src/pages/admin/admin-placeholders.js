@@ -186,25 +186,26 @@ function renderPricingView() {
 }
 
 /* ---- Chọn nhiều dòng trong bảng Quản lý giá (checkbox cuối bảng) để xoá/cập nhật giá hàng loạt.
-   "Cập nhật giá" chỉ bật khi các khung giá đã chọn đang cùng 1 mức giá và cùng loại (chỉ Đơn hoặc chỉ
-   Đôi — loại trừ khung có cả 2 mức, vì lúc đó không rõ nên đổi giá nào hàng loạt). ---- */
+   "Cập nhật giá" bật khi mọi khung giá đã chọn đang cùng giá Đơn VÀ cùng giá Đôi với nhau (so từng
+   cặp, không cần cùng giá Đơn = giá Đôi trong nội bộ 1 khung) — vd 2 khung cùng Đơn 160k/Đôi 140k thì
+   gộp được, còn 1 khung Đơn 160k/Đôi 140k với 1 khung Đơn 160k/Đôi 150k thì không (giá Đôi lệch nhau).
+   Lúc lưu, cập nhật CẢ 2 loại giá (Đơn/Đôi) cùng lúc cho mọi khung trong nhóm — chỉ bỏ qua loại nào
+   khung đó vốn không có (vd toàn khung chỉ có giá Đơn thì không đụng tới giá Đôi). ---- */
 function adminPriceGroupInfo() {
   var ids = Object.keys(PRICE_SEL);
   if (!ids.length) return null;
   var routes = FleetStore.getRoutes();
   var items = ids.map(function (id) { return routes.find(function (r) { return r.id === id; }); }).filter(Boolean);
   if (!items.length) return null;
-  var types = items.map(function (r) {
-    var m = buildSeatPriceMeta(r);
-    if (m.hasDouble) return 'both';
-    return m.single ? 'single' : 'double';
-  });
-  var prices = items.map(function (r) { return buildSeatPriceMeta(r).only; });
-  var type = types[0];
-  var price = prices[0];
-  var sameType = type !== 'both' && types.every(function (t) { return t === type; });
-  var samePrice = prices.every(function (p) { return p === price; });
-  return { ids: items.map(function (r) { return r.id; }), type: type, price: price, count: items.length, valid: sameType && samePrice };
+  var metas = items.map(function (r) { var m = buildSeatPriceMeta(r); return { id: r.id, single: m.single, double: m.double }; });
+  var single = metas[0].single, double = metas[0].double;
+  var sameSingle = metas.every(function (mt) { return mt.single === single; });
+  var sameDouble = metas.every(function (mt) { return mt.double === double; });
+  return {
+    ids: items.map(function (r) { return r.id; }), metas: metas, count: items.length,
+    single: single, double: double, hasSingle: single > 0, hasDouble: double > 0,
+    valid: sameSingle && sameDouble
+  };
 }
 
 function adminPriceSyncBar() {
@@ -219,7 +220,7 @@ function adminPriceSyncBar() {
   if (updateBtn) {
     var ok = !!(group && group.valid);
     updateBtn.disabled = !ok;
-    updateBtn.title = ok ? '' : 'Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá và cùng loại (chỉ Đơn hoặc chỉ Đôi).';
+    updateBtn.title = ok ? '' : 'Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá Đơn và cùng giá Đôi với nhau.';
   }
 }
 
@@ -271,32 +272,38 @@ function adminPriceDeleteSelected() {
 
 function adminPriceOpenBulkUpdate() {
   var group = adminPriceGroupInfo();
-  if (!group || !group.valid) { showToast('Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá và cùng loại (chỉ Đơn hoặc chỉ Đôi).'); return; }
-  var typeLabel = group.type === 'single' ? 'Ghế đơn' : 'Ghế đôi';
+  if (!group || !group.valid) { showToast('Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá Đơn và cùng giá Đôi với nhau.'); return; }
+  var summary = [group.hasSingle ? 'Đơn ' + fmtMoney(group.single) : null, group.hasDouble ? 'Đôi ' + fmtMoney(group.double) : null]
+    .filter(Boolean).join(' / ');
   openAdminModal(
     '<h3>Cập nhật giá hàng loạt</h3>' +
-    '<p class="hint-inline">Áp dụng cho ' + group.count + ' khung giá (' + esc(typeLabel) + '), đang cùng giá ' + esc(fmtMoney(group.price)) + '.</p>' +
+    '<p class="hint-inline">Áp dụng cho ' + group.count + ' khung giá, đang cùng giá ' + esc(summary) + '.</p>' +
     '<form class="admin-form" data-submit-action="adminSaveBulkPriceUpdate" data-args=\'["__event__"]\'>' +
-      '<div class="fld"><label>Giá mới (đ) *</label><input id="pmBulkPrice" type="number" min="0" step="5000" required value="' + group.price + '"></div>' +
+      (group.hasSingle ? '<div class="fld"><label>Giá vé đơn mới (đ) *</label><input id="pmBulkSingle" type="number" min="0" step="5000" required value="' + group.single + '"></div>' : '') +
+      (group.hasDouble ? '<div class="fld"><label>Giá vé đôi mới (đ) *</label><input id="pmBulkDouble" type="number" min="0" step="5000" required value="' + group.double + '"></div>' : '') +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
     '</form>'
   );
 }
 
+// Cập nhật CẢ 2 loại giá (Đơn/Đôi) cùng lúc cho mọi khung trong nhóm — chỉ đụng tới field nào nhóm đó
+// vốn có (xem hasSingle/hasDouble ở adminPriceGroupInfo), tránh gán nhầm giá Đôi cho khung chỉ bán vé đơn.
 function adminSaveBulkPriceUpdate(e) {
   e.preventDefault();
   var group = adminPriceGroupInfo();
   if (!group || !group.valid) { showToast('Danh sách đã chọn thay đổi, thử lại.'); closeAdminModal(); renderPricingView(); return; }
-  var newPrice = parseInt($('pmBulkPrice').value, 10);
-  if (!newPrice || newPrice <= 0) { showToast('Nhập giá hợp lệ.'); return; }
-  var field = group.type === 'single' ? 'price' : 'doubleSeatPrice';
+  var newSingle = group.hasSingle ? parseInt($('pmBulkSingle').value, 10) : null;
+  var newDouble = group.hasDouble ? parseInt($('pmBulkDouble').value, 10) : null;
+  if (group.hasSingle && (!newSingle || newSingle <= 0)) { showToast('Nhập giá vé đơn hợp lệ.'); return; }
+  if (group.hasDouble && (!newDouble || newDouble <= 0)) { showToast('Nhập giá vé đôi hợp lệ.'); return; }
   var list = FleetStore.getRoutes();
-  group.ids.forEach(function (id) {
-    var r = list.find(function (x) { return x.id === id; });
+  group.metas.forEach(function (mt) {
+    var r = list.find(function (x) { return x.id === mt.id; });
     if (!r) return;
     var before = JSON.parse(JSON.stringify(r));
-    r[field] = newPrice;
-    FleetStore.log({ action: 'update', entity: 'route', entityId: id, summary: 'Cập nhật giá hàng loạt ' + r.label, before: before, after: r });
+    if (group.hasSingle) r.price = newSingle;
+    if (group.hasDouble) r.doubleSeatPrice = newDouble;
+    FleetStore.log({ action: 'update', entity: 'route', entityId: mt.id, summary: 'Cập nhật giá hàng loạt ' + r.label, before: before, after: r });
   });
   FleetStore.setRoutes(list);
   closeAdminModal();

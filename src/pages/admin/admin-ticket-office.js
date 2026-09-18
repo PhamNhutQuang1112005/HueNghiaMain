@@ -17,7 +17,8 @@
    ========================================================= */
 
 var TICKET_OFFICE_TAB = 'depart';
-var TO_FILTERS = { depart: '', reopen: '', daily: '', cancelled: '' };
+function toEmptyFilterSet() { return { search: '', direction: '', fromStation: '' }; }
+var TO_FILTERS = { depart: toEmptyFilterSet(), reopen: toEmptyFilterSet(), daily: toEmptyFilterSet(), cancelled: toEmptyFilterSet() };
 var TO_NS = { depart: 'toDep', reopen: 'toReopen', daily: 'toDay', cancelled: 'toCancel' };
 var TO_REOPEN_KEY = 'hn_ts_reopen_events_v1';
 
@@ -73,6 +74,32 @@ function toActionMeta(type) {
     'reopen-close': { cls: 'chua-chi-dinh', label: 'Đóng Re-open' }
   };
   return META[type] || { cls: 'chua-chi-dinh', label: type || '—' };
+}
+
+/* ---------- Bộ lọc Hướng đi / Trạm đi dùng chung cho cả 4 tab — áp theo phơi (t.route/t.fromStation)
+   gắn với từng dòng lịch sử. Trạm đi lấy TOÀN BỘ danh mục trạm (FleetStore.getStations), không chỉ
+   trạm đang xuất hiện trong dữ liệu, giống cách "Trạm đi" ở tab Trung chuyển (admin-transship.js). ---------- */
+function toDirectionOptionsHtml(cur) {
+  var directions = (FleetStore && FleetStore.getDirections ? FleetStore.getDirections() : []).filter(function (d) { return d && d.active !== false; }).sort(byOrder);
+  return '<option value="">Tất cả hướng</option>' + directions.map(function (d) {
+    return '<option value="' + esc(d.id) + '"' + (cur === d.id ? ' selected' : '') + '>' + esc(d.label) + '</option>';
+  }).join('');
+}
+function toStationOptionsHtml(cur) {
+  var stations = (FleetStore && FleetStore.getStations ? FleetStore.getStations() : []).map(function (s) { return s.name; }).sort();
+  return '<option value="">Tất cả trạm đi</option>' + stations.map(function (s) {
+    return '<option value="' + esc(s) + '"' + (cur === s ? ' selected' : '') + '>' + esc(s) + '</option>';
+  }).join('');
+}
+function toDirStationFieldsHtml(tab, f) {
+  return '<div class="filter-field"><label>Hướng đi</label><select data-change-action="toFilterInput" data-args=\'["' + tab + '","direction","__this_value__"]\'>' + toDirectionOptionsHtml(f.direction) + '</select></div>' +
+    '<div class="filter-field"><label>Trạm đi</label><select data-change-action="toFilterInput" data-args=\'["' + tab + '","fromStation","__this_value__"]\'>' + toStationOptionsHtml(f.fromStation) + '</select></div>';
+}
+// t = phơi (trip) gắn với dòng lịch sử đang lọc — có thể null nếu phơi gốc đã bị xoá dữ liệu.
+function toTripMatchesFilters(t, f) {
+  if (f.direction && (!t || tripRouteDirectionId(t.route) !== f.direction)) return false;
+  if (f.fromStation && (!t || t.fromStation !== f.fromStation)) return false;
+  return true;
 }
 
 /* ---------- Nguồn 1: Lịch sử khởi hành xe — mỗi phơi 1 dòng theo manifest hiện có ---------- */
@@ -214,13 +241,13 @@ function renderTicketOfficeView() {
 }
 
 function setTicketOfficeTab(tab) { TICKET_OFFICE_TAB = tab; renderTicketOfficeView(); }
-function toFilterInput(tab, val) {
-  if (!(tab in TO_FILTERS)) return;
-  TO_FILTERS[tab] = val || '';
+function toFilterInput(tab, field, val) {
+  if (!TO_FILTERS[tab] || !(field in TO_FILTERS[tab])) return;
+  TO_FILTERS[tab][field] = val || '';
   adminKeepFocus(renderTicketOfficeView);
 }
 function toResetFilter(tab, ns) {
-  TO_FILTERS[tab] = '';
+  TO_FILTERS[tab] = toEmptyFilterSet();
   adminCalState(ns).selectedStr = '';
   renderTicketOfficeView();
 }
@@ -239,10 +266,12 @@ function toRenderDepartTab() {
   var ns = TO_NS.depart;
   adminCalInit(ns, function () { renderTicketOfficeView(); });
   var selectedDate = adminCalState(ns).selectedStr;
-  var kw = TO_FILTERS.depart.toLowerCase();
+  var f = TO_FILTERS.depart;
+  var kw = f.search.toLowerCase();
 
   var rows = toGetDepartures().filter(function (r) {
     if (selectedDate && r.date !== selectedDate) return false;
+    if (!toTripMatchesFilters(r.trip, f)) return false;
     if (kw) {
       var hay = (toTripLabel(r.trip, r.tripId) + ' ' + r.plate + ' ' + r.driver + ' ' + r.helper).toLowerCase();
       if (hay.indexOf(kw) === -1) return false;
@@ -269,7 +298,8 @@ function toRenderDepartTab() {
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có phơi nào khởi hành' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
   return '<div class="sd-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.depart) + '" placeholder="Tên phơi, biển số, tài xế..." data-input-action="toFilterInput" data-args=\'["depart","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên phơi, biển số, tài xế..." data-input-action="toFilterInput" data-args=\'["depart","search","__this_value__"]\'></div>' +
+      toDirStationFieldsHtml('depart', f) +
       adminCalFieldHtml(ns, 'Ngày khởi hành') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["depart","' + ns + '"]\'>Đặt lại</button></div>' +
     '</div>' +
@@ -280,11 +310,13 @@ function toRenderReopenTab() {
   var ns = TO_NS.reopen;
   adminCalInit(ns, function () { renderTicketOfficeView(); });
   var selectedDate = adminCalState(ns).selectedStr;
-  var kw = TO_FILTERS.reopen.toLowerCase();
+  var f = TO_FILTERS.reopen;
+  var kw = f.search.toLowerCase();
 
   var rows = toGetReopenEvents().filter(function (r) {
     var d = r.time ? toLocalDateStr(r.time) : '';
     if (selectedDate && d !== selectedDate) return false;
+    if (!toTripMatchesFilters(r.trip, f)) return false;
     if (kw) {
       var hay = (toTripLabel(r.trip, r.tripId) + ' ' + (r.staffId || '') + ' ' + (r.reason || '')).toLowerCase();
       if (hay.indexOf(kw) === -1) return false;
@@ -313,7 +345,8 @@ function toRenderReopenTab() {
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt Re-open nào' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
   return '<div class="sd-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.reopen) + '" placeholder="Tên phơi, nhân viên, lý do..." data-input-action="toFilterInput" data-args=\'["reopen","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên phơi, nhân viên, lý do..." data-input-action="toFilterInput" data-args=\'["reopen","search","__this_value__"]\'></div>' +
+      toDirStationFieldsHtml('reopen', f) +
       adminCalFieldHtml(ns, 'Ngày mở Re-open') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["reopen","' + ns + '"]\'>Đặt lại</button></div>' +
     '</div>' +
@@ -330,9 +363,11 @@ function toRenderDailyTab() {
   // dùng todayISO() (UTC) — nếu không 2 cách sẽ ra 2 ngày khác nhau vào khung giờ khuya ở múi giờ VN.
   if (!st.selectedStr) st.selectedStr = toLocalDateStr(new Date());
   var effDate = st.selectedStr;
-  var kw = TO_FILTERS.daily.toLowerCase();
+  var f = TO_FILTERS.daily;
+  var kw = f.search.toLowerCase();
 
   var events = toGetDailyEvents(effDate).filter(function (e) {
+    if (!toTripMatchesFilters(e.trip, f)) return false;
     if (kw) {
       var hay = (toTripLabel(e.trip, e.tripId) + ' ' + e.detail + ' ' + e.user).toLowerCase();
       if (hay.indexOf(kw) === -1) return false;
@@ -358,7 +393,8 @@ function toRenderDailyTab() {
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có diễn biến phơi nào trong ngày ' + esc(fmtDate(effDate)) + '.</p></div>');
 
   return '<div class="sd-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.daily) + '" placeholder="Tên phơi, nhân viên, nội dung..." data-input-action="toFilterInput" data-args=\'["daily","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên phơi, nhân viên, nội dung..." data-input-action="toFilterInput" data-args=\'["daily","search","__this_value__"]\'></div>' +
+      toDirStationFieldsHtml('daily', f) +
       adminCalFieldHtml(ns, 'Xem theo ngày') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["daily","' + ns + '"]\'>Về hôm nay</button></div>' +
     '</div>' +
@@ -369,10 +405,12 @@ function toRenderCancelledTab() {
   var ns = TO_NS.cancelled;
   adminCalInit(ns, function () { renderTicketOfficeView(); });
   var selectedDate = adminCalState(ns).selectedStr;
-  var kw = TO_FILTERS.cancelled.toLowerCase();
+  var f = TO_FILTERS.cancelled;
+  var kw = f.search.toLowerCase();
 
   var rows = toGetCancelledTrips().filter(function (r) {
     if (selectedDate && r.trip.date !== selectedDate) return false;
+    if (!toTripMatchesFilters(r.trip, f)) return false;
     if (kw) {
       var hay = (toTripLabel(r.trip, r.trip.id) + ' ' + (r.trip.plate || '') + ' ' + r.cancelledBy + ' ' + r.reason).toLowerCase();
       if (hay.indexOf(kw) === -1) return false;
@@ -400,7 +438,8 @@ function toRenderCancelledTab() {
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có phơi nào bị hủy' + (selectedDate ? ' trong ngày đã chọn' : '') + '.</p></div>');
 
   return '<div class="sd-toolbar">' +
-      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(TO_FILTERS.cancelled) + '" placeholder="Tên phơi, biển số, người hủy, lý do..." data-input-action="toFilterInput" data-args=\'["cancelled","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Tìm kiếm</label><input type="text" value="' + esc(f.search) + '" placeholder="Tên phơi, biển số, người hủy, lý do..." data-input-action="toFilterInput" data-args=\'["cancelled","search","__this_value__"]\'></div>' +
+      toDirStationFieldsHtml('cancelled', f) +
       adminCalFieldHtml(ns, 'Ngày chạy') +
       '<div class="filter-reset"><button type="button" class="btn btn-secondary" data-action="toResetFilter" data-args=\'["cancelled","' + ns + '"]\'>Đặt lại</button></div>' +
     '</div>' +

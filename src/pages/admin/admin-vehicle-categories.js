@@ -21,6 +21,7 @@ var DEFAULT_VEHICLE_CATEGORIES = [
 ];
 
 var VEHICLE_CATEGORY_FILTERS = { search: '', isPassenger: '', isCargo: '', active: '', deleted: '' };
+var VEHICLE_CATEGORY_SEL = {}; // id loại xe đang tick chọn (bảng Loại xe) — dùng cho hành động "Xoá các loại xe đã chọn"
 
 function getVehicleCategories() {
   return lsRead(HN_VEHICLE_CATEGORIES_KEY, DEFAULT_VEHICLE_CATEGORIES);
@@ -79,10 +80,15 @@ function renderVehicleCategoriesView() {
     return '<span class="status-badge da-huy"><span class="status-dot"></span>Không</span>';
   }
 
+  // Dọn lựa chọn của loại xe không còn hiển thị (đổi bộ lọc) — tránh xoá nhầm mục đã ẩn khỏi danh sách.
+  var visCatIds = {}; filtered.forEach(function (x) { visCatIds[x.id] = true; });
+  Object.keys(VEHICLE_CATEGORY_SEL).forEach(function (id) { if (!visCatIds[id]) delete VEHICLE_CATEGORY_SEL[id]; });
+
   var rowsHtml = filtered.length ? filtered.map(function (x, idx) {
     var realIdx = list.indexOf(x);
+    var sel = !!VEHICLE_CATEGORY_SEL[x.id];
 
-    return '<tr>' +
+    return '<tr data-row-key="' + esc(x.id) + '" class="' + (sel ? 'selected-row' : '') + '">' +
       '<td style="text-align:center; font-weight:700; color:var(--text-sub); width:60px;">' + (idx + 1) + '</td>' +
       '<td>' +
         '<div style="font-weight:700; color:var(--black); font-size:14px;">' + esc(x.name) + '</div>' +
@@ -95,8 +101,11 @@ function renderVehicleCategoriesView() {
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminVehicleCategoryRowMenu" data-args=\'["__this__",' + realIdx + ',' + (x.active ? 'true' : 'false') + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminVehicleCategoryToggleRow" data-args=\'[' + x.id + ',"__this__"]\'></td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="7" class="empty-state">Không tìm thấy loại xe nào.</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-state">Không tìm thấy loại xe nào.</td></tr>';
+
+  var allChecked = filtered.length && filtered.every(function (x) { return VEHICLE_CATEGORY_SEL[x.id]; });
 
   $('viewVehicleCategories').innerHTML =
     '<div class="sd-toolbar">' +
@@ -143,7 +152,7 @@ function renderVehicleCategoriesView() {
 
     '<div class="sd-blocks"><div class="sd-section-block">' +
       '<div class="sd-table-wrap">' +
-        '<table class="admin-table">' +
+        '<table class="admin-table vc-table">' +
           '<thead>' +
             '<tr>' +
               '<th class="num" style="width:60px;">STT</th>' +
@@ -153,12 +162,69 @@ function renderVehicleCategoriesView() {
               '<th style="text-align:center; width:130px;">Kích hoạt</th>' +
               '<th style="text-align:center; width:110px;">Đã xóa</th>' +
               '<th class="th-actions" style="width:120px;">Thao tác</th>' +
+              '<th class="col-check"><input type="checkbox" id="vcCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminVehicleCategoryToggleAll" data-args=\'["__this__"]\'></th>' +
             '</tr>' +
           '</thead>' +
           '<tbody>' + rowsHtml + '</tbody>' +
         '</table>' +
       '</div>' +
-    '</div></div>';
+    '</div></div>' +
+
+    '<div class="bulk-bar" id="vcActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="vcActionHint">Đã chọn 0 loại xe</span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminVehicleCategoryClearSel">Hủy</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminVehicleCategoryDeleteSelected">Xoá các loại xe đã chọn</button>' +
+      '</div>' +
+    '</div>';
+  adminVehicleCategorySyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Loại xe (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminVehicleCategorySyncBar() {
+  var bar = $('vcActionBar');
+  if (!bar) return;
+  var ids = Object.keys(VEHICLE_CATEGORY_SEL);
+  if (!ids.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('vcActionHint'); if (hint) hint.textContent = 'Đã chọn ' + ids.length + ' loại xe';
+}
+function adminVehicleCategoryToggleRow(id, cb) {
+  if (cb.checked) VEHICLE_CATEGORY_SEL[id] = true; else delete VEHICLE_CATEGORY_SEL[id];
+  var tr = document.querySelector('#viewVehicleCategories tr[data-row-key="' + id + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('vcCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewVehicleCategories td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminVehicleCategorySyncBar();
+}
+function adminVehicleCategoryToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewVehicleCategories tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var id = null;
+    try { id = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (id == null) return;
+    if (cb.checked) VEHICLE_CATEGORY_SEL[id] = true; else delete VEHICLE_CATEGORY_SEL[id];
+  });
+  renderVehicleCategoriesView();
+}
+function adminVehicleCategoryClearSel() { VEHICLE_CATEGORY_SEL = {}; renderVehicleCategoriesView(); }
+function adminVehicleCategoryDeleteSelected() {
+  var ids = Object.keys(VEHICLE_CATEGORY_SEL).map(Number);
+  if (!ids.length) return;
+  var list = getVehicleCategories();
+  var idSet = {}; ids.forEach(function (id) { idSet[id] = true; });
+  var names = list.filter(function (x) { return idSet[x.id]; }).map(function (x) { return x.name; });
+  if (!confirm('Xoá ' + names.length + ' loại xe đã chọn?\n' + names.join(', '))) return;
+  var remaining = list.filter(function (x) { return !idSet[x.id]; });
+  saveVehicleCategories(remaining);
+  names.forEach(function (name) {
+    if (window.FleetStore && window.FleetStore.log) {
+      window.FleetStore.log({ action: 'delete', entity: 'vehicle_category', entityId: name, summary: 'Xóa loại xe ' + name });
+    }
+  });
+  VEHICLE_CATEGORY_SEL = {};
+  showToast('Đã xóa ' + names.length + ' loại xe.');
+  renderVehicleCategoriesView();
 }
 
 // Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).

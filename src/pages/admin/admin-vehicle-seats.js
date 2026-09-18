@@ -25,6 +25,7 @@ function buildDefaultVehicleSeats() {
 
 var VEHICLE_SEAT_FILTERS = { search: '', floor: '', active: '', deleted: '' };
 var VEHICLE_SEAT_PAGE = { page: 1, pageSize: 15, sortAsc: true };
+var VEHICLE_SEAT_SEL = {}; // id ghế xe đang tick chọn (bảng Ghế xe) — dùng cho hành động "Xoá các ghế xe đã chọn"
 
 function getVehicleSeats() {
   return lsRead(HN_VEHICLE_SEATS_KEY, buildDefaultVehicleSeats());
@@ -150,10 +151,15 @@ function renderVehicleSeatsView() {
     return '<span class="status-badge dang-ban"><span class="status-dot"></span>Chưa Xóa</span>';
   }
 
+  // Dọn lựa chọn của ghế xe không còn hiển thị (đổi bộ lọc) — tránh xoá nhầm mục đã ẩn khỏi danh sách.
+  var visSeatIds = {}; filtered.forEach(function (x) { visSeatIds[x.id] = true; });
+  Object.keys(VEHICLE_SEAT_SEL).forEach(function (id) { if (!visSeatIds[id]) delete VEHICLE_SEAT_SEL[id]; });
+
   var sortIcon = pg.sortAsc ? ' ↑' : ' ↓';
   var rowsHtml = pageItems.length ? pageItems.map(function (x, idx) {
     var realIdx = list.indexOf(x);
-    return '<tr>' +
+    var sel = !!VEHICLE_SEAT_SEL[x.id];
+    return '<tr data-row-key="' + esc(x.id) + '" class="' + (sel ? 'selected-row' : '') + '">' +
       '<td style="text-align:center; font-weight:700; color:var(--text-sub); width:60px;">' + (sliceStart + idx + 1) + '</td>' +
       '<td><div style="font-weight:700; color:var(--black); font-size:14px;">' + esc(x.name) + '</div></td>' +
       '<td>' + esc(getSeatFloorLabel(x.floor)) + '</td>' +
@@ -162,8 +168,11 @@ function renderVehicleSeatsView() {
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminVehicleSeatRowMenu" data-args=\'["__this__",' + realIdx + ',' + (x.active ? 'true' : 'false') + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminVehicleSeatToggleRow" data-args=\'[' + x.id + ',"__this__"]\'></td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="6" class="empty-state">Không tìm thấy ghế xe nào.</td></tr>';
+  }).join('') : '<tr><td colspan="7" class="empty-state">Không tìm thấy ghế xe nào.</td></tr>';
+
+  var allChecked = pageItems.length && pageItems.every(function (x) { return VEHICLE_SEAT_SEL[x.id]; });
 
   $('viewVehicleSeats').innerHTML =
     '<div class="vehicle-seats-shell">' +
@@ -204,7 +213,7 @@ function renderVehicleSeatsView() {
 
       '<div class="sd-blocks"><div class="sd-section-block">' +
         '<div class="sd-table-wrap">' +
-          '<table class="admin-table">' +
+          '<table class="admin-table vs-table">' +
             '<thead>' +
               '<tr>' +
                 '<th class="num" style="width:60px;">STT</th>' +
@@ -213,6 +222,7 @@ function renderVehicleSeatsView() {
                 '<th style="text-align:center; width:130px;">Kích hoạt</th>' +
                 '<th style="text-align:center; width:110px;">Đã xóa</th>' +
                 '<th class="th-actions" style="width:120px;">Thao tác</th>' +
+                '<th class="col-check"><input type="checkbox" id="vsCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminVehicleSeatToggleAll" data-args=\'["__this__"]\'></th>' +
               '</tr>' +
             '</thead>' +
             '<tbody>' + rowsHtml + '</tbody>' +
@@ -220,7 +230,63 @@ function renderVehicleSeatsView() {
         '</div>' +
         renderVehicleSeatPagination(totalFiltered, pg.page, pg.pageSize) +
       '</div></div>' +
+
+      '<div class="bulk-bar" id="vsActionBar" style="display:none;">' +
+        '<span class="bulk-bar-hint" id="vsActionHint">Đã chọn 0 ghế xe</span>' +
+        '<div class="bulk-bar-fields">' +
+          '<button type="button" class="btn btn-secondary" data-action="adminVehicleSeatClearSel">Hủy</button>' +
+          '<button type="button" class="btn btn-danger" data-action="adminVehicleSeatDeleteSelected">Xoá các ghế xe đã chọn</button>' +
+        '</div>' +
+      '</div>' +
     '</div>';
+  adminVehicleSeatSyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Ghế xe (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminVehicleSeatSyncBar() {
+  var bar = $('vsActionBar');
+  if (!bar) return;
+  var ids = Object.keys(VEHICLE_SEAT_SEL);
+  if (!ids.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('vsActionHint'); if (hint) hint.textContent = 'Đã chọn ' + ids.length + ' ghế xe';
+}
+function adminVehicleSeatToggleRow(id, cb) {
+  if (cb.checked) VEHICLE_SEAT_SEL[id] = true; else delete VEHICLE_SEAT_SEL[id];
+  var tr = document.querySelector('#viewVehicleSeats tr[data-row-key="' + id + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('vsCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewVehicleSeats td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminVehicleSeatSyncBar();
+}
+function adminVehicleSeatToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewVehicleSeats tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var id = null;
+    try { id = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (id == null) return;
+    if (cb.checked) VEHICLE_SEAT_SEL[id] = true; else delete VEHICLE_SEAT_SEL[id];
+  });
+  renderVehicleSeatsView();
+}
+function adminVehicleSeatClearSel() { VEHICLE_SEAT_SEL = {}; renderVehicleSeatsView(); }
+function adminVehicleSeatDeleteSelected() {
+  var ids = Object.keys(VEHICLE_SEAT_SEL).map(Number);
+  if (!ids.length) return;
+  var list = getVehicleSeats();
+  var idSet = {}; ids.forEach(function (id) { idSet[id] = true; });
+  var names = list.filter(function (x) { return idSet[x.id]; }).map(function (x) { return x.name; });
+  if (!confirm('Xoá ' + names.length + ' ghế xe đã chọn?\n' + names.join(', '))) return;
+  var remaining = list.filter(function (x) { return !idSet[x.id]; });
+  saveVehicleSeats(remaining);
+  names.forEach(function (name) {
+    if (window.FleetStore && window.FleetStore.log) {
+      window.FleetStore.log({ action: 'delete', entity: 'vehicle_seat', entityId: name, summary: 'Xóa ghế xe ' + name });
+    }
+  });
+  VEHICLE_SEAT_SEL = {};
+  showToast('Đã xóa ' + names.length + ' ghế xe.');
+  renderVehicleSeatsView();
 }
 
 // Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).

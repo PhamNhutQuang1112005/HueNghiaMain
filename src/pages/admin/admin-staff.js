@@ -6,6 +6,7 @@
 // FleetStore trực tiếp và lỡ đổi shape.
 function getStaffRoleList() { return FleetStore.getStaffRoles(); }
 var STAFF_FILTERS = { search: '', role: '', status: '', station: '' };
+var STAFF_SEL = {}; // vị trí (index trong FleetStore.getStaff()) đang tick chọn — dùng cho hành động "Xoá các nhân viên đã chọn"
 
 function roleLabel(r) { var m = getStaffRoleList().find(function (x) { return x.key === r; }); return m ? m.label : r; }
 
@@ -91,9 +92,15 @@ function renderStaffView() {
     return true;
   });
 
-  var rows = filtered.length ? filtered.map(function (s) {
+  // Dọn lựa chọn của nhân viên không còn hiển thị (đổi bộ lọc) — tránh xoá nhầm người đã ẩn khỏi danh sách.
+  var visStaffIdx = {}; filtered.forEach(function (s) { visStaffIdx[all.indexOf(s)] = true; });
+  Object.keys(STAFF_SEL).forEach(function (i) { if (!visStaffIdx[i]) delete STAFF_SEL[i]; });
+
+  var rows = filtered.length ? filtered.map(function (s, i) {
     var originalIdx = all.indexOf(s);
-    return '<tr>' +
+    var sel = !!STAFF_SEL[originalIdx];
+    return '<tr data-row-key="' + originalIdx + '" class="' + (sel ? 'selected-row' : '') + '">' +
+      '<td class="col-stt">' + (i + 1) + '</td>' +
       '<td><span class="trip-plate-inline" style="font-size:12.5px;padding:3px 9px;">' + esc(s.code || '—') + '</span></td>' +
       '<td>' +
         '<div style="font-weight:800;font-size:14px;color:var(--black);">' + esc(s.name || '—') + '</div>' +
@@ -107,8 +114,12 @@ function renderStaffView() {
       '<td class="col-status" style="text-align:center;">' + activeTag(activeOf(s)) + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStaffRowMenu" data-args=\'["__this__",' + originalIdx + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
-      '</td></tr>';
-  }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy nhân viên phù hợp.</td></tr>';
+      '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminStaffToggleRow" data-args=\'[' + originalIdx + ',"__this__"]\'></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="11" class="empty-state">Không tìm thấy nhân viên phù hợp.</td></tr>';
+
+  var allChecked = filtered.length && filtered.every(function (s) { return STAFF_SEL[all.indexOf(s)]; });
 
   $('viewStaff').innerHTML =
     '<div class="sd-toolbar">' +
@@ -150,8 +161,9 @@ function renderStaffView() {
         '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">Hiển thị ' + filtered.length + ' / ' + totalCount + ' nhân viên</span>' +
       '</div>' +
       '<div class="sd-table-wrap">' +
-        '<table class="admin-table">' +
+        '<table class="admin-table staff-table">' +
           '<thead><tr>' +
+            '<th class="col-stt">STT</th>' +
             '<th>Mã NV</th>' +
             '<th>Họ tên & Tài khoản</th>' +
             '<th>Vai trò</th>' +
@@ -161,11 +173,72 @@ function renderStaffView() {
             '<th>Trạm</th>' +
             '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
             '<th class="th-actions">Thao tác</th>' +
+            '<th class="col-check"><input type="checkbox" id="staffCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminStaffToggleAll" data-args=\'["__this__"]\'></th>' +
           '</tr></thead>' +
           '<tbody>' + rows + '</tbody>' +
         '</table>' +
       '</div>' +
-    '</div></div>';
+    '</div></div>' +
+
+    '<div class="bulk-bar" id="staffActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="staffActionHint">Đã chọn 0 nhân viên</span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminStaffClearSel">Hủy</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminStaffDeleteSelected">Xoá các nhân viên đã chọn</button>' +
+      '</div>' +
+    '</div>';
+  adminStaffSyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Nhân viên (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminStaffSyncBar() {
+  var bar = $('staffActionBar');
+  if (!bar) return;
+  var idxs = Object.keys(STAFF_SEL);
+  if (!idxs.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('staffActionHint'); if (hint) hint.textContent = 'Đã chọn ' + idxs.length + ' nhân viên';
+}
+function adminStaffToggleRow(idx, cb) {
+  if (cb.checked) STAFF_SEL[idx] = true; else delete STAFF_SEL[idx];
+  var tr = document.querySelector('#viewStaff tr[data-row-key="' + idx + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('staffCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewStaff td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminStaffSyncBar();
+}
+function adminStaffToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewStaff tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var idx = null;
+    try { idx = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (idx == null) return;
+    if (cb.checked) STAFF_SEL[idx] = true; else delete STAFF_SEL[idx];
+  });
+  renderStaffView();
+}
+function adminStaffClearSel() { STAFF_SEL = {}; renderStaffView(); }
+function adminStaffDeleteSelected() {
+  var idxs = Object.keys(STAFF_SEL).map(Number);
+  if (!idxs.length) return;
+  var all = FleetStore.getStaff();
+  var recs = idxs.map(function (i) { return all[i]; }).filter(Boolean);
+  var deletable = [], blocked = [];
+  recs.forEach(function (s) {
+    var chk = FleetStore.canDeleteStaff(s.name || s.code);
+    if (chk.ok) deletable.push(s); else blocked.push((s.name || s.code) + ' (' + chk.reason + ')');
+  });
+  if (!deletable.length) { showToast('Không thể xoá: tất cả nhân viên đã chọn đang được dùng.'); return; }
+  var msg = 'Xoá ' + deletable.length + ' nhân viên đã chọn?' + (blocked.length ? '\nBỏ qua ' + blocked.length + ' người đang được dùng: ' + blocked.join(', ') : '');
+  if (!confirm(msg)) return;
+  var list = all.filter(function (s) { return deletable.indexOf(s) === -1; });
+  FleetStore.setStaff(list);
+  deletable.forEach(function (s) {
+    FleetStore.log({ action: 'delete', entity: 'staff', entityId: s.name || s.code, summary: 'Xoá nhân viên ' + (s.name || s.code) });
+  });
+  STAFF_SEL = {};
+  showToast('Đã xoá ' + deletable.length + ' nhân viên.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' người đang dùng.' : ''));
+  renderStaffView();
 }
 
 // Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
