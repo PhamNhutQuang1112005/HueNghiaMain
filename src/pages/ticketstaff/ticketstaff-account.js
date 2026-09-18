@@ -69,6 +69,10 @@ let customerHistoryActive = false;
 let currentSearchPhone = '';
 let rebookSelectedSeats = [];
 let rebookSelectedTripId = null;
+// Giá vé/ghế đang áp dụng — ô "Giá vé" (#rbPrice) hiện TỔNG = rebookUnitPrice × số ghế đang chọn,
+// thay cho ô "Tổng cộng" riêng trước đây. Xem refreshRebookPriceDisplay()/updateRebookPricePreview()
+// ở shared/js/booking-rebook.js và onPriceEdit() ở ticketstaff.js.
+let rebookUnitPrice = 0;
 let _historyResults = [];
 let _rawHistoryResults = [];
 let historyColumnFilters = {};
@@ -114,19 +118,23 @@ function readRebookForm() {
 
 // Đọc + validate giá vé đã sửa ở ô #rbPrice (0đ bắt buộc phải có lý do, giống hệt getEditedPrice()/
 // sellTicket() ở ticketstaff.js) — dùng chung cho cả "Đặt vé" lẫn "Bán vé" trong modal Đặt lại vé.
+// #rbPrice hiện TỔNG cho cả nhóm ghế (xem refreshRebookPriceDisplay() ở booking-rebook.js) nên chia
+// lại cho số ghế để ra `price` (giá/ghế) lưu vào từng ghế — xem confirmRebook()/confirmRebookAndSell().
+// `total` giữ nguyên để so với tiền cọc (readAndValidateRebookDeposit).
 function readAndValidateRebookPrice() {
-  const price = (typeof getEditedPrice === 'function') ? getEditedPrice('rbPrice') : 280000;
+  const total = (typeof getEditedPrice === 'function') ? getEditedPrice('rbPrice') : 280000;
   const zeroReasonEl = document.getElementById('rbZeroPriceReason');
-  if (price === 0 && !(zeroReasonEl?.value.trim())) {
+  if (total === 0 && !(zeroReasonEl?.value.trim())) {
     showToast('Vui lòng nhập lý do khi giá vé 0đ', 'error');
     return null;
   }
-  return { price, zeroPriceReason: price === 0 ? zeroReasonEl.value.trim() : '' };
+  const count = Math.max(1, rebookSelectedSeats.length);
+  const price = Math.round(total / count);
+  return { price, total, zeroPriceReason: total === 0 ? zeroReasonEl.value.trim() : '' };
 }
 
-// Cọc áp dụng chung cho cả nhóm ghế đang đặt lại/bán lại (giống panel đặt vé chính) — kiểm tra hợp lệ
-// so với giá vé (đã sửa nếu có) chung cho cả nhóm (currentPanelSeats/sellTicket() ở ticketstaff.js
-// cũng chỉ so với 1 mức giá chung cho cả nhóm, không phải tổng giá trị nhiều ghế).
+// Cọc áp dụng chung cho cả nhóm ghế đang đặt lại/bán lại — kiểm tra hợp lệ so với TỔNG giá vé của cả
+// nhóm (ô "Giá vé" đã gộp luôn phần "Tổng cộng" trước đây, xem readAndValidateRebookPrice ở trên).
 function readAndValidateRebookDeposit(referencePrice) {
   const depositEnabled = document.getElementById('rbDepositEnabled')?.checked || false;
   const depositAmountRaw = parseInt(document.getElementById('f_deposit_amount').value, 10) || 0;
@@ -157,7 +165,7 @@ function confirmRebook() {
   const priceInfo = readAndValidateRebookPrice();
   if (!priceInfo) return;
 
-  const deposit = readAndValidateRebookDeposit(priceInfo.price);
+  const deposit = readAndValidateRebookDeposit(priceInfo.total);
   if (!deposit) return;
 
   const tripMeta = allTripsMeta.find(t => t.id === rebookSelectedTripId);
@@ -218,7 +226,7 @@ function confirmRebookAndSell() {
   const priceInfo = readAndValidateRebookPrice();
   if (!priceInfo) return;
 
-  const deposit = readAndValidateRebookDeposit(priceInfo.price);
+  const deposit = readAndValidateRebookDeposit(priceInfo.total);
   if (!deposit) return;
 
   pendingRebookSell = {

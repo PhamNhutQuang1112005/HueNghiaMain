@@ -96,12 +96,6 @@
   font-weight: 600;
 }
 
-.rebook-total-value {
-  font-weight: 800;
-  color: var(--red);
-  font-size: 13.5px;
-}
-
 .rebook-deposit-hint {
   display: block;
   font-size: 11px;

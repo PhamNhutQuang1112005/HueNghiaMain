@@ -1181,6 +1181,10 @@
               <label for="pkAssignTripPrice" style="font-weight:700; color:var(--text-sub); text-transform:none; margin:0; font-size:12px;">Giá vé:</label>
               <input type="number" id="pkAssignTripPrice" min="0" step="5000" style="width:90px; border:1px solid var(--border-gray); border-radius:6px; padding:2px 6px; font-weight:700; color:var(--text-main); font-size:13px; outline:none; text-align:right;" data-input-action="pkOnAssignPriceChange" data-args='["__this_value__"]'>
               <span style="font-weight:600; color:var(--text-sub); font-size:12px;">đ</span>
+              <label class="ts-double-seat-toggle" style="display:none;">
+                <input type="checkbox" id="pkAssignPriceDoubleSeat">
+                Ghế đôi
+              </label>
             </div>
             <div style="width:1px; height:18px; background:var(--border-gray);"></div>
             <div style="display:flex; align-items:center; gap:5px;">
@@ -1409,6 +1413,10 @@
             <label class="checkbox-inline">
               <input type="checkbox" id="f_deposit_enabled" data-change-action="onDepositToggle">
               Đặt cọc
+            </label>
+            <label class="checkbox-inline ts-double-seat-toggle" style="display:none;">
+              <input type="checkbox" id="t_priceDoubleSeat">
+              Ghế đôi
             </label>
           </div>
         </div>
@@ -1915,7 +1923,7 @@
 
         <div class="ticket rebook-price-ticket">
           <div class="price-row">
-            <span class="rebook-price-caption">Đơn giá</span>
+            <span class="rebook-price-caption">Giá vé</span>
             <div class="price-row" style="gap:6px;">
               <span class="price" id="rbPrice" contenteditable="true" data-blur-action="onPriceEdit" data-action="focusPriceEdit" data-args='["rbPrice"]' style="cursor:pointer;" title="Nhấp để sửa giá vé">280.000đ</span>
               <button type="button" class="btn-icon-edit-price" data-action="focusPriceEdit" data-args='["rbPrice"]' style="background:none; border:none; padding:2px; cursor:pointer; display:flex; align-items:center; color:var(--text-sub);" title="Sửa giá vé">
@@ -1930,17 +1938,14 @@
 
           <div class="ticket-dash"></div>
 
-          <div class="kv">
-            <span>Tổng cộng</span>
-            <span id="rbTotalPrice" class="rebook-total-value">0đ</span>
-          </div>
-
-          <div class="ticket-dash"></div>
-
           <div class="deposit-block">
             <label class="checkbox-inline">
               <input type="checkbox" id="rbDepositEnabled" data-change-action="onDepositToggle">
               Đặt cọc
+            </label>
+            <label class="checkbox-inline ts-double-seat-toggle" style="display:none;">
+              <input type="checkbox" id="rbPriceDoubleSeat">
+              Ghế đôi
             </label>
             <span id="rbDepositHint" class="rebook-deposit-hint"></span>
           </div>
@@ -2150,6 +2155,10 @@
           <div class="form-group flex-1">
             <label for="tripPrice">Giá vé (đ) <span class="required">*</span></label>
             <input type="number" id="tripPrice" required min="0" step="5000" placeholder="Lấy theo hướng đi">
+            <label class="ts-double-seat-toggle" style="display:none;">
+              <input type="checkbox" id="tripPriceDoubleSeat">
+              Ghế đôi
+            </label>
           </div>
           <div class="form-group flex-1">
             <label for="tripVehicleType">Loại xe <span class="required">*</span></label>

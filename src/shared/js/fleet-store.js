@@ -731,6 +731,7 @@
         route: main ? main.label : d.label,
         sense: d.sense === 'di' ? 'di' : 've',
         price: main ? (main.price || 0) : 0,
+        doubleSeatPrice: main ? (main.doubleSeatPrice || 0) : 0,
         fromStations: collectRegions(fromReg),
         toStations: collectRegions(toReg),
         pickupStations: uniq(Object.keys(pickup)),
@@ -741,6 +742,10 @@
           return {
             label: r.label,
             price: r.price || 0,
+            // Giá vé ghế đôi (nếu tuyến có cấu hình ở Admin > Quản lý giá) — mang theo để TicketStaff
+            // hiện được ô tick "Ghế đôi" cạnh giá vé, đổi giá đơn/đôi đúng theo đúng tuyến đang chọn.
+            doubleSeatPrice: r.doubleSeatPrice || 0,
+            vehicleType: r.vehicleType || '',
             order: r.order || 0,
             fromStations: (r.fromStations || []).slice(),
             toStations: (r.toStations || []).slice(),

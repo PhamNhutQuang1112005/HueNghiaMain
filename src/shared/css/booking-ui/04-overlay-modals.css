@@ -325,6 +325,32 @@
   margin-top: 4px;
 }
 
+/* Ô tick "Ghế đôi" cạnh giá vé — dùng CHUNG mọi modal đặt vé (panel Đặt vé, Đặt lại vé, Chỉ định xe
+   rước liền, Tạo/Sửa phơi xe). Ẩn mặc định (display:none inline ở HTML), JS chỉ hiện khi tuyến đang
+   chọn có giá vé ghế đôi hợp lệ trong Admin > Quản lý giá — xem resolveDoubleSeatPricing() ở
+   ticketstaff.js. Panel Đặt vé/Đặt lại vé đặt nó cùng hàng với ô "Đặt cọc" nên mang thêm class
+   .checkbox-inline để có đúng kiểu viền/pill giống ô đó (:not() dưới đây tránh đè kiểu riêng lên
+   trường hợp đã có .checkbox-inline); 2 modal còn lại không có "Đặt cọc" nên dùng kiểu chữ gọn mặc định. */
+.ts-double-seat-toggle:not(.checkbox-inline) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ts-double-seat-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--red);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
 .zero-price-reason {
   margin-top: 8px;
   display: flex;
@@ -348,6 +374,33 @@
 
 .deposit-block {
   margin-top: 8px;
+  /* Tuyến/loại xe KHÔNG có giá vé đôi: chỉ còn "Đặt cọc" — cho nó dãn rộng (flex:1) hết chỗ đáng lẽ
+     dành cho "Ghế đôi" luôn, không co lại theo nội dung. Có giá đôi, JS (resolveDoubleSeatPricing/
+     wireDoubleSeatToggle) thêm class .has-double-toggle để hiện thêm ô kia, 2 ô chia đôi đều nhau —
+     xem shared/js/ui.js (openBookingPanel) và shared/js/booking-rebook.js (updateRebookPricePreview). */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.deposit-block > .checkbox-inline {
+  flex: 1;
+  /* Chỉ có 1 mình "Đặt cọc" (không có giá đôi): vẫn dãn rộng hết hàng nhưng chữ + ô tick nằm góc
+     trái, không canh giữa. Có thêm "Ghế đôi" (.has-double-toggle) thì mới canh giữa từng ô — xem
+     override bên dưới. */
+  justify-content: flex-start;
+}
+
+.deposit-block.has-double-toggle > .checkbox-inline {
+  justify-content: center;
+}
+
+/* rbDepositHint (gợi ý bên modal Đặt lại vé) là item thứ 3 trong .deposit-block — để nguyên sẽ bị
+   space-evenly tính chung, chia hàng "Đặt cọc"/"Ghế đôi" thành 4 khoảng thay vì 3 nên nhìn lệch dù
+   không sai công thức. Ép nó luôn xuống dòng riêng, không tham gia chia khoảng của 2 ô tick. */
+#rbDepositHint {
+  flex: 1 0 100%;
 }
 
 .deposit-block .checkbox-inline {

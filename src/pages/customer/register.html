@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký tài khoản — Nhà Xe Huệ Nghĩa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="customer.css">
+</head>
+
+<body>
+
+  <header class="cust-header">
+    <div class="cust-container">
+      <a href="index.html" class="cust-brand">
+        <div class="cust-brand-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+            <path d="M4 16h16" />
+            <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+          </svg>
+        </div>
+        <div class="cust-brand-text">
+          <b>NHÀ XE HUỆ NGHĨA</b>
+          <span>Đặt vé xe khách online</span>
+        </div>
+      </a>
+      <nav class="cust-nav">
+        <a href="index.html">Trang chủ</a>
+        <a href="tra-cuu-ve.html">Tra cứu vé</a>
+      </nav>
+      <div class="cust-auth-slot"></div>
+    </div>
+  </header>
+
+  <div class="cust-auth-wrap">
+    <div class="cust-auth-left">
+      <div class="cust-auth-box">
+        <header style="text-align:center;margin-bottom:26px;">
+          <h1 style="font-family:'Sora',sans-serif;font-size:26px;font-weight:800;margin:0 0 8px;">Tạo tài khoản</h1>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0;">Chỉ mất 1 phút — dùng để đặt vé nhanh và tra cứu
+            vé đã mua.</p>
+        </header>
+
+        <div class="cust-auth-error" id="authError">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v5M12 16h.01" />
+          </svg>
+          <span id="authErrorText">Có lỗi xảy ra.</span>
+        </div>
+
+        <form id="registerForm" autocomplete="off">
+          <div class="cust-form-group">
+            <label for="regName">Họ và tên *</label>
+            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <input type="text" id="regName" required placeholder="Nguyễn Văn A">
+            </div>
+          </div>
+
+          <div class="cust-form-group">
+            <label for="regPhone">Số điện thoại *</label>
+            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+              <input type="tel" id="regPhone" required placeholder="09xxxxxxxx" pattern="[0-9]{9,11}">
+            </div>
+          </div>
+
+          <div class="cust-form-group">
+            <label for="regEmail">Email</label>
+            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-10 6L2 7" />
+              </svg>
+              <input type="email" id="regEmail" placeholder="email@vidu.com (không bắt buộc)">
+            </div>
+          </div>
+
+          <div class="cust-form-row">
+            <div class="cust-form-group">
+              <label for="regPassword">Mật khẩu *</label>
+              <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input type="password" id="regPassword" required minlength="6" placeholder="Tối thiểu 6 ký tự">
+              </div>
+            </div>
+            <div class="cust-form-group">
+              <label for="regPasswordConfirm">Xác nhận mật khẩu *</label>
+              <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input type="password" id="regPasswordConfirm" required minlength="6" placeholder="Nhập lại mật khẩu">
+              </div>
+            </div>
+          </div>
+
+          <label class="cust-checkbox-row">
+            <input type="checkbox" id="agreeTerms" required>
+            <span>Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a> của Huệ
+              Nghĩa.</span>
+          </label>
+
+          <button type="submit" class="cust-btn cust-btn-primary cust-btn-block" id="btnSubmit"
+            style="height:50px;">Đăng ký</button>
+        </form>
+
+        <p class="cust-auth-switch">Đã có tài khoản? <a href="login.html">Đăng nhập</a></p>
+        <p class="cust-auth-switch"><a href="index.html">← Về trang tìm vé</a></p>
+      </div>
+    </div>
+
+    <div class="cust-auth-right">
+      <div class="cust-auth-right-content">
+        <h2>Thành viên Huệ Nghĩa nhận thêm nhiều tiện ích</h2>
+        <p>Tạo tài khoản miễn phí để quản lý mọi chuyến đi của bạn ở một nơi.</p>
+        <ul class="cust-auth-right-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg> Đặt vé chỉ với vài thao tác</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg> Lưu lịch sử vé, dễ dàng đặt lại tuyến quen thuộc</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg> Ưu tiên hỗ trợ khi cần đổi/trả vé</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="customer-session.js?v=1"></script>
+  <script src="customer-auth.js?v=1"></script>
+</body>
+
+</html>

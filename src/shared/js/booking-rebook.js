@@ -87,9 +87,35 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Chỉ hiện option Sáng/Chiều/Tối nào THẬT SỰ có phơi xe đúng ngày đang chọn (loại phơi mẫu/đã huỷ,
+// giống điều kiện lọc chính bên dưới trừ bộ lọc giờ) — không hiện cứng cả 3 khung như trước.
+function updateRbFilterTimeOptions() {
+  const sel = document.getElementById('rbFilterTime');
+  if (!sel) return;
+  const base = (allTripsMeta || []).filter(trip =>
+    trip.status !== 'Đã hủy' && !trip.isTemplate && (!rbSelectedDateStr || trip.date === rbSelectedDateStr)
+  );
+  const buckets = { morning: false, afternoon: false, evening: false };
+  base.forEach(trip => {
+    const hh = parseInt((trip.time || '00:00').split(':')[0], 10);
+    if (hh >= 0 && hh < 12) buckets.morning = true;
+    else if (hh >= 12 && hh < 18) buckets.afternoon = true;
+    else if (hh >= 18) buckets.evening = true;
+  });
+  let resetNeeded = false;
+  Array.from(sel.options).forEach(opt => {
+    if (opt.value === 'all') return;
+    const visible = !!buckets[opt.value];
+    opt.hidden = !visible;
+    if (opt.value === sel.value && !visible) resetNeeded = true;
+  });
+  if (resetNeeded) sel.value = 'all';
+}
+
 function renderRebookTripList() {
   const container = document.getElementById('rbTripList');
   if (!container) return;
+  updateRbFilterTimeOptions();
   const timeVal = document.getElementById('rbFilterTime')?.value || 'all';
 
   const filtered = (allTripsMeta || []).filter(trip => {
@@ -367,26 +393,37 @@ function selectRebookTrip(tripId) {
 
 // Hiện giá vé MẶC ĐỊNH của đúng phơi vừa chọn lên ô giá (#rbPrice) — nhân viên vẫn sửa được ngay sau đó
 // (focusPriceEdit/onPriceEdit, giống hệt panel đặt vé chính). Chỉ gọi lúc CHỌN PHƠI (đổi hẳn ngữ cảnh
-// giá), không gọi lại mỗi lần tích/bỏ ghế (toggleRebookSeat) để không ghi đè giá nhân viên vừa sửa tay.
+// giá), không gọi lại mỗi lần tích/bỏ ghế (toggleRebookSeat) để không ghi đè giá/ghế nhân viên vừa sửa
+// tay — số ghế đổi chỉ cần refreshRebookPriceDisplay() nhân lại, không cần đọc lại giá mặc định.
 function updateRebookPricePreview() {
   const priceEl = document.getElementById('rbPrice');
   if (!priceEl) return;
   const trip = rebookSelectedTripId ? (allTripsMeta || []).find(t => t.id === rebookSelectedTripId) : null;
-  const price = trip ? (trip.price || 280000) : 280000;
-  priceEl.textContent = price.toLocaleString('vi-VN') + 'đ';
+  rebookUnitPrice = trip ? (trip.price || 280000) : 280000;
   priceEl.contentEditable = 'true';
+  refreshRebookPriceDisplay();
   if (typeof updateZeroPriceReasonVisibility === 'function') updateZeroPriceReasonVisibility('rbPrice');
-  updateRebookTotalPrice();
+  // Ô tick "Ghế đôi" — cùng logic với panel Đặt vé chính (xem resolveDoubleSeatPricing() ở ticketstaff.js).
+  if (typeof resolveDoubleSeatPricing === 'function' && typeof wireDoubleSeatToggle === 'function') {
+    const doublePricing = resolveDoubleSeatPricing(trip);
+    wireDoubleSeatToggle(document.getElementById('rbPriceDoubleSeat'), doublePricing, rebookUnitPrice, (amount) => {
+      rebookUnitPrice = amount;
+      refreshRebookPriceDisplay();
+    });
+    const rbDepositBlockEl = document.querySelector('#rebookModal .deposit-block');
+    if (rbDepositBlockEl) rbDepositBlockEl.classList.toggle('has-double-toggle', !!doublePricing);
+  }
 }
 
-// "Tổng cộng" = đơn giá (ô #rbPrice) × số ghế đang chọn — gọi lại mỗi khi 1 trong 2 giá trị đó đổi
-// (chọn/bỏ ghế qua updateRebookBtn(), hoặc sửa giá qua onPriceEdit() ở ticketstaff.js).
-function updateRebookTotalPrice() {
-  const totalEl = document.getElementById('rbTotalPrice');
-  if (!totalEl) return;
-  const unitPrice = (typeof getEditedPrice === 'function') ? getEditedPrice('rbPrice') : 0;
-  const count = rebookSelectedSeats.length;
-  totalEl.textContent = (unitPrice * count).toLocaleString('vi-VN') + 'đ';
+// Ô "Giá vé" (#rbPrice) hiện TỔNG cho cả nhóm ghế đang chọn = giá/ghế (rebookUnitPrice) × số ghế —
+// thay cho ô "Tổng cộng" riêng trước đây. Gọi lại mỗi khi đổi số ghế chọn (updateRebookBtn, do
+// toggleRebookSeat gọi) hoặc đổi giá/ghế (chọn phơi mới, tick "Ghế đôi", tự sửa tay ô giá — xem
+// onPriceEdit() ở ticketstaff.js, hàm đó suy ngược lại giá/ghế = số vừa gõ ÷ số ghế rồi gọi lại đây).
+function refreshRebookPriceDisplay() {
+  const priceEl = document.getElementById('rbPrice');
+  if (!priceEl) return;
+  const count = Math.max(1, rebookSelectedSeats.length);
+  priceEl.textContent = (rebookUnitPrice * count).toLocaleString('vi-VN') + 'đ';
 }
 
 function selectRoute(route) {
@@ -498,7 +535,7 @@ function updateRebookBtn() {
   const isDisabled = !rebookSelectedTripId || !rebookSelectedSeats.length;
   if (btn) btn.disabled = isDisabled;
   if (sellBtn) sellBtn.disabled = isDisabled;
-  updateRebookTotalPrice();
+  refreshRebookPriceDisplay();
 }
 
 function updateTransferBarVisibility() {

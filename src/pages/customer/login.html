@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập khách hàng — Nhà Xe Huệ Nghĩa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="customer.css">
+</head>
+
+<body>
+
+  <header class="cust-header">
+    <div class="cust-container">
+      <a href="index.html" class="cust-brand">
+        <div class="cust-brand-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+            <path d="M4 16h16" />
+            <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+          </svg>
+        </div>
+        <div class="cust-brand-text">
+          <b>NHÀ XE HUỆ NGHĨA</b>
+          <span>Đặt vé xe khách online</span>
+        </div>
+      </a>
+      <nav class="cust-nav">
+        <a href="index.html">Trang chủ</a>
+        <a href="tra-cuu-ve.html">Tra cứu vé</a>
+      </nav>
+      <div class="cust-auth-slot"></div>
+    </div>
+  </header>
+
+  <div class="cust-auth-wrap">
+    <div class="cust-auth-left">
+      <div class="cust-auth-box">
+        <header style="text-align:center;margin-bottom:26px;">
+          <h1 style="font-family:'Sora',sans-serif;font-size:26px;font-weight:800;margin:0 0 8px;">Đăng nhập</h1>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0;">Đăng nhập để đặt vé nhanh hơn và theo dõi lịch sử
+            vé đã mua.</p>
+        </header>
+
+        <div class="cust-auth-error" id="authError">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v5M12 16h.01" />
+          </svg>
+          <span id="authErrorText">Sai số điện thoại hoặc mật khẩu.</span>
+        </div>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="cust-form-group">
+            <label for="loginPhone">Số điện thoại</label>
+            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+              <input type="tel" id="loginPhone" required placeholder="09xxxxxxxx" pattern="[0-9]{9,11}">
+            </div>
+          </div>
+
+          <div class="cust-form-group">
+            <label for="loginPassword">Mật khẩu</label>
+            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <input type="password" id="loginPassword" required placeholder="Nhập mật khẩu">
+              <button type="button" class="cust-modal-close" id="togglePass" style="width:28px;height:28px;"
+                aria-label="Hiện/ẩn mật khẩu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="cust-checkbox-row" style="justify-content:space-between;align-items:center;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="rememberMe"> Ghi nhớ đăng nhập
+            </label>
+            <a href="#" style="font-weight:700;color:var(--red);">Quên mật khẩu?</a>
+          </div>
+
+          <button type="submit" class="cust-btn cust-btn-primary cust-btn-block" id="btnSubmit"
+            style="height:50px;">Đăng nhập</button>
+        </form>
+
+        <p class="cust-auth-switch">Chưa có tài khoản? <a href="register.html">Đăng ký ngay</a></p>
+        <p class="cust-auth-switch"><a href="index.html">← Về trang tìm vé</a></p>
+      </div>
+    </div>
+
+    <div class="cust-auth-right">
+      <div class="cust-auth-right-content">
+        <h2>Đặt vé nhanh hơn cùng tài khoản Huệ Nghĩa</h2>
+        <p>Lưu thông tin hành khách, xem lại lịch sử vé đã đặt và nhận ưu đãi dành riêng cho thành viên.</p>
+        <ul class="cust-auth-right-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg> Không cần nhập lại thông tin mỗi lần đặt vé</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg> Xem lại toàn bộ vé đã đặt trong "Vé của tôi"</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg> Nhận thông báo ưu đãi tuyến Sài Gòn — An Giang</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="customer-session.js?v=1"></script>
+  <script src="customer-auth.js?v=1"></script>
+</body>
+
+</html>

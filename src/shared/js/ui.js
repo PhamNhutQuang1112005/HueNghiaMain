@@ -61,6 +61,16 @@ function openBookingPanel(seats, options = {}) {
   // Vé mẫu trước đây luôn hiện cứng "07:00 - Sài Gòn - Châu Đốc • 08/07/2026" bất kể đang mở phơi
   // nào — lấy đúng giờ/tuyến/ngày của phơi đang xem (currentTripId) để hiển thị đúng.
   const tripMeta = (typeof allTripsMeta !== 'undefined' && allTripsMeta) ? allTripsMeta.find(t => t.id === currentTripId) : null;
+  // Ô tick "Ghế đôi" cạnh giá vé — hiện khi tuyến đang mở có giá vé ghế đôi ở Admin > Quản lý giá,
+  // tự chọn sẵn nếu giá đang hiện (seat.price) đúng bằng giá đôi (VD: xem lại ghế đã bán giá đôi).
+  if (typeof resolveDoubleSeatPricing === 'function' && typeof wireDoubleSeatToggle === 'function') {
+    const doublePricing = resolveDoubleSeatPricing(tripMeta);
+    wireDoubleSeatToggle(document.getElementById('t_priceDoubleSeat'), doublePricing, seat.price, (amount) => {
+      const priceEl = document.getElementById('t_price');
+      if (priceEl) { priceEl.textContent = String(amount); if (typeof onPriceEdit === 'function') onPriceEdit(); }
+    });
+    if (depositBlockEl) depositBlockEl.classList.toggle('has-double-toggle', !!doublePricing);
+  }
   const tripRoute = tripMeta ? (tripMeta.route || '') : '';
   const tripTime = tripMeta ? (tripMeta.time || '') : '';
   const tripDateText = tripMeta && tripMeta.date ? formatHistoryDate(tripMeta.date) : '';

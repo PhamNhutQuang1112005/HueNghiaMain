@@ -2491,9 +2491,17 @@ function onPriceEdit(priceElId) {
   const el = document.getElementById(id);
   if (!el) return;
   const num = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
-  el.textContent = num.toLocaleString('vi-VN') + 'đ';
+  if (id === 'rbPrice') {
+    // Ô #rbPrice hiện TỔNG cho cả nhóm ghế (xem refreshRebookPriceDisplay() ở booking-rebook.js) —
+    // nhân viên gõ tay 1 số vào đây là đang sửa TỔNG, suy ngược lại giá/ghế = số vừa gõ ÷ số ghế đang
+    // chọn rồi format lại đúng tổng đó, để lần đổi số ghế tiếp theo vẫn nhân đúng từ giá/ghế mới.
+    const count = Math.max(1, (typeof rebookSelectedSeats !== 'undefined' ? rebookSelectedSeats.length : 1));
+    rebookUnitPrice = Math.round(num / count);
+    if (typeof refreshRebookPriceDisplay === 'function') refreshRebookPriceDisplay();
+  } else {
+    el.textContent = num.toLocaleString('vi-VN') + 'đ';
+  }
   updateZeroPriceReasonVisibility(id);
-  if (id === 'rbPrice' && typeof updateRebookTotalPrice === 'function') updateRebookTotalPrice();
 }
 
 function getEditedPrice(priceElId) {
@@ -3626,7 +3634,28 @@ function toggleZone1HourPopover(force) {
   const willOpen = typeof force === 'boolean' ? force : !popover.classList.contains('open');
   popover.classList.toggle('open', willOpen);
   btn.classList.toggle('open', willOpen);
-  if (willOpen) updateZone1HourPopoverSelection();
+  if (willOpen) {
+    updateZone1HourPopoverSelection();
+    updateZone1HourPopoverAvailability();
+  }
+}
+
+// Chỉ hiện nút giờ nào THẬT SỰ có phơi xe (đúng hướng + ngày + tuyến + Bộ lọc nâng cao đang chọn ở
+// Zone 1, giống hệt điều kiện lọc của renderZone1TripList() — trừ bộ lọc giờ, vì đó chính là cái đang
+// tính) — không hiện cứng đủ 24 giờ như trước, tránh chọn nhầm giờ không có phơi nào.
+function updateZone1HourPopoverAvailability() {
+  const selDateStr = zone1DateStr(selectedDate);
+  const trips = (tripsByDirection[selectedDirection] || []).filter(t =>
+    (!t.date || t.date === selDateStr) && zone1TripMatchesRoute(t) && zone1TripMatchesAdvFilter(t)
+  );
+  const hoursPresent = new Set(
+    trips.map(t => parseInt((t.time || '').split(':')[0], 10)).filter(h => !Number.isNaN(h))
+  );
+  document.querySelectorAll('#zone1HourPopover [data-action="selectZone1Hour"]').forEach(b => {
+    const val = JSON.parse(b.getAttribute('data-args'))[0];
+    if (val === 'all') return;
+    b.style.display = hoursPresent.has(parseInt(val, 10)) ? '' : 'none';
+  });
 }
 
 function updateZone1HourPopoverSelection() {
@@ -3956,6 +3985,7 @@ function onTripDirectionChange() {
     fromSel.innerHTML = '<option value="">-- Chọn hướng đi trước --</option>';
     toSel.innerHTML = '<option value="">-- Chọn hướng đi trước --</option>';
     renderPickupStationPills([]);
+    tripWirePriceDoubleToggle(null);
     return;
   }
 
@@ -3965,8 +3995,31 @@ function onTripDirectionChange() {
     cfg.toStations.map(s => `<option value="${s}">${s}</option>`).join('');
   renderPickupStationPills([], 'Chọn Trạm đi và Trạm đến để xem trạm có thể nhận');
   priceInput.value = cfg.price;
+  // Chưa chọn Trạm đi/Trạm đến cụ thể — chỉ biết "tuyến chính" của hướng (cfg.route), xem đúng tuyến
+  // con khi resolveTripRoute() chạy (đổi Trạm đi/Trạm đến) ở dưới.
+  tripWirePriceDoubleToggle({ route: cfg.route });
 
   updateSingleTripNameSuggestion();
+}
+
+// Ô tick "Ghế đôi" cạnh giá vé (modal Tạo/Sửa phơi xe) — cùng logic mọi nơi khác (xem
+// resolveDoubleSeatPricing() ở trên). `routeLike` là 1 route thật (có .price/.doubleSeatPrice sẵn,
+// từ pickBestTripRoute()) hoặc 1 pseudo-trip {route: label} để resolveDoubleSeatPricing tự tra theo
+// TRIP_DIRECTIONS_CFG khi chưa xác định được tuyến con cụ thể.
+function tripWirePriceDoubleToggle(routeLike) {
+  if (typeof wireDoubleSeatToggle !== 'function') return;
+  const priceInput = document.getElementById('tripPrice');
+  let pricing = null;
+  if (routeLike && routeLike.doubleSeatPrice != null) {
+    const double = Number(routeLike.doubleSeatPrice) || 0;
+    if (double) pricing = { single: Number(routeLike.price) || 0, double };
+  } else if (routeLike && typeof resolveDoubleSeatPricing === 'function') {
+    pricing = resolveDoubleSeatPricing(routeLike);
+  }
+  const currentPrice = priceInput ? parseInt(priceInput.value, 10) || 0 : 0;
+  wireDoubleSeatToggle(document.getElementById('tripPriceDoubleSeat'), pricing, currentPrice, (amount) => {
+    if (priceInput) priceInput.value = amount;
+  });
 }
 
 // Đổi Trạm đi / Trạm đến → xác định "tuyến chính" khớp (trong số tuyến con của hướng) rồi hiện đúng
@@ -4015,6 +4068,7 @@ function resolveTripRoute(extraPickups) {
   if (!cfg || !from || !to) {
     if (resolvedEl) resolvedEl.value = '';
     renderPickupStationPills([], 'Chọn Trạm đi và Trạm đến để xem trạm có thể nhận');
+    tripWirePriceDoubleToggle(cfg ? { route: cfg.route } : null);
     return;
   }
 
@@ -4022,6 +4076,7 @@ function resolveTripRoute(extraPickups) {
   const routeLabel = (matched && matched.label) || cfg.route || '';
   if (resolvedEl) resolvedEl.value = routeLabel;
   if (matched && matched.price != null) priceInput.value = matched.price;
+  tripWirePriceDoubleToggle(matched || { route: cfg.route });
 
   // Toàn bộ trạm phía điểm đến của hướng + trạm rước đã lưu (khi sửa phơi), khử trùng lặp.
   const seen = {};
@@ -4561,6 +4616,14 @@ function openEditModal(id) {
   // set giá mặc định theo hướng/tuyến nên phải set lại SAU, nếu không sẽ mất giá vé thật đã lưu trước đó.
   document.getElementById("tripPrice").value = trip.price || 280000;
   document.getElementById("tripName").value = trip.name || '';
+  // Tick lại ô "Ghế đôi" đúng theo giá THẬT vừa ghi đè ở trên (resolveTripRoute() ở trên tick theo giá
+  // mặc định của tuyến, lúc đó chưa biết giá thật đã lưu của phơi này).
+  if (typeof resolveDoubleSeatPricing === 'function' && typeof wireDoubleSeatToggle === 'function') {
+    const savedPricing = resolveDoubleSeatPricing(trip);
+    wireDoubleSeatToggle(document.getElementById('tripPriceDoubleSeat'), savedPricing, trip.price || 280000, (amount) => {
+      document.getElementById("tripPrice").value = amount;
+    });
+  }
 
   const isReadOnly = (trip.status === 'Khởi hành' || trip.status === 'Đã khởi hành' || trip.status === 'Đã hủy');
   const inputs = document.querySelectorAll("#singleForm input, #singleForm select, #singleForm button[type='submit']");
@@ -5103,6 +5166,64 @@ function zone1RenderAdvFilterPriceList() {
       : `<span class="adv-price-badge">${money(single || double)}</span>`;
     return `<div class="adv-price-row"><span class="adv-price-vehicle">${vehicleType}</span><span class="adv-price-values">${priceHtml}</span></div>`;
   }).join('');
+}
+
+// ===== Ô tick "Ghế đôi" cạnh giá vé — dùng CHUNG mọi modal đặt vé =====
+// Tìm giá vé ghế đơn/ghế đôi THẬT của 1 phơi, đọc thẳng từ Admin > Quản lý giá (không hard-code),
+// cùng nguồn FleetStore.getRoutes() mà zone1RenderAdvFilterPriceList() ở trên dùng. Khớp theo ĐÚNG
+// cặp Trạm đi/Trạm đến VÀ ĐÚNG loại xe của phơi (1 cặp trạm có thể có nhiều tuyến ứng nhiều loại xe
+// khác nhau — mỗi loại giá riêng, xem SEED_ROUTES/adminSaveRoute ở fleet-store.js/admin-stations.js).
+// KHÔNG rơi về tuyến đầu tiên tìm được khi không khớp loại xe — làm vậy có thể lấy nhầm giá/tình
+// trạng "có ghế đôi" của 1 loại xe khác, sai lệch với đúng dữ liệu Admin đã cấu hình cho loại xe này.
+// Phơi cũ/phơi mẫu chưa có Trạm đi/Trạm đến thì rơi về khớp theo tên tuyến (route.label) TRONG
+// TRIP_DIRECTIONS_CFG (đã được FleetStore.buildDirTripCfg() mang theo doubleSeatPrice/vehicleType,
+// xem fleet-store.js) — vẫn bắt buộc khớp đúng loại xe. Trả về null nếu không khớp được tuyến+loại xe
+// nào, hoặc tuyến đó chưa có giá vé ghế đôi hợp lệ (>0) trong Admin — ẩn hẳn ô tick trong cả 2 trường hợp.
+function resolveDoubleSeatPricing(trip) {
+  if (!trip || !trip.vehicleType) return null;
+  let match = null;
+
+  if (trip.fromStation && trip.toStation && window.FleetStore) {
+    const candidates = FleetStore.getRoutes().filter(r =>
+      r && r.active !== false
+      && Array.isArray(r.fromStations) && r.fromStations.indexOf(trip.fromStation) !== -1
+      && Array.isArray(r.toStations) && r.toStations.indexOf(trip.toStation) !== -1
+    );
+    match = candidates.find(r => r.vehicleType === trip.vehicleType) || null;
+  }
+
+  if (!match && trip.route && typeof TRIP_DIRECTIONS_CFG === 'object' && TRIP_DIRECTIONS_CFG) {
+    for (const key of Object.keys(TRIP_DIRECTIONS_CFG)) {
+      const dirRoutes = TRIP_DIRECTIONS_CFG[key] && TRIP_DIRECTIONS_CFG[key].routes;
+      if (!Array.isArray(dirRoutes)) continue;
+      const found = dirRoutes.find(r => r.label === trip.route && r.vehicleType === trip.vehicleType);
+      if (found) { match = found; break; }
+    }
+  }
+
+  if (!match) return null;
+  const double = Number(match.doubleSeatPrice) || 0;
+  if (!double) return null;
+  const single = Number(match.price) || 0;
+  return { single, double };
+}
+
+// Gắn hành vi ô tick cho 1 vị trí giá vé cụ thể: ẩn hẳn khi tuyến không có giá đôi, tự chọn sẵn nếu
+// giá đang hiện đúng bằng giá đôi (VD: mở lại xem 1 ghế đã bán trước đó với giá đôi), tick/bỏ tick
+// thì đổi giá qua applyPrice(amount) — mỗi nơi gọi tự định nghĩa applyPrice theo đúng cách lưu giá
+// của nơi đó (span contenteditable / input number...) để tái dùng đúng luồng lưu/validate sẵn có.
+function wireDoubleSeatToggle(toggleEl, pricing, currentPrice, applyPrice) {
+  if (!toggleEl) return;
+  const wrap = toggleEl.closest('.ts-double-seat-toggle') || toggleEl;
+  toggleEl.onchange = null;
+  if (!pricing) {
+    wrap.style.display = 'none';
+    toggleEl.checked = false;
+    return;
+  }
+  wrap.style.display = '';
+  toggleEl.checked = currentPrice === pricing.double;
+  toggleEl.onchange = () => applyPrice(toggleEl.checked ? pricing.double : pricing.single);
 }
 
 function openZone1AdvFilterModal() {

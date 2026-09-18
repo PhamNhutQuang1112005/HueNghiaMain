@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài khoản của tôi — Nhà Xe Huệ Nghĩa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="customer.css">
+</head>
+
+<body>
+
+  <header class="cust-header">
+    <div class="cust-container">
+      <a href="index.html" class="cust-brand">
+        <div class="cust-brand-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+            <path d="M4 16h16" />
+            <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+          </svg>
+        </div>
+        <div class="cust-brand-text">
+          <b>NHÀ XE HUỆ NGHĨA</b>
+          <span>Đặt vé xe khách online</span>
+        </div>
+      </a>
+      <nav class="cust-nav">
+        <a href="index.html">Trang chủ</a>
+        <a href="tra-cuu-ve.html">Tra cứu vé</a>
+      </nav>
+      <div class="cust-auth-slot" id="customerAuthSlot"></div>
+    </div>
+  </header>
+
+  <section class="cust-section" id="accountSection" style="display:none;">
+    <div class="cust-container">
+      <div class="cust-account-grid">
+        <div class="cust-account-card">
+          <div class="cust-account-avatar" id="accAvatar">?</div>
+          <div style="font-weight:800;font-size:16px;" id="accName">—</div>
+          <div style="font-size:13px;color:var(--text-sub);margin-top:4px;" id="accPhone">—</div>
+          <div style="font-size:13px;color:var(--text-sub);" id="accEmail"></div>
+          <button type="button" class="cust-btn cust-btn-ghost cust-btn-block" id="accLogoutBtn"
+            style="margin-top:18px;">Đăng xuất</button>
+        </div>
+
+        <div>
+          <div class="cust-section-head" style="text-align:left;margin:0 0 18px;">
+            <h2 style="font-size:20px;">Vé của tôi</h2>
+          </div>
+          <div id="bookingList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="cust-footer">
+    <div class="cust-container">
+      <div class="cust-footer-bottom">© 2026 Nhà Xe Huệ Nghĩa — Trang đặt vé dành cho khách hàng</div>
+    </div>
+  </footer>
+
+  <script src="customer-session.js?v=1"></script>
+  <script src="customer-account.js?v=1"></script>
+</body>
+
+</html>

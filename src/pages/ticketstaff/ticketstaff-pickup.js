@@ -964,11 +964,40 @@ let PK_PAX_PAGE = tsPageState();
 function pkPaxPageChange(page) { PK_PAX_PAGE.page = Math.max(1, parseInt(page, 10) || 1); pkRenderPaxTable(); }
 function pkPaxPageSizeChange(size) { PK_PAX_PAGE.pageSize = Math.max(5, parseInt(size, 10) || 15); PK_PAX_PAGE.page = 1; pkRenderPaxTable(); }
 
+// Chỉ hiện option Sáng/Chiều/Tối nào THẬT SỰ có phơi xe khởi hành đúng ngày đang chọn trên lịch —
+// không hiện cứng cả 3 khung như trước. Đọc từ allTripsMeta (giờ khởi hành phơi), không phải giờ
+// khách rước liền vì khách CHƯA chỉ định chưa có giờ cụ thể. Ranh giới bucket khớp đúng logic lọc
+// thật ở pkRenderPaxTable() bên dưới (0-11h/12-17h/18-24h), không theo nhãn "05:00" ghi ở HTML (nhãn
+// đó lệch với logic lọc thật — lỗi có sẵn từ trước, không thuộc phạm vi sửa lần này).
+function updatePkFilterTimeSlotOptions() {
+  const sel = document.getElementById('pkFilterTimeSlot');
+  if (!sel) return;
+  const pkSelectedDateStr = `${pkSelectedDate.getFullYear()}-${String(pkSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(pkSelectedDate.getDate()).padStart(2, '0')}`;
+  const trips = (allTripsMeta || []).filter(t => !t.date || t.date === pkSelectedDateStr);
+  const buckets = { morning: false, afternoon: false, evening: false };
+  trips.forEach(t => {
+    const hh = parseInt((t.time || '').split(':')[0], 10);
+    if (Number.isNaN(hh)) return;
+    if (hh < 12) buckets.morning = true;
+    else if (hh < 18) buckets.afternoon = true;
+    else buckets.evening = true;
+  });
+  let resetNeeded = false;
+  Array.from(sel.options).forEach(opt => {
+    if (opt.value === 'all') return;
+    const visible = !!buckets[opt.value];
+    opt.hidden = !visible;
+    if (opt.value === sel.value && !visible) resetNeeded = true;
+  });
+  if (resetNeeded) { sel.value = 'all'; pkFilterState.timeSlot = 'all'; }
+}
+
 function pkRenderPaxTable() {
   const tbody = document.getElementById('pkPaxTableBody');
   const gridEmpty = document.getElementById('pkGridEmpty');
   if (!tbody) return;
 
+  updatePkFilterTimeSlotOptions();
   const pkSelectedDateStr = `${pkSelectedDate.getFullYear()}-${String(pkSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(pkSelectedDate.getDate()).padStart(2, '0')}`;
   let filtered = pickupPassengers.filter(p => {
     // Đang gõ tìm kiếm: tìm trên TOÀN BỘ danh sách, bỏ qua bộ lọc ngày/trạm/trạng thái — trước đây lọc
@@ -1440,6 +1469,7 @@ function pkOpenAssignModal(paxId) {
   pkCustomAssignPrice = pax.assigned && pax.assigned.price ? pax.assigned.price : (trip ? (trip.price || 280000) : 280000);
   const priceInput = document.getElementById('pkAssignTripPrice');
   if (priceInput) priceInput.value = pkCustomAssignPrice;
+  pkWireAssignPriceDoubleToggle(trip);
 
   pkTripSearchKeyword = '';
   const searchInput = document.getElementById('pkTripSearchInput');
@@ -1497,6 +1527,7 @@ function pkSelectTrip(tripId) {
   pkCustomAssignPrice = trip ? (trip.price || 280000) : 280000;
   const priceInput = document.getElementById('pkAssignTripPrice');
   if (priceInput) priceInput.value = pkCustomAssignPrice;
+  pkWireAssignPriceDoubleToggle(trip);
 
   pkRenderTripList();
   pkRenderSeatMap();
@@ -1506,6 +1537,18 @@ function pkSelectTrip(tripId) {
 function pkOnAssignPriceChange(val) {
   pkCustomAssignPrice = Math.max(0, parseInt(val) || 0);
   pkUpdateConfirmState();
+}
+
+// Ô tick "Ghế đôi" cạnh giá vé của modal — cùng logic với panel Đặt vé chính/Đặt lại vé (xem
+// resolveDoubleSeatPricing() ở ticketstaff.js).
+function pkWireAssignPriceDoubleToggle(trip) {
+  if (typeof resolveDoubleSeatPricing !== 'function' || typeof wireDoubleSeatToggle !== 'function') return;
+  const doublePricing = resolveDoubleSeatPricing(trip);
+  wireDoubleSeatToggle(document.getElementById('pkAssignPriceDoubleSeat'), doublePricing, pkCustomAssignPrice, (amount) => {
+    const priceInput = document.getElementById('pkAssignTripPrice');
+    if (priceInput) priceInput.value = amount;
+    pkOnAssignPriceChange(amount);
+  });
 }
 
 function pkRenderSeatMap() {

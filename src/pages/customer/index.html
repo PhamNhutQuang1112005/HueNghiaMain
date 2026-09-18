@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nhà Xe Huệ Nghĩa — Đặt vé xe khách online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="customer.css">
+</head>
+
+<body>
+
+  <div class="cust-topbar">
+    <div class="cust-container">
+      <div class="cust-topbar-hotline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+        Hotline đặt vé: 1900 6067
+      </div>
+      <div class="cust-topbar-links">
+        <a href="tra-cuu-ve.html">Tra cứu vé</a>
+        <a href="#faq">Hướng dẫn đặt vé</a>
+      </div>
+    </div>
+  </div>
+
+  <header class="cust-header">
+    <div class="cust-container">
+      <a href="index.html" class="cust-brand">
+        <div class="cust-brand-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+            <path d="M4 16h16" />
+            <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+          </svg>
+        </div>
+        <div class="cust-brand-text">
+          <b>NHÀ XE HUỆ NGHĨA</b>
+          <span>Đặt vé xe khách online</span>
+        </div>
+      </a>
+
+      <nav class="cust-nav">
+        <a href="index.html" class="active">Trang chủ</a>
+        <a href="tra-cuu-ve.html">Tra cứu vé</a>
+        <a href="index.html#faq">Hướng dẫn</a>
+      </nav>
+
+      <div class="cust-auth-slot" id="customerAuthSlot"></div>
+    </div>
+  </header>
+
+  <section class="cust-hero">
+    <div class="cust-container">
+      <div class="cust-hero-inner">
+        <div class="cust-hero-text">
+          <h1>Đặt vé xe khách Sài Gòn — An Giang nhanh chóng</h1>
+          <p>Tra cứu giờ chạy, chọn chỗ ngồi/giường nằm và giữ vé chỉ trong vài phút — không cần ra bến xe.</p>
+          <div class="cust-hero-badges">
+            <span class="cust-hero-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12l2 2 4-4" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+              Vé điện tử tức thì
+            </span>
+            <span class="cust-hero-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 8v4l3 3" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+              Đúng giờ khởi hành
+            </span>
+            <span class="cust-hero-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Hỗ trợ 24/7
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cust-container">
+    <form class="cust-search-card" id="searchForm">
+      <div class="cust-search-grid">
+        <div class="cust-field">
+          <label for="fromCity">Điểm đi</label>
+          <div class="cust-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z" />
+              <circle cx="12" cy="9" r="2.5" />
+            </svg>
+            <select id="fromCity" required></select>
+          </div>
+        </div>
+
+        <button type="button" class="cust-swap-btn" id="swapCitiesBtn" aria-label="Đổi chiều">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M7 16V4M7 4 3 8M17 8v12M17 20l4-4" />
+          </svg>
+        </button>
+
+        <div class="cust-field">
+          <label for="toCity">Điểm đến</label>
+          <div class="cust-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z" />
+              <circle cx="12" cy="9" r="2.5" />
+            </svg>
+            <select id="toCity" required></select>
+          </div>
+        </div>
+
+        <div class="cust-field">
+          <label for="departDate">Ngày đi</label>
+          <div class="cust-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <input type="date" id="departDate" required>
+          </div>
+        </div>
+
+        <button type="submit" class="cust-btn cust-btn-primary cust-search-submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          Tìm chuyến xe
+        </button>
+      </div>
+    </form>
+
+    <section class="cust-wizard" id="bookingWizard">
+      <div class="cust-wizard-head">
+        <h2 id="wizardRouteTitle">—</h2>
+        <span id="wizardRouteDate"></span>
+      </div>
+
+      <ol class="cust-stepper" id="wizardStepper">
+        <li class="cust-step done" data-step="1">
+          <span class="cust-step-dot">1</span>
+          <span class="cust-step-label">Chọn tuyến</span>
+        </li>
+        <li class="cust-step" data-step="2">
+          <span class="cust-step-dot">2</span>
+          <span class="cust-step-label">Xác nhận lộ trình</span>
+        </li>
+        <li class="cust-step" data-step="3">
+          <span class="cust-step-dot">3</span>
+          <span class="cust-step-label">Thông tin hành khách</span>
+        </li>
+        <li class="cust-step" data-step="4">
+          <span class="cust-step-dot">4</span>
+          <span class="cust-step-label">Thanh toán</span>
+        </li>
+      </ol>
+
+      <div class="cust-wizard-card">
+      <div class="cust-wizard-body">
+        <!-- BƯỚC 2: XÁC NHẬN LỘ TRÌNH -->
+        <div class="cust-wizard-panel" id="wizardPanel2">
+          <div id="wizardStationPicker">
+            <div class="cust-station-group">
+              <h4>Điểm lên xe:</h4>
+              <div class="cust-station-list" id="pickupStationList"></div>
+            </div>
+            <div class="cust-station-group">
+              <h4>Điểm xuống xe:</h4>
+              <div class="cust-station-list" id="dropoffStationList"></div>
+            </div>
+
+            <div class="cust-station-note">
+              <div class="cust-station-legend" id="stationLegend"></div>
+              <p>Quý khách vui lòng chọn đúng điểm lên, xuống xe để tìm chuyến xe phù hợp nhất!</p>
+            </div>
+          </div>
+
+          <div class="cust-route-summary" id="wizardRouteSummary">
+            <div class="cust-route-summary-text">
+              <span>Lên xe: <b id="summaryPickup"></b></span>
+              <span class="cust-route-summary-arrow">›</span>
+              <span>Xuống xe: <b id="summaryDropoff"></b></span>
+            </div>
+            <button type="button" class="cust-btn cust-btn-ghost" id="changeStationsBtn">Đổi điểm đón/trả</button>
+          </div>
+
+          <div class="cust-trip-filters" id="wizardTripFilters">
+            <div class="cust-filter-field">
+              <label for="filterPrice">Giá vé</label>
+              <select id="filterPrice">
+                <option value="">Tất cả mức giá</option>
+                <option value="0-200000">Dưới 200.000đ</option>
+                <option value="200000-280000">200.000đ - 280.000đ</option>
+                <option value="280000-999999999">Trên 280.000đ</option>
+              </select>
+            </div>
+            <div class="cust-filter-field">
+              <label for="filterVehicle">Loại xe</label>
+              <select id="filterVehicle">
+                <option value="">Tất cả loại xe</option>
+              </select>
+            </div>
+            <div class="cust-filter-field">
+              <label for="filterTime">Giờ đi</label>
+              <select id="filterTime">
+                <option value="">Tất cả khung giờ</option>
+                <option value="0-6">00:00 - 06:00</option>
+                <option value="6-12">06:00 - 12:00</option>
+                <option value="12-18">12:00 - 18:00</option>
+                <option value="18-24">18:00 - 24:00</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="cust-wizard-subhead" id="wizardTripListHead">
+            <h4>Chọn chuyến xe:</h4>
+            <span id="wizardTripListSub"></span>
+          </div>
+          <div id="wizardTripList"></div>
+        </div>
+
+        <!-- BƯỚC 3: THÔNG TIN HÀNH KHÁCH -->
+        <div class="cust-wizard-panel" id="wizardPanel3">
+          <div class="cust-route-summary show" id="wizardTripSummary">
+            <div class="cust-route-summary-text" id="wizardTripSummaryText"></div>
+            <button type="button" class="cust-btn cust-btn-ghost" id="changeSeatsBtn">Đổi chuyến/ghế</button>
+          </div>
+
+          <form id="bookingInfoForm" class="cust-passenger-form">
+            <div class="cust-form-row">
+              <div class="cust-form-group">
+                <label for="passengerName">Họ và tên *</label>
+                <input type="text" id="passengerName" required placeholder="Nguyễn Văn A">
+              </div>
+              <div class="cust-form-group">
+                <label for="passengerPhone">Số điện thoại *</label>
+                <input type="tel" id="passengerPhone" required placeholder="09xxxxxxxx" pattern="[0-9]{9,11}">
+              </div>
+            </div>
+            <div class="cust-form-group">
+              <label for="passengerEmail">Email (nhận vé điện tử)</label>
+              <input type="email" id="passengerEmail" placeholder="email@vidu.com">
+            </div>
+            <div class="cust-form-group">
+              <label for="passengerNote">Ghi chú</label>
+              <input type="text" id="passengerNote" placeholder="VD: đón thêm 1 người tại...">
+            </div>
+            <div class="cust-note-box">Vé đã đặt có thể tra cứu lại bằng mã vé + số điện thoại tại mục "Tra cứu vé".
+            </div>
+          </form>
+        </div>
+
+        <!-- BƯỚC 4: THANH TOÁN -->
+        <div class="cust-wizard-panel" id="wizardPanel4">
+          <table class="cust-confirm-table" id="paymentSummaryTable"></table>
+          <div class="cust-note-box">Đây là bản demo đặt vé: thanh toán khi lên xe hoặc tại quầy vé, hệ thống chưa
+            tích hợp cổng thanh toán trực tuyến.</div>
+        </div>
+
+        <!-- HOÀN TẤT -->
+        <div class="cust-wizard-panel" id="wizardPanelDone">
+          <div class="cust-confirm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6 9 17l-5-5" />
+            </svg></div>
+          <div class="cust-confirm-code" id="confirmCode">—</div>
+          <table class="cust-confirm-table" id="confirmTable"></table>
+          <div class="cust-wizard-done-actions">
+            <a href="tra-cuu-ve.html" class="cust-btn cust-btn-ghost">Tra cứu vé của tôi</a>
+            <button type="button" class="cust-btn cust-btn-primary" id="wizardBackHomeBtn">Về trang chủ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cust-wizard-footer" id="wizardFooter">
+        <button type="button" class="cust-btn cust-btn-ghost" id="wizardBackBtn">‹ Quay lại</button>
+        <button type="button" class="cust-btn cust-btn-primary" id="wizardNextBtn">Tiếp tục ›</button>
+      </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ MODAL: CHỌN CHỖ NGỒI (bấm 1 chuyến ở bước "Xác nhận lộ trình" thì hiện) ============ -->
+  <div class="cust-modal-overlay" id="seatModalOverlay">
+    <div class="cust-modal">
+      <div class="cust-modal-head">
+        <h3 id="seatModalTitle">Chọn chỗ ngồi</h3>
+        <button type="button" class="cust-modal-close" id="seatModalCloseBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="cust-modal-body">
+        <div class="cust-seatmap-card">
+          <div class="cust-seatmap-head">SƠ ĐỒ GHẾ</div>
+          <div class="cust-seatmap-body">
+            <div class="cust-seat-floors" id="seatFloors"></div>
+            <div class="cust-seat-legend">
+              <span class="item"><span class="dot free"></span>Trống</span>
+              <span class="item"><span class="dot selected"></span>Đang chọn</span>
+              <span class="item"><span class="dot booked"></span>Ghế không chọn</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cust-modal-footer">
+        <div class="cust-seat-summary cust-seat-summary-inline">Đã chọn <b id="seatSelectedCount">0</b> ghế —
+          <b id="seatTotalPrice">0đ</b></div>
+        <button type="button" class="cust-btn cust-btn-primary" id="seatModalContinueBtn" disabled>Tiếp tục ›</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="cust-section cust-popular-section" id="popularRoutes">
+    <div class="cust-container">
+      <div class="cust-section-head">
+        <h2>Tuyến xe phổ biến</h2>
+        <p>Giá vé theo đúng bảng giá đang áp dụng tại Nhà Xe Huệ Nghĩa.</p>
+      </div>
+      <div class="cust-popular-grid" id="popularRoutesGrid"></div>
+    </div>
+  </section>
+
+  <section class="cust-section" id="faq">
+    <div class="cust-container">
+      <div class="cust-section-head">
+        <h2>Vì sao chọn Huệ Nghĩa</h2>
+        <p>Hơn 10 năm phục vụ tuyến Sài Gòn — An Giang, đội xe đời mới và đội ngũ tài xế giàu kinh nghiệm.</p>
+      </div>
+      <div class="cust-feature-grid">
+        <div class="cust-feature-card">
+          <div class="cust-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
+            </svg></div>
+          <h3>An toàn</h3>
+          <p>Xe đời mới, bảo dưỡng định kỳ, tài xế được đào tạo lái xe an toàn.</p>
+        </div>
+        <div class="cust-feature-card">
+          <div class="cust-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 8v4l3 3" />
+              <circle cx="12" cy="12" r="9" />
+            </svg></div>
+          <h3>Đúng giờ</h3>
+          <p>Khởi hành đúng lịch, cập nhật giờ chạy minh bạch trên hệ thống.</p>
+        </div>
+        <div class="cust-feature-card">
+          <div class="cust-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="13" rx="2" />
+              <path d="M16 3v4M8 3v4M2 11h20" />
+            </svg></div>
+          <h3>Tiện nghi</h3>
+          <p>Ghế ngồi/giường nằm/limousine, wifi, nước uống, chăn đắp miễn phí.</p>
+        </div>
+        <div class="cust-feature-card">
+          <div class="cust-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg></div>
+          <h3>Hỗ trợ 24/7</h3>
+          <p>Tổng đài hỗ trợ đặt vé, đổi/trả vé mọi lúc qua hotline 1900 6067.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="cust-footer">
+    <div class="cust-container">
+      <div class="cust-footer-grid">
+        <div>
+          <h4>NHÀ XE HUỆ NGHĨA</h4>
+          <p>Chuyên tuyến Sài Gòn — An Giang (Long Xuyên, Châu Đốc). Đặt vé online, thanh toán khi lên xe hoặc tại quầy.
+          </p>
+        </div>
+        <div>
+          <h4>Hỗ trợ khách hàng</h4>
+          <ul>
+            <li><a href="tra-cuu-ve.html">Tra cứu vé</a></li>
+            <li><a href="login.html">Đăng nhập</a></li>
+            <li><a href="register.html">Đăng ký tài khoản</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Văn phòng</h4>
+          <ul>
+            <li>508 Kinh Dương Vương, Q. Bình Tân</li>
+            <li>Bến xe Miền Tây — Quầy 29</li>
+            <li>Trạm Long Xuyên · Trạm Châu Đốc</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Liên hệ</h4>
+          <ul>
+            <li>Hotline: 1900 6067</li>
+            <li>Email: hotro@huenghia.vn</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cust-footer-bottom">© 2026 Nhà Xe Huệ Nghĩa — Trang đặt vé dành cho khách hàng</div>
+    </div>
+  </footer>
+
+  <script src="../../shared/js/storage-keys.js?v=1"></script>
+  <script src="../../shared/js/fleet-store.js?v=1"></script>
+  <script src="customer-data.js?v=1"></script>
+  <script src="customer-session.js?v=1"></script>
+  <script src="customer-popular-routes.js?v=1"></script>
+  <script src="customer-search.js?v=1"></script>
+</body>
+
+</html>

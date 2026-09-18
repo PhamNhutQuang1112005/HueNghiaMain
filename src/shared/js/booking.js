@@ -237,12 +237,48 @@ function phOnSearchInput(val) {
 // đó ngay ở cấp module (ngoài hàm) sẽ ReferenceError vì tsPageState chưa tồn tại lúc này.
 let PH_HISTORY_PAGE = { page: 1, pageSize: 15, sig: '' };
 
+// Chỉ hiện option Sáng/Chiều/Tối nào THẬT SỰ có bản ghi khớp các bộ lọc khác đang chọn (tìm kiếm/
+// ngày/hướng/tuyến/nhân viên — mọi bộ lọc trừ chính "Khung giờ") — không hiện cứng cả 3 khung như
+// trước. Đang chọn 1 khung mà khung đó vừa hết dữ liệu (đổi bộ lọc khác) thì tự về "Tất cả khung giờ".
+function updatePhFilterTimeOptions(searchVal, dirVal, routeVal, staffVal) {
+  const sel = document.getElementById('phFilterTime');
+  if (!sel) return;
+  const base = (_allPassengerHistoryRaw || []).filter(r => {
+    if (searchVal) {
+      const matchName = r.name && r.name.toLowerCase().includes(searchVal);
+      const matchPhone = r.phone && r.phone.toLowerCase().includes(searchVal);
+      if (!matchName && !matchPhone) return false;
+    }
+    if (phSelectedDateStr && r.date !== phSelectedDateStr) return false;
+    if (dirVal && phRouteDirectionId(r.route) !== dirVal) return false;
+    if (routeVal !== 'all' && r.route !== routeVal) return false;
+    if (staffVal !== 'all' && r.bookStaff !== staffVal && r.sellStaff !== staffVal) return false;
+    return true;
+  });
+  const buckets = { morning: false, afternoon: false, evening: false };
+  base.forEach(r => {
+    const hh = parseInt((r.time || '00:00').split(':')[0], 10);
+    if (hh >= 0 && hh < 12) buckets.morning = true;
+    else if (hh >= 12 && hh < 18) buckets.afternoon = true;
+    else if (hh >= 18) buckets.evening = true;
+  });
+  let resetNeeded = false;
+  Array.from(sel.options).forEach(opt => {
+    if (opt.value === 'all') return;
+    const visible = !!buckets[opt.value];
+    opt.hidden = !visible;
+    if (opt.value === sel.value && !visible) resetNeeded = true;
+  });
+  if (resetNeeded) sel.value = 'all';
+}
+
 function renderPassengerHistoryTable() {
   const searchVal = (document.getElementById('phSearchInput')?.value || '').trim().toLowerCase();
   const dirVal = document.getElementById('phFilterDirection')?.value || '';
   const routeVal = document.getElementById('phFilterRoute')?.value || 'all';
-  const timeVal = document.getElementById('phFilterTime')?.value || 'all';
   const staffVal = document.getElementById('phFilterStaff')?.value || 'all';
+  updatePhFilterTimeOptions(searchVal, dirVal, routeVal, staffVal);
+  const timeVal = document.getElementById('phFilterTime')?.value || 'all';
 
   const filtered = (_allPassengerHistoryRaw || []).filter(r => {
     if (searchVal) {
