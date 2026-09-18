@@ -4082,19 +4082,51 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
    canh theo đúng khung .modal > h3 và .modal-actions dùng chung toàn admin (viền dưới/trên nhạt,
    không tô màu đỏ riêng cho tiêu đề) để mở modal Kế toán không bị "lệch tông" so với modal Nhân sự,
    Trạm xe... */
+/* .modal-form-box gộp cả tiêu đề (.modal-head) lẫn <form>...nút Lưu/Huỷ (.modal-foot) vào 1 khối,
+   không tách <h3> riêng như .admin-form (xem giải thích ở .rc-form/.acc-perm-groups phía trên) — mặc
+   định KHÔNG giới hạn chiều cao/không tự cuộn, nên phiếu dài (Phiếu Thu/Chi, Yêu cầu Chi, Tài sản...)
+   trên màn thấp bị .modal (overflow:hidden) cắt mất phần đầu/cuối, không cách nào cuộn để xem hết —
+   đúng lỗi "modal Tạo Phiếu Chi thiếu khúc trên/hiển thị không đủ thông tin". Ép thành flex-column giới
+   hạn theo chiều cao màn hình: tiêu đề đứng yên, chỉ phần <form> (các .er-section) tự cuộn bên trong,
+   nút Lưu/Huỷ (.modal-foot) dính đáy vùng cuộn để luôn bấm được mà không cần cuộn hết xuống. */
 .modal-form-box {
   width: 100%;
   padding: 20px 24px 24px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  min-height: 0;
 }
 
 .modal-head {
+  flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 0 -24px 20px;
   padding: 0 24px 16px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-form-box > form {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-form-box > form .modal-foot {
+  position: sticky;
+  bottom: 0;
+  background: var(--white);
+  z-index: 1;
+}
+
+/* Màn hẹp (điện thoại): overlay bớt đệm dọc, modal-head/modal-foot bớt đệm ngang cho khớp, tránh
+   nút Lưu/Huỷ + tiêu đề bị bóp chật trên viền màn hình nhỏ. */
+@media (max-width: 480px) {
+  .modal-form-box { padding: 16px 16px 16px; max-height: calc(100vh - 32px); }
+  .modal-head { margin: 0 -16px 16px; padding: 0 16px 14px; }
 }
 
 .modal-head h3 {
