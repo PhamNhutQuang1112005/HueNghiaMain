@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tra cứu vé — Nhà Xe Huệ Nghĩa</title>
+  <title>Chi tiết tuyển dụng — Nhà Xe Huệ Nghĩa</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -49,48 +49,21 @@
       </a>
       <nav class="cust-nav">
         <a href="index.html">Trang chủ</a>
-        <a href="tra-cuu-ve.html" class="active">Tra cứu vé</a>
-        <a href="tuyen-dung.html">Tuyển dụng</a>
+        <a href="tra-cuu-ve.html">Tra cứu vé</a>
+        <a href="tuyen-dung.html" class="active">Tuyển dụng</a>
         <a href="index.html#faq">Hướng dẫn</a>
       </nav>
       <div class="cust-auth-slot" id="customerAuthSlot"></div>
     </div>
   </header>
 
-  <section class="cust-section">
+  <section class="cust-section cust-recruit-page">
     <div class="cust-container">
-      <div class="cust-section-head">
-        <h2>Tra cứu vé đã đặt</h2>
-        <p>Nhập mã vé (VD: HN4F7K2Q) và số điện thoại đã dùng khi đặt vé để xem lại thông tin chuyến đi.</p>
+      <div class="cust-recruit-tabs" id="recruitTabs">
+        <button type="button" class="cust-recruit-tab" data-category="office">Khối văn phòng</button>
+        <button type="button" class="cust-recruit-tab" data-category="driver">Lái xe tuyến</button>
       </div>
-
-      <div class="cust-lookup-card">
-        <form id="lookupForm">
-          <div class="cust-form-group">
-            <label for="lookupCode">Mã vé *</label>
-            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="M3 10h18M8 15h4" />
-              </svg>
-              <input type="text" id="lookupCode" required placeholder="VD: HN4F7K2Q" style="text-transform:uppercase;">
-            </div>
-          </div>
-          <div class="cust-form-group">
-            <label for="lookupPhone">Số điện thoại đặt vé *</label>
-            <div class="cust-input-wrap" style="height:48px;border-radius:10px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path
-                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-              </svg>
-              <input type="tel" id="lookupPhone" required placeholder="09xxxxxxxx">
-            </div>
-          </div>
-          <button type="submit" class="cust-btn cust-btn-primary cust-btn-block" style="height:48px;">Tra cứu</button>
-        </form>
-
-        <div class="cust-lookup-result" id="lookupResult"></div>
-      </div>
+      <div id="articleRoot"></div>
     </div>
   </section>
 
@@ -100,9 +73,10 @@
     </div>
   </footer>
 
-  <script src="customer-data.js?v=1"></script>
+  <script src="../../shared/js/storage-keys.js?v=1"></script>
+  <script src="../../shared/js/recruitment-data.js?v=1"></script>
   <script src="customer-session.js?v=1"></script>
-  <script src="customer-lookup.js?v=1"></script>
+  <script src="customer-recruitment-detail.js?v=1"></script>
 </body>
 
 </html>

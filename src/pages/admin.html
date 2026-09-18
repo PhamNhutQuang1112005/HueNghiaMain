@@ -19,6 +19,14 @@
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
   <link rel="stylesheet" href="admin/admin.css?v=175" />
   <link rel="stylesheet" href="admin/admin-ts-modals.css?v=3" />
+  <!-- CSS của CKEditor 5 (ô "Nội dung chi tiết" ở modal Thêm/Sửa bài tuyển dụng — admin-recruitment.js).
+       File tĩnh TỰ LƯU trong repo (../shared/vendor/ckeditor5/), KHÔNG tải qua CDN — bản CDN ("cloud")
+       không nhận licenseKey: 'GPL' miễn phí nữa (chỉ nhận key tài khoản thật), báo lỗi
+       "license-key-invalid-distribution-channel" và crash cả editor. Bản self-hosted tải từ
+       cdn.ckeditor.com/ckeditor5/48.5.1/zip/ckeditor5-48.5.1.zip (gói ZIP chính thức CKEditor phát hành
+       cho self-hosting) MỚI nhận 'GPL' miễn phí. 2 file css/js ở đây PHẢI cùng bản build với nhau (lấy
+       chung từ 1 lần giải nén ZIP), không tự ý đổi version 1 trong 2 file. -->
+  <link rel="stylesheet" href="../shared/vendor/ckeditor5/ckeditor5.css" />
 </head>
 
 <body class="admin-body">
@@ -390,6 +398,10 @@
   <script src="../auth/permissions.js?v=2"></script>
   <script src="../auth/accounts.js?v=2"></script>
   <script src="../shared/js/fleet-store.js?v=18"></script>
+  <script src="../shared/js/recruitment-data.js?v=1"></script>
+
+  <!-- CKEditor 5 — chỉ dùng cho ô "Nội dung chi tiết" ở modal Thêm/Sửa bài tuyển dụng -->
+  <script src="../shared/vendor/ckeditor5/ckeditor5.umd.js"></script>
   <script src="../services/trip-service.js?v=1"></script>
   <script src="../services/pickup-service.js?v=1"></script>
   <script src="../services/shuttle-driver-service.js?v=1"></script>
@@ -410,9 +422,9 @@
   <script src="admin/admin-vehicles.js?v=3"></script>
   <script src="admin/admin-staff.js?v=4"></script>
   <script src="admin/admin-accounts.js?v=4"></script>
-  <script src="admin/admin-recruitment.js?v=2"></script>
   <script src="admin/admin-staff-config.js?v=3"></script>
   <script src="admin/admin-staff-stats.js?v=7"></script>
+  <script src="admin/admin-recruitment.js?v=3"></script>
   <script src="admin/admin-activity.js?v=1"></script>
   <script src="admin/admin-seat-layouts.js?v=4"></script>
   <script src="admin/admin-vehicle-seats.js?v=2"></script>

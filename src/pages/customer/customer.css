@@ -4,6 +4,24 @@
    Bảng màu đồng bộ login.css / booking-ui.css.
    ========================================================= */
 
+/* Cross-document View Transitions — bấm <a> sang 1 trang khách hàng khác vẫn là điều hướng trang THẬT
+   (mỗi trang vẫn là 1 file .html riêng, URL đổi bình thường, F5/back/forward không đổi hành vi), NHƯNG
+   trình duyệt tự chuyển mượt giữa 2 trang thay vì chớp trắng — header có view-transition-name riêng
+   (.cust-header) + tắt hẳn animation của riêng nó (::view-transition-old/new bên dưới) nên nhìn như ĐỨNG
+   YÊN xuyên suốt, không giật/chớp khi chuyển trang. Chỉ trình duyệt hỗ trợ (Chrome/Edge mới) mới áp dụng —
+   trình duyệt khác tự bỏ qua @view-transition, chuyển trang vẫn hoạt động y như cũ (progressive
+   enhancement, không có rủi ro hỏng điều hướng). */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(cust-site-header),
+::view-transition-old(cust-site-header),
+::view-transition-new(cust-site-header) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 :root {
   --red: #C20D08;
   --red-light: #FEEFEF;
@@ -33,6 +51,11 @@
 html,
 body {
   height: 100%;
+  /* View Transitions (cross-document, @view-transition ở đầu file) chụp lại nền của <html> để dựng khung
+     chuyển cảnh — <html> vốn không có background riêng (chỉ body có) nên trình duyệt tự lấy màu nền mặc
+     định (ĐEN) làm khung, hiện thành vệt đen thoáng qua ở mép trên khi chuyển trang. Set thẳng cùng màu
+     nền với body ở đây để khung chuyển cảnh không còn khoảng đen lộ ra nữa. */
+  background: var(--surface-2);
 }
 
 body {
@@ -121,6 +144,10 @@ img {
   position: sticky;
   top: 0;
   z-index: 40;
+  /* Cross-document View Transitions (khai báo @view-transition ở đầu file) khớp phần tử cùng
+     view-transition-name giữa trang cũ/mới rồi tự chuyển mượt thay vì chớp trắng khi bấm sang trang khác
+     — đặt tên riêng cho header để trình duyệt coi đây là "cùng 1 khối" xuyên suốt các trang. */
+  view-transition-name: cust-site-header;
 }
 
 .cust-header .cust-container {
@@ -1120,6 +1147,20 @@ img {
   display: flex;
 }
 
+.cust-route-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cust-route-summary-icon {
+  width: 18px;
+  height: 18px;
+  stroke: var(--red);
+  flex: 0 0 auto;
+}
+
 .cust-route-summary-text {
   display: flex;
   align-items: center;
@@ -1212,6 +1253,31 @@ img {
 
 .cust-passenger-form {
   margin-top: 8px;
+}
+
+.cust-passenger-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin: 0 0 14px;
+}
+
+.cust-passenger-section-title svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--red);
+  flex: 0 0 auto;
+}
+
+.cust-form-optional {
+  font-weight: 500;
+  color: var(--text-sub);
+  text-transform: none;
 }
 
 .cust-wizard-footer {
@@ -1533,12 +1599,23 @@ img {
 }
 
 .cust-note-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   background: var(--surface-2);
   border-radius: var(--radius-md);
   padding: 14px;
   font-size: 12.5px;
   color: var(--text-sub);
   line-height: 1.6;
+}
+
+.cust-note-box svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-sub);
+  flex: 0 0 auto;
+  margin-top: 1px;
 }
 
 /* Xác nhận */
@@ -1855,6 +1932,443 @@ img {
   color: #7C7D7E;
 }
 
+/* ===================== TUYỂN DỤNG (tuyen-dung.html / tuyen-dung-chi-tiet.html) ===================== */
+/* .cust-section mặc định padding-top 56px (dùng chung nhiều trang) làm 2 nút khối nằm khá xa header — 2
+   trang tuyển dụng không có tiêu đề/hero/breadcrumb nào ở trên nên kéo sát header hơn hẳn. */
+.cust-recruit-page {
+  padding-top: 22px;
+}
+
+.cust-recruit-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cust-recruit-tab {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-gray);
+  background: var(--white);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-sub);
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.cust-recruit-tab:hover {
+  border-color: #E3B4B2;
+}
+
+.cust-recruit-tab.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+
+/* Tiêu đề khối "Tin nổi bật" / "Tất cả" — hình thoi + chữ đậm màu brand + vệt kẻ đỏ nhạt dần bên phải,
+   ẩn mặc định (display:none inline ở HTML) vì JS chỉ hiện khi khối đó có bài (crRenderList()). */
+.cust-recruit-section-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 22px;
+}
+
+/* Khối "Tất cả" nằm ngay dưới lưới thẻ "Tin nổi bật" nên cần thêm khoảng cách với phía trên, không
+   dùng chung margin-top với khối đầu (nằm ngay dưới 2 nút khối, đã có sẵn khoảng cách từ đó). */
+#recruitListTitle {
+  margin-top: 40px;
+}
+
+.cust-recruit-section-diamond {
+  width: 17px;
+  height: 17px;
+  border-radius: 3px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex: 0 0 auto;
+}
+
+.cust-recruit-section-title h3 {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--red);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.cust-recruit-section-bar {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--red) 0%, var(--red) 15%, transparent 100%);
+}
+
+.cust-recruit-featured {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+.cust-recruit-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow .15s, border-color .15s, transform .15s;
+}
+
+.cust-recruit-card:hover,
+.cust-recruit-card:focus-visible {
+  box-shadow: var(--shadow-card);
+  border-color: #E3B4B2;
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.cust-recruit-card-img {
+  aspect-ratio: 16 / 10;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.cust-recruit-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cust-recruit-card-img-placeholder,
+.cust-recruit-row-thumb-placeholder,
+.cust-article-img-placeholder,
+.cust-article-aside-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+  color: rgba(255, 255, 255, .85);
+}
+
+.cust-recruit-card-img-placeholder svg { width: 34px; height: 34px; }
+.cust-recruit-row-thumb-placeholder svg { width: 20px; height: 20px; }
+.cust-article-img-placeholder svg { width: 46px; height: 46px; }
+.cust-article-aside-thumb-placeholder svg { width: 18px; height: 18px; }
+
+.cust-recruit-card-body {
+  padding: 16px 18px 20px;
+}
+
+.cust-recruit-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 0 0 8px;
+  color: var(--text-main);
+}
+
+.cust-recruit-card-desc {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cust-recruit-row-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.cust-recruit-row-date svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+
+.cust-recruit-list {
+  border-top: 1px solid var(--border-gray);
+}
+
+.cust-recruit-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--border-gray);
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.cust-recruit-row:hover,
+.cust-recruit-row:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.cust-recruit-row-thumb {
+  width: 96px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--surface);
+}
+
+.cust-recruit-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cust-recruit-row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cust-recruit-row-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.cust-recruit-empty {
+  background: var(--white);
+  border: 1px dashed var(--border-gray);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 14px;
+}
+
+/* ===================== BÀI TUYỂN DỤNG — trang riêng dạng bài báo (tuyen-dung-chi-tiet.html) =====================
+   Cột chính = nội dung bài, cột phụ = "TUYỂN DỤNG XEM NHIỀU" (các bài khác) — xem
+   customer-recruitment-detail.js. */
+.cust-article-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 32px;
+  align-items: start;
+}
+
+.cust-article-main { min-width: 0; }
+
+.cust-article-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--red-light);
+  color: var(--red);
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.cust-article-main h1 {
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 0 0 12px;
+  color: var(--text-main);
+}
+
+.cust-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 22px;
+}
+
+.cust-article-meta svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+.cust-article-lede {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.7;
+  margin: 0 0 22px;
+}
+
+.cust-article-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+  margin-bottom: 24px;
+}
+
+.cust-article-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cust-article-content {
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--text-main);
+}
+
+.cust-article-content p { margin: 0 0 14px; }
+
+/* post.content giờ có thể là HTML thật từ CKEditor 5 bản classic (admin-recruitment.js, toolbar mặc định
+   của bản build — không tuỳ biến Font chữ/màu) — thêm kiểu cho các thẻ nó hay sinh ra (heading, danh
+   sách, bảng, ảnh) thay vì chỉ có <p>. */
+.cust-article-content h2,
+.cust-article-content h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 20px 0 10px;
+}
+
+.cust-article-content ul,
+.cust-article-content ol {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.cust-article-content li { margin-bottom: 6px; }
+.cust-article-content strong { font-weight: 800; }
+.cust-article-content a { color: var(--red); text-decoration: underline; }
+
+.cust-article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  font-size: 13.5px;
+}
+
+.cust-article-content table td,
+.cust-article-content table th {
+  border: 1px solid var(--border-gray);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.cust-article-content table th {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+
+.cust-article-content img,
+.cust-article-content figure.image img {
+  border-radius: var(--radius-sm);
+  margin: 4px 0 16px;
+}
+
+.cust-article-content figure.image {
+  margin: 0 0 16px;
+}
+
+.cust-article-content figure.image img { margin: 0; }
+
+.cust-article-cta {
+  margin-top: 28px;
+  display: inline-flex;
+}
+
+.cust-article-not-found {
+  background: var(--white);
+  border: 1px dashed var(--border-gray);
+  border-radius: var(--radius-lg);
+  padding: 48px;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 14px;
+}
+
+.cust-article-aside-card {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cust-article-aside-head {
+  background: var(--red);
+  color: var(--white);
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  padding: 14px 18px;
+}
+
+.cust-article-aside-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-gray);
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.cust-article-aside-item:last-child { border-bottom: none; }
+
+.cust-article-aside-item:hover,
+.cust-article-aside-item:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.cust-article-aside-thumb {
+  width: 72px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--surface);
+}
+
+.cust-article-aside-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cust-article-aside-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text-main);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cust-article-aside-empty {
+  padding: 16px 18px;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 980px) {
   .cust-search-grid {
@@ -1875,6 +2389,14 @@ img {
   }
 
   .cust-popular-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cust-recruit-featured {
+    grid-template-columns: 1fr;
+  }
+
+  .cust-article-grid {
     grid-template-columns: 1fr;
   }
 

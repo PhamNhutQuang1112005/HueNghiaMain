@@ -50,8 +50,19 @@ const HN_ADMIN_ACTIVITY_KEY = 'hn_admin_activity_v1';
 const HN_SEAT_LAYOUTS_KEY = 'hn_seat_layouts_v2';
 const HN_VEHICLE_CATEGORIES_KEY = 'hn_vehicle_categories_v1';
 const HN_VEHICLE_SEATS_KEY = 'hn_vehicle_seats_v1';
-// Thông báo tuyển dụng (Nhân sự > Thông báo tuyển dụng, admin-recruitment.js). CRUD qua window.FleetStore.
-const HN_RECRUITMENT_KEY = 'hn_recruitment_posts_v1';
+// Bản tuyển dụng CRUD qua window.FleetStore (SEED_RECRUITMENT/getRecruitmentPosts trong fleet-store.js)
+// — shape khác hẳn (quantity/location/salary/status...) và HIỆN KHÔNG có admin view/trang khách hàng nào
+// gọi tới (admin-recruitment.js + trang customer/tuyen-dung.html dùng HN_RECRUITMENT_POSTS_KEY bên dưới).
+// Cố tình để KHÁC giá trị với HN_RECRUITMENT_POSTS_KEY — 2 key này từng trùng giá trị
+// ('hn_recruitment_posts_v1') do merge, khiến FleetStore.seedAll() tự ghi đè dữ liệu mẫu sai shape vào
+// đúng key mà trang khách hàng đọc, làm trang Tuyển dụng trống trơn. Đừng gộp lại 2 key này khi chưa
+// thống nhất dùng chung 1 shape dữ liệu.
+const HN_RECRUITMENT_KEY = 'hn_recruitment_jobs_v1';
+
+// ===== Thông báo tuyển dụng — Admin > Nhân sự > "Thông báo tuyển dụng" CRUD, trang khách hàng
+// (customer/tuyen-dung.html) chỉ đọc để hiển thị theo khối (Văn phòng/Lái xe tuyến). Đọc/ghi qua
+// getRecruitmentPosts()/saveRecruitmentPosts() (js/shared/recruitment-data.js — nạp SAU file này). =====
+const HN_RECRUITMENT_POSTS_KEY = 'hn_recruitment_posts_v1';
 
 // ===== Store Kế toán & Tài chính =====
 const HN_ACCOUNTING_VOUCHERS_KEY = 'hn_accounting_vouchers_v1';

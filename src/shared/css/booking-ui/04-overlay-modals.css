@@ -351,6 +351,43 @@
   flex: 0 0 auto;
 }
 
+/* Modal "Tạo/Sửa phơi xe" — khác 3 nơi trên (dùng ô tick trống), ở đây hiện thẳng SỐ TIỀN của ghế đơn/
+   đôi trên 2 nút bấm để nhân viên thấy ngay giá trước khi chọn, xem tripWirePriceDoubleToggle() ở
+   ticketstaff.js. Ẩn mặc định (display:none inline ở HTML), JS chỉ hiện khi tuyến đang chọn có giá vé
+   ghế đôi hợp lệ trong Admin > Quản lý giá. */
+.ts-seat-price-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ts-seat-price-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--border-gray);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.ts-seat-price-opt b {
+  font-weight: 800;
+}
+
+.ts-seat-price-opt.active {
+  border-color: var(--red);
+  background: var(--red-light);
+  color: var(--red);
+}
+
 .zero-price-reason {
   margin-top: 8px;
   display: flex;

@@ -2155,10 +2155,9 @@
           <div class="form-group flex-1">
             <label for="tripPrice">Giá vé (đ) <span class="required">*</span></label>
             <input type="number" id="tripPrice" required min="0" step="5000" placeholder="Lấy theo hướng đi">
-            <label class="ts-double-seat-toggle" style="display:none;">
-              <input type="checkbox" id="tripPriceDoubleSeat">
-              Ghế đôi
-            </label>
+            <!-- Hiện thẳng giá ghế đơn/đôi trên 2 nút bấm (thay vì ô tick "Ghế đôi" không kèm giá) — đổ
+                 nội dung + gắn onclick trong tripWirePriceDoubleToggle() (ticketstaff.js). -->
+            <div class="ts-seat-price-toggle" id="tripPriceDoubleSeat" style="display:none;"></div>
           </div>
           <div class="form-group flex-1">
             <label for="tripVehicleType">Loại xe <span class="required">*</span></label>

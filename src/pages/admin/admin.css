@@ -1300,6 +1300,175 @@ table.admin-table {
   opacity: .7;
 }
 
+/* Bảng "Thông báo tuyển dụng" (admin-recruitment.js) — ảnh thu nhỏ trong bảng + preview ảnh trong modal
+   Thêm/Sửa (chưa chọn ảnh thì hiện khung placeholder, không để trống trơn). */
+.rc-thumb {
+  width: 64px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  display: block;
+  background: var(--surface);
+}
+.rc-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sub);
+}
+.rc-thumb-empty svg { width: 20px; height: 20px; }
+.rc-img-preview {
+  margin-top: 6px;
+  width: 100%;
+  height: 80px;
+  border: 1px dashed var(--border-gray);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.rc-img-preview img { width: 100%; height: 100%; object-fit: cover; }
+/* Input file gốc ẩn đi (mất nút "Choose file" mặc định của trình duyệt, không đồng bộ kiểu với
+   .btn) — nhãn <label for="rmImageFile" class="btn ..."> đứng thay, bấm vào label mở hộp thoại chọn
+   file y hệt bấm thẳng input (hành vi chuẩn HTML). Ẩn kiểu "visually hidden" (không display:none) để
+   vẫn bắt được sự kiện change/focus đúng chuẩn truy cập. */
+.rc-img-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.rc-img-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.rc-img-actions > label,
+.rc-img-actions > button {
+  flex: 1 1 0;
+}
+.rc-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 4px;
+}
+.rc-active-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.rc-active-inline input { min-width: auto; height: auto; }
+.rc-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #FEF3C7;
+  color: #B45309;
+  font-size: 10.5px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+/* Modal "Thêm/Sửa bài tuyển dụng" — bố cục NGANG (modal-wide, xem adminOpenRecruitmentModal): cột trái
+   thông tin cơ bản + ảnh, cột phải "Nội dung chi tiết" chiếm TRỌN chiều cao cột (align-items:stretch mặc
+   định của flex row + .rc-fld-fill kéo dãn cả label lẫn textarea), thay vì xếp hết các ô theo chiều dọc
+   như 1 modal hẹp. .rc-form thu gọn khoảng cách giữa các ô (margin-bottom mặc định 16px) để modal đỡ cao,
+   giống cách .admin-form.trip-form đã làm cho modal "Tạo/Sửa phơi xe". */
+/* Modal cao QUÁ khổ màn hình thì trước đây cả .modal-overlay cuộn (cuộn nguyên modal, kéo theo tiêu đề
+   "Thêm/Sửa bài tuyển dụng" và nút Lưu/Huỷ trôi mất khỏi tầm nhìn) — giờ chặn chiều cao modal lại
+   (max-height) rồi ép .admin-form/.rc-form-grid theo đúng chiều cao đó (flex:1 auto + min-height:0 xuyên
+   suốt), CHỈ còn .ck-editor__editable (vùng gõ nội dung, đã overflow-y:auto sẵn ở dưới) là nơi DUY NHẤT
+   cuộn khi gõ dài — tiêu đề modal + form + nút Lưu/Huỷ luôn hiện trọn, không cuộn. .rc-form-main (cột
+   trái) cũng thêm overflow-y:auto làm lưới an toàn cho màn hình rất thấp, dù bình thường nội dung cột này
+   đã đủ ngắn để không bao giờ cần cuộn. */
+#adminModal .modal:has(.rc-form-grid) {
+  width: 1080px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+#adminModal .modal:has(.rc-form-grid) > .admin-form.rc-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.admin-form.rc-form .fld { margin-bottom: 8px; }
+.admin-form.rc-form .fld-row { gap: 14px; }
+.admin-form.rc-form > .modal-actions { flex: 0 0 auto; margin-top: 32px; }
+.rc-form-grid {
+  display: flex;
+  gap: 28px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.rc-form-main { flex: 0 0 380px; min-width: 0; min-height: 0; overflow-y: auto; }
+/* Textarea "Mô tả ngắn" (2 dòng) — .admin-form textarea mặc định min-height:96px (dành cho textarea dài
+   hơn chỗ khác), dư hẳn ra so với "tóm tắt 1-2 câu" nên thu lại để cột trái ngắn hơn, tránh cần cuộn. */
+.rc-form-main textarea { min-height: 56px; }
+.rc-form-side {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rc-form-side .fld.rc-fld-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.rc-form-side .fld.rc-fld-fill textarea {
+  flex: 1 1 auto;
+  min-height: 260px;
+  resize: vertical;
+}
+/* CKEditor 5 thay thế <textarea> bằng khung riêng (.ck-editor, 3 lớp: .ck-editor > .ck-editor__main >
+   .ck-editor__editable — toolbar nằm ngoài .ck-editor__main nên không bị kéo dãn theo) chứ không giữ
+   nguyên phần tử textarea, nên phải kéo dãn ĐỦ CẢ 3 LỚP bằng flex:1 auto thì .ck-editor__editable (vùng
+   gõ nội dung) mới thật sự cao hết cột phải, giống ô <textarea> flex-fill cũ. */
+.rc-form-side .fld.rc-fld-fill .ck-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rc-form-side .fld.rc-fld-fill .ck-editor__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rc-form-side .fld.rc-fld-fill .ck-editor__editable {
+  flex: 1 1 auto;
+  min-height: 260px;
+  overflow-y: auto;
+}
+@media (max-width: 860px) {
+  .rc-form-grid { flex-direction: column; }
+  .rc-form-main { flex-basis: auto; width: 100%; }
+  .rc-form-side .fld.rc-fld-fill textarea,
+  .rc-form-side .fld.rc-fld-fill .ck-editor__editable { min-height: 200px; }
+}
+
 /* --- Thanh lọc Trạm Xe: phẳng như .rs-toolbar bên TicketStaff --- */
 .sd-toolbar {
   display: flex;

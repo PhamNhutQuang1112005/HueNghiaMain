@@ -51,6 +51,7 @@
       <nav class="cust-nav">
         <a href="index.html" class="active">Trang chủ</a>
         <a href="tra-cuu-ve.html">Tra cứu vé</a>
+        <a href="tuyen-dung.html">Tuyển dụng</a>
         <a href="index.html#faq">Hướng dẫn</a>
       </nav>
 
@@ -236,30 +237,71 @@
         <!-- BƯỚC 3: THÔNG TIN HÀNH KHÁCH -->
         <div class="cust-wizard-panel" id="wizardPanel3">
           <div class="cust-route-summary show" id="wizardTripSummary">
-            <div class="cust-route-summary-text" id="wizardTripSummaryText"></div>
+            <div class="cust-route-summary-left">
+              <svg class="cust-route-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 10a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4z" />
+                <path d="M9 8v8" />
+              </svg>
+              <div class="cust-route-summary-text" id="wizardTripSummaryText"></div>
+            </div>
             <button type="button" class="cust-btn cust-btn-ghost" id="changeSeatsBtn">Đổi chuyến/ghế</button>
           </div>
 
           <form id="bookingInfoForm" class="cust-passenger-form">
+            <div class="cust-passenger-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Thông tin liên hệ
+            </div>
             <div class="cust-form-row">
               <div class="cust-form-group">
                 <label for="passengerName">Họ và tên *</label>
-                <input type="text" id="passengerName" required placeholder="Nguyễn Văn A">
+                <div class="cust-input-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <input type="text" id="passengerName" required placeholder="Nguyễn Văn A">
+                </div>
               </div>
               <div class="cust-form-group">
                 <label for="passengerPhone">Số điện thoại *</label>
-                <input type="tel" id="passengerPhone" required placeholder="09xxxxxxxx" pattern="[0-9]{9,11}">
+                <div class="cust-input-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  <input type="tel" id="passengerPhone" required placeholder="09xxxxxxxx" pattern="[0-9]{9,11}">
+                </div>
               </div>
             </div>
             <div class="cust-form-group">
-              <label for="passengerEmail">Email (nhận vé điện tử)</label>
-              <input type="email" id="passengerEmail" placeholder="email@vidu.com">
+              <label for="passengerEmail">Email <span class="cust-form-optional">(nhận vé điện tử, không bắt buộc)</span></label>
+              <div class="cust-input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-10 6L2 7" />
+                </svg>
+                <input type="email" id="passengerEmail" placeholder="email@vidu.com">
+              </div>
             </div>
             <div class="cust-form-group">
-              <label for="passengerNote">Ghi chú</label>
-              <input type="text" id="passengerNote" placeholder="VD: đón thêm 1 người tại...">
+              <label for="passengerNote">Ghi chú <span class="cust-form-optional">(không bắt buộc)</span></label>
+              <div class="cust-input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <input type="text" id="passengerNote" placeholder="VD: đón thêm 1 người tại...">
+              </div>
             </div>
-            <div class="cust-note-box">Vé đã đặt có thể tra cứu lại bằng mã vé + số điện thoại tại mục "Tra cứu vé".
+            <div class="cust-note-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <span>Vé đã đặt có thể tra cứu lại bằng mã vé + số điện thoại tại mục "Tra cứu vé".</span>
             </div>
           </form>
         </div>
@@ -267,8 +309,14 @@
         <!-- BƯỚC 4: THANH TOÁN -->
         <div class="cust-wizard-panel" id="wizardPanel4">
           <table class="cust-confirm-table" id="paymentSummaryTable"></table>
-          <div class="cust-note-box">Đây là bản demo đặt vé: thanh toán khi lên xe hoặc tại quầy vé, hệ thống chưa
-            tích hợp cổng thanh toán trực tuyến.</div>
+          <div class="cust-note-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <span>Đây là bản demo đặt vé: thanh toán khi lên xe hoặc tại quầy vé, hệ thống chưa tích hợp cổng thanh
+              toán trực tuyến.</span>
+          </div>
         </div>
 
         <!-- HOÀN TẤT -->
