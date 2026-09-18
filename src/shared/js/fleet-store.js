@@ -189,6 +189,72 @@
     { code: 'TX05', name: 'Trần Văn Hải', username: '', role: 'shuttle_driver', phone: '0907222333', license: 'FC', active: true }
   ];
 
+  // Thông báo tuyển dụng (Nhân sự > Thông báo tuyển dụng, admin-recruitment.js) — 3 mẫu minh hoạ để
+  // trang không trống khi mới mở lần đầu. `requirements`/`benefits`/`description` lưu dạng chuỗi nhiều
+  // dòng (mỗi dòng 1 ý) — trang hiển thị tách dòng ra thành danh sách gạch đầu dòng.
+  var SEED_RECRUITMENT = [
+    {
+      id: 'rc_seed_1',
+      title: 'Tài xế Limousine / Giường nằm',
+      quantity: 3,
+      location: 'Trạm Sài Gòn (508 Kinh Dương Vương) và các trạm lân cận',
+      employmentType: 'full_time',
+      salary: '10.000.000 - 15.000.000đ + phụ cấp chuyến',
+      experience: 'Trên 2 năm lái xe khách đường dài, có bằng lái phù hợp loại xe',
+      requirements: 'Có bằng lái hạng D/E/FC còn hiệu lực\nTrên 2 năm kinh nghiệm lái xe khách đường dài\nSức khoẻ tốt, không có tiền án tiền sự\nƯu tiên biết tuyến Sài Gòn - An Giang',
+      benefits: 'Lương thoả thuận theo kinh nghiệm + phụ cấp mỗi chuyến\nBHXH, BHYT theo quy định\nHỗ trợ ăn ở khi chạy tuyến dài\nThưởng lễ, Tết',
+      description: 'Trực tiếp lái xe đưa khách theo tuyến cố định, đảm bảo an toàn, đúng giờ; kiểm tra tình trạng xe trước/sau chuyến; phối hợp phụ xe hỗ trợ khách lên xuống.',
+      deadline: '',
+      contactName: 'Phòng Nhân sự',
+      contactPhone: '0908 111 222',
+      contactEmail: 'tuyendung@huenghia.vn',
+      status: 'active',
+      featured: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    {
+      id: 'rc_seed_2',
+      title: 'Nhân viên bán vé / Phòng vé',
+      quantity: 2,
+      location: 'Trạm Bình Dương',
+      employmentType: 'full_time',
+      salary: '6.500.000 - 8.500.000đ + hoa hồng',
+      experience: 'Không yêu cầu kinh nghiệm, ưu tiên đã từng bán vé/CSKH',
+      requirements: 'Tốt nghiệp THPT trở lên\nGiao tiếp tốt, chịu được áp lực giờ cao điểm\nBiết sử dụng máy tính cơ bản\nƯu tiên nữ, ngoại hình ưa nhìn',
+      benefits: 'Đào tạo nghiệp vụ trước khi làm\nĐồng phục, phụ cấp ăn trưa\nBHXH sau thời gian thử việc\nCơ hội thăng tiến lên trưởng ca',
+      description: 'Bán vé, tư vấn hành trình cho khách tại quầy; sắp xếp chỗ ngồi trên phơi xe; hỗ trợ khách lên xe đúng chuyến, đúng giờ.',
+      deadline: '',
+      contactName: 'Phòng Nhân sự',
+      contactPhone: '0908 111 222',
+      contactEmail: 'tuyendung@huenghia.vn',
+      status: 'active',
+      featured: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    {
+      id: 'rc_seed_3',
+      title: 'Nhân viên tổng đài (Call Center)',
+      quantity: 4,
+      location: 'Làm việc tại văn phòng, có thể sắp ca linh động',
+      employmentType: 'shift',
+      salary: 'Thoả thuận theo năng lực',
+      experience: 'Không yêu cầu, có đào tạo',
+      requirements: 'Giọng nói rõ, dễ nghe\nSử dụng thành thạo tin học văn phòng\nChịu được áp lực trả lời điện thoại liên tục\nCó thể làm ca tối/cuối tuần',
+      benefits: 'Lương cứng + thưởng theo doanh số\nCa làm linh động, có thể học song song\nMôi trường làm việc trẻ, năng động',
+      description: 'Tiếp nhận và tư vấn đặt vé qua điện thoại/Zalo; xử lý yêu cầu đổi/trả vé; phối hợp điều phối trung chuyển đón khách.',
+      deadline: '',
+      contactName: 'Phòng Nhân sự',
+      contactPhone: '0908 111 222',
+      contactEmail: 'tuyendung@huenghia.vn',
+      status: 'paused',
+      featured: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+  ];
+
   /* ---------------------------------------------------------
      LOW-LEVEL
      --------------------------------------------------------- */
@@ -229,6 +295,7 @@
     seedKey(HN_VEHICLES_KEY, function () { return clone(SEED_VEHICLES); });
     seedKey(HN_STAFF_KEY, function () { return clone(SEED_STAFF); });
     seedKey(HN_ADMIN_ACTIVITY_KEY, function () { return []; });
+    seedKey(HN_RECRUITMENT_KEY, function () { return clone(SEED_RECRUITMENT); });
   }
 
   // Với localStorage đã seed từ bản cũ: tự BỔ SUNG những trạm seed còn thiếu (khớp theo region+name),
@@ -649,6 +716,71 @@
     return { ok: true };
   }
 
+  /* ---------------------------------------------------------
+     THÔNG BÁO TUYỂN DỤNG
+     --------------------------------------------------------- */
+  function getRecruitmentPosts() { return readJSON(HN_RECRUITMENT_KEY, clone(SEED_RECRUITMENT)); }
+  function setRecruitmentPosts(a) { writeJSON(HN_RECRUITMENT_KEY, Array.isArray(a) ? a : []); }
+  function makeRecruitmentId() { return 'rc_' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
+  function addRecruitmentPost(fields) {
+    var title = String((fields && fields.title) || '').trim();
+    if (!title) return { ok: false, reason: 'Nhập vị trí tuyển dụng.' };
+    var list = getRecruitmentPosts();
+    var now = Date.now();
+    var item = {
+      id: makeRecruitmentId(),
+      title: title,
+      quantity: Math.max(1, parseInt((fields && fields.quantity), 10) || 1),
+      location: String((fields && fields.location) || '').trim(),
+      employmentType: String((fields && fields.employmentType) || 'full_time'),
+      salary: String((fields && fields.salary) || '').trim(),
+      experience: String((fields && fields.experience) || '').trim(),
+      requirements: String((fields && fields.requirements) || '').trim(),
+      benefits: String((fields && fields.benefits) || '').trim(),
+      description: String((fields && fields.description) || '').trim(),
+      deadline: String((fields && fields.deadline) || '').trim(),
+      contactName: String((fields && fields.contactName) || '').trim(),
+      contactPhone: String((fields && fields.contactPhone) || '').trim(),
+      contactEmail: String((fields && fields.contactEmail) || '').trim(),
+      status: String((fields && fields.status) || 'active'),
+      featured: !!(fields && fields.featured),
+      createdAt: now,
+      updatedAt: now
+    };
+    list.push(item);
+    setRecruitmentPosts(list);
+    return { ok: true, item: item };
+  }
+  function updateRecruitmentPost(id, fields) {
+    var list = getRecruitmentPosts();
+    var item = list.find(function (r) { return r && r.id === id; });
+    if (!item) return { ok: false, reason: 'Không tìm thấy thông báo tuyển dụng.' };
+    var title = String((fields && fields.title) || '').trim();
+    if (!title) return { ok: false, reason: 'Nhập vị trí tuyển dụng.' };
+    item.title = title;
+    item.quantity = Math.max(1, parseInt((fields && fields.quantity), 10) || 1);
+    item.location = String((fields && fields.location) || '').trim();
+    item.employmentType = String((fields && fields.employmentType) || 'full_time');
+    item.salary = String((fields && fields.salary) || '').trim();
+    item.experience = String((fields && fields.experience) || '').trim();
+    item.requirements = String((fields && fields.requirements) || '').trim();
+    item.benefits = String((fields && fields.benefits) || '').trim();
+    item.description = String((fields && fields.description) || '').trim();
+    item.deadline = String((fields && fields.deadline) || '').trim();
+    item.contactName = String((fields && fields.contactName) || '').trim();
+    item.contactPhone = String((fields && fields.contactPhone) || '').trim();
+    item.contactEmail = String((fields && fields.contactEmail) || '').trim();
+    item.status = String((fields && fields.status) || 'active');
+    item.featured = !!(fields && fields.featured);
+    item.updatedAt = Date.now();
+    setRecruitmentPosts(list);
+    return { ok: true, item: item };
+  }
+  function removeRecruitmentPost(id) {
+    setRecruitmentPosts(getRecruitmentPosts().filter(function (r) { return r && r.id !== id; }));
+    return { ok: true };
+  }
+
   function getActivity() { return readJSON(HN_ADMIN_ACTIVITY_KEY, []); }
   function pushActivity(entry) {
     var list = getActivity();
@@ -938,7 +1070,8 @@
       vehicleTypes: HN_VEHICLE_TYPES_KEY,
       vehicles: HN_VEHICLES_KEY,
       staff: HN_STAFF_KEY,
-      activity: HN_ADMIN_ACTIVITY_KEY
+      activity: HN_ADMIN_ACTIVITY_KEY,
+      recruitment: HN_RECRUITMENT_KEY
     },
     getDirections: getDirections,
     setDirections: setDirections,
@@ -979,6 +1112,11 @@
     removeStaffRole: removeStaffRole,
     getActivity: getActivity,
     pushActivity: pushActivity,
+    getRecruitmentPosts: getRecruitmentPosts,
+    setRecruitmentPosts: setRecruitmentPosts,
+    addRecruitmentPost: addRecruitmentPost,
+    updateRecruitmentPost: updateRecruitmentPost,
+    removeRecruitmentPost: removeRecruitmentPost,
     buildTripDirectionsCfg: buildTripDirectionsCfg,
     buildDirTripCfg: buildDirTripCfg,
     buildRoutesCfg: buildRoutesCfg,
@@ -993,7 +1131,7 @@
     log: log,
     // Cho phép Admin "Khôi phục mặc định": xoá các key cấu hình rồi seed lại.
     resetToSeed: function () {
-      [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY].forEach(function (k) {
+      [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_RECRUITMENT_KEY].forEach(function (k) {
         localStorage.removeItem(k);
       });
       seedAll();

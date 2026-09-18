@@ -774,26 +774,62 @@
         '</select>' +
         '</div>';
 
+      // Gom các phiếu thu theo từng Phơi (Mã chuyến) — hiển thị Tổng tiền / Tiền mặt / Chuyển khoản / Chưa thu
+      var phoiMap = {};
+      vList.forEach(function (v) {
+        var pCode = v.tripCode || v.id;
+        if (!phoiMap[pCode]) {
+          phoiMap[pCode] = {
+            tripCode: pCode,
+            date: v.date,
+            route: v.route,
+            plate: v.plate,
+            driver: v.driver,
+            attendant: v.attendant,
+            total: 0,
+            cash: 0,
+            transfer: 0,
+            chuaThu: 0
+          };
+        }
+        var p = phoiMap[pCode];
+        var amt = Number(v.amount) || 0;
+        p.total += amt;
+        if (v.status === 'Đã thu') {
+          if ((v.paymentMethod || '').indexOf('Tiền mặt') !== -1) p.cash += amt;
+          else p.transfer += amt;
+        } else {
+          p.chuaThu += amt;
+        }
+      });
+
       html += '<div class="report-box"><table class="acct-table"><thead><tr>' +
-        '<th>Mã phiếu</th><th>Ngày thu</th><th>Loại nguồn thu</th><th>Chi tiết / Nguồn</th><th>Tuyến đường</th><th>Biển số xe</th><th>Tài xế / Phụ xe</th><th>Số tiền</th><th>P.Thức</th><th>Trạng thái</th><th>Thao tác</th>' +
+        '<th>#</th><th>Mã Phơi</th><th>Ngày</th><th>Tuyến đường</th><th>Biển số xe</th><th>Tài xế / Phụ xe</th><th>Tổng Tiền</th><th>Tiền Mặt</th><th>Chuyển Khoản</th><th>Chưa Thu</th><th>Trạng thái</th><th>Thao tác</th>' +
         '</tr></thead><tbody>';
 
-      if (vList.length === 0) {
-        html += '<tr><td colspan="11" class="text-center py-4 text-sub">Chưa có dữ liệu phiếu thu nào phù hợp</td></tr>';
+      var phoiKeys = Object.keys(phoiMap);
+      if (phoiKeys.length === 0) {
+        html += '<tr><td colspan="12" class="text-center py-4 text-sub">Chưa có dữ liệu phơi thu nào phù hợp</td></tr>';
       } else {
-        vList.forEach(function (v) {
+        phoiKeys.forEach(function (pKey, idx) {
+          var p = phoiMap[pKey];
+          var isFull = p.chuaThu === 0;
           html += '<tr>' +
-            '<td><strong>' + esc(v.id) + '</strong></td>' +
-            '<td>' + fmtDate(v.date) + '</td>' +
-            '<td><span class="badge badge-tag">' + esc(v.category) + '</span></td>' +
-            '<td>' + esc(v.source) + '</td>' +
-            '<td>' + esc(v.route) + '</td>' +
-            '<td><strong>' + esc(v.plate) + '</strong></td>' +
-            '<td>' + esc(v.driver) + ' / ' + esc(v.attendant || '—') + '</td>' +
-            '<td class="text-green font-bold">' + fmtMoney(v.amount) + '</td>' +
-            '<td>' + esc(v.paymentMethod) + '</td>' +
-            '<td>' + (v.status === 'Đã thu' ? '<span class="badge badge-success">Đã thu</span>' : '<span class="badge badge-warning">Chưa thu</span>') + '</td>' +
-            '<td><button class="acct-icon-btn del-btn" title="Xóa phiếu" onclick="deleteAcctVoucher(\'' + v.id + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></td>' +
+            '<td>' + (idx + 1) + '</td>' +
+            '<td><strong>' + esc(p.tripCode) + '</strong></td>' +
+            '<td>' + fmtDate(p.date) + '</td>' +
+            '<td>' + esc(p.route) + '</td>' +
+            '<td><strong>' + esc(p.plate) + '</strong></td>' +
+            '<td>' + esc(p.driver) + ' / ' + esc(p.attendant || '—') + '</td>' +
+            '<td style="color: #0F172A; font-weight: 700;">' + fmtMoney(p.total) + '</td>' +
+            '<td>' + fmtMoney(p.cash) + '</td>' +
+            '<td>' + fmtMoney(p.transfer) + '</td>' +
+            '<td class="' + (p.chuaThu > 0 ? 'text-red' : '') + ' font-bold">' + fmtMoney(p.chuaThu) + '</td>' +
+            '<td>' + (isFull ? '<span class="badge badge-success">Đã thu đủ</span>' : '<span class="badge badge-warning">Còn nợ</span>') + '</td>' +
+            '<td>' +
+            '<button class="acct-btn" style="padding: 3px 8px; font-size: 11px; margin-right: 6px; background: #F1F5F9; border: 1px solid #CBD5E1; color: #1E293B;" onclick="openTongDaiPhoiDetailModal(\'' + esc(p.tripCode) + '\', \'' + esc(p.route) + '\')">Chi tiết</button>' +
+            (isFull ? '' : '<button class="acct-btn acct-btn-primary" style="padding: 4px 10px; font-size: 11.5px; background: #0F172A; border-color: #0F172A;" onclick="confirmCollectAllTripCash(\'' + esc(p.tripCode) + '\')">Thu Hết</button>') +
+            '</td>' +
             '</tr>';
         });
       }
@@ -1039,6 +1075,21 @@
       saveVouchers(list);
       renderAccountingThuView();
       openDriverTripAuditModal(driverName, attendantName);
+    }
+  };
+
+  window.confirmCollectAllTripCash = function (tripCode) {
+    var list = getVouchers();
+    var updatedCount = 0;
+    list.forEach(function (v) {
+      if (v.type === 'THU' && (v.tripCode === tripCode || v.id === tripCode) && v.status === 'Chưa thu') {
+        v.status = 'Đã thu';
+        updatedCount++;
+      }
+    });
+    if (updatedCount > 0) {
+      saveVouchers(list);
+      renderAccountingThuView();
     }
   };
 
@@ -1414,6 +1465,10 @@
       '<button class="acct-btn acct-btn-primary" onclick="openAddVoucherModal(\'CHI\')"><svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo Phiếu Chi Mới</button>' +
       '</div>';
 
+    html += buildExpenseRequestsSectionHtml();
+
+    html += '<div class="acct-box-head acct-box-head-spaced"><h3>Danh Sách Phiếu Chi Đã Ghi Nhận</h3></div>';
+
     html += '<div class="acct-stats-grid">' +
       '<div class="acct-stat-card card-c1"><div class="stat-lbl">TỔNG CHI PHÍ</div><div class="stat-val text-c1">' + fmtMoney(totalChi) + '</div></div>' +
       '<div class="acct-stat-card card-c2"><div class="stat-lbl">CHI TRỰC TIẾP VẬN HÀNH</div><div class="stat-val text-c2">' + fmtMoney(directChi) + '</div><div class="stat-sub">Dầu, Lương chuyến, BOT, Bảo trì</div></div>' +
@@ -1471,9 +1526,12 @@
      --------------------------------------------------------- */
   var EXP_REQ_STATUS_FILTER = 'all';
 
-  window.onExpReqStatusFilter = function (v) { EXP_REQ_STATUS_FILTER = v; renderAccountingExpenseRequestsView(); };
+  window.onExpReqStatusFilter = function (v) { EXP_REQ_STATUS_FILTER = v; renderAccountingChiView(); };
 
-  window.renderAccountingExpenseRequestsView = function () {
+  // Bảng "Yêu Cầu Chi Chờ Duyệt" — hiển thị & duyệt/từ chối ngay trong trang Chi phí (viewAccountingChi)
+  // vì đây là nơi kế toán theo dõi/kiểm soát dòng tiền chi ra, thay vì tách riêng 1 trang chỉ để duyệt.
+  // Trang "Tạo yêu cầu chi" (renderAccountingExpenseRequestsView bên dưới) chỉ còn lại lối tắt mở form tạo.
+  function buildExpenseRequestsSectionHtml() {
     var all = getExpenseRequests();
     var list = EXP_REQ_STATUS_FILTER === 'all' ? all : all.filter(function (r) { return r.status === EXP_REQ_STATUS_FILTER; });
 
@@ -1481,9 +1539,8 @@
     var approvedAmt = all.filter(function (r) { return r.status === 'Đã duyệt'; }).reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
     var pendingAmt = pendingList.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
 
-    var html = '<div class="acct-header-bar">' +
-      '<div><h2 class="acct-title">Tạo Yêu Cầu Chi</h2>' +
-      '<p class="acct-subtitle">Đề nghị tạm ứng / chi tiền trước khi lập phiếu chi thật — Kế toán duyệt mới sinh Phiếu Chi vào sổ CHI</p></div>' +
+    var html = '<div class="acct-box-head">' +
+      '<h3>Yêu Cầu Chi Chờ Duyệt' + (pendingList.length ? ' <span class="badge badge-warning">' + pendingList.length + ' chờ duyệt</span>' : '') + '</h3>' +
       '<button class="acct-btn acct-btn-primary" onclick="openAddExpenseRequestModal()"><svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo Yêu Cầu Chi Mới</button>' +
       '</div>';
 
@@ -1502,12 +1559,12 @@
       '</select>' +
       '</div>';
 
-    html += '<div class="report-box"><table class="acct-table"><thead><tr>' +
-      '<th>Mã YC</th><th>Ngày đề nghị</th><th>Người đề nghị</th><th>Nhóm chi phí</th><th>Hạng mục</th><th>Đơn vị/Người nhận</th><th>Số tiền đề nghị</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th>' +
+    html += '<div class="report-box er-table-box"><table class="acct-table er-table"><thead><tr>' +
+      '<th>Mã YC</th><th>Ngày đề nghị</th><th>Người đề nghị</th><th>Hạng mục chi</th><th>Đơn vị/Người nhận</th><th>Số tiền đề nghị</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th>' +
       '</tr></thead><tbody>';
 
     if (list.length === 0) {
-      html += '<tr><td colspan="10" class="text-center py-4 text-sub">Chưa có yêu cầu chi nào phù hợp</td></tr>';
+      html += '<tr><td colspan="9" class="text-center py-4 text-sub">Chưa có yêu cầu chi nào phù hợp</td></tr>';
     } else {
       list.forEach(function (r) {
         var badge = '<span class="badge badge-warning">Chờ duyệt</span>';
@@ -1525,11 +1582,10 @@
           '<td><strong>' + esc(r.id) + '</strong></td>' +
           '<td>' + fmtDate(r.date) + '</td>' +
           '<td>' + esc(r.requester) + '</td>' +
-          '<td><span class="badge badge-tag">' + esc(r.mainGroup || '—') + '</span></td>' +
-          '<td><strong>' + esc(r.category) + '</strong>' + (r.plate && r.plate !== '—' ? ' <small class="text-sub">(' + esc(r.plate) + ')</small>' : '') + '</td>' +
-          '<td>' + esc(r.payee) + '</td>' +
+          '<td class="cell-wrap"><span class="badge badge-tag er-group-tag">' + esc(r.mainGroup || '—') + '</span><br><strong>' + esc(r.category) + '</strong>' + (r.plate && r.plate !== '—' ? ' <small class="text-sub">(' + esc(r.plate) + ')</small>' : '') + '</td>' +
+          '<td class="cell-wrap">' + esc(r.payee) + '</td>' +
           '<td class="text-red font-bold">' + fmtMoney(r.amount) + '</td>' +
-          '<td><small>' + esc(r.reason || '') + (r.status === 'Từ chối' && r.rejectReason ? '<br><span class="text-red">Lý do từ chối: ' + esc(r.rejectReason) + '</span>' : '') + '</small></td>' +
+          '<td class="cell-wrap"><small>' + esc(r.reason || '') + (r.status === 'Từ chối' && r.rejectReason ? '<br><span class="text-red">Lý do từ chối: ' + esc(r.rejectReason) + '</span>' : '') + '</small></td>' +
           '<td>' + badge + '</td>' +
           '<td>' + actions + '</td>' +
           '</tr>';
@@ -1537,6 +1593,27 @@
     }
 
     html += '</tbody></table></div>';
+    return html;
+  }
+
+  // Trang "Tạo yêu cầu chi" — chỉ còn lối tắt mở form tạo mới; xem danh sách & duyệt/từ chối chuyển
+  // hẳn sang trang Chi phí (viewAccountingChi) để gộp chung với dòng tiền chi thực tế.
+  window.renderAccountingExpenseRequestsView = function () {
+    var pendingCount = getExpenseRequests().filter(function (r) { return r.status === 'Chờ duyệt'; }).length;
+
+    var html = '<div class="acct-header-bar">' +
+      '<div><h2 class="acct-title">Tạo Yêu Cầu Chi</h2>' +
+      '<p class="acct-subtitle">Đề nghị tạm ứng / chi tiền trước khi lập phiếu chi thật — Kế toán duyệt mới sinh Phiếu Chi vào sổ CHI</p></div>' +
+      '</div>';
+
+    html += '<div class="er-cta-box">' +
+      '<div class="er-modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>' +
+      '<h3>Gửi một đề nghị tạm ứng / chi tiền mới</h3>' +
+      '<p>Điền thông tin khoản chi dự kiến — Kế toán sẽ xem xét, duyệt hoặc từ chối tại trang <strong>Chi phí (CHI)</strong>, nơi đề nghị được duyệt sẽ tự sinh ra 1 Phiếu Chi vào sổ CHI.</p>' +
+      (pendingCount ? '<p class="er-cta-pending">Hiện có <strong>' + pendingCount + '</strong> yêu cầu đang chờ duyệt tại trang Chi phí.</p>' : '') +
+      '<button class="acct-btn acct-btn-primary" onclick="openAddExpenseRequestModal()"><svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo Yêu Cầu Chi Mới</button>' +
+      '</div>';
+
     $('viewAccountingExpenseRequests').innerHTML = html;
   };
 
@@ -1545,23 +1622,39 @@
     var code = 'YCC-' + Math.floor(100 + Math.random() * 900);
 
     var formHtml = '<div class="modal-form-box">' +
-      '<div class="modal-head"><h3>Tạo Yêu Cầu Chi Mới</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
+      '<div class="modal-head">' +
+      '<div class="er-modal-title-wrap">' +
+      '<div class="er-modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>' +
+      '<div><h3>Tạo Yêu Cầu Chi Mới</h3><p class="er-modal-subtitle">Gửi Kế toán duyệt trước khi lập phiếu chi thật</p></div>' +
+      '</div>' +
+      '<button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
       '<form onsubmit="saveExpenseRequestForm(event)">' +
+
+      '<div class="er-section">' +
+      '<div class="er-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Thông tin đề nghị</div>' +
       '<div class="form-grid">' +
       '<div class="form-group"><label>Mã yêu cầu</label><input type="text" id="erId" class="acct-input" value="' + code + '" required /></div>' +
       '<div class="form-group"><label>Ngày đề nghị</label><input type="date" id="erDate" class="acct-input" value="' + today + '" required /></div>' +
-      '<div class="form-group"><label>Người đề nghị</label><input type="text" id="erRequester" class="acct-input" placeholder="Họ tên người đề nghị" required /></div>' +
+      '<div class="form-group col-span-2"><label>Người đề nghị</label><input type="text" id="erRequester" class="acct-input" placeholder="Họ tên người đề nghị" required /></div>' +
+      '</div>' +
+      '</div>' +
+
+      '<div class="er-section">' +
+      '<div class="er-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Chi tiết khoản chi</div>' +
+      '<div class="form-grid">' +
       '<div class="form-group"><label>Nhóm chi phí chính</label><select id="erMainGroup" class="acct-select"><option value="Chi phí trực tiếp vận hành">Chi phí trực tiếp vận hành</option><option value="Chi phí cố định">Chi phí cố định</option><option value="Chi phí khác">Chi phí khác</option></select></div>' +
       '<div class="form-group"><label>Hạng mục chi</label><select id="erCategory" class="acct-select">' + acctChiCategoryOptionsHtml() + '</select></div>' +
-      '<div class="form-group"><label>Số tiền đề nghị (VNĐ)</label><input type="number" id="erAmount" class="acct-input" placeholder="0" min="1000" required /></div>' +
       '<div class="form-group"><label>Biển số xe (nếu có)</label><input type="text" id="erPlate" class="acct-input" placeholder="VD: 67B-012.34" /></div>' +
       '<div class="form-group"><label>Đơn vị / Người nhận tiền</label><input type="text" id="erPayee" class="acct-input" placeholder="VD: Gara, Cây xăng, Nhân viên..." required /></div>' +
+      '<div class="form-group col-span-2 er-amount-group"><label>Số tiền đề nghị (VNĐ)</label><input type="number" id="erAmount" class="acct-input" placeholder="0" min="1000" required /></div>' +
       '<div class="form-group col-span-2"><label>Lý do đề nghị chi</label><textarea id="erReason" class="acct-input" rows="2" placeholder="Lý do, mục đích khoản chi..." required></textarea></div>' +
       '</div>' +
+      '</div>' +
+
       '<div class="modal-foot"><button type="button" class="acct-btn" onclick="closeAdminModal()">Hủy bỏ</button><button type="submit" class="acct-btn acct-btn-primary">Gửi Yêu Cầu Chi</button></div>' +
       '</form></div>';
 
-    openAdminModal(formHtml, false);
+    openAdminModal(formHtml, true);
   };
 
   window.saveExpenseRequestForm = function (e) {
@@ -1586,8 +1679,16 @@
     saveExpenseRequests(list);
     closeAdminModal();
     showToast('Đã gửi yêu cầu chi ' + newReq.id + '!');
-    renderAccountingExpenseRequestsView();
+    refreshExpenseRequestViews();
   };
+
+  // Danh sách/duyệt yêu cầu chi sống ở trang Chi phí (buildExpenseRequestsSectionHtml trong
+  // renderAccountingChiView) — luôn làm mới trang đó; nếu người dùng đang đứng ở trang "Tạo yêu cầu
+  // chi" (chỉ còn thẻ CTA + số lượng đang chờ duyệt) thì làm mới luôn cho khớp số liệu.
+  function refreshExpenseRequestViews() {
+    renderAccountingChiView();
+    if (CURRENT_VIEW === 'viewAccountingExpenseRequests') renderAccountingExpenseRequestsView();
+  }
 
   window.approveExpenseRequest = function (id) {
     var list = getExpenseRequests();
@@ -1617,7 +1718,7 @@
     saveExpenseRequests(list);
 
     showToast('Đã duyệt yêu cầu ' + req.id + ' → lập phiếu chi ' + voucherId + '!');
-    renderAccountingExpenseRequestsView();
+    refreshExpenseRequestViews();
   };
 
   window.rejectExpenseRequest = function (id) {
@@ -1659,14 +1760,14 @@
     saveExpenseRequests(list);
     closeAdminModal();
     showToast('Đã từ chối yêu cầu ' + id + '!');
-    renderAccountingExpenseRequestsView();
+    refreshExpenseRequestViews();
   };
 
   window.deleteExpenseRequest = function (id) {
     var list = getExpenseRequests().filter(function (r) { return r.id !== id; });
     saveExpenseRequests(list);
     showToast('Đã xóa yêu cầu chi ' + id + '!');
-    renderAccountingExpenseRequestsView();
+    refreshExpenseRequestViews();
   };
 
 
@@ -1850,7 +1951,9 @@
 
   window.openAddVoucherModal = function (type) {
     var isThu = type === 'THU';
-    var title = isThu ? 'Thêm Phiếu Thu Mới (Doanh thu)' : 'Thêm Phiếu Chi Mới (Chi phí)';
+    var title = isThu ? 'Thêm Phiếu Thu Mới' : 'Thêm Phiếu Chi Mới';
+    var subtitle = isThu ? 'Ghi nhận một khoản doanh thu vào sổ THU' : 'Ghi nhận một khoản chi phí vào sổ CHI';
+    var thuCls = isThu ? ' is-thu' : '';
     var today = todayISO();
     var code = isThu ? 'THU-' + Math.floor(100 + Math.random() * 900) : 'CHI-' + Math.floor(100 + Math.random() * 900);
 
@@ -1858,30 +1961,49 @@
       '<option value="Vé lẻ">Vé lẻ (bán tại bến / điểm đón)</option><option value="Vé đặt trước">Vé đặt trước (Online / Tổng đài)</option><option value="Hoa hồng đại lý">Hoa hồng đại lý bán hộ</option>' :
       acctChiCategoryOptionsHtml();
 
+    var iconPath = isThu ?
+      '<path d="M12 20V4M5 11l7-7 7 7"/>' :
+      '<path d="M12 4v16M5 13l7 7 7-7"/>';
+
     var formHtml = '<div class="modal-form-box">' +
-      '<div class="modal-head"><h3>' + title + '</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
+      '<div class="modal-head">' +
+      '<div class="er-modal-title-wrap">' +
+      '<div class="er-modal-icon' + thuCls + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg></div>' +
+      '<div><h3>' + title + '</h3><p class="er-modal-subtitle">' + subtitle + '</p></div>' +
+      '</div>' +
+      '<button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
       '<form id="acctVoucherForm" onsubmit="saveAcctVoucherForm(event, \'' + type + '\')">' +
+
+      '<div class="er-section">' +
+      '<div class="er-section-title' + thuCls + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Thông tin phiếu</div>' +
       '<div class="form-grid">' +
       '<div class="form-group"><label>Mã phiếu</label><input type="text" id="vId" class="acct-input" value="' + code + '" required /></div>' +
       '<div class="form-group"><label>Ngày ghi nhận</label><input type="date" id="vDate" class="acct-input" value="' + today + '" required /></div>' +
+      '</div>' +
+      '</div>' +
+
+      '<div class="er-section">' +
+      '<div class="er-section-title' + thuCls + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>' + (isThu ? 'Chi tiết khoản thu' : 'Chi tiết khoản chi') + '</div>' +
+      '<div class="form-grid">' +
 
       (isThu ? '' : '<div class="form-group"><label>Nhóm chi phí chính</label><select id="vMainGroup" class="acct-select"><option value="Chi phí trực tiếp vận hành">Chi phí trực tiếp vận hành</option><option value="Chi phí cố định">Chi phí cố định</option><option value="Chi phí khác">Chi phí khác</option></select></div>') +
 
       '<div class="form-group"><label>Hạng mục / Nguồn</label><select id="vCategory" class="acct-select">' + catOptions + '</select></div>' +
-      '<div class="form-group"><label>Số tiền (VNĐ)</label><input type="number" id="vAmount" class="acct-input" placeholder="0" min="1000" required /></div>' +
-
       '<div class="form-group"><label>Biển số xe (nếu có)</label><input type="text" id="vPlate" class="acct-input" placeholder="VD: 67B-012.34" /></div>' +
       '<div class="form-group"><label>Tài xế / Phụ xe (nếu có)</label><input type="text" id="vDriver" class="acct-input" placeholder="VD: Nguyễn Văn Hùng" /></div>' +
 
       '<div class="form-group"><label>' + (isThu ? 'Nguồn thu / Nơi thu' : 'Đơn vị / Người nhận tiền') + '</label><input type="text" id="vPayee" class="acct-input" placeholder="VD: Cây xăng, Bến xe, Tên ĐL..." required /></div>' +
       '<div class="form-group"><label>Hình thức thanh toán</label><select id="vPayMethod" class="acct-select"><option value="Tiền mặt">Tiền mặt</option><option value="Chuyển khoản">Chuyển khoản</option><option value="VETC">Thẻ VETC / EPASS</option></select></div>' +
+      '<div class="form-group col-span-2 er-amount-group' + thuCls + '"><label>Số tiền (VNĐ)</label><input type="number" id="vAmount" class="acct-input" placeholder="0" min="1000" required /></div>' +
 
       '<div class="form-group col-span-2"><label>Ghi chú chi tiết</label><textarea id="vNote" class="acct-input" rows="2" placeholder="Ghi chú chi tiết chuyến, lý do..."></textarea></div>' +
       '</div>' +
+      '</div>' +
+
       '<div class="modal-foot"><button type="button" class="acct-btn" onclick="closeAdminModal()">Hủy bỏ</button><button type="submit" class="acct-btn acct-btn-primary">Lưu Phiếu ' + (isThu ? 'Thu' : 'Chi') + '</button></div>' +
       '</form></div>';
 
-    openAdminModal(formHtml, false);
+    openAdminModal(formHtml, true);
   };
 
   window.saveAcctVoucherForm = function (e, type) {

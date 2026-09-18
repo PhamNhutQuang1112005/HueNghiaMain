@@ -50,6 +50,8 @@ const HN_ADMIN_ACTIVITY_KEY = 'hn_admin_activity_v1';
 const HN_SEAT_LAYOUTS_KEY = 'hn_seat_layouts_v2';
 const HN_VEHICLE_CATEGORIES_KEY = 'hn_vehicle_categories_v1';
 const HN_VEHICLE_SEATS_KEY = 'hn_vehicle_seats_v1';
+// Thông báo tuyển dụng (Nhân sự > Thông báo tuyển dụng, admin-recruitment.js). CRUD qua window.FleetStore.
+const HN_RECRUITMENT_KEY = 'hn_recruitment_posts_v1';
 
 // ===== Store Kế toán & Tài chính =====
 const HN_ACCOUNTING_VOUCHERS_KEY = 'hn_accounting_vouchers_v1';

@@ -14,10 +14,6 @@ function renderStopsView() {
   $('viewStops').innerHTML = renderComingSoon('Điểm dừng', 'Danh sách các điểm có thể rước theo trạm — tính năng sẽ có ở bản cập nhật sau.');
 }
 
-function renderRecruitmentView() {
-  $('viewRecruitment').innerHTML = renderComingSoon('Thông báo tuyển dụng', 'Danh sách thông báo tuyển dụng — tính năng sẽ có ở bản cập nhật sau.');
-}
-
 var PRICING_FILTERS = { search: '', direction: '', route: '' };
 var PRICE_SEL = {}; // id tuyến đang tick chọn (bảng Quản lý giá) — dùng cho "Xoá"/"Cập nhật giá" hàng loạt
 

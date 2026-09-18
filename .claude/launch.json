@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static-src",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8843", "--directory", "src"],
+      "port": 8843
+    }
+  ]
+}

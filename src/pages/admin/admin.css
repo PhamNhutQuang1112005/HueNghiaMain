@@ -1276,6 +1276,9 @@ table.admin-table {
 .staff-table th.col-check, .staff-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
 .staff-table tbody tr.selected-row { background: var(--red-light); }
 
+.acc-table th.col-check, .acc-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.acc-table tbody tr.selected-row { background: var(--red-light); }
+
 .price-badge-stack { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .price-badge {
   display: inline-flex;
@@ -1657,6 +1660,23 @@ table.admin-table {
 .modal:has(.acc-perm-groups) > .admin-form { max-height: calc(100vh - 150px); overflow-y: auto; }
 .acc-perm-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 @media (max-width: 620px) { .acc-perm-groups { grid-template-columns: 1fr; } }
+
+/* Modal "Thêm/Sửa thông báo tuyển dụng" (admin-recruitment.js) — form dài nhất trong Admin (nhiều
+   ô + 3 textarea) nên cùng lý do như .acc-perm-groups ở trên: bắt .admin-form tự cuộn bên trong,
+   giữ tiêu đề + nút Lưu/Huỷ luôn trong tầm nhìn dù màn hình thấp. Bản "Xem thông báo" (preview) cũng
+   dài tương tự nhưng không nằm trong .admin-form nên cuộn riêng phần thân (.rc-preview-body), giữ
+   tiêu đề + badge trạng thái cố định phía trên. */
+.modal > .admin-form.rc-form { max-height: calc(100vh - 150px); overflow-y: auto; }
+.rc-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 20px 24px 16px; border-bottom: 1px solid var(--border-subtle); }
+.rc-preview-body { padding: 20px 24px 24px; max-height: calc(100vh - 150px); overflow-y: auto; }
+
+/* .fld-row (2 ô/dòng) không có mốc responsive nào trước đây — trên màn hẹp (điện thoại) 2 input
+   160px + gap bị bóp nhỏ/tràn ngang. Xuống 1 cột/dòng ở màn hẹp, áp dụng chung cho MỌI modal admin
+   (không riêng tuyển dụng) vì đây là lỗi gốc chung của .fld-row. */
+@media (max-width: 620px) {
+  .admin-form .fld-row { flex-direction: column; gap: 0; }
+  .admin-form .fld-row > .fld { max-width: none !important; }
+}
 .acc-perm-group { border: 1px solid var(--border-gray); border-radius: var(--radius-md); background: var(--surface-2); padding: 12px 14px; }
 .acc-perm-group-head { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border-gray); }
 .acc-perm-group-head b { font-size: 13px; font-weight: 800; color: var(--black); }
@@ -3867,6 +3887,15 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
   background: #F8F7F7;
 }
 
+/* Cột nội dung dài (lý do, tên đơn vị...) — cho tự xuống dòng thay vì nowrap để bảng không bị kéo
+   rộng quá khổ .report-box rồi phải cuộn ngang mới thấy hết cột Trạng thái/Thao tác. */
+.acct-table td.cell-wrap {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.5;
+  max-width: 220px;
+}
+
 /* .badge dùng chung định nghĩa nền (pill tròn 999px) khai báo ở phần chung của admin.css —
    ở đây chỉ khai màu theo trạng thái, KHÔNG khai lại kích thước/bo góc để tránh đè mất kiểu .badge
    dùng ở các trang khác (Nhân sự, Phòng vé...) vì 2 khối CSS trùng tên chọn (cùng độ đặc hiệu, khối
@@ -4039,7 +4068,15 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
   font-weight: 800;
   color: var(--text-main);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
+/* Tách 2 khối trong 1 trang gộp (VD: "Yêu Cầu Chi Chờ Duyệt" rồi tới "Danh Sách Phiếu Chi" cùng
+   trong viewAccountingChi) — cần khoảng cách trên rộng hơn mức acct-box-head mặc định (đứng ngay
+   sau report-box của khối trước) để không dính liền trông như 1 khối duy nhất. */
+.acct-box-head-spaced { margin-top: 28px; }
 
 /* Modal tạo/sửa phiếu — bọc nội dung y hệt padding .admin-form (20px 24px 24px), tiêu đề/footer
    canh theo đúng khung .modal > h3 và .modal-actions dùng chung toàn admin (viền dưới/trên nhạt,
@@ -4088,6 +4125,9 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Không có dòng này, input placeholder dài (VD: "Cây xăng, Bến xe, Tên ĐL...") ép cột grid rộng
+     hơn 1fr trên màn hẹp, đẩy cả modal-form-box tràn ra ngoài .modal thay vì input tự co lại. */
+  min-width: 0;
 }
 
 .form-group.col-span-2 {
@@ -4100,6 +4140,19 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
   color: var(--text-main);
 }
 
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Màn hẹp (điện thoại): gộp về 1 cột thay vì ép 2 cột chật hẹp làm vỡ layout / tràn khung modal. */
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .form-group.col-span-2 { grid-column: span 1; }
+}
+
 .modal-foot {
   display: flex;
   justify-content: flex-end;
@@ -4108,3 +4161,117 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
   padding-top: 18px;
   border-top: 1px solid var(--border-subtle);
 }
+
+/* Modal "Tạo Yêu Cầu Chi Mới" — chia field thành từng khối có nền/khung riêng thay vì 1 lưới phẳng
+   đơn điệu, kèm icon tiêu đề + nhấn nổi bật ô Số tiền để dễ soát trước khi gửi duyệt. */
+.er-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.er-modal-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--red-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(124, 28, 36, 0.28);
+}
+
+.er-modal-icon svg { width: 20px; height: 20px; }
+
+.er-modal-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.er-section {
+  background: var(--bg-sub, #F8FAFC);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px 18px 4px;
+  margin-bottom: 16px;
+}
+
+.er-section .form-grid { margin-bottom: 12px; }
+
+.er-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #7C1C24;
+  margin: 0 0 12px;
+}
+
+.er-section-title svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+.er-amount-group input {
+  font-size: 17px;
+  font-weight: 800;
+  color: #B91C1C;
+}
+
+/* Biến thể xanh dùng chung cho Phiếu Thu (doanh thu) — cùng bố cục với Phiếu Chi/Yêu Cầu Chi
+   (đỏ) ở trên, chỉ đổi tông màu để phân biệt thu/chi ngay từ icon tiêu đề modal. */
+.er-modal-icon.is-thu {
+  background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.28);
+}
+
+.er-section-title.is-thu { color: #047857; }
+
+.er-amount-group.is-thu input { color: #047857; }
+
+/* Trang "Tạo yêu cầu chi" — chỉ còn 1 thẻ CTA mở form (xem/duyệt danh sách đã chuyển sang trang
+   Chi phí), nên cần 1 khối được thiết kế đủ nổi bật thay vì để trống trang. */
+.er-cta-box {
+  max-width: 560px;
+  margin: 8px auto 0;
+  padding: 32px 28px;
+  text-align: center;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.er-cta-box .er-modal-icon {
+  margin: 0 auto 16px;
+}
+
+.er-cta-box h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--black);
+  margin: 0 0 8px;
+}
+
+.er-cta-box p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  margin: 0 0 20px;
+}
+
+.er-cta-box .er-cta-pending {
+  margin: -8px 0 20px;
+  padding: 10px 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+  color: #B45309;
+  font-weight: 600;
+}
+
+.er-cta-box .acct-btn { margin: 0 auto; }

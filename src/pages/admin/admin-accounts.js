@@ -7,6 +7,7 @@
    ========================================================= */
 
 var ACCOUNT_FILTERS = { search: '', role: '', status: '', station: '' };
+var ACCOUNT_SEL = {}; // id tài khoản đang tick chọn (bảng Tài khoản) — dùng cho hành động "Xoá các tài khoản đã chọn"
 // HN_ADMIN_ACCOUNTS_KEY: shared/js/storage-keys.js. getAccountsList()/saveAccountsList(): auth/accounts.js
 // (dùng chung với login.js — xem chú thích ở đó) — KHÔNG định nghĩa lại ở đây.
 
@@ -58,6 +59,10 @@ function renderAccountsView() {
     return true;
   });
 
+  // Dọn lựa chọn của tài khoản không còn hiển thị (đổi bộ lọc) — tránh xoá nhầm tài khoản đã ẩn khỏi danh sách.
+  var visAccIds = {}; filtered.forEach(function (a) { visAccIds[a.id] = true; });
+  Object.keys(ACCOUNT_SEL).forEach(function (id) { if (!visAccIds[id]) delete ACCOUNT_SEL[id]; });
+
   var ICN_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg>';
 
   function acPermCountHtml(permissions) {
@@ -70,11 +75,12 @@ function renderAccountsView() {
   function tableRow(a, idx) {
     var isActive = a.active !== false;
     var initial = String(a.username || 'A').charAt(0).toUpperCase();
+    var sel = !!ACCOUNT_SEL[a.id];
 
     // AVATAR DÙNG MÀU XÁM TRUNG TÍNH VÀ GIỮ NGUYÊN BADGE CHUẨN SYSTEM
     var roleBadge = '<span class="status-badge" style="background:var(--surface-2); color:var(--text-main); border:1px solid var(--border-gray);">' + esc(a.roleLabel || a.role) + '</span>';
 
-    return '<tr class="' + (isActive ? '' : 'sch-row-deleted') + '">' +
+    return '<tr data-row-key="' + esc(a.id) + '" class="' + (isActive ? '' : 'sch-row-deleted') + (sel ? ' selected-row' : '') + '">' +
       '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
       '<td>' +
         '<div style="display:flex; align-items:center; gap:10px;">' +
@@ -97,12 +103,15 @@ function renderAccountsView() {
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminAccountRowMenu" data-args=\'["__this__","' + esc(a.id) + '",' + (isActive ? 'true' : 'false') + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminAccountToggleRow" data-args=\'["' + esc(a.id) + '","__this__"]\'></td>' +
     '</tr>';
   }
 
   var rowsHtml = filtered.length
     ? filtered.map(tableRow).join('')
-    : '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-sub);">Không tìm thấy tài khoản nào phù hợp bộ lọc.</td></tr>';
+    : '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-sub);">Không tìm thấy tài khoản nào phù hợp bộ lọc.</td></tr>';
+
+  var allChecked = filtered.length && filtered.every(function (a) { return ACCOUNT_SEL[a.id]; });
 
   $('viewAccounts').innerHTML =
     '<div class="accounts-shell">' +
@@ -171,7 +180,7 @@ function renderAccountsView() {
           '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">Hiển thị ' + filtered.length + ' / ' + totalCount + ' tài khoản</span>' +
         '</div>' +
         '<div class="sd-table-wrap">' +
-          '<table class="admin-table">' +
+          '<table class="admin-table acc-table">' +
             '<thead><tr>' +
               '<th style="width:60px; text-align:center;">STT</th>' +
               '<th style="width:200px;">Tài khoản & Người dùng</th>' +
@@ -181,12 +190,77 @@ function renderAccountsView() {
               '<th style="width:130px;">Mật khẩu</th>' +
               '<th class="col-status" style="text-align:center; width:130px;">Trạng thái</th>' +
               '<th class="th-actions" style="width:120px;">Thao tác</th>' +
+              '<th class="col-check"><input type="checkbox" id="accCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminAccountToggleAll" data-args=\'["__this__"]\'></th>' +
             '</tr></thead>' +
             '<tbody>' + rowsHtml + '</tbody>' +
           '</table>' +
         '</div>' +
       '</div></div>' +
+
+      '<div class="bulk-bar" id="accActionBar" style="display:none;">' +
+        '<span class="bulk-bar-hint" id="accActionHint">Đã chọn 0 tài khoản</span>' +
+        '<div class="bulk-bar-fields">' +
+          '<button type="button" class="btn btn-secondary" data-action="adminAccountClearSel">Hủy</button>' +
+          '<button type="button" class="btn btn-danger" data-action="adminAccountDeleteSelected">Xoá các tài khoản đã chọn</button>' +
+        '</div>' +
+      '</div>' +
     '</div>';
+  adminAccountSyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Tài khoản (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminAccountSyncBar() {
+  var bar = $('accActionBar');
+  if (!bar) return;
+  var ids = Object.keys(ACCOUNT_SEL);
+  if (!ids.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('accActionHint'); if (hint) hint.textContent = 'Đã chọn ' + ids.length + ' tài khoản';
+}
+function adminAccountToggleRow(id, cb) {
+  if (cb.checked) ACCOUNT_SEL[id] = true; else delete ACCOUNT_SEL[id];
+  var tr = document.querySelector('#viewAccounts tr[data-row-key="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('accCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewAccounts td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminAccountSyncBar();
+}
+function adminAccountToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewAccounts tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var id = null;
+    try { id = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (!id) return;
+    if (cb.checked) ACCOUNT_SEL[id] = true; else delete ACCOUNT_SEL[id];
+  });
+  renderAccountsView();
+}
+function adminAccountClearSel() { ACCOUNT_SEL = {}; renderAccountsView(); }
+function adminAccountDeleteSelected() {
+  var ids = Object.keys(ACCOUNT_SEL);
+  if (!ids.length) return;
+  var list = getAccountsList();
+  var deletable = [], blocked = [];
+  ids.forEach(function (id) {
+    var acc = list.find(function (a) { return a.id === id; });
+    if (!acc) return;
+    if (acc.username === 'quantri01') { blocked.push(acc.username + ' (tài khoản Quản trị viên mặc định)'); return; }
+    deletable.push(acc);
+  });
+  if (!deletable.length) { showToast('Không thể xoá: tất cả tài khoản đã chọn không thể xoá.'); return; }
+  var msg = 'Xoá ' + deletable.length + ' tài khoản đã chọn?' + (blocked.length ? '\nBỏ qua ' + blocked.length + ' tài khoản: ' + blocked.join(', ') : '');
+  if (!confirm(msg)) return;
+  var deletableSet = {}; deletable.forEach(function (acc) { deletableSet[acc.id] = true; });
+  list = list.filter(function (a) { return !deletableSet[a.id]; });
+  saveAccountsList(list);
+  deletable.forEach(function (acc) {
+    if (window.FleetStore && window.FleetStore.log) {
+      window.FleetStore.log({ action: 'delete', entity: 'account', summary: 'Xóa tài khoản ' + acc.username });
+    }
+    delete ACCOUNT_SEL[acc.id];
+  });
+  showToast('Đã xóa ' + deletable.length + ' tài khoản.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' tài khoản.' : ''));
+  renderAccountsView();
 }
 
 // Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
