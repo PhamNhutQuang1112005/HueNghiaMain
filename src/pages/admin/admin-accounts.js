@@ -36,14 +36,6 @@ function renderAccountsView() {
   var f = ACCOUNT_FILTERS;
 
   var totalCount = accounts.length;
-  var adminCount = 0, activeCount = 0, staffCount = 0;
-
-  accounts.forEach(function (a) {
-    if (!a) return;
-    if (a.active !== false) activeCount++;
-    if (a.role === 'admin') adminCount++;
-    if (a.role === 'call_center' || a.role === 'ticket_office' || a.role === 'shuttle_dispatch') staffCount++;
-  });
 
   var filtered = accounts.filter(function (a) {
     if (!a) return false;
@@ -115,30 +107,6 @@ function renderAccountsView() {
 
   $('viewAccounts').innerHTML =
     '<div class="accounts-shell">' +
-      '<!-- OVERVIEW STATS METRICS -->' +
-      '<div class="dir-stats-grid">' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Tổng số tài khoản</div>' +
-          '<div class="dir-stat-val">' + totalCount + ' <span class="ref-unit">tài khoản</span></div>' +
-          '<div class="dir-stat-sub">Toàn hệ thống nhà xe</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Đang hoạt động</div>' +
-          '<div class="dir-stat-val" style="color:#059669;">' + activeCount + ' <span class="ref-unit">tài khoản</span></div>' +
-          '<div class="dir-stat-sub">Có thể đăng nhập sử dụng</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card">' +
-          '<div class="dir-stat-label">Tổng đài & Vé</div>' +
-          '<div class="dir-stat-val" style="color:var(--red);">' + staffCount + ' <span class="ref-unit">tài khoản</span></div>' +
-          '<div class="dir-stat-sub">Bán vé & điều phối trung chuyển</div>' +
-        '</div>' +
-        '<div class="ref-card dir-stat-card ref-card-featured" style="min-height:auto;">' +
-          '<div class="ref-featured-head">Quản trị viên</div>' +
-          '<div class="dir-stat-val" style="font-size:26px;color:#fff;">' + adminCount + ' <span class="ref-unit" style="color:#fff;">tài khoản</span></div>' +
-          '<div class="ref-featured-sub">Quyền quản trị cao nhất</div>' +
-        '</div>' +
-      '</div>' +
-
       '<div class="sd-toolbar">' +
         '<div class="filter-field sd-field-search">' +
           '<label>Tìm kiếm tài khoản</label>' +

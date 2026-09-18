@@ -172,11 +172,9 @@ var VIEW_RENDERERS = {
   viewVehicleSeats: function () { renderVehicleSeatsView(); },
   viewVehicleCategories: function () { renderVehicleCategoriesView(); },
   viewVehicles: function () { renderVehiclesView(); },
-  viewAccountingReports: function () { renderAccountingReportsView(); },
   viewAccountingThu: function () { renderAccountingThuView(); },
   viewAccountingChi: function () { renderAccountingChiView(); },
   viewAccountingExpenseRequests: function () { renderAccountingExpenseRequestsView(); },
-  viewAccountingLedgers: function () { renderAccountingLedgersView(); },
   viewStaffConfig: function () { renderStaffConfigView(); },
   viewStaff: function () { renderStaffView(); },
   viewAccounts: function () { renderAccountsView(); },
@@ -225,8 +223,6 @@ var ADMIN_BREADCRUMB_MAP = {
   viewAccountingExpenseRequests: { group: 'Kế toán & Tài chính', label: 'Tạo yêu cầu chi' },
   viewAccountingThu: { group: 'Kế toán & Tài chính', label: 'Doanh thu (THU)' },
   viewAccountingChi: { group: 'Kế toán & Tài chính', label: 'Chi phí (CHI)' },
-  viewAccountingLedgers: { group: 'Kế toán & Tài chính', label: 'Sổ & Bảng nghiệp vụ' },
-  viewAccountingReports: { group: 'Kế toán & Tài chính', label: 'Tổng quan & Báo cáo' },
   viewActivity: { group: 'Hệ thống', label: 'Nhật ký hoạt động' },
   viewSettings: { group: 'Hệ thống', label: 'Cài đặt' }
 };
@@ -321,7 +317,7 @@ function initAdminSidebarTooltips() {
 /* Admin sửa dữ liệu ở tab khác → render lại view đang mở. */
 window.addEventListener('storage', function (e) {
   if (!e.key) return;
-  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY];
+  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY, HN_ACCOUNTING_CHI_CATEGORIES_KEY];
   if (watched.indexOf(e.key) !== -1 && VIEW_RENDERERS[CURRENT_VIEW]) VIEW_RENDERERS[CURRENT_VIEW]();
   if (e.key === HN_TRIPS_KEY) adminUpdateNotifBadge();
 });

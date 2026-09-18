@@ -72,3 +72,6 @@ const HN_ACCOUNTING_DEBTS_KEY = 'hn_accounting_debts_v1';
 const HN_ACCOUNTING_PAYROLL_KEY = 'hn_accounting_payroll_v1';
 const HN_ACCOUNTING_INSPECTION_KEY = 'hn_accounting_inspection_v1';
 const HN_ACCOUNTING_EXPENSE_REQUESTS_KEY = 'hn_accounting_expense_requests_v1';
+const HN_ACCOUNTING_CHI_CATEGORIES_KEY = 'hn_accounting_chi_categories_v1';
+const HN_ACCOUNTING_CHI_GROUPS_KEY = 'hn_accounting_chi_groups_v1';
+const HN_ACCOUNTING_THU_APPROVED_KEY = 'hn_accounting_thu_approved_v1';
