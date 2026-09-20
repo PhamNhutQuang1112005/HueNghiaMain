@@ -196,3 +196,108 @@
 #atsSellPaymentModal .pay-method-option:has(input:checked) span { color: var(--green, #16A34A); }
 #atsSellPaymentModal .pay-method-option:has(input:checked) span { font-weight: 700; }
 #atsSellPaymentModal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+/* ===========================================================================================
+   Modal "Phơi chuyến xe" (openTongDaiPhoiDetailModal, admin-accounting.js) — CSS COPY NGUYÊN từ
+   TicketStaff (ticketstaff.css: .manifest-modal/.trip-meta-box/.pv-detail-title/.denom-grid-table/.lined-table/
+   .ts-rlist-*, ticketstaff-manifest-ui.js: tsRenderTripInfoHtml/tsRenderDenominationTableHtml/
+   tsRenderRoadsideListTableHtml) để modal "Phơi chuyến xe" bên Admin giống 100% modal "Khởi hành xe"/
+   "Xem phơi" bên TicketStaff (kiểu bảng, cách hiển thị, khung cuộn). .pax-table/.pax-table-wrap/.mono
+   gốc đã có sẵn từ booking-ui/05-passenger-list.css + shared/base.css (đã nạp ở admin.html) nên KHÔNG
+   copy lại — chỉ copy phần mở rộng riêng của ticketstaff.css cho modal phơi.
+   Khác với TicketStaff (1 phần tử <div class="modal manifest-modal manifest-modal-wide"> vừa là khung
+   ngoài vừa là nội dung), bên Admin khung ngoài #adminModalBox (.modal) và nội dung tiêm vào qua
+   openAdminModal() là 2 phần tử tách biệt — dùng #adminModal .modal:has(.manifest-modal) để khung ngoài
+   tự nới đúng 1030px theo nội dung bên trong, và h3/.modal-actions bên trong .manifest-modal cần khai
+   lại padding/border (vốn ăn từ .modal > h3 trực tiếp bên admin.css) vì giờ không còn là con trực tiếp
+   của #adminModalBox nữa.
+   =========================================================================================== */
+#adminModal .modal:has(.manifest-modal) {
+  width: 1030px;
+  max-width: 92vw;
+}
+
+.manifest-modal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow: hidden;
+}
+
+.manifest-modal > h3 {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 20px 24px 16px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--black);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.manifest-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 18px 24px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.manifest-modal-body::-webkit-scrollbar { display: none; }
+
+.manifest-modal > .modal-actions {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  margin-top: 0;
+  padding: 14px 24px;
+}
+
+.manifest-section-title { font-size: 12px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: .3px; margin: 10px 0 5px; }
+.manifest-section-title:first-child { margin-top: 0; }
+
+.trip-meta-box { border: 1px solid var(--border-gray); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 4px; }
+.trip-meta-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border-gray); }
+.trip-meta-route { font-size: 15px; font-weight: 800; color: var(--text-main); }
+.trip-meta-plate { font-size: 12.5px; font-weight: 700; font-family: 'Roboto Mono', monospace; color: var(--text-sub); background: var(--white); border: 1px solid var(--border-gray); border-radius: var(--radius-sm); padding: 3px 9px; white-space: nowrap; }
+.trip-meta-cols { display: grid; grid-template-columns: 1fr 1fr; }
+.trip-meta-col:first-child { border-right: 1px solid var(--border-gray); }
+.trip-meta-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 14px; font-size: 13.5px; }
+.trip-meta-item:not(:last-child) { border-bottom: 1px solid var(--surface); }
+.trip-meta-item .tm-label { color: var(--text-sub); font-weight: 600; }
+.trip-meta-item .tm-value { color: var(--text-main); font-weight: 700; text-align: right; }
+
+.pv-detail-title { font-size: 11.5px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px; }
+.pv-detail-title:first-child { margin-top: 0; }
+
+.manifest-modal .pax-table-wrap { border: none; border-radius: 0; }
+.manifest-modal .grid-table-wrap { border: 1px solid var(--border-gray); border-radius: var(--radius-md); overflow: hidden; }
+.manifest-modal .pax-table thead th { padding: 6px 10px; }
+.manifest-modal .pax-table tbody td { padding: 6px 10px; font-size: 12.5px; }
+
+.denom-grid-table { width: 100%; border-collapse: collapse !important; }
+.denom-grid-table th, .denom-grid-table td { border: 1px solid var(--border-gray) !important; padding: 5px 6px !important; text-align: center !important; vertical-align: middle !important; }
+.denom-grid-table thead th { background: var(--surface-2) !important; color: var(--text-sub) !important; font-weight: 700 !important; font-size: 11.5px !important; letter-spacing: .3px; }
+.denom-station-cell { background: var(--surface-2) !important; font-weight: 700 !important; font-size: 12.5px !important; color: var(--text-main) !important; }
+.denom-row-count td { background: #FFFFFF; }
+.denom-row-amount td { background: #FAFAFA; }
+
+.denom-summary-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.denom-summary-table td { border: 1px solid var(--border-gray); padding: 7px 10px; font-size: 13px; vertical-align: middle; }
+.denom-summary-table td.ds-label { background: var(--surface-2); color: var(--text-main); font-weight: 600; }
+.denom-summary-table td.ds-value { text-align: right; color: var(--text-main); font-weight: 700; }
+.denom-summary-total-row td { background: var(--surface-2); }
+.denom-summary-total-row .ds-label { font-size: 14px; color: var(--text-main); font-weight: 700; }
+.denom-summary-total-row .ds-value { font-size: 16px; font-weight: 800; }
+
+.lined-table { width: 100%; border-collapse: collapse; }
+.lined-table th, .lined-table td { border: 1px solid var(--border-gray); }
+.lined-table thead th { background: var(--surface-2); color: var(--text-sub); font-weight: 700; font-size: 11.5px; letter-spacing: .3px; white-space: nowrap; }
+
+.ts-rlist-stt { width: 5%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-rlist-name { width: 12.75%; }
+.ts-rlist-phone { width: 11%; }
+.ts-rlist-stop { width: 12.75%; }
+.ts-rlist-pickup { width: 21.75%; }
+.ts-rlist-count { width: 5%; }
+.ts-rlist-seats { width: 9%; }
+.ts-rlist-amount { width: 10%; }

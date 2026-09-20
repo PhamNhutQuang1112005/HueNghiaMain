@@ -59,9 +59,7 @@ function renderAccountsView() {
 
   function acPermCountHtml(permissions) {
     var n = Array.isArray(permissions) ? permissions.length : 0;
-    return '<div style="font-size:11px; font-weight:600; color:' + (n ? 'var(--text-sub)' : '#DC2626') + '; margin-top:5px;">' +
-      (n ? n + ' quyền đã cấp' : 'Chưa gán quyền') +
-    '</div>';
+    return n ? n + ' quyền đã cấp' : '<span class="hint-inline">Chưa gán quyền</span>';
   }
 
   function tableRow(a, idx) {
@@ -83,9 +81,9 @@ function renderAccountsView() {
           '</div>' +
         '</div>' +
       '</td>' +
-      '<td>' + roleBadge + acPermCountHtml(a.permissions) + '</td>' +
+      '<td>' + roleBadge + '</td>' +
+      '<td>' + acPermCountHtml(a.permissions) + '</td>' +
       '<td style="font-weight:600; color:var(--text-main);">' + esc(staffMainStationName(a.mainStationId) || '—') + '</td>' +
-      '<td><span style="font-family:\'Roboto Mono\', monospace; font-size:12.5px; color:var(--text-sub);">' + esc(a.redirect || '—') + '</span></td>' +
       '<td><span style="font-family:\'Roboto Mono\', monospace; letter-spacing:2px; font-size:12px; color:var(--text-sub);">••••••</span></td>' +
       '<td class="col-status" style="text-align:center;">' +
         '<span class="status-badge ' + (isActive ? 'dang-ban' : 'chua-chi-dinh') + '">' +
@@ -153,8 +151,8 @@ function renderAccountsView() {
               '<th style="width:60px; text-align:center;">STT</th>' +
               '<th style="width:200px;">Tài khoản & Người dùng</th>' +
               '<th style="width:180px;">Vai trò hệ thống</th>' +
+              '<th style="width:140px;">Phân quyền</th>' +
               '<th style="width:150px;">Trạm xe</th>' +
-              '<th style="width:160px;">Trang đích</th>' +
               '<th style="width:130px;">Mật khẩu</th>' +
               '<th class="col-status" style="text-align:center; width:130px;">Trạng thái</th>' +
               '<th class="th-actions" style="width:120px;">Thao tác</th>' +
@@ -280,7 +278,7 @@ function adminOpenAccountModal(id) {
         '<div class="fld"><label>Họ tên người sử dụng</label>' +
           '<input type="text" id="acName" placeholder="VD: Nguyễn Văn A..." value="' + (acc ? esc(acc.fullName || '') : '') + '"></div>' +
         '<div class="fld"><label>Vai trò hệ thống <span class="req">*</span></label>' +
-          '<select id="acRole" required data-change-action="adminAccountRoleChange">' +
+          '<select id="acRole" required>' +
             roles.map(function (r) {
               return '<option value="' + r[0] + '"' + (r[0] === curRole ? ' selected' : '') + '>' + r[1] + '</option>';
             }).join('') +
@@ -288,16 +286,13 @@ function adminOpenAccountModal(id) {
       '</div>' +
 
       '<div class="fld-row">' +
-        '<div class="fld"><label>Trang đích khi đăng nhập</label>' +
-          '<input type="text" id="acRedirect" placeholder="ticketstaff.html" value="' + (acc ? esc(acc.redirect || '') : 'ticketstaff.html') + '"></div>' +
         '<div class="fld"><label>Trạng thái tài khoản</label>' +
           '<select id="acActive">' +
             '<option value="1"' + (!acc || acc.active !== false ? ' selected' : '') + '>Đang hoạt động</option>' +
             '<option value="0"' + (acc && acc.active === false ? ' selected' : '') + '>Tạm khóa</option>' +
           '</select></div>' +
+        '<div class="fld"><label>Trạm xe</label><select id="acStation">' + staffMainStationOptionsHtml(acc ? acc.mainStationId : '') + '</select></div>' +
       '</div>' +
-
-      '<div class="fld"><label>Trạm xe</label><select id="acStation">' + staffMainStationOptionsHtml(acc ? acc.mainStationId : '') + '</select></div>' +
 
       acPermissionsFieldHtml(acc ? acc.permissions : []) +
 
@@ -356,13 +351,6 @@ function acReadSelectedPermissions() {
   );
 }
 
-function adminAccountRoleChange() {
-  var role = ($('acRole') || {}).value || '';
-  var redInput = $('acRedirect');
-  if (!redInput) return;
-  redInput.value = acRoleRedirect(role);
-}
-
 function adminSaveAccount(e) {
   if (e && e.preventDefault) e.preventDefault();
   var id = ($('acId') || {}).value || '';
@@ -370,7 +358,7 @@ function adminSaveAccount(e) {
   var password = ($('acPass') || {}).value || '';
   var fullName = ($('acName') || {}).value || '';
   var role = ($('acRole') || {}).value || 'ticket';
-  var redirect = ($('acRedirect') || {}).value || 'ticketstaff.html';
+  var redirect = acRoleRedirect(role);
   var active = ($('acActive') || {}).value === '1';
   var mainStationId = ($('acStation') || {}).value || '';
   var permissions = acReadSelectedPermissions();

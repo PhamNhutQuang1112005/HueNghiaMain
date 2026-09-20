@@ -1543,11 +1543,157 @@ table.admin-table {
 #viewTicketOffice > .sd-toolbar > .filter-reset { flex: 0 0 auto; margin-left: auto; }
 #viewTicketOffice > .sd-toolbar > .filter-reset .btn { padding: 0 22px; font-size: 13.5px; }
 
+/* Kết ca — Tổng đài/Phòng vé (admin-staff-stats.js, ssKetcaToolbarHtml) dùng chung 1 toolbar 4 ô lọc
+   (Từ ngày/Đến ngày/Khu vực/Trạm) nhưng field không có class sd-field-* nên mặc định không co giãn, dồn
+   hết về bên trái và hở 1 khoảng trống lớn trước nút "Đặt lại" — cho co giãn đều (flex:1 1 0) để lấp đủ
+   chiều ngang, khớp cách các toolbar khác trong trang admin đã làm (xem #viewTicketOffice ngay trên). */
+.ss-ketca-toolbar.sd-toolbar .filter-field { flex: 1 1 0; min-width: 160px; }
+.ss-ketca-toolbar.sd-toolbar .filter-field:nth-child(3),
+.ss-ketca-toolbar.sd-toolbar .filter-field:nth-child(4) { min-width: 190px; }
+
+/* Kết ca — Trung chuyển (admin-staff-stats.js, ssRenderKetcaTrungChuyenTab) không có bộ lọc (không có sự
+   kiện "kết ca" thật để lọc theo ngày) nên trước đây chỉ là 1 dòng chữ trơn, thấp hơn hẳn thanh lọc cao
+   35px của 2 tab Tổng đài/Phòng vé bên cạnh — đổi qua khung "thanh chức năng" cùng chiều cao/khoảng cách
+   (.ss-ketca-toolbar ở trên) để chuyển tab qua lại không bị giật bố cục. */
+.ss-ketca-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 35px;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ss-ketca-note svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--text-sub); }
+
 /* Tài khoản — 4 ô lọc (Tìm kiếm / Vai trò / Trạng thái / Trạm xe) căn ĐỀU cùng flex-basis như Trạm Xe,
    để cả 4 ô + 2 nút "Đặt lại"/"Thêm tài khoản mới" nằm gọn chung 1 hàng thay vì rớt xuống dòng riêng. */
 #viewAccounts .sd-toolbar { gap: 8px; }
 #viewAccounts .sd-toolbar .sd-field-search,
 #viewAccounts .sd-toolbar .sd-field-region { flex: 1 1 190px; min-width: 150px; }
+
+/* Cấu hình nhân sự — ô Tìm kiếm + ô Trạng thái phân quyền căn ĐỀU, 3 nút "Tìm kiếm"/"Đặt lại"/
+   "Thêm loại nhân viên" gọn cùng 1 khối bên phải, cân đối chiều ngang như thanh lọc Tài khoản. */
+#viewStaffConfig .sd-toolbar { gap: 10px 12px; }
+#viewStaffConfig .sd-toolbar .sd-field-search,
+#viewStaffConfig .sd-toolbar .sd-field-region { flex: 1 1 220px; min-width: 170px; }
+
+/* Doanh thu (THU) / Chi phí (CHI) / Tạo yêu cầu chi — nhiều ô lọc (5-6 ô) căn ĐỀU cùng flex-basis
+   như các thanh lọc admin khác (Tài khoản, Trạm Xe) thay vì để mỗi ô co theo kích thước mặc định của
+   input/select (khiến ô cuối lẻ ra rớt xuống 1 hàng riêng cùng nút "Đặt lại"). */
+#viewAccountingThu .sd-toolbar .filter-field,
+#viewAccountingChi .sd-toolbar .filter-field,
+#viewAccountingExpenseRequests .sd-toolbar .filter-field { flex: 1 1 0; min-width: 130px; }
+#viewAccountingThu .sd-toolbar .filter-field.sd-field-search,
+#viewAccountingChi .sd-toolbar .filter-field.sd-field-search,
+#viewAccountingExpenseRequests .sd-toolbar .filter-field.sd-field-search { flex: 1.6 1 0; min-width: 190px; }
+/* Mọi ô lọc (kể cả Nguồn thu/Trạng thái/Ngày/Khu vực/Trạm xe — trước đây rơi về rule ".filter-field input"
+   cao 38px, min-width 160px) đồng bộ cùng khung 35px với ô Tìm kiếm và giãn kín bề ngang ô của nó, để cả
+   hàng cân đối; nút "Đặt lại" giữ 1 dòng, luôn nằm cuối hàng (không rớt xuống dòng riêng). */
+#viewAccountingThu .sd-toolbar .filter-field input,
+#viewAccountingThu .sd-toolbar .filter-field select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  background: var(--white);
+  font-size: 12.5px;
+}
+#viewAccountingThu .sd-toolbar .filter-field input:focus,
+#viewAccountingThu .sd-toolbar .filter-field select:focus { background: var(--white); border-color: var(--red); box-shadow: none; }
+#viewAccountingThu .sd-toolbar .filter-reset { flex: 0 0 auto; margin-left: 0; }
+#viewAccountingThu .sd-toolbar .filter-reset .btn { white-space: nowrap; padding: 0 18px; }
+
+/* "Chi phí" + "Tạo yêu cầu chi" — căn giữa MỌI nội dung trong bảng (mặc định .admin-table td text-align:
+   left, xem đầu file) theo yêu cầu, kể cả các cột trước đây lệch trái/phải; ô nào có style inline riêng
+   (Giá tiền từng text-align:right, STT/Thời gian/checkbox đã center sẵn) đã sửa thẳng trong JS vì inline
+   style thắng CSS thường. */
+#viewAccountingChi .admin-table td,
+#viewAccountingExpenseRequests .admin-table td { text-align: center; }
+
+/* "Yêu cầu chi chờ duyệt" (viewAccountingChi, buildExpenseRequestsSectionHtml) — tiêu đề "Người đề
+   nghị"/"Nhóm chi phí"/"Giá tiền" bị hẹp quá nên tự xuống dòng; ép nowrap để luôn 1 dòng (cùng cách đã
+   làm cho #viewAccountingExpenseRequests) — áp cho CẢ 3 bảng trong trang Chi phí (Yêu cầu chi/Nhóm chi
+   phí/Hạng mục chi) vì tiêu đề bảng nào cũng không nên xuống dòng. */
+#viewAccountingChi .admin-table thead th { white-space: nowrap; }
+/* Các rule bên dưới CHỈ áp cho đúng bảng "Yêu cầu chi chờ duyệt" (.chi-requests-table, gắn riêng ở
+   buildExpenseRequestsSectionHtml) — không dùng #viewAccountingChi .admin-table nth-child chung chung vì
+   trang Chi phí còn 2 bảng khác (Nhóm chi phí/Hạng mục chi, xem buildChiGroupManagerHtml/
+   buildChiCategoryManagerHtml) cũng nằm trong #viewAccountingChi nhưng cột thứ tự khác hẳn — dùng nth-
+   child chung sẽ vô tình ép nowrap/đổi width nhầm cột ở 2 bảng kia. */
+/* Mã YC/Giá tiền chỉ là mã ngắn/số định dạng — ép nowrap để không tự xuống dòng (cùng cách
+   #viewAccountingExpenseRequests). Thời gian dựng y hệt cột "Thời gian" bên #viewAccountingExpenseRequests
+   (class="mono", màu var(--text-sub)) để 2 bảng đồng bộ giao diện — co hẹp lại + KHÔNG ép nowrap để phần
+   giờ (vd "07:00") tự xuống dòng riêng dưới ngày, đỡ tốn ngang. Lý do là free-text nên KHÔNG căn giữa như
+   các cột khác (xem rule căn giữa chung phía trên) — trả về căn trái cho dễ đọc đoạn dài. */
+.chi-requests-table td:nth-child(2) { white-space: nowrap; }   /* Mã YC */
+.chi-requests-table th:nth-child(3),
+.chi-requests-table td:nth-child(3) { width: 10%; }   /* Thời gian — vẫn đủ rộng để riêng phần ngày "dd/mm/yyyy" không tự vỡ dòng giữa số, +1% lấy từ Lý do */
+.chi-requests-table td:nth-child(7) { white-space: nowrap; }   /* Giá tiền */
+/* STT/Trạng thái co hẹp bớt (giảm đệm ngang, không đụng .status-badge dùng chung toàn trang admin), bù
+   qua Lý do — tiêu đề vẫn không xuống dòng nhờ đã ép nowrap ở trên. */
+.chi-requests-table th:nth-child(1),
+.chi-requests-table td:nth-child(1),
+.chi-requests-table th:nth-child(9),
+.chi-requests-table td:nth-child(9) { padding-left: 6px; padding-right: 6px; }
+.chi-requests-table th:nth-child(1),
+.chi-requests-table td:nth-child(1) { width: 2.5%; }   /* STT */
+/* Mã YC/Thao tác cũng chỉ chứa nội dung ngắn (mã/1 nút) đã nowrap sẵn — giảm đệm ngang để hẹp bớt, bù
+   qua Người đề nghị/Người nhận (tên người, cần rộng hơn số/nút ngắn). Tiêu đề nowrap sẵn ở rule chung
+   phía trên nên không lo xuống dòng dù cột hẹp lại. */
+.chi-requests-table th:nth-child(2),
+.chi-requests-table td:nth-child(2),
+.chi-requests-table th:nth-child(10),
+.chi-requests-table td:nth-child(10) { padding-left: 6px; padding-right: 6px; }
+/* Checkbox chỉ chứa 1 ô tick nhỏ, không cần đệm rộng như các cột chữ — co hẹp thêm 1 chút để nhường chỗ
+   cho Thời gian, tránh ngày "dd/mm/yyyy" bị vỡ dòng khi bảng hơi chật ngang. */
+.chi-requests-table th:nth-child(11),
+.chi-requests-table td:nth-child(11) { padding-left: 6px; padding-right: 6px; }
+.chi-requests-table th:nth-child(4),
+.chi-requests-table td:nth-child(4) { width: 11%; }   /* Người đề nghị — nới thêm, bù từ Mã YC/Thời gian/Thao tác */
+.chi-requests-table th:nth-child(6),
+.chi-requests-table td:nth-child(6) { width: 11%; }   /* Người nhận — nới thêm, bù từ Mã YC/Thời gian/Thao tác */
+.chi-requests-table th:nth-child(8),
+.chi-requests-table td:nth-child(8) { width: 13%; }   /* Lý do — bớt 2% sang Hạng mục chi, bớt thêm 1% sang Thời gian */
+.chi-requests-table th:nth-child(5),
+.chi-requests-table td:nth-child(5) { width: 18%; }   /* Hạng mục chi — +2% lấy từ Lý do (giống #viewAccountingExpenseRequests) */
+#viewAccountingChi .chi-requests-table td:nth-child(8) { text-align: left; }   /* Lý do — free-text, không cần căn giữa (phải chêm #viewAccountingChi vào để đặc hiệu hơn rule "căn giữa MỌI nội dung" ở trên — rule đó có ID nên thắng bất kể thứ tự nếu selector ở đây không có ID) */
+#viewAccountingExpenseRequests .admin-table td:nth-child(7) { text-align: left; }   /* Lý do (Tạo yêu cầu chi) — tương tự, không cần căn giữa */
+
+/* "Doanh thu theo phơi" (viewAccountingThu, renderAccountingThuView, tab tổng quan) — co hẹp STT/Biển số
+   xe/Trạng thái/Thao tác (nội dung ngắn: số thứ tự, 1 tag biển số, 1-2 badge, 1 nút), bù qua Thời
+   gian/Tuyến đường/Mã phơi. Tiêu đề ép nowrap để không xuống dòng dù cột hẹp lại (cùng cách các bảng Chi
+   phí ở trên). */
+.thu-overview-table thead th { white-space: nowrap; }
+.thu-overview-table th:nth-child(1),
+.thu-overview-table td:nth-child(1) { width: 3%; padding-left: 6px; padding-right: 6px; }   /* STT */
+.thu-overview-table th:nth-child(2),
+.thu-overview-table td:nth-child(2) { width: 8%; }    /* Mã phơi — giảm 1% bù sang Tài xế / Phụ xe */
+.thu-overview-table th:nth-child(6),
+.thu-overview-table td:nth-child(6) { width: 20%; }   /* Tài xế / Phụ xe — nới rộng theo yêu cầu */
+.thu-overview-table th:nth-child(3),
+.thu-overview-table td:nth-child(3) { width: 9%; }    /* Thời gian — nới thêm */
+.thu-overview-table th:nth-child(4),
+.thu-overview-table td:nth-child(4) { width: 16%; }   /* Tuyến đường — nới thêm */
+.thu-overview-table th:nth-child(5),
+.thu-overview-table td:nth-child(5) { padding-left: 6px; padding-right: 6px; }   /* Biển số xe — co hẹp bớt */
+.thu-overview-table th:nth-child(8),
+.thu-overview-table td:nth-child(8) { padding-left: 6px; padding-right: 6px; }   /* Trạng thái — co hẹp bớt */
+.thu-overview-table th:nth-child(9),
+.thu-overview-table td:nth-child(9) { padding-left: 6px; padding-right: 6px; }   /* Thao tác — co hẹp bớt */
+
+/* "Quản lý nhóm & hạng mục chi phí" → tab "Hạng mục chi" (buildChiCategoryManagerHtml) — tăng cột "Hạng
+   mục chi tiết" (nội dung chính, tên hạng mục có thể dài), bớt lại ở "Nhóm chi phí" (thường ngắn hơn). */
+.chi-cat-items-table th:nth-child(2),
+.chi-cat-items-table td:nth-child(2) { width: 20%; }  /* Nhóm chi phí */
+.chi-cat-items-table th:nth-child(3),
+.chi-cat-items-table td:nth-child(3) { width: 45%; }  /* Hạng mục chi tiết — tăng thêm */
 
 /* --- Khung bảng Trạm Xe: chỉ viền mảnh + bo góc, không card/bóng (như .pax-table-wrap) --- */
 .sd-table-wrap {
@@ -1662,6 +1808,74 @@ table.admin-table {
 .admin-table.shuttle-table td:nth-child(9) { width: 12%; }   /* Trung chuyển */
 .admin-table.shuttle-table th:nth-child(10),
 .admin-table.shuttle-table td:nth-child(10) { width: 10%; }  /* Phòng vé */
+
+/* "Tạo yêu cầu chi" (viewAccountingExpenseRequests, renderAccountingExpenseRequestsView) — co hẹp cột
+   "Thời gian" (chỉ hiện "dd/mm/yyyy hh:mm", không cần rộng bằng các cột chữ dài) và "Lý do" (chỉ cột
+   free-text này được phép tự xuống dòng), bù phần rộng dư sang Mã YC/Hạng mục chi (đã gộp cả Nhóm chi
+   phí vào đây, xem .chi-group-tag)/Người nhận/Giá tiền. KHÔNG dùng table-layout:fixed (từng dùng, nhưng
+   ép cứng % bất kể nội dung khiến badge "Trạng thái"/nút "Thao tác" — vốn white-space:nowrap sẵn, xem
+   .status-badge/.admin-table td.row-actions — bị cắt chữ khi 2 cột này hẹp lại): giữ table-layout auto
+   mặc định. Tiêu đề CỘT NÀO CŨNG không được xuống dòng (nowrap riêng cho thead, khác body — body vẫn cho
+   Lý do/Hạng mục chi xuống dòng bình thường). Mã YC/Giá tiền lấy giá trị từ số định dạng ngắn (không
+   phải free-text dài tuỳ ý) nên ép luôn nowrap thay vì đoán width theo % — cột luôn tự nới đúng bằng nội
+   dung dài nhất, an toàn hơn ước lượng % dễ sai khi đổi cỡ chữ/dữ liệu mẫu. */
+#viewAccountingExpenseRequests .admin-table thead th { white-space: nowrap; }
+#viewAccountingExpenseRequests .admin-table th:nth-child(1),
+#viewAccountingExpenseRequests .admin-table td:nth-child(1) { width: 2.5%; }   /* STT */
+#viewAccountingExpenseRequests .admin-table td:nth-child(2) { white-space: nowrap; }  /* Mã YC — không xuống dòng */
+#viewAccountingExpenseRequests .admin-table th:nth-child(3),
+#viewAccountingExpenseRequests .admin-table td:nth-child(3) { width: 10%; }   /* Thời gian — đủ rộng để riêng phần ngày "dd/mm/yyyy" không tự vỡ dòng giữa số, phần giờ (vd "07:00") tự xuống dòng riêng */
+#viewAccountingExpenseRequests .admin-table th:nth-child(4),
+#viewAccountingExpenseRequests .admin-table td:nth-child(4) { width: 18%; }  /* Hạng mục chi — đã gộp Nhóm chi phí (tag) + Hạng mục chi, +2% lấy từ Lý do */
+#viewAccountingExpenseRequests .admin-table th:nth-child(5),
+#viewAccountingExpenseRequests .admin-table td:nth-child(5) { width: 11%; }  /* Người nhận — nới thêm */
+#viewAccountingExpenseRequests .admin-table td:nth-child(6) { white-space: nowrap; }  /* Giá tiền — không xuống dòng */
+#viewAccountingExpenseRequests .admin-table th:nth-child(7),
+#viewAccountingExpenseRequests .admin-table td:nth-child(7) { width: 12%; }  /* Lý do — bớt 2% sang Hạng mục chi */
+/* STT/Trạng thái/Thao tác/checkbox không có nhiều chữ (số thứ tự, 1 badge, 1 nút, 1 ô tick) — giảm bớt
+   đệm ngang riêng ở bảng này (không đụng .status-badge/.btn dùng chung toàn trang admin) để cột hẹp lại
+   1 chút, tiêu đề vẫn đủ chỗ không xuống dòng nhờ đã ép nowrap ở trên. */
+#viewAccountingExpenseRequests .admin-table th:nth-child(1),
+#viewAccountingExpenseRequests .admin-table td:nth-child(1),
+#viewAccountingExpenseRequests .admin-table th:nth-child(8),
+#viewAccountingExpenseRequests .admin-table td:nth-child(8),
+#viewAccountingExpenseRequests .admin-table th:nth-child(9),
+#viewAccountingExpenseRequests .admin-table td:nth-child(9),
+#viewAccountingExpenseRequests .admin-table th:nth-child(10),
+#viewAccountingExpenseRequests .admin-table td:nth-child(10) { padding-left: 6px; padding-right: 6px; }
+
+/* Nhóm chi phí hiện dạng tag/pill nhỏ phía trên tên Hạng mục chi (cột "Hạng mục chi" đã gộp cả 2 —
+   xem buildExpenseRequestsSectionHtml/renderAccountingExpenseRequestsView, admin-accounting.js) — pill
+   trung tính (không theo trạng thái như .status-badge) vì Nhóm chi phí không phải 1 trạng thái, chỉ là
+   nhãn phân loại. */
+.chi-group-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Biển số xe (nếu có) đi kèm Hạng mục chi — pill riêng, màu trung tính khác .chi-group-tag để không lẫn
+   với nhãn Nhóm chi phí, font mono vì là mã biển số. */
+.chi-plate-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #F1F5F9;
+  color: #475569;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 
 .admin-table-footer {
   display: flex;
@@ -1865,6 +2079,18 @@ table.admin-table {
 .admin-form.trip-form select { height: 34px; padding: 0 12px; }
 .admin-form.trip-form .station-pick-group { min-height: 28px; gap: 6px; }
 .admin-form.trip-form .modal-actions { margin-top: 12px; padding-top: 12px; }
+
+/* Modal "Tạo/Sửa yêu cầu chi" (admin-accounting.js) — gói 9 field còn lại (đã bỏ field "Người đề
+   nghị" ra khỏi form, chỉ còn 1 dòng chữ dưới tiêu đề) vào 4 fld-row 2 cột + 1 textarea, cùng với
+   giảm khoảng đệm/chiều cao ô như .trip-form ở trên, để cả modal luôn vừa 1 màn hình laptop thông
+   thường (~650-700px cao) mà KHÔNG cần thanh cuộn, thay vì cuộn nguyên modal (trôi mất tiêu đề/nút Lưu). */
+.modal:has(> .admin-form.er-form) > h3 { padding: 16px 24px 10px; }
+.admin-form.er-form { padding-top: 4px; }
+.admin-form.er-form .fld { gap: 4px; margin-bottom: 10px; }
+.admin-form.er-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.admin-form.er-form select { height: 34px; }
+.admin-form.er-form textarea { min-height: 52px; }
+.admin-form.er-form .modal-actions { margin-top: 10px; padding-top: 10px; }
 
 /* Pickup combobox — "Trạm có thể nhận thêm khách" */
 .pickup-combobox {
@@ -3610,7 +3836,77 @@ table.admin-table {
   border-bottom: 2px solid var(--border-gray);
   margin-bottom: 14px;
 }
-#viewTransship > .filter-toolbar,
+/* Trung chuyển — ĐỦ 9 PHẦN (6 ô lọc + nút "Đặt lại"/"In rước"/"Rước liền") LUÔN nằm CHUNG 1 HÀNG,
+   không phần nào xuống hàng, ở bất kỳ độ rộng nào — cùng cách làm với Tổng đài (xem chú thích khối
+   #viewTicketList phía dưới): 6 ô lọc chia đều phần rộng còn lại (flex-shrink, min-width:0), 3 nút giữ
+   kích thước tự nhiên (flex:0 0 auto), ".filter-reset" dùng display:contents để 3 nút trở thành flex
+   item TRỰC TIẾP của .filter-toolbar (tính là 3 trong 9 phần) thay vì bị nhóm cố định 1 cụm riêng. */
+#viewTransship > .filter-toolbar {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+}
+#viewTransship > .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 0; gap: 4px; }
+#viewTransship > .filter-toolbar > .filter-field:first-child { flex: 1.6 1 0; }   /* ô Tìm kiếm rộng hơn */
+#viewTransship > .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+/* Dùng selector CON CHÁU (không phải "> ") vì <select> gốc bị admin-search-select.js "khoác" thêm 1
+   lớp <span class="admin-ss-wrap"><input class="admin-ss-input">...</span> chèn giữa .filter-field và
+   input hiển thị thật — chọn "> input" sẽ bỏ sót input này, để nó rơi lại rule chung ".filter-field
+   input { min-width:160px }" (không !important) và không co lại theo field, chồng lấn qua nút cạnh. */
+#viewTransship > .filter-toolbar > .filter-field .admin-ss-wrap { width: 100%; min-width: 0; }
+#viewTransship > .filter-toolbar > .filter-field input,
+#viewTransship > .filter-toolbar > .filter-field select,
+#viewTransship > .filter-toolbar .filter-select {
+  width: 100%; min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  background: var(--white);   /* ô lọc NỀN TRẮNG (không xám --surface-2) — như thanh lọc Trạm Xe */
+}
+#viewTransship > .filter-toolbar > .filter-field input:focus,
+#viewTransship > .filter-toolbar > .filter-field select:focus { background: var(--white); }
+/* .filter-field-date bị khoá cứng "flex/min-width/max-width !important" ở css/shared/booking-ui
+   (dùng chung toàn hệ thống) nên phải !important mới co giãn cùng nhịp với 5 ô lọc khác. */
+#viewTransship > .filter-toolbar > .filter-field-date { flex: 1 1 0 !important; min-width: 0 !important; max-width: none !important; }
+#viewTransship > .filter-toolbar > .filter-reset { display: contents; }
+#viewTransship > .filter-toolbar > .filter-reset > .btn { flex: 0 0 auto; white-space: nowrap; }
+
+/* Nhật ký hoạt động — 5 ô lọc + nút "Đặt lại" + "Xóa lịch sử nhật ký" chung 1 HÀNG, bố cục phẳng như
+   Trung chuyển/Tổng đài: 5 ô lọc chia đều phần rộng còn lại (ô Tìm kiếm rộng hơn), 2 nút giữ kích thước tự
+   nhiên; .filter-spacer (flex:1 1 auto) bỏ đi vì nó ăn hết chỗ trống khiến các ô lọc co về bên trái. */
+#viewActivity .filter-toolbar {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+}
+#viewActivity .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 0; gap: 4px; }
+#viewActivity .filter-toolbar > .filter-field:first-child { flex: 1.6 1 0; }   /* ô Tìm kiếm rộng hơn */
+#viewActivity .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+#viewActivity .filter-toolbar > .filter-field .admin-ss-wrap { width: 100%; min-width: 0; }
+#viewActivity .filter-toolbar > .filter-field input,
+#viewActivity .filter-toolbar > .filter-field select {
+  width: 100%; min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  background: var(--white);
+}
+#viewActivity .filter-toolbar > .filter-field input:focus,
+#viewActivity .filter-toolbar > .filter-field select:focus { background: var(--white); }
+#viewActivity .filter-toolbar > .filter-spacer { display: none; }
+#viewActivity .filter-toolbar > .btn { flex: 0 0 auto; height: 35px; white-space: nowrap; }
+
+/* Tổng đài — ĐỦ 8 PHẦN (6 ô lọc + nút "Đặt lại" + nút "Ghế hủy") LUÔN nằm CHUNG 1 HÀNG, không phần
+   nào xuống hàng, ở bất kỳ độ rộng nào: 6 ô lọc chia đều phần rộng còn lại (flex-shrink, min-width:0
+   để không bao giờ bị đẩy wrap), 2 nút giữ kích thước tự nhiên (flex:0 0 auto) để chữ không bị bóp méo.
+   ".filter-reset" dùng display:contents "tháo khung" để 2 nút bên trong trở thành flex item TRỰC TIẾP
+   của .filter-toolbar (tính là 2 trong 8 phần, cùng hàng, cùng gap với 6 ô lọc) thay vì bị nhóm cố định
+   1 cụm riêng. */
 #viewTicketList > .filter-toolbar {
   margin: 0 0 14px;
   padding: 0;
@@ -3618,36 +3914,32 @@ table.admin-table {
   border-radius: 0;
   box-shadow: none;
   background: transparent;
-  /* Nén cho VỪA 1 HÀNG (không wrap): ô co giãn đều, thu nhỏ ô nhập/label, quá hẹp thì cuộn ngang. */
+  align-items: flex-end;
   flex-wrap: nowrap;
-  gap: 10px 12px;
-  overflow-x: auto;
+  gap: 8px 10px;
 }
-#viewTransship > .filter-toolbar > .filter-field,
-#viewTicketList > .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 118px; gap: 4px; }
-#viewTransship > .filter-toolbar > .filter-field:first-child,
-#viewTicketList > .filter-toolbar > .filter-field:first-child { flex: 1.5 1 0; }   /* ô Tìm kiếm rộng hơn */
-#viewTransship > .filter-toolbar > .filter-field > label,
+#viewTicketList > .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 0; gap: 4px; }
+#viewTicketList > .filter-toolbar > .filter-field:first-child { flex: 1.6 1 0; }   /* ô Tìm kiếm rộng hơn */
 #viewTicketList > .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
-#viewTransship > .filter-toolbar > .filter-field > input,
-#viewTransship > .filter-toolbar > .filter-field > select,
-#viewTransship > .filter-toolbar .filter-select,
-#viewTicketList > .filter-toolbar > .filter-field > input,
-#viewTicketList > .filter-toolbar > .filter-field > select,
+/* Dùng selector CON CHÁU (không phải "> ") vì <select> gốc bị admin-search-select.js "khoác" thêm 1
+   lớp <span class="admin-ss-wrap"><input class="admin-ss-input">...</span> chèn giữa .filter-field và
+   input hiển thị thật — chọn "> input" sẽ bỏ sót input này, để nó rơi lại rule chung ".filter-field
+   input { min-width:160px }" (không !important) và không co lại theo field, chồng lấn qua nút cạnh. */
+#viewTicketList > .filter-toolbar > .filter-field .admin-ss-wrap { width: 100%; min-width: 0; }
+#viewTicketList > .filter-toolbar > .filter-field input,
+#viewTicketList > .filter-toolbar > .filter-field select,
 #viewTicketList > .filter-toolbar .filter-select {
-  min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  width: 100%; min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
   background: var(--white);   /* ô lọc NỀN TRẮNG (không xám --surface-2) — như thanh lọc Trạm Xe */
 }
-#viewTransship > .filter-toolbar > .filter-field > input:focus,
-#viewTransship > .filter-toolbar > .filter-field > select:focus,
-#viewTicketList > .filter-toolbar > .filter-field > input:focus,
-#viewTicketList > .filter-toolbar > .filter-field > select:focus { background: var(--white); }
-#viewTransship > .filter-toolbar > .filter-field-date,
-#viewTicketList > .filter-toolbar > .filter-field-date { flex: 1 1 0; min-width: 128px; }
-#viewTransship > .filter-toolbar > .filter-reset,
-#viewTicketList > .filter-toolbar > .filter-reset { flex: 0 0 auto; margin-left: auto; }
-#viewTransship > .filter-toolbar > .filter-reset .btn,
-#viewTicketList > .filter-toolbar > .filter-reset .btn { white-space: nowrap; }
+#viewTicketList > .filter-toolbar > .filter-field input:focus,
+#viewTicketList > .filter-toolbar > .filter-field select:focus { background: var(--white); }
+/* .filter-field-date bị khoá cứng "flex/min-width/max-width !important" ở css/shared/booking-ui
+   (dùng chung toàn hệ thống, xem chú thích #viewTicketOffice phía trên) nên phải !important mới co
+   giãn cùng nhịp với 5 ô lọc khác — không thì nó luôn giữ 160px, đẩy lệch cân đối cả hàng. */
+#viewTicketList > .filter-toolbar > .filter-field-date { flex: 1 1 0 !important; min-width: 0 !important; max-width: none !important; }
+#viewTicketList > .filter-toolbar > .filter-reset { display: contents; }
+#viewTicketList > .filter-toolbar > .filter-reset > .btn { flex: 0 0 auto; white-space: nowrap; }
 #viewTransship .sd-table-wrap,
 #viewTicketList .sd-table-wrap { overflow-x: auto; }
 

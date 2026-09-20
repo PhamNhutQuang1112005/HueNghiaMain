@@ -72,9 +72,9 @@ function renderRecruitmentView() {
 
   $('viewRecruitment').innerHTML =
     '<div class="sd-toolbar">' +
-      '<div class="filter-field sd-field-search" style="flex:0 1 260px; min-width:220px;">' +
+      '<div class="filter-field sd-field-search" style="flex:1 1 260px; min-width:220px;">' +
         '<label>Tìm kiếm</label>' +
-        '<input type="text" value="' + esc(f.search) + '" placeholder="Tiêu đề, mô tả ngắn..." data-input-action="adminRecruitmentFilterInput" data-args=\'["search","__this_value__"]\'>' +
+        '<input type="text" id="rcSearch" value="' + esc(f.search) + '" placeholder="Tiêu đề, mô tả ngắn..." data-input-action="adminRecruitmentFilterInput" data-args=\'["search","__this_value__"]\'>' +
       '</div>' +
       '<div class="filter-field sd-field-region" style="flex:1 1 170px; min-width:150px;">' +
         '<label>Khối</label>' +
@@ -93,6 +93,8 @@ function renderRecruitmentView() {
         '</select>' +
       '</div>' +
       '<div class="sd-toolbar-actions">' +
+        '<button type="button" class="btn sd-btn" data-action="adminRecruitmentSearchClick">Tìm kiếm</button>' +
+        '<button type="button" class="btn sd-btn" data-action="adminResetRecruitmentFilters">Đặt lại</button>' +
         '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenRecruitmentModal" data-args=\'["-1"]\'>+ Thêm bài tuyển dụng</button>' +
       '</div>' +
     '</div>' +
@@ -105,7 +107,7 @@ function renderRecruitmentView() {
       '<div class="sd-table-wrap">' +
         '<table class="admin-table rc-table">' +
           '<thead><tr>' +
-            '<th class="num" style="width:44px;">STT</th>' +
+            '<th class="num" style="width:44px; white-space:nowrap;">STT</th>' +
             '<th style="width:84px;">Ảnh</th>' +
             '<th>Tiêu đề & mô tả ngắn</th>' +
             '<th style="width:130px;">Khối</th>' +
@@ -188,6 +190,17 @@ function adminRecruitmentFilterInput(field, val) {
     RECRUITMENT_FILTERS[field] = val || '';
     renderRecruitmentView();
   }
+}
+// Nút "Tìm kiếm" cạnh ô lọc (giống admin-customers.js:custSearchClick) — lọc đã chạy live theo
+// data-input-action nên nút này chỉ đọc lại giá trị ô hiện tại rồi render, cho quen thao tác bấm nút.
+function adminRecruitmentSearchClick() {
+  var el = $('rcSearch');
+  RECRUITMENT_FILTERS.search = (el && el.value) || '';
+  renderRecruitmentView();
+}
+function adminResetRecruitmentFilters() {
+  RECRUITMENT_FILTERS = { search: '', category: '', active: '' };
+  renderRecruitmentView();
 }
 
 // Đọc file ảnh chọn ở modal Thêm/Sửa thành data URL, lưu thẳng vào ô ẩn #rmImage (không có server upload

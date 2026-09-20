@@ -381,15 +381,15 @@ function ssGetKetcaRows() {
 
 function ssKetcaToolbarHtml() {
   var f = SS_KETCA_FILTER;
-  return '<div class="sd-toolbar">' +
+  return '<div class="sd-toolbar ss-ketca-toolbar">' +
       '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateFrom","__this_value__"]\'></div>' +
       '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateTo","__this_value__"]\'></div>' +
-      '<div class="filter-field" style="position:relative; min-width:200px;"><label>Khu vực</label>' +
+      '<div class="filter-field" style="position:relative;"><label>Khu vực</label>' +
         '<div class="combo-input-wrap"><input type="text" id="ssKetcaRegionInput" class="combo-input" autocomplete="off" placeholder="Tất cả khu vực" value="' + esc(ssRegionLabel(f.region)) + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>' +
         '<div class="dropdown-panel" id="ssKetcaRegionDropdown"></div>' +
       '</div>' +
-      '<div class="filter-field" style="position:relative; min-width:220px;"><label>Trạm</label>' +
+      '<div class="filter-field" style="position:relative;"><label>Trạm</label>' +
         '<div class="combo-input-wrap"><input type="text" id="ssKetcaStationInput" class="combo-input" autocomplete="off" placeholder="Tất cả trạm" value="' + esc(f.station) + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>' +
         '<div class="dropdown-panel" id="ssKetcaStationDropdown"></div>' +
@@ -511,9 +511,10 @@ function ssRenderKetcaTrungChuyenTab() {
     '<tbody>' + shuttleHtml + '</tbody></table>' +
     (shuttleHtml ? '' : '<div class="grid-empty"><p>Chưa có tài xế trung chuyển nào.</p></div>');
 
-  return '<div style="font-size:12px; color:var(--text-sub); margin-bottom:14px; line-height:1.5;">' +
-      'Trung chuyển không có sự kiện "kết ca" thật trong hệ thống nên mục này luôn là tổng số lượt đã ' +
-      'nhận từ trước tới nay, không lọc được theo ngày.' +
+  return '<div class="ss-ketca-note">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
+      '<span>Trung chuyển không có sự kiện "kết ca" thật trong hệ thống nên mục này luôn là tổng số lượt đã ' +
+      'nhận từ trước tới nay, không lọc được theo ngày.</span>' +
     '</div>' +
     ssCardHtml('Trung chuyển — Số chuyến đã thực hiện', shuttleStaff.length + ' tài xế', shuttleTable);
 }

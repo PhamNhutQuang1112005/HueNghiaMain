@@ -33,21 +33,6 @@ var STATUS_CLASS = {
   'Đã hủy': 'da-huy'
 };
 
-// Trang đích khi đăng nhập — dùng chung cho ô "Trang đích đăng nhập" ở Cấu hình nhân sự
-// (admin-staff-config.js, FleetStore.addStaffRole/updateStaffRole) VÀ modal Tài khoản
-// (admin-accounts.js, acAllRoles()) để 2 nơi luôn liệt kê đúng cùng 1 bộ trang, không lệch nhau.
-var ADMIN_REDIRECT_PAGES = [
-  ['ticketstaff.html', 'ticketstaff.html — Bán vé / Phòng vé / Trung chuyển'],
-  ['dieuhanh.html', 'dieuhanh.html — Điều hành bến xe'],
-  ['ketoan.html', 'ketoan.html — Kế toán / Thu ngân'],
-  ['taixe.html', 'taixe.html — Tài xế']
-];
-function adminRedirectPageOptionsHtml(selected) {
-  return ADMIN_REDIRECT_PAGES.map(function (p) {
-    return '<option value="' + p[0] + '"' + (selected === p[0] ? ' selected' : '') + '>' + esc(p[1]) + '</option>';
-  }).join('');
-}
-
 /* ---------------------------------------------------------
    HELPERS
    --------------------------------------------------------- */

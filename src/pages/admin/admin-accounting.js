@@ -99,8 +99,8 @@
     // 7. EXPENSE REQUESTS (Yêu cầu chi — chờ duyệt trước khi thành Phiếu Chi thật)
     if (!localStorage.getItem(HN_ACCOUNTING_EXPENSE_REQUESTS_KEY)) {
       var seedExpenseRequests = [
-        { id: 'YCC-001', date: today, requester: 'Nguyễn Thị Hoa', mainGroup: 'Chi phí trực tiếp vận hành', category: 'Bảo trì, sửa chữa xe', plate: '67B-099.11', payee: 'Gara Ô tô An Giang Auto', amount: 7200000, reason: 'Đề nghị tạm ứng thay má phanh & bảo dưỡng định kỳ xe 67B-099.11', status: 'Chờ duyệt', rejectReason: '', approvedVoucherId: '' },
-        { id: 'YCC-002', date: today, requester: 'Lê Văn Nam', mainGroup: 'Chi phí trực tiếp vận hành', category: 'Nhiên liệu (Dầu DIESEL)', plate: '67B-012.34', payee: 'Cây xăng Petrolimex Số 5', amount: 4800000, reason: 'Tạm ứng đổ dầu chuyến đi An Giang', status: 'Đã duyệt', rejectReason: '', approvedVoucherId: 'CHI-001' }
+        { id: 'YCC-001', date: today + 'T09:15', requester: 'Nguyễn Thị Hoa', mainGroup: 'Chi phí trực tiếp vận hành', category: 'Bảo trì, sửa chữa xe', plate: '67B-099.11', payee: 'Gara Ô tô An Giang Auto', amount: 7200000, reason: 'Đề nghị tạm ứng thay má phanh & bảo dưỡng định kỳ xe 67B-099.11', status: 'Chờ duyệt', rejectReason: '', approvedVoucherId: '' },
+        { id: 'YCC-002', date: today + 'T14:40', requester: 'Lê Văn Nam', mainGroup: 'Chi phí trực tiếp vận hành', category: 'Nhiên liệu (Dầu DIESEL)', plate: '67B-012.34', payee: 'Cây xăng Petrolimex Số 5', amount: 4800000, reason: 'Tạm ứng đổ dầu chuyến đi An Giang', status: 'Đã duyệt', rejectReason: '', approvedVoucherId: 'CHI-001' }
       ];
       lsWrite(HN_ACCOUNTING_EXPENSE_REQUESTS_KEY, seedExpenseRequests);
     }
@@ -407,6 +407,18 @@
     renderAccountingThuView();
   };
 
+  // Checkbox "Chọn tất cả" ở header cột cuối (chỉ còn đúng 1 vai trò: chọn hàng loạt để duyệt — không
+  // còn kiêm hiện badge "Đã duyệt" như trước, xem renderAccountingThuView) — cùng cách
+  // toggleAllExpenseRequestSel bên "Yêu cầu chi" (admin-accounting.js).
+  window.toggleAllThuApprovalSel = function (on) {
+    document.querySelectorAll('.thu-approve-sel').forEach(function (cb) {
+      cb.checked = on;
+      var tripCode = cb.getAttribute('data-id');
+      if (on) THU_APPROVE_SEL[tripCode] = true; else delete THU_APPROVE_SEL[tripCode];
+    });
+    syncThuApprovalBar();
+  };
+
   window.confirmThuApprovalSelected = function () {
     var codes = Object.keys(THU_APPROVE_SEL);
     if (!codes.length) return;
@@ -456,6 +468,23 @@
     return acctChiDistinctGroups().map(function (g) {
       return '<option value="' + esc(g) + '"' + (g === selected ? ' selected' : '') + '>' + esc(g) + '</option>';
     }).join('');
+  }
+
+  // Danh tính tài khoản đang đăng nhập — dùng để phân biệt "Tạo yêu cầu chi" (chỉ của CHÍNH nhân viên
+  // này, gắn theo username qua Session) với "Chi phí" (tổng hợp yêu cầu chi của TẤT CẢ nhân viên, xem
+  // buildExpenseRequestsSectionHtml). Ưu tiên fullName trong danh sách tài khoản (auth/accounts.js) cho
+  // dễ đọc, không có thì lùi về username.
+  function acctCurrentUsername() {
+    var u = (window.Session && Session.get()) || null;
+    return u ? (u.username || '') : '';
+  }
+  function acctCurrentUserName() {
+    var username = acctCurrentUsername();
+    if (!username) return '';
+    try {
+      var acc = (typeof getAccountsList === 'function' ? getAccountsList() : []).find(function (a) { return a.username === username; });
+      return (acc && acc.fullName) || username;
+    } catch (e) { return username; }
   }
 
   // Expose seed init globally
@@ -862,10 +891,10 @@
     var html = '';
 
     // Sub-tab Picker
-    html += '<div class="acct-period-picker" style="margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap;">' +
-      '<button class="acct-btn-tab ' + (THU_SUB_TAB === 'overview' ? 'active' : '') + '" onclick="setThuSubTab(\'overview\')">Tất Cả Nguồn Thu & Phiếu Thu</button>' +
-      '<button class="acct-btn-tab ' + (THU_SUB_TAB === 'route' ? 'active' : '') + '" onclick="setThuSubTab(\'route\')">Theo Hướng</button>' +
-      '</div>';
+    html += '<nav class="station-subtabs" style="margin-bottom: 16px;">' +
+      '<button type="button" class="station-subtab' + (THU_SUB_TAB === 'overview' ? ' active' : '') + '" onclick="setThuSubTab(\'overview\')">Tất cả nguồn thu &amp; phiếu thu</button>' +
+      '<button type="button" class="station-subtab' + (THU_SUB_TAB === 'route' ? ' active' : '') + '" onclick="setThuSubTab(\'route\')">Theo hướng</button>' +
+      '</nav>';
 
     // RENDER SUB-TAB CONTENT
     if (THU_SUB_TAB === 'overview') {
@@ -878,28 +907,30 @@
         return '<option value="' + esc(s.name) + '"' + (s.name === THU_STATION_FILTER ? ' selected' : '') + '>' + esc(s.name) + '</option>';
       }).join('');
 
-      html += '<div class="acct-filter-bar">' +
-        '<input type="text" id="thuSearchInput" class="acct-input" placeholder="Tìm theo mã phiếu, tuyến, biển số, tài xế..." value="' + esc(THU_SEARCH_KW) + '" oninput="onThuSearchInput(this.value)" />' +
-        '<select class="acct-select" style="width: 150px;" onchange="onThuCatFilter(this.value)">' +
-        '<option value="all"' + (THU_CAT_FILTER === 'all' ? ' selected' : '') + '>Tất cả Nguồn Thu</option>' +
+      html += '<div class="sd-toolbar">' +
+        '<div class="filter-field sd-field-search"><label>Tìm kiếm</label>' +
+        '<input type="text" id="thuSearchInput" placeholder="Mã phiếu, tuyến, biển số, tài xế..." value="' + esc(THU_SEARCH_KW) + '" oninput="onThuSearchInput(this.value)"></div>' +
+        '<div class="filter-field"><label>Nguồn thu</label><select onchange="onThuCatFilter(this.value)">' +
+        '<option value="all"' + (THU_CAT_FILTER === 'all' ? ' selected' : '') + '>Tất cả nguồn thu</option>' +
         '<option value="Vé lẻ"' + (THU_CAT_FILTER === 'Vé lẻ' ? ' selected' : '') + '>Vé lẻ (tại bến / điểm đón)</option>' +
         '<option value="Vé đặt trước"' + (THU_CAT_FILTER === 'Vé đặt trước' ? ' selected' : '') + '>Vé đặt trước (Online / Tổng đài)</option>' +
         '<option value="Hoa hồng đại lý"' + (THU_CAT_FILTER === 'Hoa hồng đại lý' ? ' selected' : '') + '>Hoa hồng đại lý bán hộ</option>' +
-        '</select>' +
-        '<select class="acct-select" style="width: 130px;" onchange="onThuStatusFilter(this.value)">' +
-        '<option value="all"' + (THU_STATUS_FILTER === 'all' ? ' selected' : '') + '>Trạng thái Thu</option>' +
+        '</select></div>' +
+        '<div class="filter-field"><label>Trạng thái thu</label><select onchange="onThuStatusFilter(this.value)">' +
+        '<option value="all"' + (THU_STATUS_FILTER === 'all' ? ' selected' : '') + '>Tất cả trạng thái</option>' +
         '<option value="Đã thu"' + (THU_STATUS_FILTER === 'Đã thu' ? ' selected' : '') + '>Đã thu</option>' +
         '<option value="Chưa thu"' + (THU_STATUS_FILTER === 'Chưa thu' ? ' selected' : '') + '>Chưa thu</option>' +
-        '</select>' +
-        '<input type="date" class="acct-input" style="width: 150px;" value="' + esc(THU_DATE_FILTER) + '" onchange="onThuDateFilter(this.value)" title="Lọc theo ngày" />' +
-        '<select class="acct-select" style="width: 140px;" onchange="onThuRegionFilter(this.value)">' +
-        '<option value="all"' + (THU_REGION_FILTER === 'all' ? ' selected' : '') + '>Tất cả Khu vực</option>' +
+        '</select></div>' +
+        '<div class="filter-field"><label>Ngày</label><input type="date" value="' + esc(THU_DATE_FILTER) + '" onchange="onThuDateFilter(this.value)"></div>' +
+        '<div class="filter-field"><label>Khu vực</label><select onchange="onThuRegionFilter(this.value)">' +
+        '<option value="all"' + (THU_REGION_FILTER === 'all' ? ' selected' : '') + '>Tất cả khu vực</option>' +
         regionOptionsHtml +
-        '</select>' +
-        '<select class="acct-select" style="width: 160px;" onchange="onThuStationFilter(this.value)">' +
-        '<option value="all"' + (THU_STATION_FILTER === 'all' ? ' selected' : '') + '>Tất cả Trạm xe</option>' +
+        '</select></div>' +
+        '<div class="filter-field"><label>Trạm xe</label><select onchange="onThuStationFilter(this.value)">' +
+        '<option value="all"' + (THU_STATION_FILTER === 'all' ? ' selected' : '') + '>Tất cả trạm xe</option>' +
         stationOptionsHtml +
-        '</select>' +
+        '</select></div>' +
+        '<div class="filter-reset"><button type="button" class="btn btn-secondary" onclick="onThuResetFilters()">Đặt lại</button></div>' +
         '</div>';
 
       // Gom các phiếu thu theo từng Phơi (Mã chuyến) — hiển thị Tổng tiền / Tiền mặt / Chuyển khoản / Chưa thu
@@ -934,46 +965,54 @@
       var approvedTrips = getThuApproved();
       var hasPendingSel = Object.keys(THU_APPROVE_SEL).length > 0;
 
-      html += '<div class="phoi-grid-wrap' + (hasPendingSel ? ' has-bulk-bar' : '') + '" id="thuOverviewWrap">' +
-        '<div class="report-box"><table class="acct-table"><thead><tr>' +
-        '<th>#</th><th>Mã Phơi</th><th>Ngày</th><th>Tuyến đường</th><th>Biển số xe</th><th>Tài xế / Phụ xe</th><th>Doanh thu</th><th>Trạng thái</th><th>Thao tác</th><th>Duyệt</th>' +
-        '</tr></thead><tbody>';
-
       var phoiKeys = Object.keys(phoiMap);
+      var thuRowsHtml;
       if (phoiKeys.length === 0) {
-        html += '<tr><td colspan="10" class="text-center py-4 text-sub">Chưa có dữ liệu phơi thu nào phù hợp</td></tr>';
+        thuRowsHtml = '<tr><td colspan="10" class="empty-state">Chưa có dữ liệu phơi thu nào phù hợp.</td></tr>';
       } else {
-        phoiKeys.forEach(function (pKey, idx) {
+        thuRowsHtml = phoiKeys.map(function (pKey, idx) {
           var p = phoiMap[pKey];
           var isFull = p.chuaThu === 0;
           var isApproved = approvedTrips.indexOf(p.tripCode) !== -1;
-          html += '<tr>' +
-            '<td>' + (idx + 1) + '</td>' +
-            '<td><strong>' + esc(p.tripCode) + '</strong></td>' +
-            '<td>' + fmtDate(p.date) + '</td>' +
+          return '<tr>' +
+            '<td class="num">' + (idx + 1) + '</td>' +
+            '<td><b>' + esc(p.tripCode) + '</b></td>' +
+            '<td class="mono" style="text-align:center; color:var(--text-sub);">' + fmtStamp(p.date).replace(' ', '<br>') + '</td>' +
             '<td>' + esc(p.route) + '</td>' +
-            '<td><strong>' + esc(p.plate) + '</strong></td>' +
+            '<td style="text-align:center;">' + (p.plate ? '<span class="chi-plate-tag">' + esc(p.plate) + '</span>' : '—') + '</td>' +
             '<td>' + esc(p.driver) + ' / ' + esc(p.attendant || '—') + '</td>' +
-            '<td style="color: #0F172A; font-weight: 700;">' + fmtMoney(p.total) +
-            '<br><small style="color: #64748B; font-weight: 500;">TM: ' + fmtMoney(p.cash) + ' · CK: ' + fmtMoney(p.transfer) + '</small></td>' +
-            '<td>' + (isFull ? '<span class="badge badge-success">Đã thu đủ</span>' : '<span class="badge badge-warning">Còn nợ</span>') +
-            (p.chuaThu > 0 ? '<br><small class="text-red font-bold">Còn: ' + fmtMoney(p.chuaThu) + '</small>' : '') + '</td>' +
-            '<td>' +
-            '<button class="acct-btn" style="padding: 3px 8px; font-size: 11px; margin-right: 6px; background: #F1F5F9; border: 1px solid #CBD5E1; color: #1E293B;" onclick="openTongDaiPhoiDetailModal(\'' + esc(p.tripCode) + '\', \'' + esc(p.route) + '\')">Chi tiết</button>' +
-            (isFull ? '' : '<button class="acct-btn acct-btn-primary" style="padding: 4px 10px; font-size: 11.5px; background: #0F172A; border-color: #0F172A;" onclick="confirmCollectAllTripCash(\'' + esc(p.tripCode) + '\')">Thu Hết</button>') +
+            '<td style="text-align:center;">' +
+            '<div style="font-weight:800; font-size:14px; color:#16A34A;">' + fmtMoney(p.total) + '</div>' +
+            '<div style="font-size:11.5px; color:var(--text-sub); margin-top:3px; line-height:1.6;">Tiền mặt: ' + fmtMoney(p.cash) + '<br>Chuyển khoản: ' + fmtMoney(p.transfer) + '</div></td>' +
+            '<td>' + (isFull
+              ? '<span class="status-badge dang-ban"><span class="status-dot"></span>Đã thu đủ</span>'
+              : '<span class="status-badge chua-chi-dinh"><span class="status-dot"></span>Còn nợ</span>') +
+            (p.chuaThu > 0 ? '<div style="font-size:11px; color:var(--red); font-weight:700; margin-top:3px;">Còn: ' + fmtMoney(p.chuaThu) + '</div>' : '') +
+            (isApproved ? '<div style="margin-top:3px;"><span class="status-badge dang-ban"><span class="status-dot"></span>Đã duyệt</span></div>' : '') + '</td>' +
+            '<td class="row-actions">' +
+            '<button type="button" class="btn btn-sm row-menu-btn" data-action="thuRowMenu" data-args=\'["__this__","' + esc(p.tripCode) + '","' + esc(p.route) + '",' + (isFull ? 'true' : 'false') + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
             '</td>' +
-            '<td style="text-align: center;">' + (isApproved ?
-              '<span class="badge badge-success">Đã duyệt</span>' :
-              '<input type="checkbox" ' + (THU_APPROVE_SEL[p.tripCode] ? 'checked' : '') + ' title="Chọn để duyệt doanh thu phơi này" onchange="onThuApprovalCheck(\'' + esc(p.tripCode) + '\', this)" />') + '</td>' +
+            '<td style="text-align: center;">' + (isApproved ? '' :
+              '<input type="checkbox" class="thu-approve-sel" data-id="' + esc(p.tripCode) + '" ' + (THU_APPROVE_SEL[p.tripCode] ? 'checked' : '') + ' title="Chọn để duyệt doanh thu phơi này" onchange="onThuApprovalCheck(\'' + esc(p.tripCode) + '\', this)" />') + '</td>' +
             '</tr>';
-        });
+        }).join('');
       }
-      html += '</tbody></table></div></div>' +
+
+      html += '<div class="phoi-grid-wrap' + (hasPendingSel ? ' has-bulk-bar' : '') + '" id="thuOverviewWrap">' +
+        '<div class="sd-blocks"><div class="sd-section-block">' +
+        '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+        '<span>Doanh thu theo phơi</span>' +
+        '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + phoiKeys.length + ' phơi</span>' +
+        '</div>' +
+        '<div class="sd-table-wrap"><table class="admin-table thu-overview-table"><thead><tr>' +
+        '<th class="num" style="white-space:nowrap;">STT</th><th>Mã phơi</th><th>Thời gian</th><th>Tuyến đường</th><th>Biển số xe</th><th>Tài xế / Phụ xe</th><th>Doanh thu</th><th>Trạng thái</th><th class="th-actions">Thao tác</th><th style="text-align:center;"><input type="checkbox" title="Chọn tất cả" onchange="toggleAllThuApprovalSel(this.checked)"></th>' +
+        '</tr></thead><tbody>' + thuRowsHtml + '</tbody></table></div>' +
+        '</div></div></div>' +
         '<div class="bulk-bar" id="thuApprovalBar" style="display: ' + (hasPendingSel ? 'flex' : 'none') + ';">' +
         '<span class="bulk-bar-hint" id="thuApprovalHint">Đã chọn ' + Object.keys(THU_APPROVE_SEL).length + ' phơi</span>' +
         '<div class="bulk-bar-fields">' +
-        '<button type="button" class="acct-btn" onclick="clearThuApprovalSel()">Hủy</button>' +
-        '<button type="button" class="acct-btn acct-btn-primary" onclick="confirmThuApprovalSelected()">Xác Nhận Duyệt Doanh Thu Đã Chọn</button>' +
+        '<button type="button" class="btn btn-secondary" onclick="clearThuApprovalSel()">Hủy</button>' +
+        '<button type="button" class="btn btn-primary" onclick="confirmThuApprovalSelected()">Xác nhận duyệt doanh thu đã chọn</button>' +
         '</div></div>';
 
     } else if (THU_SUB_TAB === 'route') {
@@ -995,32 +1034,37 @@
         else routeMap[rName].chuaThu += amt;
       });
 
-      html += '<style>.rt-wrap th,.rt-wrap td{white-space:normal;word-break:break-word;padding:8px 8px;font-size:12px}.rt-wrap th{white-space:normal}</style>' +
-        '<div class="report-box rt-wrap" style="overflow-x: auto;"><table class="acct-table" style="width: 100%;"><thead><tr>' +
-        '<th>#</th><th>Hướng Đi</th><th>Số Phơi</th><th>Vé Lẻ</th><th>Vé Đặt Trước</th><th>Hoa Hồng Đại Lý</th><th>Tổng Doanh Thu</th><th>Thực Thu</th><th>Thao Tác</th>' +
-        '</tr></thead><tbody>';
-
       var routeKeys = Object.keys(routeMap);
+      var routeRowsHtml;
       if (routeKeys.length === 0) {
-        html += '<tr><td colspan="9" class="text-center py-4 text-sub">Chưa có dữ liệu theo hướng</td></tr>';
+        routeRowsHtml = '<tr><td colspan="9" class="empty-state">Chưa có dữ liệu theo hướng.</td></tr>';
       } else {
-        routeKeys.forEach(function (rKey, idx) {
+        routeRowsHtml = routeKeys.map(function (rKey, idx) {
           var r = routeMap[rKey];
           var numTrips = Object.keys(r.tripCodes).length || 1;
-          html += '<tr>' +
-            '<td>' + (idx + 1) + '</td>' +
-            '<td><strong>' + esc(r.routeName) + '</strong></td>' +
-            '<td><span class="badge badge-tag">' + numTrips + ' phơi</span></td>' +
-            '<td>' + fmtMoney(r.veLe) + '</td>' +
-            '<td>' + fmtMoney(r.veDat) + '</td>' +
-            '<td>' + fmtMoney(r.hoaHong) + '</td>' +
-            '<td style="color: #0F172A; font-weight: 700;">' + fmtMoney(r.total) + '</td>' +
-            '<td>' + fmtMoney(r.daThu) + '</td>' +
-            '<td><button class="acct-btn" style="padding: 3px 10px; font-size: 11.5px; background: #F1F5F9; border: 1px solid #CBD5E1; color: #1E293B;" onclick="openRoutePhoiListModal(\'' + esc(r.routeName) + '\')">Chi tiết</button></td>' +
+          return '<tr>' +
+            '<td class="num">' + (idx + 1) + '</td>' +
+            '<td><b>' + esc(r.routeName) + '</b></td>' +
+            '<td class="mono" style="text-align:center;">' + numTrips + ' phơi</td>' +
+            '<td style="text-align:right;">' + fmtMoney(r.veLe) + '</td>' +
+            '<td style="text-align:right;">' + fmtMoney(r.veDat) + '</td>' +
+            '<td style="text-align:right;">' + fmtMoney(r.hoaHong) + '</td>' +
+            '<td style="text-align:right; font-weight:700;">' + fmtMoney(r.total) + '</td>' +
+            '<td style="text-align:right;">' + fmtMoney(r.daThu) + '</td>' +
+            '<td class="row-actions"><button type="button" class="btn btn-sm" onclick="openRoutePhoiListModal(\'' + esc(r.routeName) + '\')">Chi tiết</button></td>' +
             '</tr>';
-        });
+        }).join('');
       }
-      html += '</tbody></table></div>';
+
+      html += '<div class="sd-blocks"><div class="sd-section-block">' +
+        '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+        '<span>Doanh thu theo hướng</span>' +
+        '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + routeKeys.length + ' hướng</span>' +
+        '</div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr>' +
+        '<th class="num" style="white-space:nowrap;">STT</th><th>Hướng đi</th><th style="text-align:center;">Số phơi</th><th>Vé lẻ</th><th>Vé đặt trước</th><th>Hoa hồng đại lý</th><th>Tổng doanh thu</th><th>Thực thu</th><th class="th-actions">Thao tác</th>' +
+        '</tr></thead><tbody>' + routeRowsHtml + '</tbody></table></div>' +
+        '</div></div>';
 
     }
 
@@ -1172,6 +1216,14 @@
     }
   };
 
+  // Dropdown "Cập nhật ▾" cho dòng phơi thu — cùng khuôn adminOpenRowMenu dùng chung mọi bảng admin
+  // khác (VD adminStaffRoleRowMenu ở admin-staff-config.js) thay 2 nút rời "Chi tiết"/"Thu Hết".
+  window.thuRowMenu = function (btn, tripCode, route, isFull) {
+    var items = '<button type="button" class="admin-row-menu-item" data-action="openTongDaiPhoiDetailModal" data-args=\'["' + esc(tripCode) + '","' + esc(route) + '"]\'>Xem chi tiết</button>';
+    if (!isFull) items += '<button type="button" class="admin-row-menu-item" data-action="confirmCollectAllTripCash" data-args=\'["' + esc(tripCode) + '"]\'>Thu hết tiền mặt</button>';
+    adminOpenRowMenu(btn, 'thu:' + tripCode, items);
+  };
+
   window.confirmCollectAllDriverCash = function (driverName, attendantName) {
     var list = getVouchers();
     var updatedCount = 0;
@@ -1202,6 +1254,18 @@
     var plate = v0.plate && v0.plate !== 'Chưa xếp xe' ? v0.plate : '51F-123.45';
     var driver = v0.driver && v0.driver !== 'Chưa phân công' ? v0.driver : 'Phạm Quốc Bảo';
     var attendant = v0.attendant && v0.attendant !== '—' ? v0.attendant : 'Đỗ Văn Sơn';
+
+    // Tách "Trạm đi" + giờ khởi hành từ chuỗi tripRoute ("06:00 - An Giang - Sài Gòn") để hiển thị đủ
+    // cột "Trạm đi" trong bảng Danh sách rước đường (khác cột "Điểm rước" là vị trí đón cụ thể dọc đường).
+    var routeParts = String(tripRoute).split(' - ');
+    var tripDepartTime = '06:00';
+    var tripFromStation = 'Sài Gòn';
+    if (routeParts.length >= 3) {
+      tripDepartTime = routeParts[0];
+      tripFromStation = routeParts[1];
+    } else if (routeParts.length === 2) {
+      tripFromStation = routeParts[0];
+    }
 
     // READ REAL SEAT BANK DATA DYNAMICALLY FOR THIS TRIP
     var seatBank = lsRead(HN_STORAGE_KEY, {});
@@ -1324,28 +1388,32 @@
     if (ruocPaxCount === 0) ruocPaxCount = Math.min(5, Math.ceil(totalPaxCount * 0.3));
     var tramPaxCount = Math.max(0, totalPaxCount - ruocPaxCount);
 
-    // DANH SÁCH RƯỚC ĐƯỜNG — cùng mẫu bảng với bản "In phơi" bên Tổng đài (ticketstaff-manifest-ui.js,
-    // buildManifestPrintHtml/roadsideHtml) thay vì bảng "Chi tiết vé & biên lai hành khách" liệt kê hết
-    // TẤT CẢ hành khách như trước (trùng lặp với bảng Chi tiết mệnh giá ở trên, không cần thiết).
+    // DANH SÁCH RƯỚC ĐƯỜNG — Y CHANG bảng tsRenderRoadsideListTableHtml bên TicketStaff (modal Xem phơi):
+    // đủ 9 cột STT/Họ và tên/SDT/Trạm đi/Trạm đến/Điểm rước/SL/Số ghế/Thành tiền + đúng class .ts-rlist-*
+    // (khác modal Khởi hành xe bên TicketStaff — modal đó ẩn hẳn khối này, chỉ có ô tick "in kèm").
     var roadsideHtml = roadsideList.length ?
-      '<div class="pho-wrap" style="overflow-x: auto; border: 1px solid #E2E8F0; border-radius: 8px; background: #FFFFFF;">' +
-      '<table class="acct-table" style="width: 100%; margin: 0; font-size: 12.5px;"><thead><tr>' +
-      '<th style="text-align: center;">STT</th><th>Họ và tên</th><th>SĐT</th><th>Điểm rước</th><th>Trạm đến</th><th style="text-align: center;">SL</th><th>Số ghế</th><th>Thành tiền</th>' +
+      '<div class="pax-table-wrap grid-table-wrap" style="margin-bottom:8px;">' +
+      '<table class="pax-table lined-table"><thead><tr>' +
+      '<th class="ts-rlist-stt">STT</th><th class="ts-rlist-name">Họ và tên</th><th class="ts-rlist-phone">SDT</th>' +
+      '<th class="ts-rlist-stop">Trạm đi</th><th class="ts-rlist-stop">Trạm đến</th><th class="ts-rlist-pickup">Điểm rước</th>' +
+      '<th class="ts-rlist-count" style="text-align:center;">SL</th><th class="ts-rlist-seats" style="text-align:center;">Số ghế</th>' +
+      '<th class="ts-rlist-amount" style="text-align:right;">Thành tiền</th>' +
       '</tr></thead><tbody>' +
       roadsideList.map(function (p, idx) {
         return '<tr>' +
-          '<td style="text-align: center; color: #64748B; font-weight: 700;">' + (idx + 1) + '</td>' +
-          '<td><strong style="color: #0F172A;">' + esc(p.paxName) + '</strong></td>' +
-          '<td>' + esc(p.phone || '—') + '</td>' +
-          '<td>' + esc(p.from || '—') + '</td>' +
-          '<td>' + esc(p.to || '—') + '</td>' +
-          '<td style="text-align: center;">' + (p.count || 1) + '</td>' +
-          '<td><span style="font-size: 11.5px; font-weight: 700; color: #1E293B;">' + esc(p.seats || '—') + '</span></td>' +
-          '<td style="font-weight: 800; color: #0F172A;">' + fmtMoney(p.amount) + '</td>' +
+          '<td class="mono ts-rlist-stt">' + (idx + 1) + '</td>' +
+          '<td class="ts-rlist-name">' + esc(p.paxName) + '</td>' +
+          '<td class="mono ts-rlist-phone">' + esc(p.phone || '—') + '</td>' +
+          '<td class="ts-rlist-stop">' + esc(tripFromStation || '—') + '</td>' +
+          '<td class="ts-rlist-stop">' + esc(p.to || '—') + '</td>' +
+          '<td class="ts-rlist-pickup">' + esc(p.from || '—') + '</td>' +
+          '<td class="mono ts-rlist-count" style="text-align:center;">' + (p.count || 1) + '</td>' +
+          '<td class="mono ts-rlist-seats" style="text-align:center;">' + esc(p.seats || '—') + '</td>' +
+          '<td class="ts-rlist-amount" style="text-align:right;">' + fmtMoney(p.amount) + '</td>' +
           '</tr>';
       }).join('') +
       '</tbody></table></div>' :
-      '<p style="font-size: 13px; color: #64748B; text-align: center; padding: 16px 0; margin: 0;">Chưa có khách rước đường.</p>';
+      '<p style="color:var(--text-sub);font-size:13px;">Chưa có khách rước đường.</p>';
 
     // Calculate Station Breakdown Matrix values dynamically
     var ldhCount = totalPaxCount;
@@ -1353,113 +1421,89 @@
     var ruocAmtK = Math.round((ruocPaxCount * 224000) / 1000);
     var d280AmtK = Math.max(0, ldhAmtK - ruocAmtK);
 
-    // BUILD CLEAN MONOCHROME UI (NO EMOJIS, NO CLUTTERED COLORS)
-    var modalHtml = '<div class="modal-form-box" style="max-width: 960px; width: 100%; background: #FFFFFF; padding: 24px; border-radius: 10px; font-family: inherit; overflow-y: auto;">' +
-      '<style>.pho-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0}.pho-route{font-size:15px;font-weight:800;color:#0F172A;min-width:0;word-break:break-word}.pho-plate{flex:none;font-size:12.5px;font-weight:700;color:#475569;background:#fff;border:1px solid #CBD5E1;border-radius:4px;padding:3px 10px;font-family:monospace}.pho-info{display:grid;grid-template-columns:1fr 1fr;font-size:13px}.pho-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 16px;border-bottom:1px solid #F1F5F9}.pho-row:nth-child(odd){border-right:1px solid #E2E8F0}.pho-row:nth-last-child(-n+2){border-bottom:0}.pho-row span{flex:none;color:#64748B;font-weight:600}.pho-row strong{color:#0F172A;text-align:right;min-width:0;word-break:break-word}@media(max-width:560px){.pho-info{grid-template-columns:1fr}.pho-row:nth-child(odd){border-right:0}.pho-row:nth-last-child(2){border-bottom:1px solid #F1F5F9}}.pho-wrap td,.pho-wrap th{white-space:normal;word-break:break-word;padding:8px 10px}.pho-md{table-layout:fixed}.pho-md th,.pho-md td{border:0;border-bottom:1px solid #F1F5F9;padding:8px 12px}.pho-md td[rowspan]{border-right:1px solid #E2E8F0}</style>' +
-      
-      // TITLE MODAL
-      '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">' +
-      '<h2 style="font-size: 20px; font-weight: 800; color: #0F172A; margin: 0;">Phơi chuyến xe</h2>' +
-      '<button type="button" class="btn-close" onclick="closeAdminModal()" style="border:none; background:none; font-size:22px; cursor:pointer; color:#64748B;">✕</button>' +
+    var numCell = function (n) { return '<td class="mono" style="text-align:center; font-weight:400; font-size:12px; color:var(--text-main);">' + (n || 0) + '</td>'; };
+    var kCell = function (n) { return '<td class="mono" style="text-align:center; font-weight:400; font-size:12px; color:var(--text-main);">' + Number(n || 0).toLocaleString('vi-VN') + '</td>'; };
+
+    // Cấu trúc HTML/CSS class dưới đây (.manifest-modal/.trip-meta-box/.pv-detail-title/.denom-grid-table/
+    // .denom-summary-table/.lined-table/.ts-rlist-*) COPY NGUYÊN theo modal "Khởi hành xe"/"Xem phơi" bên
+    // TicketStaff (xem ticketstaff.css + ticketstaff-manifest-ui.js: tsRenderTripInfoHtml/
+    // tsRenderDenominationTableHtml/tsRenderRoadsideListTableHtml, và style riêng cho modal này ở
+    // admin-ts-modals.css) để 2 modal giống 100% — chỉ khác là khối "Danh sách rước đường" ở đây LUÔN
+    // hiển thị đầy đủ (bên TicketStaff modal Khởi hành xe ẩn hẳn khối này, chỉ modal Xem phơi mới có).
+    var modalHtml = '<div class="manifest-modal manifest-modal-wide">' +
+      '<h3>Phơi chuyến xe</h3>' +
+      '<div class="manifest-modal-body">' +
+
+      '<div class="manifest-section-title">Thông tin chuyến</div>' +
+      '<div class="trip-meta-box">' +
+      '<div class="trip-meta-head">' +
+      '<div class="trip-meta-route">' + esc(tripRoute) + '</div>' +
+      '<div class="trip-meta-plate">' + esc(plate) + '</div>' +
+      '</div>' +
+      '<div class="trip-meta-cols">' +
+      '<div class="trip-meta-col">' +
+      '<div class="trip-meta-item"><span class="tm-label">Tài xế</span><span class="tm-value">' + esc(driver) + '</span></div>' +
+      (attendant ? '<div class="trip-meta-item"><span class="tm-label">Phụ xe</span><span class="tm-value">' + esc(attendant) + '</span></div>' : '') +
+      '</div>' +
+      '<div class="trip-meta-col">' +
+      '<div class="trip-meta-item"><span class="tm-label">Khởi hành</span><span class="tm-value">' + fmtDate(tripDate) + ' • ' + esc(tripDepartTime) + '</span></div>' +
+      '<div class="trip-meta-item"><span class="tm-label">Tạo phơi lúc</span><span class="tm-value">16:36 • tongdai01</span></div>' +
+      '</div>' +
+      '</div>' +
       '</div>' +
 
-      // THÔNG TIN CHUYẾN
-      '<div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">THÔNG TIN CHUYẾN</div>' +
-      '<div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background: #FFFFFF;">' +
-      '<div class="pho-head">' +
-      '<div class="pho-route">' + esc(tripRoute) + '</div>' +
-      '<div class="pho-plate">' + esc(plate) + '</div>' +
-      '</div>' +
-
-      '<div class="pho-info">' +
-      '<div class="pho-row"><span>Tài xế</span><strong>' + esc(driver) + '</strong></div>' +
-      '<div class="pho-row"><span>Khởi hành</span><strong>' + fmtDate(tripDate) + ' • 06:00' + '</strong></div>' +
-      '<div class="pho-row"><span>Phụ xe</span><strong>' + esc(attendant) + '</strong></div>' +
-      '<div class="pho-row"><span>Tạo phơi lúc</span><strong>' + '16:36 • tongdai01' + '</strong></div>' +
-      '</div>' +
-      '</div>' +
-
-      // CHI TIẾT MỆNH GIÁ (DYNAMIC DATA)
-      '<div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">CHI TIẾT MỆNH GIÁ</div>' +
-      '<div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background: #FFFFFF;">' +
-      '<table class="acct-table pho-md" style="width: 100%; margin: 0; text-align: center; border-collapse: collapse; font-size: 13px;">' +
-      '<thead>' +
-      '<tr style="background: #F8FAFC; color: #475569; border-bottom: 1px solid #E2E8F0;">' +
-      '<th style="padding: 8px 12px; font-weight: 700; width: 25%;">TRẠM</th>' +
-      '<th style="padding: 8px 12px; font-weight: 700;">RƯỚC</th>' +
-      '<th style="padding: 8px 12px; font-weight: 700;">FREE</th>' +
-      '<th style="padding: 8px 12px; font-weight: 700;">280</th>' +
-      '<th style="padding: 8px 12px; font-weight: 700;">TỔNG</th>' +
+      '<div class="pv-detail-title">Chi tiết mệnh giá</div>' +
+      '<div class="pax-table-wrap grid-table-wrap" style="margin-bottom:8px;">' +
+      '<table class="pax-table denom-grid-table">' +
+      '<thead><tr><th>TRẠM</th><th>RƯỚC</th><th>FREE</th><th>280</th><th>TỔNG</th></tr></thead>' +
+      '<tbody class="denom-grid-group">' +
+      '<tr class="denom-row-count">' +
+      '<td rowspan="2" class="denom-station-cell">LDH</td>' +
+      numCell(ruocPaxCount) + numCell(1) + numCell(Math.max(0, totalPaxCount - ruocPaxCount - 1)) + numCell(ldhCount) +
       '</tr>' +
-      '</thead>' +
-      '<tbody>' +
-      '<tr style="border-bottom: 1px solid #F1F5F9;">' +
-      '<td rowspan="2" style="font-weight: 800; background: #F8FAFC; border-right: 1px solid #E2E8F0; vertical-align: middle; color: #0F172A;">LDH</td>' +
-      '<td>' + ruocPaxCount + '</td><td>1</td><td>' + Math.max(0, totalPaxCount - ruocPaxCount - 1) + '</td><td style="font-weight: 700;">' + ldhCount + '</td>' +
-      '</tr>' +
-      '<tr style="border-bottom: 1px solid #E2E8F0; color: #64748B; font-weight: 600;">' +
-      '<td>' + ruocAmtK.toLocaleString('vi-VN') + '</td><td>0</td><td>' + d280AmtK.toLocaleString('vi-VN') + '</td><td style="font-weight: 700; color: #0F172A;">' + ldhAmtK.toLocaleString('vi-VN') + '</td>' +
-      '</tr>' +
-      '<tr style="border-bottom: 1px solid #F1F5F9;">' +
-      '<td rowspan="2" style="font-weight: 800; background: #F8FAFC; border-right: 1px solid #E2E8F0; vertical-align: middle; color: #0F172A;">XC</td>' +
-      '<td>0</td><td>0</td><td>0</td><td style="font-weight: 700;">0</td>' +
-      '</tr>' +
-      '<tr style="border-bottom: 1px solid #E2E8F0; color: #64748B; font-weight: 600;">' +
-      '<td>0</td><td>0</td><td>0</td><td style="font-weight: 700; color: #0F172A;">0</td>' +
-      '</tr>' +
-      '<tr style="border-bottom: 1px solid #F1F5F9;">' +
-      '<td rowspan="2" style="font-weight: 800; background: #F8FAFC; border-right: 1px solid #E2E8F0; vertical-align: middle; color: #0F172A;">KDV</td>' +
-      '<td>0</td><td>0</td><td>0</td><td style="font-weight: 700;">0</td>' +
-      '</tr>' +
-      '<tr style="color: #64748B; font-weight: 600;">' +
-      '<td>0</td><td>0</td><td>0</td><td style="font-weight: 700; color: #0F172A;">0</td>' +
-      '</tr>' +
+      '<tr class="denom-row-amount">' + kCell(ruocAmtK) + kCell(0) + kCell(d280AmtK) + kCell(ldhAmtK) + '</tr>' +
+      '</tbody>' +
+      '<tbody class="denom-grid-group">' +
+      '<tr class="denom-row-count"><td rowspan="2" class="denom-station-cell">XC</td>' + numCell(0) + numCell(0) + numCell(0) + numCell(0) + '</tr>' +
+      '<tr class="denom-row-amount">' + kCell(0) + kCell(0) + kCell(0) + kCell(0) + '</tr>' +
+      '</tbody>' +
+      '<tbody class="denom-grid-group">' +
+      '<tr class="denom-row-count"><td rowspan="2" class="denom-station-cell">KDV</td>' + numCell(0) + numCell(0) + numCell(0) + numCell(0) + '</tr>' +
+      '<tr class="denom-row-amount">' + kCell(0) + kCell(0) + kCell(0) + kCell(0) + '</tr>' +
       '</tbody>' +
       '</table>' +
       '</div>' +
 
-      // TÓM TẮT DOANH THU (DYNAMIC REAL TOTALS)
-      '<div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 24px; background: #FFFFFF; font-size: 13px;">' +
-      '<div style="display: grid; grid-template-columns: 1fr 1fr;">' +
-      '<div style="border-right: 1px solid #E2E8F0;">' +
-      '<div style="display: flex; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid #F1F5F9;"><span style="color: #64748B;">Số vé</span><strong style="color: #0F172A;">' + totalPaxCount + '</strong></div>' +
-      '<div style="display: flex; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid #F1F5F9;"><span style="color: #64748B;">Khách rước đường</span><strong style="color: #0F172A;">' + ruocPaxCount + '</strong></div>' +
-      '<div style="display: flex; justify-content: space-between; padding: 9px 16px;"><span style="color: #64748B;">Vé trạm</span><strong style="color: #0F172A;">' + tramPaxCount + '</strong></div>' +
-      '</div>' +
-      '<div>' +
-      '<div style="display: flex; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid #F1F5F9;"><span style="color: #64748B;">Chưa thu</span><strong style="color: #0F172A;">' + fmtMoney(chuaThuAmt) + '</strong></div>' +
-      '<div style="display: flex; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid #F1F5F9;"><span style="color: #64748B;">Đã thu</span><strong style="color: #0F172A;">' + fmtMoney(daThuAmt) + '</strong></div>' +
-      '<div style="display: flex; justify-content: space-between; padding: 9px 16px;"><span style="color: #64748B;">Tiền rước đường dự kiến</span><strong style="color: #0F172A;">0đ</strong></div>' +
-      '</div>' +
-      '</div>' +
-      '<div style="display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; background: #F8FAFC; border-top: 1px solid #E2E8F0; font-weight: 800;">' +
-      '<span style="color: #0F172A;">Tổng tiền</span>' +
-      '<span style="color: #DC2626; font-size: 16px;">' + fmtMoney(totalPaxAmt) + '</span>' +
-      '</div>' +
+      '<div class="pax-table-wrap grid-table-wrap" style="margin-bottom:8px;">' +
+      '<table class="pax-table denom-summary-table">' +
+      '<colgroup><col style="width:27%"><col style="width:23%"><col style="width:27%"><col style="width:23%"></colgroup>' +
+      '<tbody>' +
+      '<tr class="denom-summary-row"><td class="ds-label">Số vé</td><td class="mono ds-value">' + totalPaxCount + '</td><td class="ds-label">Chưa thu</td><td class="mono ds-value">' + fmtMoney(chuaThuAmt) + '</td></tr>' +
+      '<tr class="denom-summary-row"><td class="ds-label">Khách rước đường</td><td class="mono ds-value">' + ruocPaxCount + '</td><td class="ds-label">Đã thu</td><td class="mono ds-value">' + fmtMoney(daThuAmt) + '</td></tr>' +
+      '<tr class="denom-summary-row"><td class="ds-label">Vé trạm</td><td class="mono ds-value">' + tramPaxCount + '</td><td class="ds-label">Tiền rước đường dự kiến</td><td class="mono ds-value">0đ</td></tr>' +
+      '<tr class="denom-summary-row denom-summary-total-row"><td class="ds-label" colspan="3">Tổng tiền</td><td class="mono ds-value"><span style="color:var(--red);">' + fmtMoney(totalPaxAmt) + '</span></td></tr>' +
+      '</tbody>' +
+      '</table>' +
       '</div>' +
 
-      // DANH SÁCH RƯỚC ĐƯỜNG — cùng mẫu với bản "In phơi" bên Tổng đài
-      '<div style="margin-bottom: 24px;">' +
-      '<div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">DANH SÁCH RƯỚC ĐƯỜNG</div>' +
+      '<div class="pv-detail-title">Danh sách rước đường</div>' +
       roadsideHtml +
+
       '</div>' +
 
-      // MINIMAL FOOTER ACTIONS
-      '<div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #E2E8F0; padding-top: 16px;">' +
-      '<div style="display: flex; align-items: center; gap: 8px;">' +
-      '<input type="checkbox" id="chkPrintRoadside" checked style="width: 15px; height: 15px; cursor: pointer;" />' +
-      '<label for="chkPrintRoadside" style="font-size: 13px; color: #1E293B; cursor: pointer; font-weight: 600;">In kèm danh sách rước đường</label>' +
-      '</div>' +
-      '<div style="display: flex; gap: 10px; align-items: center;">' +
+      '<div class="modal-actions">' +
+      '<label style="display:flex;align-items:center;gap:8px;margin-right:auto;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none;">' +
+      '<input type="checkbox" id="chkPrintRoadside" checked style="width:16px;height:16px;accent-color:var(--red);flex:0 0 auto;">' +
+      'In kèm danh sách rước đường' +
+      '</label>' +
       (chuaThuAmt > 0 ?
-        '<button class="acct-btn" style="background: #0F172A; color: #FFFFFF; font-weight: 700; padding: 7px 16px; border: none; border-radius: 20px;" onclick="collectAllTripPaxCash(\'' + esc(tripCode) + '\')">Duyệt thu tất cả ' + fmtMoney(chuaThuAmt) + '</button>' : '') +
-      '<button type="button" class="acct-btn" style="padding: 7px 20px; font-weight: 600; border-radius: 20px; background: #FFFFFF; border: 1px solid #CBD5E1; color: #0F172A;" onclick="closeAdminModal()">Đóng</button>' +
-      '<button type="button" class="acct-btn" style="padding: 7px 20px; font-weight: 600; border-radius: 20px; background: #FFFFFF; border: 1px solid #CBD5E1; color: #0F172A;" onclick="window.print()">In phơi</button>' +
-      '</div>' +
+        '<button type="button" class="btn btn-secondary" onclick="collectAllTripPaxCash(\'' + esc(tripCode) + '\')">Duyệt thu tất cả ' + fmtMoney(chuaThuAmt) + '</button>' : '') +
+      '<button type="button" class="btn btn-secondary" onclick="closeAdminModal()">Đóng</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="window.print()">In phơi</button>' +
       '</div>' +
       '</div>';
 
-    openAdminModal(modalHtml, true);
+    openAdminModal(modalHtml, false);
   };
 
   window.collectAllTripPaxCash = function (tripCode) {
@@ -1487,6 +1531,11 @@
   window.onThuDateFilter = function (v) { THU_DATE_FILTER = v; renderAccountingThuView(); };
   window.onThuRegionFilter = function (v) { THU_REGION_FILTER = v; THU_STATION_FILTER = 'all'; renderAccountingThuView(); };
   window.onThuStationFilter = function (v) { THU_STATION_FILTER = v; renderAccountingThuView(); };
+  window.onThuResetFilters = function () {
+    THU_SEARCH_KW = ''; THU_CAT_FILTER = 'all'; THU_STATUS_FILTER = 'all';
+    THU_DATE_FILTER = ''; THU_REGION_FILTER = 'all'; THU_STATION_FILTER = 'all';
+    renderAccountingThuView();
+  };
 
 
   /* ---------------------------------------------------------
@@ -1500,19 +1549,19 @@
   window.renderAccountingChiView = function () {
     var pendingCount = getExpenseRequests().filter(function (r) { return r.status === 'Chờ duyệt'; }).length;
     var tabBtn = function (key, label) {
-      return '<button class="acct-sub-tab ' + (CHI_SUB_TAB === key ? 'active' : '') + '" onclick="setChiSubTab(\'' + key + '\')">' + label + '</button>';
+      return '<button type="button" class="station-subtab' + (CHI_SUB_TAB === key ? ' active' : '') + '" onclick="setChiSubTab(\'' + key + '\')">' + label + '</button>';
     };
 
-    var html = '<div class="acct-sub-tabs">' +
-      tabBtn('requests', 'Yêu Cầu Chi Chờ Duyệt' + (pendingCount ? ' (' + pendingCount + ')' : '')) +
-      tabBtn('categories', 'Quản Lý Nhóm & Hạng Mục Chi Phí') +
-      '</div>';
+    var html = '<nav class="station-subtabs">' +
+      tabBtn('requests', 'Yêu cầu chi chờ duyệt' + (pendingCount ? ' (' + pendingCount + ')' : '')) +
+      tabBtn('categories', 'Quản lý nhóm &amp; hạng mục chi phí') +
+      '</nav>';
 
     var body;
     if (CHI_SUB_TAB === 'categories') body = buildChiCategoryManagerHtml();
     else body = buildExpenseRequestsSectionHtml();
 
-    html += '<div class="acct-ledger-content">' + body + '</div>';
+    html += body;
     $('viewAccountingChi').innerHTML = html;
   };
 
@@ -1592,37 +1641,47 @@
     var rows = groups.length ? groups.map(function (g, i) {
       var count = cats.filter(function (c) { return c.group === g.name; }).length;
       return '<tr>' +
-        '<td>' + (i + 1) + '</td>' +
-        '<td><strong>' + esc(g.name) + '</strong></td>' +
+        '<td class="num">' + (i + 1) + '</td>' +
+        '<td><b>' + esc(g.name) + '</b></td>' +
         '<td>' + count + ' hạng mục</td>' +
-        '<td>' +
-        '<button class="acct-icon-btn" title="Sửa nhóm" onclick="openAddChiGroupModal(\'' + esc(g.id) + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button> ' +
-        '<button class="acct-icon-btn del-btn" title="Xóa nhóm" onclick="deleteChiGroupItem(\'' + esc(g.id) + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>' +
-        '</td>' + chiSelCell('g', g.id) + '</tr>';
-    }).join('') : '<tr><td colspan="5" class="text-center py-4 text-sub">Chưa có nhóm chi phí nào — bấm "Thêm Nhóm Chi Phí" để tạo</td></tr>';
+        '<td class="row-actions"><button type="button" class="btn btn-sm row-menu-btn" data-action="chiGroupRowMenu" data-args=\'["__this__","' + esc(g.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button></td>' +
+        chiSelCell('g', g.id) + '</tr>';
+    }).join('') : '<tr><td colspan="5" class="empty-state">Chưa có nhóm chi phí nào — bấm "Thêm nhóm chi phí" để tạo.</td></tr>';
 
-    return '<div class="acct-box-head acct-box-head-spaced">' +
-      '<h3>Nhóm Chi Phí (' + groups.length + ')</h3>' +
-      '<button class="acct-btn acct-btn-primary" onclick="openAddChiGroupModal()">+ Thêm Nhóm Chi Phí</button>' +
-      '</div>' +
-      '<div class="report-box" style="margin-bottom: 20px;"><table class="acct-table"><thead><tr><th>STT</th><th>Tên nhóm chi phí</th><th>Số hạng mục</th><th>Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả nhóm" onchange="toggleAllChiCatSel(\'g\', this.checked)" /></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    return '<div class="sd-blocks"><div class="sd-section-block">' +
+      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>Nhóm chi phí</span>' +
+      '<span style="display:flex; align-items:center; gap:10px;">' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + groups.length + ' nhóm</span>' +
+      '<button type="button" class="btn btn-primary btn-sm" onclick="openAddChiGroupModal()">+ Thêm nhóm chi phí</button>' +
+      '</span></div>' +
+      '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num" style="white-space:nowrap;">STT</th><th>Tên nhóm chi phí</th><th>Số hạng mục</th><th class="th-actions">Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả nhóm" onchange="toggleAllChiCatSel(\'g\', this.checked)"></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '</div></div>';
   }
+
+  // Dropdown "Cập nhật ▾" cho dòng nhóm chi phí, thay 2 nút icon rời (Sửa/Xóa).
+  window.chiGroupRowMenu = function (btn, id) {
+    adminOpenRowMenu(btn, 'chigroup:' + id,
+      '<button type="button" class="admin-row-menu-item" data-action="openAddChiGroupModal" data-args=\'["' + esc(id) + '"]\'>Sửa</button>' +
+      '<button type="button" class="admin-row-menu-item danger" data-action="deleteChiGroupItem" data-args=\'["' + esc(id) + '"]\'>Xóa</button>');
+  };
 
   window.openAddChiGroupModal = function (id) {
     var groups = getChiGroups();
     var item = id ? groups.find(function (g) { return g.id === id; }) : null;
     var isEdit = !!item;
 
-    var formHtml = '<div class="modal-form-box">' +
-      '<div class="modal-head"><h3>' + (isEdit ? 'Sửa Nhóm Chi Phí' : 'Thêm Nhóm Chi Phí Mới') + '</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
-      '<form onsubmit="saveChiGroupForm(event' + (isEdit ? ", '" + esc(id) + "'" : '') + ')">' +
-      '<div class="form-grid">' +
-      '<div class="form-group col-span-2"><label>Tên nhóm chi phí</label><input type="text" id="grpName" class="acct-input" value="' + (item ? esc(item.name) : '') + '" placeholder="VD: Chi phí trực tiếp vận hành" required /></div>' +
-      '</div>' +
-      '<div class="modal-foot"><button type="button" class="acct-btn" onclick="closeAdminModal()">Hủy bỏ</button><button type="submit" class="acct-btn acct-btn-primary">' + (isEdit ? 'Lưu Thay Đổi' : 'Thêm Nhóm') + '</button></div>' +
-      '</form></div>';
-
-    openAdminModal(formHtml);
+    openAdminModal(
+      '<h3>' + (isEdit ? 'Sửa nhóm chi phí' : 'Thêm nhóm chi phí mới') + '</h3>' +
+      '<form class="admin-form" data-submit-action="saveChiGroupForm" data-args=\'["__event__"' + (isEdit ? ',"' + esc(id) + '"' : '') + ']\'>' +
+        '<div class="fld"><label>Tên nhóm chi phí <span class="req">*</span></label><input type="text" id="grpName" required value="' + (item ? esc(item.name) : '') + '" placeholder="VD: Chi phí trực tiếp vận hành"></div>' +
+        '<div class="modal-actions">' +
+          '<button type="button" class="btn" data-action="closeAdminModal">Hủy bỏ</button>' +
+          '<button type="submit" class="btn btn-primary">' + (isEdit ? 'Lưu thay đổi' : 'Thêm nhóm') + '</button>' +
+        '</div>' +
+      '</form>',
+      true
+    );
   };
 
   window.saveChiGroupForm = function (e, id) {
@@ -1677,35 +1736,44 @@
 
     var rows = list.length ? list.map(function (c, i) {
       return '<tr>' +
-        '<td>' + (i + 1) + '</td>' +
-        '<td><span class="badge badge-tag">' + esc(c.group) + '</span></td>' +
-        '<td><strong>' + esc(c.name) + '</strong></td>' +
-        '<td>' +
-        '<button class="acct-icon-btn" title="Sửa hạng mục" onclick="openAddChiCategoryModal(\'' + esc(c.id) + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button> ' +
-        '<button class="acct-icon-btn del-btn" title="Xóa hạng mục" onclick="deleteChiCategoryItem(\'' + esc(c.id) + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>' +
-        '</td>' + chiSelCell('c', c.id) + '</tr>';
-    }).join('') : '<tr><td colspan="5" class="text-center py-4 text-sub">Chưa có hạng mục chi phí nào — bấm "Thêm Hạng Mục Chi" để tạo</td></tr>';
+        '<td class="num">' + (i + 1) + '</td>' +
+        '<td><span class="hint-inline">' + esc(c.group) + '</span></td>' +
+        '<td><b>' + esc(c.name) + '</b></td>' +
+        '<td class="row-actions"><button type="button" class="btn btn-sm row-menu-btn" data-action="chiCategoryRowMenu" data-args=\'["__this__","' + esc(c.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button></td>' +
+        chiSelCell('c', c.id) + '</tr>';
+    }).join('') : '<tr><td colspan="5" class="empty-state">Chưa có hạng mục chi phí nào — bấm "Thêm hạng mục chi" để tạo.</td></tr>';
 
     var subTab = function (key, label) {
-      return '<button class="acct-sub-tab ' + (CHI_CAT_TAB === key ? 'active' : '') + '" onclick="setChiCatTab(\'' + key + '\')">' + label + '</button>';
+      return '<button type="button" class="station-subtab' + (CHI_CAT_TAB === key ? ' active' : '') + '" onclick="setChiCatTab(\'' + key + '\')">' + label + '</button>';
     };
-    var html = '<div class="acct-sub-tabs">' + subTab('groups', 'Nhóm Chi Phí') + subTab('items', 'Hạng Mục Chi') + '</div>';
+    var html = '<nav class="station-subtabs">' + subTab('groups', 'Nhóm chi phí') + subTab('items', 'Hạng mục chi') + '</nav>';
 
     var selCount = Object.keys(CHI_CAT_SEL).length;
-    var itemsHtml = '<div class="acct-box-head acct-box-head-spaced">' +
-      '<h3>Hạng Mục Chi (' + list.length + ')</h3>' +
-      '<button class="acct-btn acct-btn-primary" onclick="openAddChiCategoryModal()">+ Thêm Hạng Mục Chi</button>' +
-      '</div>' +
-      '<div class="report-box"><table class="acct-table"><thead><tr><th>STT</th><th>Nhóm chi phí</th><th>Hạng mục chi tiết</th><th>Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả hạng mục" onchange="toggleAllChiCatSel(\'c\', this.checked)" /></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    var itemsHtml = '<div class="sd-blocks"><div class="sd-section-block">' +
+      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>Hạng mục chi</span>' +
+      '<span style="display:flex; align-items:center; gap:10px;">' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + list.length + ' hạng mục</span>' +
+      '<button type="button" class="btn btn-primary btn-sm" onclick="openAddChiCategoryModal()">+ Thêm hạng mục chi</button>' +
+      '</span></div>' +
+      '<div class="sd-table-wrap"><table class="admin-table chi-cat-items-table"><thead><tr><th class="num" style="white-space:nowrap;">STT</th><th>Nhóm chi phí</th><th>Hạng mục chi tiết</th><th class="th-actions">Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả hạng mục" onchange="toggleAllChiCatSel(\'c\', this.checked)"></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '</div></div>';
     html += '<div class="phoi-grid-wrap' + (selCount ? ' has-bulk-bar' : '') + '" id="chiCatWrap">' + (CHI_CAT_TAB === 'items' ? itemsHtml : buildChiGroupManagerHtml()) + '</div>' +
       '<div class="bulk-bar" id="chiCatSelBar" style="display: ' + (selCount ? 'flex' : 'none') + ';">' +
       '<span class="bulk-bar-hint" id="chiCatSelHint">Đã chọn ' + selCount + ' mục</span>' +
       '<div class="bulk-bar-fields">' +
-      '<button type="button" class="acct-btn" onclick="clearChiCatSel()">Hủy</button>' +
-      '<button type="button" class="acct-btn" style="background: #C20D08; border-color: #C20D08; color: #fff;" onclick="deleteSelectedChiCat()">Xóa</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="clearChiCatSel()">Hủy</button>' +
+      '<button type="button" class="btn btn-danger" onclick="deleteSelectedChiCat()">Xóa</button>' +
       '</div></div>';
     return html;
   }
+
+  // Dropdown "Cập nhật ▾" cho dòng hạng mục chi, thay 2 nút icon rời (Sửa/Xóa).
+  window.chiCategoryRowMenu = function (btn, id) {
+    adminOpenRowMenu(btn, 'chicat:' + id,
+      '<button type="button" class="admin-row-menu-item" data-action="openAddChiCategoryModal" data-args=\'["' + esc(id) + '"]\'>Sửa</button>' +
+      '<button type="button" class="admin-row-menu-item danger" data-action="deleteChiCategoryItem" data-args=\'["' + esc(id) + '"]\'>Xóa</button>');
+  };
 
   window.openAddChiCategoryModal = function (id) {
     var list = getChiCategories();
@@ -1713,17 +1781,18 @@
     var isEdit = !!item;
     var datalistHtml = '<datalist id="chiGroupDatalist">' + acctChiDistinctGroups(list).map(function (g) { return '<option value="' + esc(g) + '">'; }).join('') + '</datalist>';
 
-    var formHtml = '<div class="modal-form-box">' +
-      '<div class="modal-head"><h3>' + (isEdit ? 'Sửa Hạng Mục Chi' : 'Thêm Hạng Mục Chi Mới') + '</h3><button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
-      '<form onsubmit="saveChiCategoryForm(event' + (isEdit ? ", '" + esc(id) + "'" : '') + ')">' +
-      '<div class="form-grid">' +
-      '<div class="form-group col-span-2"><label>Nhóm chi phí</label><input type="text" id="catGroup" class="acct-input" list="chiGroupDatalist" value="' + (item ? esc(item.group) : '') + '" placeholder="VD: Chi phí trực tiếp vận hành" required />' + datalistHtml + '</div>' +
-      '<div class="form-group col-span-2"><label>Tên hạng mục chi</label><input type="text" id="catName" class="acct-input" value="' + (item ? esc(item.name) : '') + '" placeholder="VD: Nhiên liệu (Xăng/Dầu)" required /></div>' +
-      '</div>' +
-      '<div class="modal-foot"><button type="button" class="acct-btn" onclick="closeAdminModal()">Hủy bỏ</button><button type="submit" class="acct-btn acct-btn-primary">' + (isEdit ? 'Lưu Thay Đổi' : 'Thêm Hạng Mục') + '</button></div>' +
-      '</form></div>';
-
-    openAdminModal(formHtml);
+    openAdminModal(
+      '<h3>' + (isEdit ? 'Sửa hạng mục chi' : 'Thêm hạng mục chi mới') + '</h3>' +
+      '<form class="admin-form" data-submit-action="saveChiCategoryForm" data-args=\'["__event__"' + (isEdit ? ',"' + esc(id) + '"' : '') + ']\'>' +
+        '<div class="fld"><label>Nhóm chi phí <span class="req">*</span></label><input type="text" id="catGroup" list="chiGroupDatalist" value="' + (item ? esc(item.group) : '') + '" placeholder="VD: Chi phí trực tiếp vận hành" required>' + datalistHtml + '</div>' +
+        '<div class="fld"><label>Tên hạng mục chi <span class="req">*</span></label><input type="text" id="catName" value="' + (item ? esc(item.name) : '') + '" placeholder="VD: Nhiên liệu (Xăng/Dầu)" required></div>' +
+        '<div class="modal-actions">' +
+          '<button type="button" class="btn" data-action="closeAdminModal">Hủy bỏ</button>' +
+          '<button type="submit" class="btn btn-primary">' + (isEdit ? 'Lưu thay đổi' : 'Thêm hạng mục') + '</button>' +
+        '</div>' +
+      '</form>',
+      true
+    );
   };
 
   window.saveChiCategoryForm = function (e, id) {
@@ -1792,7 +1861,7 @@
     var list = all.filter(function (r) {
       if (EXP_REQ_STATUS_FILTER === 'all' ? r.status === 'Đã hủy' : r.status !== EXP_REQ_STATUS_FILTER) return false;
       if (kw && (r.requester || '').toLowerCase().indexOf(kw) === -1 && (r.id || '').toLowerCase().indexOf(kw) === -1 && (r.payee || '').toLowerCase().indexOf(kw) === -1) return false;
-      if (EXP_REQ_F.date && r.date !== EXP_REQ_F.date) return false;
+      if (EXP_REQ_F.date && String(r.date || '').slice(0, 10) !== EXP_REQ_F.date) return false;
       if (EXP_REQ_F.station !== 'all' && r.station !== EXP_REQ_F.station) return false;
       if (EXP_REQ_F.category !== 'all' && r.category !== EXP_REQ_F.category) return false;
       return true;
@@ -1802,146 +1871,304 @@
     var approvedAmt = all.filter(function (r) { return r.status === 'Đã duyệt'; }).reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
     var pendingAmt = pendingList.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
 
-    var html = '<div class="acct-box-head">' +
-      '<h3>Yêu Cầu Chi Chờ Duyệt' + (pendingList.length ? ' <span class="badge badge-warning">' + pendingList.length + ' chờ duyệt</span>' : '') + '</h3>' +
-      '<button class="acct-btn acct-btn-primary" onclick="openAddExpenseRequestModal()"><svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo Yêu Cầu Chi Mới</button>' +
-      '</div>';
-
-    html += '<div class="acct-stats-grid">' +
-      '<div class="acct-stat-card card-c4"><div class="stat-lbl">ĐANG CHỜ DUYỆT</div><div class="stat-val text-c4">' + pendingList.length + ' yêu cầu</div><div class="stat-sub">Tổng đề nghị: ' + fmtMoney(pendingAmt) + '</div></div>' +
-      '<div class="acct-stat-card card-c1"><div class="stat-lbl">ĐÃ DUYỆT → PHIẾU CHI</div><div class="stat-val text-c1">' + fmtMoney(approvedAmt) + '</div></div>' +
-      '<div class="acct-stat-card card-c2"><div class="stat-lbl">TỔNG SỐ YÊU CẦU</div><div class="stat-val text-c2">' + all.length + '</div></div>' +
-      '</div>';
-
     var stOpt = function (v, label) { return '<option value="' + v + '"' + (EXP_REQ_STATUS_FILTER === v ? ' selected' : '') + '>' + label + '</option>'; };
     var stationOpts = acctAllStations().map(function (st) {
       return '<option value="' + esc(st.name) + '"' + (st.name === EXP_REQ_F.station ? ' selected' : '') + '>' + esc(st.name) + '</option>';
     }).join('');
-    html += '<div class="acct-filter-bar">' +
-      '<input type="text" class="acct-input" placeholder="Tìm theo tên người đề nghị, mã YC, người nhận..." value="' + esc(EXP_REQ_F.kw) + '" oninput="onExpReqFilter(\'kw\', this.value)" />' +
-      '<input type="date" class="acct-input" style="width: 150px;" value="' + esc(EXP_REQ_F.date) + '" onchange="onExpReqFilter(\'date\', this.value)" title="Lọc theo ngày đề nghị" />' +
-      '<select class="acct-select" style="width: 160px;" onchange="onExpReqFilter(\'station\', this.value)"><option value="all">Tất cả Trạm xe</option>' + stationOpts + '</select>' +
-      '<select class="acct-select" style="width: 180px;" onchange="onExpReqFilter(\'category\', this.value)"><option value="all">Tất cả Hạng mục</option>' + acctChiCategoryOptionsHtml(EXP_REQ_F.category) + '</select>' +
-      '<select class="acct-select" style="width: 150px;" onchange="onExpReqStatusFilter(this.value)">' +
+    var html = '<div class="sd-toolbar">' +
+      '<div class="filter-field sd-field-search"><label>Tìm kiếm</label>' +
+      '<input type="text" placeholder="Người đề nghị, mã YC, người nhận..." value="' + esc(EXP_REQ_F.kw) + '" oninput="onExpReqFilter(\'kw\', this.value)"></div>' +
+      '<div class="filter-field"><label>Ngày đề nghị</label><input type="date" value="' + esc(EXP_REQ_F.date) + '" onchange="onExpReqFilter(\'date\', this.value)"></div>' +
+      '<div class="filter-field"><label>Trạm xe</label><select onchange="onExpReqFilter(\'station\', this.value)"><option value="all">Tất cả trạm xe</option>' + stationOpts + '</select></div>' +
+      '<div class="filter-field"><label>Hạng mục</label><select onchange="onExpReqFilter(\'category\', this.value)"><option value="all">Tất cả hạng mục</option>' + acctChiCategoryOptionsHtml(EXP_REQ_F.category) + '</select></div>' +
+      '<div class="filter-field"><label>Trạng thái</label><select onchange="onExpReqStatusFilter(this.value)">' +
       stOpt('all', 'Tất cả trạng thái') + stOpt('Chờ duyệt', 'Chờ duyệt') + stOpt('Đã duyệt', 'Đã duyệt') + stOpt('Từ chối', 'Từ chối') + stOpt('Đã hủy', 'Đã hủy') +
-      '</select></div>';
+      '</select></div>' +
+      '<div class="sd-toolbar-actions">' +
+      '<button type="button" class="btn btn-primary sd-btn" onclick="openAddExpenseRequestModal()">+ Tạo yêu cầu chi mới</button>' +
+      '</div>' +
+      '</div>';
 
     var selCount = Object.keys(EXP_REQ_SEL).length;
-    html += '<div class="phoi-grid-wrap' + (selCount ? ' has-bulk-bar' : '') + '" id="erWrap"><div class="report-box er-table-box"><table class="acct-table er-table"><thead><tr>' +
-      '<th>STT</th><th>Mã YC</th><th>Ngày đề nghị</th><th>Người đề nghị</th><th>Hạng mục chi</th><th>Đơn vị/Người nhận</th><th>Số tiền đề nghị</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả" onchange="toggleAllExpenseRequestSel(this.checked)" /></th>' +
-      '</tr></thead><tbody>';
-
+    var erRowsHtml;
     if (list.length === 0) {
-      html += '<tr><td colspan="11" class="text-center py-4 text-sub">Chưa có yêu cầu chi nào phù hợp</td></tr>';
+      erRowsHtml = '<tr><td colspan="11" class="empty-state">Chưa có yêu cầu chi nào phù hợp.</td></tr>';
     } else {
-      list.forEach(function (r, idx) {
-        var badge = '<span class="badge badge-warning">Chờ duyệt</span>';
-        if (r.status === 'Đã duyệt') badge = '<span class="badge badge-success">Đã duyệt (' + esc(r.approvedVoucherId || '') + ')</span>';
-        else if (r.status === 'Từ chối') badge = '<span class="badge badge-danger">Từ chối</span>';
-        else if (r.status === 'Đã hủy') badge = '<span class="badge badge-tag">Đã hủy</span>';
+      erRowsHtml = list.map(function (r, idx) {
+        var badge = '<span class="status-badge chua-chi-dinh"><span class="status-dot"></span>Chờ duyệt</span>';
+        if (r.status === 'Đã duyệt') badge = '<span class="status-badge dang-ban"><span class="status-dot"></span>Đã duyệt</span>';
+        else if (r.status === 'Từ chối') badge = '<span class="status-badge da-khoi-hanh"><span class="status-dot"></span>Từ chối</span>';
+        else if (r.status === 'Đã hủy') badge = '<span class="status-badge da-huy"><span class="status-dot"></span>Đã hủy</span>';
 
-        var actions = '';
-        if (r.status === 'Chờ duyệt') {
-          actions += '<button class="acct-icon-btn" title="Duyệt & lập phiếu chi" onclick="approveExpenseRequest(\'' + r.id + '\')" style="color:#16A34A;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>' +
-            '<button class="acct-icon-btn" title="Từ chối" onclick="rejectExpenseRequest(\'' + r.id + '\')" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
-        }
-        if (r.status !== 'Đã hủy') actions += '<button class="acct-icon-btn del-btn" title="Xóa yêu cầu" onclick="deleteExpenseRequest(\'' + r.id + '\')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>';
-
-        html += '<tr>' +
-          '<td>' + (idx + 1) + '</td>' +
-          '<td><strong>' + esc(r.id) + '</strong></td>' +
-          '<td>' + fmtDate(r.date) + '</td>' +
+        return '<tr>' +
+          '<td class="num">' + (idx + 1) + '</td>' +
+          '<td><b>' + esc(r.id) + '</b></td>' +
+          '<td class="mono" style="color:var(--text-sub);">' + fmtStamp(r.date).replace(' ', '<br>') + '</td>' +
           '<td>' + esc(r.requester) + '</td>' +
-          '<td class="cell-wrap"><span class="badge badge-tag er-group-tag">' + esc(r.mainGroup || '—') + '</span><br><strong>' + esc(r.category) + '</strong>' + (r.plate && r.plate !== '—' ? ' <small class="text-sub">(' + esc(r.plate) + ')</small>' : '') + '</td>' +
-          '<td class="cell-wrap">' + esc(r.payee) + '</td>' +
-          '<td class="text-red font-bold">' + fmtMoney(r.amount) + '</td>' +
-          '<td class="cell-wrap"><small>' + esc(r.reason || '') + (r.status === 'Từ chối' && r.rejectReason ? '<br><span class="text-red">Lý do từ chối: ' + esc(r.rejectReason) + '</span>' : '') + (r.status === 'Đã hủy' && r.cancelReason ? '<br><span class="text-red">Lý do hủy: ' + esc(r.cancelReason) + '</span>' : '') + '</small></td>' +
+          '<td><span class="chi-group-tag">' + esc(r.mainGroup || '—') + '</span><br><b>' + esc(r.category) + '</b>' + (r.plate && r.plate !== '—' ? ' <span class="chi-plate-tag">' + esc(r.plate) + '</span>' : '') + '</td>' +
+          '<td>' + esc(r.payee) + '</td>' +
+          '<td style="text-align:center; font-weight:700; color:var(--red);">' + fmtMoney(r.amount) + '</td>' +
+          '<td style="font-size:12.5px;">' + esc(r.reason || '') + (r.status === 'Từ chối' && r.rejectReason ? '<br><span style="color:var(--red);">Lý do từ chối: ' + esc(r.rejectReason) + '</span>' : '') + (r.status === 'Đã hủy' && r.cancelReason ? '<br><span style="color:var(--red);">Lý do hủy: ' + esc(r.cancelReason) + '</span>' : '') + '</td>' +
           '<td>' + badge + '</td>' +
-          '<td>' + actions + '</td>' +
+          '<td class="row-actions"><button type="button" class="btn btn-sm row-menu-btn" data-action="expReqRowMenu" data-args=\'["__this__","' + esc(r.id) + '","' + esc(r.status) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button></td>' +
           '<td style="text-align: center;">' + (r.status === 'Đã hủy' ? '' : '<input type="checkbox" class="er-sel" data-id="' + esc(r.id) + '"' + (EXP_REQ_SEL[r.id] ? ' checked' : '') + ' onchange="toggleExpenseRequestSel(\'' + esc(r.id) + '\', this.checked)" />') + '</td>' +
           '</tr>';
-      });
+      }).join('');
     }
 
-    html += '</tbody></table></div></div>' +
+    html += '<div class="phoi-grid-wrap' + (selCount ? ' has-bulk-bar' : '') + '" id="erWrap">' +
+      '<div class="sd-blocks"><div class="sd-section-block">' +
+      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>Yêu cầu chi chờ duyệt</span>' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + all.length + ' yêu cầu · ' + pendingList.length + ' chờ duyệt (' + fmtMoney(pendingAmt) + ') · Đã duyệt → phiếu chi: ' + fmtMoney(approvedAmt) + '</span>' +
+      '</div>' +
+      '<div class="sd-table-wrap"><table class="admin-table chi-requests-table"><thead><tr>' +
+      '<th class="num" style="white-space:nowrap;">STT</th><th>Mã YC</th><th>Thời gian</th><th>Người đề nghị</th><th>Hạng mục chi</th><th>Người nhận</th><th>Giá tiền</th><th>Lý do</th><th>Trạng thái</th><th class="th-actions">Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả" onchange="toggleAllExpenseRequestSel(this.checked)"></th>' +
+      '</tr></thead><tbody>' + erRowsHtml + '</tbody></table></div>' +
+      '</div></div></div>' +
       '<div class="bulk-bar" id="erSelBar" style="display: ' + (selCount ? 'flex' : 'none') + ';">' +
       '<span class="bulk-bar-hint" id="erSelHint">Đã chọn ' + selCount + ' yêu cầu</span>' +
       '<div class="bulk-bar-fields">' +
-      '<button type="button" class="acct-btn" onclick="clearExpenseRequestSel()">Hủy</button>' +
-      '<button type="button" class="acct-btn acct-btn-primary" style="background: #16A34A; border-color: #16A34A;" onclick="approveSelectedExpenseRequests()">Duyệt</button>' +
-      '<button type="button" class="acct-btn" style="background: #C20D08; border-color: #C20D08; color: #fff;" onclick="deleteSelectedExpenseRequests()">Xóa</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="clearExpenseRequestSel()">Hủy</button>' +
+      '<button type="button" class="btn btn-primary" onclick="approveSelectedExpenseRequests()">Duyệt</button>' +
+      '<button type="button" class="btn btn-danger" onclick="deleteSelectedExpenseRequests()">Xóa</button>' +
       '</div></div>';
     return html;
   }
 
-  // Trang "Tạo yêu cầu chi" — chỉ còn lối tắt mở form tạo mới; xem danh sách & duyệt/từ chối chuyển
-  // hẳn sang trang Chi phí (viewAccountingChi) để gộp chung với dòng tiền chi thực tế.
+  // Dropdown "Cập nhật ▾" cho dòng yêu cầu chi — cùng khuôn adminOpenRowMenu dùng chung mọi bảng admin
+  // khác thay 2-3 nút icon rời (Duyệt/Từ chối/Xóa).
+  window.expReqRowMenu = function (btn, id, status) {
+    var items = '';
+    if (status === 'Chờ duyệt') {
+      items += '<button type="button" class="admin-row-menu-item" data-action="approveExpenseRequest" data-args=\'["' + esc(id) + '"]\'>Duyệt &amp; lập phiếu chi</button>' +
+        '<button type="button" class="admin-row-menu-item" data-action="rejectExpenseRequest" data-args=\'["' + esc(id) + '"]\'>Từ chối</button>';
+    }
+    if (status !== 'Đã hủy') {
+      items += '<button type="button" class="admin-row-menu-item danger" data-action="deleteExpenseRequest" data-args=\'["' + esc(id) + '"]\'>Xóa yêu cầu</button>';
+    }
+    adminOpenRowMenu(btn, 'expreq:' + id, items);
+  };
+
+  /* ---------------------------------------------------------
+     Trang "Tạo yêu cầu chi" (viewAccountingExpenseRequests) — CỦA RIÊNG 1 nhân viên đang đăng nhập:
+     chỉ liệt kê yêu cầu do CHÍNH tài khoản này tạo (lọc theo createdBy = username, xem
+     acctCurrentUsername/saveExpenseRequestForm), thao tác chỉ Sửa/Xóa yêu cầu CỦA MÌNH lúc còn
+     "Chờ duyệt". Khác với trang "Chi phí" (buildExpenseRequestsSectionHtml) — nơi Kế toán xem TỔNG HỢP
+     yêu cầu của TẤT CẢ nhân viên để Duyệt/Từ chối — nên trang này KHÔNG có sub-tab, KHÔNG có nút
+     Duyệt/Từ chối, không có "Quản lý nhóm & hạng mục chi phí".
+     --------------------------------------------------------- */
+  var MY_ER_F = { search: '', date: '', category: 'all', status: 'all' };
+  var MY_ER_SEL = {}; // { id: true } — yêu cầu của MÌNH đang tick để xóa hàng loạt
+
+  window.onMyExpReqFilter = function (key, v) {
+    if (!(key in MY_ER_F)) return;
+    MY_ER_F[key] = v || (key === 'category' || key === 'status' ? 'all' : '');
+    MY_ER_SEL = {};
+    if (key === 'search') adminKeepFocus(renderAccountingExpenseRequestsView); else renderAccountingExpenseRequestsView();
+  };
+  window.onMyExpReqResetFilters = function () {
+    MY_ER_F = { search: '', date: '', category: 'all', status: 'all' };
+    MY_ER_SEL = {};
+    renderAccountingExpenseRequestsView();
+  };
+
+  function updateMyExpReqSelHint() {
+    var n = Object.keys(MY_ER_SEL).length;
+    var bar = $('myErSelBar');
+    if (bar) bar.style.display = n ? 'flex' : 'none';
+    var wrap = $('myErWrap');
+    if (wrap) wrap.classList.toggle('has-bulk-bar', n > 0);
+    var el = $('myErSelHint');
+    if (el) el.textContent = 'Đã chọn ' + n + ' yêu cầu';
+  }
+  window.clearMyExpenseRequestSel = function () {
+    MY_ER_SEL = {};
+    document.querySelectorAll('.my-er-sel, #myErWrap thead input').forEach(function (cb) { cb.checked = false; });
+    updateMyExpReqSelHint();
+  };
+  window.toggleMyExpenseRequestSel = function (id, on) {
+    if (on) MY_ER_SEL[id] = true; else delete MY_ER_SEL[id];
+    updateMyExpReqSelHint();
+  };
+  window.toggleAllMyExpenseRequestSel = function (on) {
+    document.querySelectorAll('.my-er-sel').forEach(function (cb) {
+      cb.checked = on;
+      if (on) MY_ER_SEL[cb.getAttribute('data-id')] = true; else delete MY_ER_SEL[cb.getAttribute('data-id')];
+    });
+    updateMyExpReqSelHint();
+  };
+  window.deleteSelectedMyExpenseRequests = function () { openDeleteExpenseReqModal(Object.keys(MY_ER_SEL)); };
+
+  // Dropdown "Cập nhật ▾" cho dòng yêu cầu CỦA MÌNH — chỉ "Sửa"/"Xóa", không có Duyệt/Từ chối (đó là
+  // việc của Kế toán ở trang Chi phí).
+  window.myExpReqRowMenu = function (btn, id, status) {
+    var items = '';
+    if (status === 'Chờ duyệt') items += '<button type="button" class="admin-row-menu-item" data-action="openAddExpenseRequestModal" data-args=\'["' + esc(id) + '"]\'>Sửa</button>';
+    if (status !== 'Đã duyệt' && status !== 'Đã hủy') items += '<button type="button" class="admin-row-menu-item danger" data-action="deleteExpenseRequest" data-args=\'["' + esc(id) + '"]\'>Xóa</button>';
+    if (!items) items = '<span class="admin-row-menu-item" style="cursor:default; color:var(--text-sub);">Không có thao tác</span>';
+    adminOpenRowMenu(btn, 'myexpreq:' + id, items);
+  };
+
   window.renderAccountingExpenseRequestsView = function () {
-    var pendingCount = getExpenseRequests().filter(function (r) { return r.status === 'Chờ duyệt'; }).length;
+    var myUsername = acctCurrentUsername();
+    var all = getExpenseRequests().filter(function (r) { return r.createdBy === myUsername; });
+    var f = MY_ER_F;
+    var kw = f.search.toLowerCase();
 
-    var html = '<div class="acct-header-bar">' +
-      '<div><h2 class="acct-title">Tạo Yêu Cầu Chi</h2>' +
-      '<p class="acct-subtitle">Đề nghị tạm ứng / chi tiền trước khi lập phiếu chi thật — Kế toán duyệt mới sinh Phiếu Chi vào sổ CHI</p></div>' +
+    var list = all.filter(function (r) {
+      if (f.status !== 'all' && r.status !== f.status) return false;
+      if (f.category !== 'all' && r.category !== f.category) return false;
+      if (f.date && String(r.date || '').slice(0, 10) !== f.date) return false;
+      if (kw && (r.id || '').toLowerCase().indexOf(kw) === -1 && (r.payee || '').toLowerCase().indexOf(kw) === -1 && (r.reason || '').toLowerCase().indexOf(kw) === -1) return false;
+      return true;
+    });
+
+    var pendingCount = all.filter(function (r) { return r.status === 'Chờ duyệt'; }).length;
+    var selCount = Object.keys(MY_ER_SEL).length;
+
+    var html = '<div class="sd-toolbar">' +
+      '<div class="filter-field sd-field-search"><label>Tìm kiếm</label>' +
+      '<input type="text" placeholder="Mã YC, người nhận, lý do..." value="' + esc(f.search) + '" oninput="onMyExpReqFilter(\'search\', this.value)"></div>' +
+      '<div class="filter-field"><label>Ngày đề nghị</label><input type="date" value="' + esc(f.date) + '" onchange="onMyExpReqFilter(\'date\', this.value)"></div>' +
+      '<div class="filter-field"><label>Hạng mục</label><select onchange="onMyExpReqFilter(\'category\', this.value)"><option value="all">Tất cả hạng mục</option>' + acctChiCategoryOptionsHtml(f.category !== 'all' ? f.category : null) + '</select></div>' +
+      '<div class="filter-field"><label>Trạng thái</label><select onchange="onMyExpReqFilter(\'status\', this.value)">' +
+      '<option value="all">Tất cả trạng thái</option>' +
+      '<option value="Chờ duyệt"' + (f.status === 'Chờ duyệt' ? ' selected' : '') + '>Chờ duyệt</option>' +
+      '<option value="Đã duyệt"' + (f.status === 'Đã duyệt' ? ' selected' : '') + '>Đã duyệt</option>' +
+      '<option value="Từ chối"' + (f.status === 'Từ chối' ? ' selected' : '') + '>Từ chối</option>' +
+      '<option value="Đã hủy"' + (f.status === 'Đã hủy' ? ' selected' : '') + '>Đã hủy</option>' +
+      '</select></div>' +
+      '<div class="sd-toolbar-actions">' +
+      '<button type="button" class="btn sd-btn" onclick="onMyExpReqResetFilters()">Đặt lại</button>' +
+      '<button type="button" class="btn btn-primary sd-btn" onclick="openAddExpenseRequestModal()">+ Tạo yêu cầu chi mới</button>' +
+      '</div>' +
       '</div>';
 
-    html += '<div class="er-cta-box">' +
-      '<div class="er-modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>' +
-      '<h3>Gửi một đề nghị tạm ứng / chi tiền mới</h3>' +
-      '<p>Điền thông tin khoản chi dự kiến — Kế toán sẽ xem xét, duyệt hoặc từ chối tại trang <strong>Chi phí (CHI)</strong>, nơi đề nghị được duyệt sẽ tự sinh ra 1 Phiếu Chi vào sổ CHI.</p>' +
-      (pendingCount ? '<p class="er-cta-pending">Hiện có <strong>' + pendingCount + '</strong> yêu cầu đang chờ duyệt tại trang Chi phí.</p>' : '') +
-      '<button class="acct-btn acct-btn-primary" onclick="openAddExpenseRequestModal()"><svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo Yêu Cầu Chi Mới</button>' +
-      '</div>';
+    var rowsHtml;
+    if (!list.length) {
+      rowsHtml = '<tr><td colspan="10" class="empty-state">' + (all.length ? 'Không có yêu cầu nào phù hợp bộ lọc.' : 'Bạn chưa gửi yêu cầu chi nào — bấm "Tạo yêu cầu chi mới" để tạo.') + '</td></tr>';
+    } else {
+      rowsHtml = list.map(function (r, idx) {
+        var badge = '<span class="status-badge chua-chi-dinh"><span class="status-dot"></span>Chờ duyệt</span>';
+        if (r.status === 'Đã duyệt') badge = '<span class="status-badge dang-ban"><span class="status-dot"></span>Đã duyệt</span>';
+        else if (r.status === 'Từ chối') badge = '<span class="status-badge da-khoi-hanh"><span class="status-dot"></span>Từ chối</span>';
+        else if (r.status === 'Đã hủy') badge = '<span class="status-badge da-huy"><span class="status-dot"></span>Đã hủy</span>';
+
+        return '<tr>' +
+          '<td class="num" style="text-align:center;">' + (idx + 1) + '</td>' +
+          '<td><b>' + esc(r.id) + '</b></td>' +
+          '<td class="mono" style="text-align:center; color:var(--text-sub);">' + fmtStamp(r.date).replace(' ', '<br>') + '</td>' +
+          '<td><span class="chi-group-tag">' + esc(r.mainGroup || '—') + '</span><br><b>' + esc(r.category) + '</b>' + (r.plate && r.plate !== '—' ? ' <span class="chi-plate-tag">' + esc(r.plate) + '</span>' : '') + '</td>' +
+          '<td>' + esc(r.payee) + '</td>' +
+          '<td style="text-align:center; font-weight:700; color:var(--red);">' + fmtMoney(r.amount) + '</td>' +
+          '<td style="font-size:12.5px;">' + esc(r.reason || '') + (r.status === 'Từ chối' && r.rejectReason ? '<br><span style="color:var(--red);">Lý do từ chối: ' + esc(r.rejectReason) + '</span>' : '') + (r.status === 'Đã hủy' && r.cancelReason ? '<br><span style="color:var(--red);">Lý do hủy: ' + esc(r.cancelReason) + '</span>' : '') + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td class="row-actions"><button type="button" class="btn btn-sm row-menu-btn" data-action="myExpReqRowMenu" data-args=\'["__this__","' + esc(r.id) + '","' + esc(r.status) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button></td>' +
+          '<td style="text-align: center;">' + (r.status === 'Đã duyệt' || r.status === 'Đã hủy' ? '' : '<input type="checkbox" class="my-er-sel" data-id="' + esc(r.id) + '"' + (MY_ER_SEL[r.id] ? ' checked' : '') + ' onchange="toggleMyExpenseRequestSel(\'' + esc(r.id) + '\', this.checked)">') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    html += '<div class="phoi-grid-wrap' + (selCount ? ' has-bulk-bar' : '') + '" id="myErWrap">' +
+      '<div class="sd-blocks"><div class="sd-section-block">' +
+      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+      '<span>Yêu cầu chi của tôi</span>' +
+      '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + all.length + ' yêu cầu · ' + pendingCount + ' chờ duyệt</span>' +
+      '</div>' +
+      '<div class="sd-table-wrap"><table class="admin-table"><thead><tr>' +
+      '<th class="num" style="white-space:nowrap;">STT</th><th>Mã YC</th><th>Thời gian</th><th>Hạng mục chi</th><th>Người nhận</th><th>Giá tiền</th><th>Lý do</th><th>Trạng thái</th><th class="th-actions">Thao tác</th><th style="text-align: center;"><input type="checkbox" title="Chọn tất cả" onchange="toggleAllMyExpenseRequestSel(this.checked)"></th>' +
+      '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
+      '</div></div></div>' +
+      '<div class="bulk-bar" id="myErSelBar" style="display: ' + (selCount ? 'flex' : 'none') + ';">' +
+      '<span class="bulk-bar-hint" id="myErSelHint">Đã chọn ' + selCount + ' yêu cầu</span>' +
+      '<div class="bulk-bar-fields">' +
+      '<button type="button" class="btn btn-secondary" onclick="clearMyExpenseRequestSel()">Hủy</button>' +
+      '<button type="button" class="btn btn-danger" onclick="deleteSelectedMyExpenseRequests()">Xóa</button>' +
+      '</div></div>';
 
     $('viewAccountingExpenseRequests').innerHTML = html;
   };
 
-  window.openAddExpenseRequestModal = function () {
-    var today = todayISO();
-    var code = 'YCC-' + Math.floor(100 + Math.random() * 900);
+  // Giá trị mặc định cho <input type="datetime-local"> (yyyy-mm-ddThh:mm, giờ địa phương) — không dùng
+  // todayISO()/toISOString() vì đó là UTC, sẽ lệch giờ hiển thị so với giờ máy người dùng đang gõ.
+  function erNowLocalStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
 
-    var formHtml = '<div class="modal-form-box">' +
-      '<div class="modal-head">' +
-      '<div class="er-modal-title-wrap">' +
-      '<div class="er-modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>' +
-      '<div><h3>Tạo Yêu Cầu Chi Mới</h3><p class="er-modal-subtitle">Gửi Kế toán duyệt trước khi lập phiếu chi thật</p></div>' +
-      '</div>' +
-      '<button type="button" class="btn-close" onclick="closeAdminModal()">✕</button></div>' +
-      '<form onsubmit="saveExpenseRequestForm(event)">' +
+  // id: có -> sửa yêu cầu (chỉ khi còn "Chờ duyệt", xem myExpReqRowMenu) — Mã yêu cầu khoá lại giống
+  // Tên tài khoản khoá khi sửa (admin-accounts.js). "Người đề nghị" LUÔN khoá theo tài khoản đang đăng
+  // nhập (acctCurrentUserName) — đây chính là điểm phân biệt "Tạo yêu cầu chi" (chỉ của NHÂN VIÊN đang
+  // thao tác) với "Chi phí" (tổng hợp yêu cầu của TẤT CẢ nhân viên, xem buildExpenseRequestsSectionHtml).
+  window.openAddExpenseRequestModal = function (id) {
+    var req = id ? getExpenseRequests().find(function (r) { return r.id === id; }) : null;
+    var isEdit = !!req;
+    var code = req ? req.id : ('YCC-' + Math.floor(100 + Math.random() * 900));
+    // <input type="datetime-local"> cần đúng "yyyy-mm-ddThh:mm" — dữ liệu cũ (trước khi thêm giờ vào cột
+    // "Thời gian" ở bảng) chỉ lưu date trơn "yyyy-mm-dd" nên phải tự bù "T00:00" mới hiện được lên form.
+    var erDateVal = req && req.date ? (req.date.indexOf('T') === -1 ? req.date + 'T00:00' : req.date) : erNowLocalStr();
 
-      '<div class="er-section">' +
-      '<div class="er-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Thông tin đề nghị</div>' +
-      '<div class="form-grid">' +
-      '<div class="form-group"><label>Mã yêu cầu</label><input type="text" id="erId" class="acct-input" value="' + code + '" required /></div>' +
-      '<div class="form-group"><label>Ngày đề nghị</label><input type="date" id="erDate" class="acct-input" value="' + today + '" required /></div>' +
-      '<div class="form-group col-span-2"><label>Người đề nghị</label><input type="text" id="erRequester" class="acct-input" placeholder="Họ tên người đề nghị" required /></div>' +
-      '</div>' +
-      '</div>' +
-
-      '<div class="er-section">' +
-      '<div class="er-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Chi tiết khoản chi</div>' +
-      '<div class="form-grid">' +
-      '<div class="form-group"><label>Nhóm chi phí chính</label><select id="erMainGroup" class="acct-select">' + acctChiGroupOptionsHtml() + '</select></div>' +
-      '<div class="form-group"><label>Hạng mục chi</label><select id="erCategory" class="acct-select">' + acctChiCategoryOptionsHtml() + '</select></div>' +
-      '<div class="form-group"><label>Biển số xe (nếu có)</label><input type="text" id="erPlate" class="acct-input" placeholder="VD: 67B-012.34" /></div>' +
-      '<div class="form-group"><label>Trạm xe</label><select id="erStation" class="acct-select"><option value="">— Không chọn —</option>' + acctAllStations().map(function (st) { return '<option value="' + esc(st.name) + '">' + esc(st.name) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="form-group"><label>Đơn vị / Người nhận tiền</label><input type="text" id="erPayee" class="acct-input" placeholder="VD: Gara, Cây xăng, Nhân viên..." required /></div>' +
-      '<div class="form-group col-span-2 er-amount-group"><label>Số tiền đề nghị (VNĐ)</label><input type="number" id="erAmount" class="acct-input" placeholder="0" min="1000" required /></div>' +
-      '<div class="form-group col-span-2"><label>Lý do đề nghị chi</label><textarea id="erReason" class="acct-input" rows="2" placeholder="Lý do, mục đích khoản chi..." required></textarea></div>' +
-      '</div>' +
-      '</div>' +
-
-      '<div class="modal-foot"><button type="button" class="acct-btn" onclick="closeAdminModal()">Hủy bỏ</button><button type="submit" class="acct-btn acct-btn-primary">Gửi Yêu Cầu Chi</button></div>' +
-      '</form></div>';
-
-    openAdminModal(formHtml, true);
+    // Gói gọn 9 field còn lại (bỏ hẳn field "Người đề nghị" — luôn khoá theo tài khoản đang đăng nhập,
+    // xem acctCurrentUserName/saveExpenseRequestForm, không cần hiện trong form) vào 4 fld-row 2 cột +
+    // 1 textarea, thay vì mỗi field 1 dòng riêng — modal thấp hẳn lại, không cần thanh cuộn ở màn hình
+    // laptop thông thường.
+    openAdminModal(
+      '<h3>' + (isEdit ? 'Sửa yêu cầu chi' : 'Tạo yêu cầu chi mới') + '</h3>' +
+      '<form class="admin-form er-form" data-submit-action="saveExpenseRequestForm" data-args=\'["__event__"' + (isEdit ? ',"' + esc(id) + '"' : '') + ']\'>' +
+        '<div class="fld-row">' +
+          '<div class="fld"><label>Mã yêu cầu <span class="req">*</span></label><input type="text" id="erId" value="' + esc(code) + '"' + (isEdit ? ' readonly disabled' : '') + ' required></div>' +
+          '<div class="fld"><label>Thời gian đề nghị <span class="req">*</span></label><input type="datetime-local" id="erDate" value="' + esc(erDateVal) + '" required></div>' +
+        '</div>' +
+        '<div class="fld-row">' +
+          '<div class="fld"><label>Nhóm chi phí chính</label><select id="erMainGroup">' + acctChiGroupOptionsHtml(req ? req.mainGroup : null) + '</select></div>' +
+          '<div class="fld"><label>Hạng mục chi</label><select id="erCategory">' + acctChiCategoryOptionsHtml(req ? req.category : null) + '</select></div>' +
+        '</div>' +
+        '<div class="fld-row">' +
+          '<div class="fld"><label>Biển số xe (nếu có)</label><input type="text" id="erPlate" value="' + (req && req.plate !== '—' ? esc(req.plate) : '') + '" placeholder="VD: 67B-012.34"></div>' +
+          '<div class="fld"><label>Trạm xe</label><select id="erStation"><option value="">— Không chọn —</option>' + acctAllStations().map(function (st) { return '<option value="' + esc(st.name) + '"' + (req && req.station === st.name ? ' selected' : '') + '>' + esc(st.name) + '</option>'; }).join('') + '</select></div>' +
+        '</div>' +
+        '<div class="fld-row">' +
+          '<div class="fld"><label>Đơn vị / Người nhận tiền <span class="req">*</span></label><input type="text" id="erPayee" value="' + (req ? esc(req.payee) : '') + '" placeholder="VD: Gara, Cây xăng, Nhân viên..." required></div>' +
+          '<div class="fld"><label>Số tiền đề nghị (VNĐ) <span class="req">*</span></label><input type="number" id="erAmount" value="' + (req ? req.amount : '') + '" placeholder="0" min="1000" required></div>' +
+        '</div>' +
+        '<div class="fld"><label>Lý do đề nghị chi <span class="req">*</span></label><textarea id="erReason" rows="2" placeholder="Lý do, mục đích khoản chi...">' + (req ? esc(req.reason) : '') + '</textarea></div>' +
+        '<div class="modal-actions">' +
+          '<button type="button" class="btn" data-action="closeAdminModal">Hủy bỏ</button>' +
+          '<button type="submit" class="btn btn-primary">' + (isEdit ? 'Lưu thay đổi' : 'Gửi yêu cầu chi') + '</button>' +
+        '</div>' +
+      '</form>',
+      true
+    );
   };
 
-  window.saveExpenseRequestForm = function (e) {
+  window.saveExpenseRequestForm = function (e, id) {
     e.preventDefault();
+    var list = getExpenseRequests();
+
+    if (id) {
+      var req = list.find(function (r) { return r.id === id; });
+      if (!req || req.status !== 'Chờ duyệt') { showToast('Chỉ sửa được yêu cầu đang chờ duyệt.'); return; }
+      req.date = $('erDate').value;
+      req.mainGroup = $('erMainGroup').value;
+      req.category = $('erCategory').value;
+      req.amount = Number($('erAmount').value) || 0;
+      req.plate = $('erPlate').value.trim() || '—';
+      req.station = $('erStation').value;
+      req.payee = $('erPayee').value.trim();
+      req.reason = $('erReason').value.trim();
+      saveExpenseRequests(list);
+      closeAdminModal();
+      showToast('Đã lưu yêu cầu chi ' + req.id + '!');
+      refreshExpenseRequestViews();
+      return;
+    }
+
     var newReq = {
       id: $('erId').value.trim(),
       date: $('erDate').value,
-      requester: $('erRequester').value.trim(),
+      requester: acctCurrentUserName(),
+      createdBy: acctCurrentUsername(),
       mainGroup: $('erMainGroup').value,
       category: $('erCategory').value,
       amount: Number($('erAmount').value) || 0,
@@ -1954,7 +2181,6 @@
       approvedVoucherId: ''
     };
 
-    var list = getExpenseRequests();
     list.unshift(newReq);
     saveExpenseRequests(list);
     closeAdminModal();
@@ -2122,6 +2348,7 @@
     });
     saveExpenseRequests(list);
     EXP_REQ_SEL = {};
+    MY_ER_SEL = {};
     closeAdminModal();
     showToast('Đã xóa ' + ids.length + ' yêu cầu chi!');
     refreshExpenseRequestViews();
