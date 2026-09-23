@@ -57,6 +57,8 @@ function openBookingPanel(seats, options = {}) {
   if (depositEnabledInput) depositEnabledInput.checked = hasDeposit;
   if (depositAmountInput) depositAmountInput.value = hasDeposit ? seat.depositAmount : '';
   depositMethodInputs.forEach(r => { r.checked = r.value === (hasDeposit ? seat.depositMethod : 'Tiền mặt'); });
+  // Đại lý (seat.agentId) — cùng cách khôi phục như cọc: sửa lại thì trả đúng ô "Đại lý" + đại lý đã chọn.
+  if (typeof setAgentFormState === 'function') setAgentFormState(mode === 'edit' ? (seat.agentId || '') : '');
 
   // Vé mẫu trước đây luôn hiện cứng "07:00 - Sài Gòn - Châu Đốc • 08/07/2026" bất kể đang mở phơi
   // nào — lấy đúng giờ/tuyến/ngày của phơi đang xem (currentTripId) để hiển thị đúng.

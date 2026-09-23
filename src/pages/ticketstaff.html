@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="../shared/css/booking-ui/01-base-layout.css?v=110">
 <link rel="stylesheet" href="../shared/css/booking-ui/02-zone1.css?v=112">
 <link rel="stylesheet" href="../shared/css/booking-ui/03-right-column.css?v=112">
-<link rel="stylesheet" href="../shared/css/booking-ui/04-overlay-modals.css?v=108">
+<link rel="stylesheet" href="../shared/css/booking-ui/04-overlay-modals.css?v=109">
 <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=111">
 <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109">
 <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108">
@@ -1419,6 +1419,15 @@
               Ghế đôi
             </label>
           </div>
+          <div class="deposit-block agent-block">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="f_agent_enabled" data-change-action="onAgentToggle">
+              Đại lý
+            </label>
+            <select id="f_agent_id" class="agent-select" style="display:none;" data-change-action="refreshTicket">
+              <option value="">-- Chọn đại lý --</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -2218,10 +2227,11 @@
 <script src="../auth/session.js?v=1"></script>
 <script src="../auth/permissions.js?v=2"></script>
 <script src="../shared/js/fleet-store.js?v=17"></script>
+<script src="../shared/js/agent-store.js?v=1"></script>
 <script src="../services/trip-service.js?v=1"></script>
 <script src="../services/pickup-service.js?v=2"></script>
 <script src="../services/shuttle-driver-service.js?v=1"></script>
-<script src="../shared/js/ui.js?v=16"></script>
+<script src="../shared/js/ui.js?v=17"></script>
 <!-- booking.js (2028 dòng) tách theo banner: history → combobox → rebook+misc.
      NẠP ĐÚNG THỨ TỰ; các mảnh dùng chung biến/hàm global như khi còn 1 file.
      Xem ../shared/js/README-booking.md. -->
@@ -2232,7 +2242,7 @@
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=157"></script>
+<script src="ticketstaff/ticketstaff.js?v=158"></script>
 <script src="ticketstaff/ticketstaff-account.js?v=3"></script>
 <script src="ticketstaff/ticketstaff-pickup.js?v=21"></script>
 <script src="ticketstaff/ticketstaff-manifest-core.js?v=8"></script>

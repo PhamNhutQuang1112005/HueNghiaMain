@@ -164,6 +164,22 @@
           </div>
         </div>
 
+        <button type="button" class="admin-nav-group-toggle" id="navGroupDaiLyToggle" data-action="adminToggleNavGroup" data-args='["navGroupDaiLyWrap"]'>
+          <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M10 20v-6h4v6"/></svg>
+          <span class="navgrp-title">Đại lý</span>
+          <svg class="grp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="admin-nav-group-wrap" id="navGroupDaiLyWrap">
+          <div class="admin-nav-group-inner">
+            <div class="admin-nav-group">
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewAgentSetup"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.31.22.65.22 1v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Thiết lập đại lý</button>
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewAgentStats"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Thống kê đại lý</button>
+            </div>
+          </div>
+        </div>
+
         <button type="button" class="admin-nav-group-toggle" id="navGroupKeToanToggle" data-action="adminToggleNavGroup" data-args='["navGroupKeToanWrap"]'>
           <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           <span class="navgrp-title">Kế toán &amp; Tài chính</span>
@@ -233,6 +249,8 @@
         <section class="admin-view" id="viewAccounts" hidden></section>
         <section class="admin-view" id="viewStaffStats" hidden></section>
         <section class="admin-view" id="viewRecruitment" hidden></section>
+        <section class="admin-view" id="viewAgentSetup" hidden></section>
+        <section class="admin-view" id="viewAgentStats" hidden></section>
         <section class="admin-view" id="viewActivity" hidden></section>
         <section class="admin-view" id="viewSettings" hidden></section>
 
@@ -392,6 +410,7 @@
   <script src="../auth/permissions.js?v=2"></script>
   <script src="../auth/accounts.js?v=2"></script>
   <script src="../shared/js/fleet-store.js?v=18"></script>
+  <script src="../shared/js/agent-store.js?v=1"></script>
   <script src="../shared/js/recruitment-data.js?v=1"></script>
 
   <!-- CKEditor 5 — chỉ dùng cho ô "Nội dung chi tiết" ở modal Thêm/Sửa bài tuyển dụng -->
@@ -402,7 +421,7 @@
   <!-- admin.js (1333 dòng) đã tách theo banner mục 1–8 thành các mảnh liền mạch — NẠP ĐÚNG
        THỨ TỰ (= thứ tự dòng file gốc); admin-settings-boot.js chứa dòng BOOT ở cuối nên phải nạp
        SAU cùng. Biến/hàm vẫn là global top-level như cũ. -->
-  <script src="admin/admin.js?v=33"></script>
+  <script src="admin/admin.js?v=34"></script>
   <script src="admin/admin-dashboard.js?v=3"></script>
   <script src="admin/admin-station-directory.js?v=16"></script>
   <script src="admin/admin-placeholders.js?v=6"></script>
@@ -419,6 +438,7 @@
   <script src="admin/admin-staff-config.js?v=4"></script>
   <script src="admin/admin-staff-stats.js?v=7"></script>
   <script src="admin/admin-recruitment.js?v=4"></script>
+  <script src="admin/admin-agents.js?v=1"></script>
   <script src="admin/admin-activity.js?v=1"></script>
   <script src="admin/admin-seat-layouts.js?v=4"></script>
   <script src="admin/admin-vehicle-seats.js?v=2"></script>

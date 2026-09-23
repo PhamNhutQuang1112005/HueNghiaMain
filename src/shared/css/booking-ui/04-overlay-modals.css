@@ -445,6 +445,18 @@
   font-size: 13.5px;
 }
 
+/* Ô "Đại lý" dưới "Đặt cọc": tick xong hiện select chọn đại lý ngay bên cạnh. */
+.agent-block > .checkbox-inline { flex: 0 0 auto; }
+.agent-block > .agent-select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 11px;
+  font-size: 13.5px;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  background: var(--white);
+}
+
 .deposit-fields {
   display: flex;
   flex-direction: column;

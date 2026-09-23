@@ -2222,6 +2222,39 @@ function cancelDepositModal() {
   else updateRebookDepositHint();
 }
 
+// Ô "Đại lý" dưới "Đặt cọc": tick thì hiện select chọn đại lý (danh sách từ AgentStore, Admin > Đại lý).
+// Đại lý lưu trên ghế ở seat.agentId + seat.agentName (tên chụp lúc đặt) để Admin thống kê vé/doanh thu.
+function setAgentFormState(agentId) {
+  const enabledEl = document.getElementById('f_agent_enabled');
+  const selectEl = document.getElementById('f_agent_id');
+  if (!enabledEl || !selectEl) return;
+  const agents = window.AgentStore ? AgentStore.getAll() : [];
+  const known = agents.some(a => a.id === agentId);
+  const orphan = agentId && !known ? `<option value="${escapeHtml(agentId)}">(Đại lý đã xoá)</option>` : '';
+  selectEl.innerHTML = '<option value="">-- Chọn đại lý --</option>' + orphan +
+    agents.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
+  enabledEl.checked = !!agentId;
+  selectEl.value = agentId || '';
+  selectEl.style.display = agentId ? '' : 'none';
+}
+
+function onAgentToggle() {
+  const checked = this.checked;
+  setAgentFormState('');
+  this.checked = checked;
+  const selectEl = document.getElementById('f_agent_id');
+  selectEl.style.display = checked ? '' : 'none';
+  if (checked) selectEl.focus();
+}
+
+// { agentId, agentName } của form hiện tại; {} nếu không tick. null = tick nhưng chưa chọn đại lý (form lỗi).
+function readAgentFromForm() {
+  if (!document.getElementById('f_agent_enabled')?.checked) return { agentId: '', agentName: '' };
+  const selectEl = document.getElementById('f_agent_id');
+  if (!selectEl.value) return null;
+  return { agentId: selectEl.value, agentName: selectEl.options[selectEl.selectedIndex].textContent };
+}
+
 function buildScannableQRText() {
   return 'https://caolinh2412.github.io/demo/';
 }
@@ -2561,6 +2594,11 @@ function saveTicket() {
     showToast('Số tiền cọc không được lớn hơn giá vé');
     return;
   }
+  const agentInfo = readAgentFromForm();
+  if (!agentInfo) {
+    showToast('Vui lòng chọn đại lý');
+    return;
+  }
 
   const applyFormToSeat = (seat) => {
     seat.customerName = document.getElementById('f_name').value.trim();
@@ -2579,6 +2617,8 @@ function saveTicket() {
     seat.zeroPriceReason = editedPrice === 0 ? document.getElementById('f_zero_price_reason').value.trim() : '';
     seat.depositAmount = depositEnabled ? depositAmountRaw : 0;
     seat.depositMethod = depositEnabled ? (document.querySelector('input[name="f_deposit_method"]:checked')?.value || 'Tiền mặt') : '';
+    seat.agentId = agentInfo.agentId;
+    seat.agentName = agentInfo.agentName;
     // Mốc giờ nhân viên thao tác — hiện ở cột "Thời gian" bảng Lịch sử (xem formatActionTime trong
     // shared/format.js). Ghi đè mỗi lần lưu form (tạo mới lẫn sửa vé) nên luôn phản ánh lần thao tác
     // gần nhất trên ghế này, không riêng lần đặt đầu tiên.
@@ -2674,6 +2714,11 @@ function sellTicket() {
   }
   if (depositEnabled && depositAmountRaw > editedPrice) {
     showToast('Số tiền cọc không được lớn hơn giá vé');
+    return;
+  }
+  const agentInfo = readAgentFromForm();
+  if (!agentInfo) {
+    showToast('Vui lòng chọn đại lý');
     return;
   }
 
@@ -2862,6 +2907,7 @@ function confirmSellPayment() {
   const editedPrice = getEditedPrice();
   const depositEnabled = document.getElementById('f_deposit_enabled').checked;
   const depositAmountRaw = parseInt(document.getElementById('f_deposit_amount').value, 10) || 0;
+  const agentInfo = readAgentFromForm() || { agentId: '', agentName: '' };
 
   const applyFormToSeat = (seat) => {
     seat.customerName = document.getElementById('f_name').value.trim();
@@ -2880,6 +2926,8 @@ function confirmSellPayment() {
     seat.zeroPriceReason = editedPrice === 0 ? document.getElementById('f_zero_price_reason').value.trim() : '';
     seat.depositAmount = depositEnabled ? depositAmountRaw : 0;
     seat.depositMethod = depositEnabled ? (document.querySelector('input[name="f_deposit_method"]:checked')?.value || 'Tiền mặt') : '';
+    seat.agentId = agentInfo.agentId;
+    seat.agentName = agentInfo.agentName;
     seat.paymentMethod = paymentMethod;
     // Mốc giờ nhân viên thao tác — hiện ở cột "Thời gian" bảng Lịch sử (xem formatActionTime trong
     // shared/format.js).
@@ -5196,7 +5244,14 @@ function zone1RenderAdvFilterPriceList() {
 // xem fleet-store.js) — vẫn bắt buộc khớp đúng loại xe. Trả về null nếu không khớp được tuyến+loại xe
 // nào, hoặc tuyến đó chưa có giá vé ghế đôi hợp lệ (>0) trong Admin — ẩn hẳn ô tick trong cả 2 trường hợp.
 function resolveDoubleSeatPricing(trip) {
-  if (!trip || !trip.vehicleType) return null;
+  if (!trip) return null;
+  // Đổi loại xe từ sơ đồ ghế chỉ cập nhật tripSeatBank[id].vehicleType, không cập nhật allTripsMeta —
+  // ưu tiên loại xe trong bank (đúng với xe đang hiển thị), rơi về trip.vehicleType.
+  const bank = typeof tripSeatBank === 'object' && tripSeatBank ? tripSeatBank[trip.id] : null;
+  const vehicleType = (bank && bank.vehicleType) || trip.vehicleType;
+  trip = { ...trip, vehicleType };
+  // Tuyến chưa gán loại xe (VD: tuyến mặc định) áp dụng cho mọi loại xe.
+  const vtOk = r => !r.vehicleType || r.vehicleType === vehicleType;
   let match = null;
 
   if (trip.fromStation && trip.toStation && window.FleetStore) {
@@ -5205,22 +5260,23 @@ function resolveDoubleSeatPricing(trip) {
       && Array.isArray(r.fromStations) && r.fromStations.indexOf(trip.fromStation) !== -1
       && Array.isArray(r.toStations) && r.toStations.indexOf(trip.toStation) !== -1
     );
-    match = candidates.find(r => r.vehicleType === trip.vehicleType) || null;
+    match = candidates.find(r => r.vehicleType === vehicleType) || candidates.find(vtOk) || null;
   }
 
   if (!match && trip.route && typeof TRIP_DIRECTIONS_CFG === 'object' && TRIP_DIRECTIONS_CFG) {
     for (const key of Object.keys(TRIP_DIRECTIONS_CFG)) {
       const dirRoutes = TRIP_DIRECTIONS_CFG[key] && TRIP_DIRECTIONS_CFG[key].routes;
       if (!Array.isArray(dirRoutes)) continue;
-      const found = dirRoutes.find(r => r.label === trip.route && r.vehicleType === trip.vehicleType);
+      const found = dirRoutes.find(r => r.label === trip.route && vtOk(r));
       if (found) { match = found; break; }
     }
   }
 
   if (!match) return null;
-  const double = Number(match.doubleSeatPrice) || 0;
-  if (!double) return null;
   const single = Number(match.price) || 0;
+  // Admin chưa nhập giá ghế đôi thì tạm tính gấp đôi giá ghế đơn để vẫn có ô tick.
+  const double = Number(match.doubleSeatPrice) || single * 2;
+  if (!double) return null;
   return { single, double };
 }
 
