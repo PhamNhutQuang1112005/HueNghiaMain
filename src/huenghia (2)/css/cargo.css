@@ -1,0 +1,1567 @@
+:root {
+  --primary: #C20D08;
+  --primary-hover: #9E0A06;
+  --brand-red: #C20D08;
+  --red-light: #FEEFEF;
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F8F7F7;
+  --border: #CBCDCD;
+  --border-dark: #B0B2B3;
+  --text-main: #111213;
+  --text-muted: #6B6E70;
+  --green: #16A34A;
+
+  /* Màu trạng thái theo quy ước FR-04.1 (đồng bộ shuttle.css) */
+  --status-waiting:#9CA3AF;
+  --status-waiting-bg:#F3F4F6;
+  --status-enroute:#B45309;
+  --status-enroute-bg:#FFF7E0;
+  --status-onboard:#1D4ED8;
+  --status-onboard-bg:#EFF4FF;
+  --status-issue:#DC2626;
+  --status-issue-bg:#FEF0EF;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.05);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font-family: inherit; font-size: inherit; }
+button { cursor: pointer; border: none; background: none; }
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page Header */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  max-width: 750px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--brand-red);
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25);
+}
+.brand-badge svg { width: 20px; height: 20px; }
+
+.brand-text strong {
+  display: block;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+.brand-text span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.search-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 380px;
+  margin-left: 8px;
+  padding: 7px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  transition: all 0.15s ease;
+}
+.search-shell:focus-within {
+  background: white;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(194, 13, 8, 0.1);
+}
+.search-shell svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+.search-shell input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14.5px;
+  color: var(--text-main);
+}
+
+.main-nav-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+}
+.nav-switch-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.nav-switch-item:hover {
+  color: var(--text-main);
+  background: rgba(255,255,255,0.6);
+}
+.nav-switch-item.active {
+  background: var(--surface, #ffffff);
+  color: var(--primary, #C20D08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.nav-switch-item svg {
+  flex-shrink: 0;
+}
+
+.status-slider {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+}
+.status-option {
+  position: relative;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.status-option input { position: absolute; opacity: 0; pointer-events: none; }
+
+.status-option.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(194, 13, 8, 0.25);
+}
+.status-option.status-returned-option.active {
+  background: var(--status-issue);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.primary-btn:hover {
+  background: var(--primary-hover);
+}
+
+.ghost-btn {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.ghost-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-dark);
+}
+
+.secondary-btn {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border: 1px solid var(--status-onboard-bg);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.secondary-btn:hover {
+  background: #DCE7FB;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: white;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Main Panel Layout */
+.main-panel {
+  flex: 1;
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.toolbar {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolbar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.toolbar-head h1 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(160px, 1.2fr) minmax(170px, 1.3fr) minmax(170px, 1.3fr) auto;
+  gap: 12px;
+  align-items: flex-end;
+}
+.filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.filter-grid select, .filter-grid input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 5px 10px;
+  background: var(--surface-2);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  height: 38px;
+}
+.filter-grid input[type="date"] {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: white;
+  border: 1.5px solid var(--border-dark);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+.filter-grid select:focus, .filter-grid input:focus {
+  background: white;
+  border-color: var(--primary);
+}
+.filter-submit-wrap {
+  display: flex;
+  align-items: flex-end;
+}
+.filter-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  height: 38px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(194, 13, 8, 0.25);
+  transition: all 0.15s ease;
+}
+.filter-submit-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Bảng không cuộn ngang */
+.table-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  min-width: 100%;
+}
+
+/* Kiểu bảng lưới đầy đủ (viền 4 cạnh mỗi ô, header căn giữa) tham khảo .admin-table bên admin.css —
+   2 file dùng chung đúng giá trị màu --border/--surface-2/--text-muted nên chuyển sang không lệch tông.
+   Scope trong .table-scroll (bảng danh sách chính) để không ảnh hưởng các bảng tự vẽ inline-style
+   khác trong trang (Lịch sử xóa, phiếu in...). */
+.table-scroll th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table-scroll td {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.table-scroll tr:hover td {
+  background: var(--surface-2);
+}
+
+.cargo-name {
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Thẻ Biển số xe Slate Nhã Nhặn */
+.plate-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--text-main);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+}
+
+/* Thẻ Tuyến đường tinh tế */
+.route-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14.5px;
+  color: var(--text-main);
+}
+
+.route-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--status-onboard);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+/* Thẻ Trạng thái (Đã bỏ màu vàng) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-pending { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); border: 1px solid rgba(29,78,216,.25); }
+.status-delivered { background: #EAFBF1; color: var(--green); border: 1px solid rgba(22,163,74,.25); }
+
+/* Cụm nút hành động */
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.action-group button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.action-group button svg {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.action-group .btn-detail {
+  background: var(--surface-2);
+  color: var(--text-main);
+  border-color: var(--border);
+}
+.action-group .btn-detail:hover {
+  background: var(--border);
+}
+
+.action-group .btn-transfer {
+  background: #ecfeff;
+  color: #0f766e;
+  border-color: #cffafe;
+}
+.action-group .btn-transfer:hover {
+  background: #cffafe;
+}
+
+.action-group .btn-edit {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border-color: var(--status-onboard-bg);
+}
+.action-group .btn-edit:hover {
+  background: #DCE7FB;
+}
+
+.action-group .btn-print {
+  background: #EAFBF1;
+  color: var(--green);
+  border-color: rgba(22,163,74,.35);
+}
+.action-group .btn-print:hover {
+  background: #D3F5E0;
+}
+
+.action-group .btn-delete {
+  background: var(--red-light);
+  color: var(--primary);
+  border-color: var(--red-light);
+}
+.action-group .btn-delete:hover {
+  background: #FBD9D8;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  width: min(980px, 100%);
+  max-height: min(90vh, 850px);
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: white;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.modal-head .icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modal-head .icon-btn:hover {
+  background: var(--red-light);
+  color: var(--primary);
+  border-color: #F8C9C7;
+  transform: scale(1.05);
+}
+
+.modal-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+#cargoDetailContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.form-section {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Service Cards Grid (2 columns side-by-side) */
+.service-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.service-card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.service-card.active {
+  border-color: var(--primary);
+  background: var(--red-light);
+  box-shadow: 0 2px 8px rgba(194, 13, 8, 0.08);
+}
+
+.service-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-form label.service-toggle {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.service-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0 !important;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.service-card-body {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.form-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pay-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pay-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--surface-2);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pay-pill:hover {
+  background: white;
+  border-color: var(--border-dark);
+}
+
+.pay-pill input[type="radio"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.btn-qr-gen {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border: 1px solid var(--status-onboard-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  animation: fadeIn 0.18s ease;
+}
+.btn-qr-gen:hover {
+  background: #DCE7FB;
+}
+
+.service-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  font-size: 13.5px;
+  background: white;
+  transition: all 0.15s ease;
+}
+
+.service-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(194, 13, 8, 0.1);
+  outline: none;
+}
+
+.modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.modal-form input, .modal-form select, .modal-form textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  font-size: 14.5px;
+  outline: none;
+  background: var(--surface-2);
+}
+.modal-form input:focus, .modal-form select:focus, .modal-form textarea:focus {
+  background: white;
+  border-color: var(--primary);
+}
+
+.full-width { grid-column: 1 / -1; }
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+/* Frame Grid */
+/* Minimalist Cargo Detail Layout */
+.cargo-detail-minimal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #0f172a;
+}
+
+.minimal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.minimal-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.minimal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.minimal-code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.minimal-status {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.minimal-divider {
+  height: 1px;
+  background: #e2e8f0;
+  width: 100%;
+  margin: 2px 0;
+}
+
+.minimal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.minimal-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.minimal-route-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.minimal-subtext {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+.minimal-subtext.note {
+  color: #334155;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.minimal-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.minimal-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.minimal-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.minimal-val-main {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.minimal-val {
+  font-size: 13.5px;
+  color: #0f172a;
+}
+.minimal-val.bold {
+  font-weight: 700;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: var(--text-main);
+  color: white;
+  padding: 10px 18px;
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 120;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Shipping Label Sticker Card */
+.cargo-sticker-card {
+  background: white;
+  border: 2px solid var(--black);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--black);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+.sticker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--black);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.sticker-brand {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sticker-code-badge {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--surface-2);
+  border: 1px solid var(--border-dark);
+  padding: 3px 10px;
+  border-radius: 6px;
+  color: var(--black);
+}
+
+.sticker-barcode-wrap {
+  text-align: center;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-dark);
+  border-radius: 8px;
+  padding: 10px 8px;
+  margin-bottom: 12px;
+}
+
+.barcode-lines-svg {
+  width: 85%;
+  height: 48px;
+  margin: 0 auto 4px;
+  display: block;
+}
+
+.barcode-text {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  color: var(--text-main);
+}
+
+.sticker-route-banner {
+  background: var(--text-main);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.sticker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sticker-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+}
+
+.sticker-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.sticker-val {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.sticker-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1.5px solid var(--black);
+  padding-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printableReceiptArea, #printableReceiptArea *,
+  #printableReceiptContainer, #printableReceiptContainer *,
+  #printableManifestArea, #printableManifestArea *,
+  #printableStickerArea, #printableStickerArea * {
+    visibility: visible !important;
+  }
+  #printableReceiptArea, #printableReceiptContainer, #printableManifestArea, #printableStickerArea {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .printable-single-sticker-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 0 auto !important;
+    width: 100mm !important;
+    box-sizing: border-box !important;
+  }
+  .cargo-sticker-card {
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  .modal-overlay {
+    background: transparent !important;
+  }
+}
+
+/* Ẩn hoàn toàn nút mũi tên tăng giảm ▲▼ trên các ô nhập số */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Responsive Design Breakpoints for Modals and Forms */
+@media (max-width: 992px) {
+  .form-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+  .modal-card {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+    border-radius: 12px;
+  }
+  .modal-head {
+    padding: 14px 16px;
+  }
+  .modal-head h2 {
+    font-size: 16px;
+  }
+  .modal-form, #cargoDetailContent {
+    padding: 14px 16px;
+  }
+  .form-section {
+    padding: 12px 14px;
+  }
+  .form-grid-2, .form-grid-3, .form-grid-4, .service-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .modal-actions {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .modal-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   SIDEBAR — Lấy kiểu đỏ đậm nổi khối trắng từ pages/admin/admin.css
+   (chỉ đổi màu sắc/kiểu dáng, KHÔNG đổi cấu trúc/nội dung menu).
+   Các selector được nối thêm ".app-shell .app-sidebar" phía trước để
+   độ ưu tiên (specificity) cao hơn các rule cùng tên trong
+   ../css/responsive.css (nạp SAU cargo.css nên mặc định sẽ thắng nếu
+   không nâng specificity ở đây).
+   ========================================================= */
+
+.app-shell .app-sidebar {
+  background: #7E0B07;
+  border-right: none;
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.15);
+}
+
+.app-shell .app-sidebar .sidebar-content::-webkit-scrollbar { width: 0; }
+
+.app-shell .app-sidebar .sidebar-section-title {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Nav item cơ bản — chữ/icon trắng mờ trên nền đỏ đậm, sáng hẳn khi hover */
+.app-shell .app-sidebar .sidebar-nav-item {
+  color: rgba(255, 255, 255, 0.85);
+}
+.app-shell .app-sidebar .sidebar-nav-item svg.nav-icon {
+  width: 19px !important;
+  height: 19px !important;
+  color: rgba(255, 255, 255, 0.7);
+  stroke: currentColor;
+  fill: none;
+}
+.app-shell .app-sidebar .sidebar-nav-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+}
+.app-shell .app-sidebar .sidebar-nav-item:hover svg.nav-icon {
+  color: #FFFFFF;
+}
+
+/* Item đang active — khối trắng nổi (floating white pill), chữ đỏ thương hiệu */
+.app-shell .app-sidebar .sidebar-nav-item.active {
+  background: #FFFFFF;
+  color: var(--primary);
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.app-shell .app-sidebar .sidebar-nav-item.active svg.nav-icon {
+  color: var(--primary);
+}
+
+/* Tiêu đề nhóm accordion ("Nhận hàng" / "Giao hàng") — bỏ nền xám, dùng kiểu nav item trên nền đỏ */
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+}
+.app-shell .app-sidebar .submenu-chevron {
+  color: rgba(255, 255, 255, 0.6);
+}
+.app-shell .app-sidebar .sidebar-nav-group.open > .nav-group-header .submenu-chevron,
+.app-shell .app-sidebar .sidebar-subgroup.open > .sidebar-nav-item .submenu-chevron {
+  color: #FFFFFF;
+}
+
+/* Vạch dẫn thụt lề của nhóm/submenu — dùng viền trắng mờ thay vì hồng nhạt */
+.app-shell .app-sidebar .group-children,
+.app-shell .app-sidebar .sidebar-submenu {
+  border-left-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Bộ lọc trạng thái (status slider) trong submenu — pill trong suốt trên nền đỏ, active thành pill trắng */
+.app-shell .app-sidebar .sidebar-status-slider .status-option {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border-color: transparent;
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active {
+  background: #FFFFFF;
+  color: var(--primary);
+  border-color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* Icon bộ lọc trạng thái (status-dot-icon) — bỏ khung/nền tròn màu, chỉ giữ icon phẳng đơn sắc
+   theo màu phân loại, đồng bộ kiểu "plain line icon" như nav-icon/admin. */
+.app-shell .app-sidebar .status-dot-icon {
+  width: 19px;
+  height: 19px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+}
+.app-shell .app-sidebar .status-dot-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2;
+}
+.app-shell .app-sidebar .status-dot-icon.dot-all,
+.app-shell .app-sidebar .status-dot-icon.dot-goods,
+.app-shell .app-sidebar .status-dot-icon.dot-cash,
+.app-shell .app-sidebar .status-dot-icon.dot-hot,
+.app-shell .app-sidebar .status-dot-icon.dot-baga,
+.app-shell .app-sidebar .status-dot-icon.dot-returned {
+  color: rgba(255, 255, 255, 0.7);
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option:hover .status-dot-icon {
+  color: #FFFFFF;
+}
+
+/* Khi option active (nền pill trắng) — icon chuyển sang đỏ thương hiệu để tương phản, giống nav-icon active */
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-all,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-goods,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-cash,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-hot,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-baga,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-returned {
+  background: transparent !important;
+  color: var(--primary);
+}
+
+/* =========================================================
+   HEADER (TOPBAR) — Khối logo màu đỏ đậm full-height, cùng bề rộng
+   sidebar, chữ/icon trắng, giống bố cục topbar bên admin.css. Chỉ đổi
+   kiểu dáng khối brand — giữ nguyên thanh tìm kiếm + user-chip hiện có.
+   ========================================================= */
+
+.app-shell .page-header {
+  padding: 0 20px 0 0;
+}
+
+.app-shell .brand {
+  order: -1;
+  height: var(--header-height, 60px);
+  width: var(--sidebar-width, 255px);
+  flex: 0 0 var(--sidebar-width, 255px);
+  background: #6B0805;
+  margin: 0;
+  padding: 0 14px;
+  box-sizing: border-box;
+  position: relative;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-shell .brand::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: #7E0B07;
+}
+.app-shell .brand .brand-badge {
+  background: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.app-shell .brand .brand-badge svg {
+  stroke: var(--primary);
+}
+.app-shell .brand .brand-text strong {
+  color: #FFFFFF;
+}
+.app-shell .brand .brand-text span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* Đồng bộ bề rộng khối logo với sidebar khi thu gọn (JS chỉ toggle .is-collapsed trên #appSidebar) */
+.app-shell:has(.app-sidebar.is-collapsed) .brand {
+  width: var(--sidebar-collapsed-width, 68px);
+  flex: 0 0 var(--sidebar-collapsed-width, 68px);
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+.app-shell:has(.app-sidebar.is-collapsed) .brand .brand-text {
+  display: none;
+}
+
+/* Cho header-left đủ chỗ chứa brand (255px) + breadcrumb + ô tìm kiếm */
+.app-shell .header-left {
+  max-width: none;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.app-shell .header-left .search-shell {
+  flex: 0 1 380px;
+  min-width: 160px;
+}
+
+/* Breadcrumb — kiểu giống hệt .admin-breadcrumb bên admin.css */
+.app-shell .page-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+.app-shell .page-breadcrumb .bc-home-ic {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  fill: none;
+}
+.app-shell .page-breadcrumb .bc-sep {
+  flex: 0 0 auto;
+  color: #94A3B8;
+}
+.app-shell .page-breadcrumb .bc-seg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-shell .page-breadcrumb .bc-current {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+@media (max-width: 992px) {
+  .app-shell .page-breadcrumb {
+    display: none;
+  }
+}
+
+/* =========================================================
+   CỤM NÚT HÀNH ĐỘNG CUỐI BẢNG — phẳng, trung tính, gọn gàng thay cho
+   5 nút màu pastel rời rạc (mỗi nút 1 màu) trông rối và kiểu "AI-dashboard
+   mặc định". Chỉ giữ 3 icon chính (chi tiết/sửa/xóa) hiện sẵn, 2 hành
+   động phụ (biên lai/in tem) gộp vào menu "⋮".
+   ========================================================= */
+.action-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.rowicon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94A3B8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.rowicon-btn svg { width: 15px; height: 15px; pointer-events: none; }
+.rowicon-btn:hover { background: var(--surface-2); color: var(--text-main); }
+.rowicon-btn--danger:hover { background: var(--red-light); color: var(--primary); }
+.rowicon-btn.is-active { background: var(--status-onboard-bg); color: var(--status-onboard); }
+
+.action-more-wrap { position: relative; display: inline-flex; }
+.action-more-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  min-width: 168px;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  padding: 4px;
+}
+.action-more-menu.open { display: block; }
+.action-more-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+}
+.action-more-menu button svg { width: 15px; height: 15px; color: #94A3B8; flex: 0 0 auto; pointer-events: none; }
+.action-more-menu button:hover { background: var(--surface-2); }
+
+/* =========================================================
+   POPUP "CHI TIẾT HÀNG HÓA" — tham khảo kiểu badge trạng thái chấm màu
+   (.status-badge) và cách nhóm nội dung thành từng thẻ (.form-section)
+   bên admin.css, thay cho khối trạng thái nền xám phẳng + các đường kẻ
+   ngang phân cách đơn điệu trước đây.
+   ========================================================= */
+.minimal-header { align-items: center; }
+
+.minimal-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.minimal-status-badge .status-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.minimal-status-badge.st-pending { background: var(--surface-2); color: var(--text-muted); }
+.minimal-status-badge.st-pending .status-dot { background: var(--text-muted); }
+.minimal-status-badge.st-transit { background: var(--status-onboard-bg); color: var(--status-onboard); }
+.minimal-status-badge.st-transit .status-dot { background: var(--status-onboard); }
+.minimal-status-badge.st-delivered { background: #EAFBF1; color: var(--green); }
+.minimal-status-badge.st-delivered .status-dot { background: var(--green); }
+
+/* route-badge vốn nền var(--surface-2) — đổi nền trắng khi đặt trong khu vực chi tiết để không bị
+   chìm vào nền xám nhạt xung quanh. */
+.cargo-detail-minimal .route-badge { background: #FFFFFF; border: 1px solid var(--border); }
+
+/* .form-section vốn tự có margin-bottom (dùng trong form tạo đơn) — bỏ đi ở đây vì
+   .cargo-detail-minimal đã là flex column với gap:14px lo khoảng cách giữa các khối rồi. */
+.cargo-detail-minimal .form-section { margin-bottom: 0; }
+
+/* =========================================================
+   BẢNG DANH SÁCH HÀNG HÓA — nhãn phụ (COD/Baga) dùng chung 1 kiểu pill,
+   xếp ngang thay vì xuống dòng để chiều cao các dòng đều nhau hơn.
+   ========================================================= */
+.mini-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+.mini-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+

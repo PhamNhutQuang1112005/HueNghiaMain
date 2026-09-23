@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Giao hàng — Huệ Nghĩa Express</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/cargo.css" />
+  <link rel="stylesheet" href="../css/delivery.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header (Chứa Logo Huệ Nghĩa + Ô tìm kiếm căn trái + User Chip) -->
+    <header class="page-header">
+      <div class="header-left">
+        <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Thu gọn / Mở rộng Sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+        </button>
+
+        <a class="brand" href="cargo.html">
+          <div class="brand-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+              <path d="M4 16h16" />
+              <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+              <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <strong>HUỆ NGHĨA EXPRESS</strong>
+            <span>Điều hành giao hàng</span>
+          </div>
+        </a>
+
+        <nav class="page-breadcrumb" aria-label="breadcrumb">
+          <svg class="bc-home-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          <span class="bc-seg">Hệ thống điều hành</span>
+          <svg class="bc-sep" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="bc-seg">Giao hàng</span>
+          <svg class="bc-sep" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="bc-seg bc-current">Danh sách giao hàng</span>
+        </nav>
+
+        <label class="search-shell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input id="globalSearch" type="text" placeholder="Tìm mã đơn giao, tên hàng, người nhận, SĐT..." />
+        </label>
+      </div>
+
+      <div class="header-right">
+        <div class="user-chip">
+          <span class="avatar">G</span>
+          <span>NV Giao Hàng</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- App Body Layout (Sidebar + Main Content) -->
+    <div class="app-body">
+      <!-- Left Sidebar -->
+      <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-content">
+          <!-- Chuyển trang & Submenu Accordion -->
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">DANH MỤC ĐIỀU HÀNH</div>
+            <nav class="sidebar-nav">
+              
+              <!-- Group 1: Nhận hàng (Accordion Group) -->
+              <div class="sidebar-nav-group open" id="receiveNavGroup">
+                <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('receiveNavGroup', event)" title="Nhận hàng">
+                  <div class="nav-item-content">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    <span>Nhận hàng</span>
+                  </div>
+                  <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                </a>
+
+                <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #fee2e2;">
+                  <!-- Subgroup: Nhận hàng -->
+                  <div class="sidebar-subgroup open" id="cargoSubgroup">
+                    <a class="sidebar-nav-item" href="cargo.html" id="cargoSubmenuToggle" title="Danh sách nhận hàng">
+                      <div class="nav-item-content">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px; height:16px;"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span>Danh sách nhận hàng</span>
+                      </div>
+                      <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                    </a>
+
+                    <div class="sidebar-submenu" id="cargoSubmenu">
+                      <div class="sidebar-status-slider" role="radiogroup" aria-label="Loại trạng thái nhận hàng">
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="all" />
+                          <span class="status-dot-icon dot-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+                          <span>Tất cả</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="goods" />
+                          <span class="status-dot-icon dot-goods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                          <span>Hàng hóa</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="hot" />
+                          <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
+                          <span>Tiền nóng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="baga" />
+                          <span class="status-dot-icon dot-baga"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="8" width="12" height="13" rx="2"/><path d="M9 8V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><line x1="10" y1="12" x2="10" y2="17"/><line x1="14" y1="12" x2="14" y2="17"/></svg></span>
+                          <span>Baga</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=manifests" title="Danh sách chuyến xe đi">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 11l4-4m0 0h-3m3 0v3"/></svg>
+                      <span>Danh sách chuyến xe đi</span>
+                    </div>
+                  </a>
+
+                  <a class="sidebar-nav-item" href="receive-report.html" title="Báo cáo nhận hàng">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      <span>Báo cáo nhận hàng</span>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Group 2: Giao hàng (Accordion Group) -->
+              <div class="sidebar-nav-group open" id="deliveryNavGroup">
+                <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('deliveryNavGroup', event)" title="Giao hàng">
+                  <div class="nav-item-content">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <span>Giao hàng</span>
+                  </div>
+                  <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                </a>
+
+                <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #bfdbfe;">
+                  <!-- Subgroup: Giao hàng -->
+                  <div class="sidebar-subgroup open" id="deliverySubgroup">
+                    <a class="sidebar-nav-item active" href="delivery.html" id="deliverySubmenuToggle" title="Danh sách giao hàng">
+                      <div class="nav-item-content">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M16 16l3 3 5-5"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="M3.29 7L12 12l8.71-5"/><path d="M12 22V12"/></svg>
+                        <span>Danh sách giao hàng</span>
+                      </div>
+                      <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                    </a>
+
+                    <div class="sidebar-submenu" id="deliverySubmenu">
+                      <div class="sidebar-status-slider" role="radiogroup" aria-label="Loại trạng thái giao hàng">
+                        <label class="status-option active">
+                          <input type="radio" name="deliveryStateFilter" value="all" checked />
+                          <span class="status-dot-icon dot-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+                          <span>Tất cả</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="goods" />
+                          <span class="status-dot-icon dot-goods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                          <span>Hàng hóa</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="hot" />
+                          <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
+                          <span>Tiền nóng</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=receive" title="Danh sách chuyến xe đến">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M13 7l-4 4m0 0h3m-3 0v-3"/></svg>
+                      <span>Danh sách chuyến xe đến</span>
+                    </div>
+                  </a>
+
+                  <a class="sidebar-nav-item" href="delivery-report.html" title="Báo cáo giao hàng">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+                      <span>Báo cáo giao hàng</span>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Main Menu Items -->
+              <a class="sidebar-nav-item" href="cod.html" title="Đối soát COD">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
+                  <span>Đối soát COD</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="returned.html" title="Hàng trả về">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                  <span>Hàng trả về</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="cargo.html?filter=overdue" id="overdueNavItem" title="Hàng quá hạn (>3 ngày)" style="color:#be123c;">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#e11d48;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Hàng quá hạn (>3 ngày)</span>
+                </div>
+                <span id="overdueBadgeCount" style="margin-left:auto; background:#be123c; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Panel Container -->
+      <div class="app-main">
+
+    <main class="main-panel">
+      <section class="toolbar">
+        <div class="toolbar-head">
+          <div>
+            <p class="eyebrow">Giao hàng</p>
+            <h1>Danh sách giao hàng</h1>
+          </div>
+          <div class="toolbar-actions">
+            <button type="button" class="ghost-btn" id="filterBtn">Lọc</button>
+          </div>
+        </div>
+
+        <div class="filter-grid filter-grid--delivery">
+          <label>
+            <span>Ngày giao</span>
+            <input type="date" id="filterDeliveryDate" />
+          </label>
+          <label>
+            <span>Trạng thái giao hàng</span>
+            <select id="filterDeliveryStatus">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="cho-giao">Chờ giao</option>
+              <option value="dang-giao">Đang giao</option>
+              <option value="da-giao">Đã giao</option>
+              <option value="that-bai">Giao không thành công</option>
+              <option value="hen-lai">Hẹn giao lại</option>
+              <option value="da-hoan">Đã hoàn</option>
+            </select>
+          </label>
+          <label>
+            <span>Trạm nhận</span>
+            <select id="filterStationTo">
+              <option value="all">Tất cả trạm nhận</option>
+              <optgroup label="An Giang">
+                <option value="Châu Đốc">Châu Đốc</option>
+                <option value="Hà Tiên">Hà Tiên</option>
+                <option value="Long Xuyên">Long Xuyên</option>
+                <option value="Tân Châu">Tân Châu</option>
+                <option value="Tri Tôn">Tri Tôn</option>
+                <option value="Chợ Mới">Chợ Mới</option>
+                <option value="Bình Long">Bình Long</option>
+                <option value="Tịnh Biên">Tịnh Biên</option>
+                <option value="An Châu">An Châu</option>
+                <option value="An Phú">An Phú</option>
+                <option value="AG">AG</option>
+              </optgroup>
+              <optgroup label="Sài Gòn">
+                <option value="508 Kinh Dương Vương">508 Kinh Dương Vương</option>
+                <option value="4 Tống Văn Trân">4 Tống Văn Trân</option>
+                <option value="58 Lê Đại Hành">58 Lê Đại Hành</option>
+                <option value="Bến xe Miền Tây">Bến xe Miền Tây</option>
+                <option value="Sài Gòn">Sài Gòn</option>
+              </optgroup>
+              <optgroup label="Bình Dương">
+                <option value="Trạm An Phú">Trạm An Phú</option>
+                <option value="Bến An Phú">Bến An Phú</option>
+                <option value="Trạm An Sương">Trạm An Sương</option>
+                <option value="Trạm Bến Cát">Trạm Bến Cát</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>
+            <span>Nhân viên giao hàng</span>
+            <select id="filterDeliveryStaff">
+              <option value="all">Tất cả nhân viên</option>
+            </select>
+          </label>
+          <label>
+            <span>Loại hàng</span>
+            <select id="filterDeliveryCategory">
+              <option value="all">Tất cả loại hàng</option>
+              <option value="goods">Hàng hóa</option>
+              <option value="cash">Tiền thường</option>
+              <option value="hot">Tiền nóng</option>
+              <option value="baga">Baga</option>
+            </select>
+          </label>
+          <div class="filter-submit-wrap">
+            <button type="button" class="filter-submit-btn" id="applyFilterBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              <span>Lọc</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 32px; text-align: center;"><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
+                <th style="width: 36px; text-align: center;">STT</th>
+                <th style="min-width: 160px;">Hàng hóa</th>
+                <th style="min-width: 160px;">Chuyến xe</th>
+                <th style="min-width: 170px;">Người nhận</th>
+                <th style="min-width: 140px;">COD & Cước</th>
+                <th style="min-width: 140px;">Nhân viên giao</th>
+                <th style="width: 130px; text-align: center;">Trạng thái</th>
+                <th style="width: 150px; text-align: center;">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="deliveryTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Popup Xem Chi Tiết Đơn Giao Hàng -->
+  <div class="modal-overlay" id="deliveryDetailModal">
+    <div class="modal-card" style="width: min(780px, 95%);">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Chi tiết giao hàng</p>
+          <h2 id="deliveryDetailTitle">Máy lạnh — DH-9971</h2>
+        </div>
+        <button class="icon-btn" type="button" id="closeDeliveryDetailModalBtn">✕</button>
+      </div>
+
+      <div id="deliveryDetailContent">
+        <!-- JS populated -->
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" id="closeDeliveryDetailBtn">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Phân công / Cập nhật giao hàng -->
+  <div class="modal-overlay" id="assignDeliveryModal">
+    <div class="modal-card" style="width: min(560px, 95%);">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Giao hàng</p>
+          <h2 id="assignDeliveryTitle">Cập nhật giao hàng</h2>
+        </div>
+        <button class="icon-btn" type="button" id="closeAssignDeliveryModalBtn">✕</button>
+      </div>
+
+      <form id="assignDeliveryForm" class="modal-form">
+        <input type="hidden" id="assignDeliveryId" />
+
+        <div class="form-section">
+          <div class="section-title">Cập nhật trạng thái giao</div>
+          <label>
+            <span>Trạng thái</span>
+            <select id="assignStatus">
+              <option value="cho-giao">Chờ giao</option>
+              <option value="dang-giao">Đang giao</option>
+              <option value="da-giao">Đã giao</option>
+              <option value="that-bai">Giao không thành công</option>
+              <option value="hen-lai">Hẹn giao lại</option>
+              <option value="da-hoan">Đã hoàn</option>
+            </select>
+          </label>
+
+          <label id="assignCodCollectedWrap" class="full-width" style="display:none; margin-top:12px;">
+            <span>COD thực thu (VNĐ)</span>
+            <input type="number" id="assignCodCollected" placeholder="0" />
+          </label>
+
+          <label id="assignReasonWrap" class="full-width" style="display:none; margin-top:12px;">
+            <span>Lý do</span>
+            <textarea id="assignReason" rows="2" placeholder="vd: Không liên lạc được, khách hẹn giao lại chiều mai..."></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" id="cancelAssignDeliveryBtn">Hủy</button>
+          <button type="submit" class="primary-btn">Lưu cập nhật</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Khu vực chứa bản in Biên lai -->
+  <div id="printableReceiptContainer" style="display:none;"></div>
+
+  <!-- Modal In & Xem Biên lai giao hàng -->
+  <div class="modal-overlay" id="deliveryReceiptModal">
+    <div class="modal-card" style="width:90%; max-width:650px; margin:auto; background:white; border-radius:12px; overflow:hidden;">
+      <div class="modal-head" style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="font-size:16px; font-weight:800; margin:0; color:#0f172a;">Biên lai xác nhận đã giao hàng</h2>
+          <span style="font-size:12px; color:#64748b;">Xem trước & In phiếu biên lai xác nhận</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeDeliveryReceiptModal()">✕</button>
+      </div>
+
+      <div style="padding:16px; max-height:75vh; overflow-y:auto;">
+        <div id="printableReceiptArea" style="background:white; border:1px solid #cbd5e1; border-radius:8px; padding:20px; font-family:-apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a;">
+          <!-- Nạp động bằng JS -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="padding:12px 18px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; background:#f8fafc;">
+        <button type="button" class="ghost-btn" onclick="closeDeliveryReceiptModal()">Đóng</button>
+        <button type="button" class="primary-btn" onclick="printReceiptNow()" style="background:#2563eb; display:flex; align-items:center; gap:6px; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">
+          <span>In biên lai</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../js/stations.js"></script>
+  <script src="../js/delivery.js"></script>
+  <script src="../js/responsive.js"></script>
+</body>
+</html>

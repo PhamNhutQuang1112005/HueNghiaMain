@@ -1,0 +1,998 @@
+:root {
+  --primary: #C20D08;
+  --primary-hover: #9E0A06;
+  --brand-red: #C20D08;
+  --red-light: #FEEFEF;
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F8F7F7;
+  --border: #CBCDCD;
+  --border-dark: #B0B2B3;
+  --text-main: #111213;
+  --text-muted: #6B6E70;
+  --green: #16A34A;
+
+  /* Màu trạng thái theo quy ước FR-04.1 (đồng bộ shuttle.css) */
+  --status-waiting:#9CA3AF;
+  --status-waiting-bg:#F3F4F6;
+  --status-enroute:#B45309;
+  --status-enroute-bg:#FFF7E0;
+  --status-onboard:#1D4ED8;
+  --status-onboard-bg:#EFF4FF;
+  --status-issue:#DC2626;
+  --status-issue-bg:#FEF0EF;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.05);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, select { font-family: inherit; font-size: inherit; }
+button { cursor: pointer; border: none; background: none; }
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page Header */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--brand-red);
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(229, 57, 53, 0.25);
+}
+.brand-badge svg { width: 20px; height: 20px; }
+
+.brand-text strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+.brand-text span {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.search-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  transition: all 0.15s ease;
+}
+.search-shell:focus-within {
+  background: white;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+  width: 320px;
+}
+.search-shell svg { width: 15px; height: 15px; color: var(--text-muted); flex-shrink: 0; }
+.search-shell input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14.5px;
+  color: var(--text-main);
+}
+
+.main-nav-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+}
+.nav-switch-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.nav-switch-item:hover {
+  color: var(--text-main);
+  background: rgba(255,255,255,0.6);
+}
+.nav-switch-item.active {
+  background: var(--surface, #ffffff);
+  color: var(--primary, #C20D08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.nav-switch-item svg {
+  flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.primary-btn:hover {
+  background: var(--primary-hover);
+}
+
+.ghost-btn {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.ghost-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-dark);
+}
+
+.secondary-btn {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border: 1px solid var(--status-onboard-bg);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.secondary-btn:hover {
+  background: #DCE7FB;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: white;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Main Panel Layout */
+.main-panel {
+  flex: 1;
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.toolbar {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolbar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.toolbar-head h1 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1.2fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.filter-grid select, .filter-grid input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 5px 10px;
+  background: var(--surface-2);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+}
+.filter-grid input[type="date"] {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: white;
+  border: 1.5px solid var(--border-dark);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+.filter-grid select:focus, .filter-grid input:focus {
+  background: white;
+  border-color: var(--primary);
+}
+
+/* Bảng */
+.table-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* Kiểu bảng lưới đầy đủ (viền 4 cạnh mỗi ô, header căn giữa) — đồng bộ với css/cargo.css, tham khảo
+   .admin-table bên admin.css. Scope trong .table-scroll để không ảnh hưởng các bảng tự vẽ inline-style
+   khác trong trang (phiếu in, biên lai...). */
+.table-scroll th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table-scroll td {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+  color: var(--text-main);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.table-scroll tr:hover td {
+  background: var(--surface-2);
+}
+
+/* Mã đơn/mã code — đồng bộ với css/cargo.css để chữ trong bảng cùng 1 cỡ/font dù ở tab nào. */
+code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Thẻ Biển số xe Slate Nhã Nhặn */
+.plate-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--text-main);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+/* Tên hàng/tên phơi — đồng bộ cỡ chữ với css/cargo.css (class này đã dùng trong bảng "Danh sách chuyến
+   xe đi" ở trên nhưng chưa có định nghĩa, nên trước đây bị render nhỏ hơn mặc định). */
+.cargo-name {
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Thẻ Tuyến đường tinh tế */
+.route-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14.5px;
+  color: var(--text-main);
+}
+
+.route-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--status-onboard);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+/* Thẻ Trạng thái (Đã bỏ màu vàng) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-pending { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); border: 1px solid rgba(29,78,216,.25); }
+.status-delivered { background: #EAFBF1; color: var(--green); border: 1px solid rgba(22,163,74,.25); }
+
+/* Cụm nút hành động */
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.action-group button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.action-group button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action-group .btn-detail {
+  background: var(--surface-2);
+  color: var(--text-main);
+  border-color: var(--border);
+}
+.action-group .btn-detail:hover {
+  background: var(--border);
+}
+
+.action-group .btn-edit {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border-color: var(--status-onboard-bg);
+}
+.action-group .btn-edit:hover {
+  background: #DCE7FB;
+}
+
+.action-group .btn-print {
+  background: #EAFBF1;
+  color: var(--green);
+  border-color: rgba(22,163,74,.35);
+}
+.action-group .btn-print:hover {
+  background: #D3F5E0;
+}
+
+.action-group .btn-delete {
+  background: var(--red-light);
+  color: var(--primary);
+  border-color: var(--red-light);
+}
+.action-group .btn-delete:hover {
+  background: #FBD9D8;
+}
+
+/* Dynamic Expanded Frame Grid */
+#manifestDetailModal .modal-card {
+  width: min(1220px, 96%);
+  padding: 22px 28px;
+}
+
+#manifestDetailModal .table-scroll {
+  overflow-x: hidden !important;
+}
+
+#manifestDetailModal table {
+  width: 100% !important;
+  table-layout: auto !important;
+}
+
+#manifestDetailModal th,
+#manifestDetailModal td {
+  padding: 8px 10px !important;
+  font-size: 14px;
+}
+
+.detail-grid-expanded {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.detail-card-lg {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.detail-card-lg.full-span {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-color: var(--border-dark);
+}
+
+.card-tag {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.card-content-lg {
+  font-size: 15px;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vehicle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #EAFBF1;
+  color: var(--green);
+  border: 1px solid rgba(22,163,74,.35);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  width: min(980px, 100%);
+  max-height: min(90vh, 850px);
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: white;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.modal-head .icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modal-head .icon-btn:hover {
+  background: var(--red-light);
+  color: var(--primary);
+  border-color: #F8C9C7;
+  transform: scale(1.05);
+}
+
+.modal-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.modal-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.modal-form input, .modal-form select {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 15px;
+  outline: none;
+  background: var(--surface-2);
+}
+.modal-form input:focus, .modal-form select:focus {
+  background: white;
+  border-color: var(--primary);
+}
+
+.full-width { grid-column: 1 / -1; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Frame Grid */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.detail-box {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.box-label {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.box-value {
+  font-size: 14.5px;
+  color: var(--text-main);
+  line-height: 1.45;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: var(--text-main);
+  color: white;
+  padding: 10px 18px;
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 120;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 1000px) {
+  .page-header { flex-wrap: wrap; }
+  .search-shell { order: 3; width: 100%; max-width: none; }
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printableReceiptArea, #printableReceiptArea *,
+  #printableReceiptContainer, #printableReceiptContainer *,
+  #printableManifestArea, #printableManifestArea *,
+  #printableStickerArea, #printableStickerArea * {
+    visibility: visible !important;
+  }
+  #printableReceiptArea, #printableReceiptContainer, #printableManifestArea, #printableStickerArea {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .printable-single-sticker-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 0 auto !important;
+    width: 100mm !important;
+    box-sizing: border-box !important;
+  }
+  .manifest-print-sheet {
+    background: white !important;
+    color: black !important;
+    font-family: Arial, sans-serif !important;
+    padding: 16px !important;
+  }
+  .modal-overlay {
+    background: transparent !important;
+  }
+}
+
+/* =========================================================
+   SIDEBAR — Lấy kiểu đỏ đậm nổi khối trắng từ pages/admin/admin.css
+   (chỉ đổi màu sắc/kiểu dáng, KHÔNG đổi cấu trúc/nội dung menu).
+   Các selector được nối thêm ".app-shell .app-sidebar" phía trước để
+   độ ưu tiên (specificity) cao hơn các rule cùng tên trong
+   ../css/responsive.css (nạp SAU manifest.css nên mặc định sẽ thắng
+   nếu không nâng specificity ở đây). Đồng bộ với css/cargo.css để
+   toàn bộ các trang trong sidebar có giao diện thống nhất.
+   ========================================================= */
+
+.app-shell .app-sidebar {
+  background: #7E0B07;
+  border-right: none;
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.15);
+}
+
+.app-shell .app-sidebar .sidebar-content::-webkit-scrollbar { width: 0; }
+
+.app-shell .app-sidebar .sidebar-section-title {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.app-shell .app-sidebar .sidebar-nav-item {
+  color: rgba(255, 255, 255, 0.85);
+}
+.app-shell .app-sidebar .sidebar-nav-item svg.nav-icon {
+  width: 19px !important;
+  height: 19px !important;
+  color: rgba(255, 255, 255, 0.7);
+  stroke: currentColor;
+  fill: none;
+}
+.app-shell .app-sidebar .sidebar-nav-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+}
+.app-shell .app-sidebar .sidebar-nav-item:hover svg.nav-icon {
+  color: #FFFFFF;
+}
+
+.app-shell .app-sidebar .sidebar-nav-item.active {
+  background: #FFFFFF;
+  color: var(--primary);
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.app-shell .app-sidebar .sidebar-nav-item.active svg.nav-icon {
+  color: var(--primary);
+}
+
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+}
+.app-shell .app-sidebar .submenu-chevron {
+  color: rgba(255, 255, 255, 0.6);
+}
+.app-shell .app-sidebar .sidebar-nav-group.open > .nav-group-header .submenu-chevron,
+.app-shell .app-sidebar .sidebar-subgroup.open > .sidebar-nav-item .submenu-chevron {
+  color: #FFFFFF;
+}
+
+.app-shell .app-sidebar .group-children,
+.app-shell .app-sidebar .sidebar-submenu {
+  border-left-color: rgba(255, 255, 255, 0.15);
+}
+
+.app-shell .app-sidebar .sidebar-status-slider .status-option {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border-color: transparent;
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active {
+  background: #FFFFFF;
+  color: var(--primary);
+  border-color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.app-shell .app-sidebar .status-dot-icon {
+  width: 19px;
+  height: 19px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+}
+.app-shell .app-sidebar .status-dot-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2;
+}
+.app-shell .app-sidebar .status-dot-icon.dot-all,
+.app-shell .app-sidebar .status-dot-icon.dot-goods,
+.app-shell .app-sidebar .status-dot-icon.dot-cash,
+.app-shell .app-sidebar .status-dot-icon.dot-hot,
+.app-shell .app-sidebar .status-dot-icon.dot-baga,
+.app-shell .app-sidebar .status-dot-icon.dot-returned {
+  color: rgba(255, 255, 255, 0.7);
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option:hover .status-dot-icon {
+  color: #FFFFFF;
+}
+
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-all,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-goods,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-cash,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-hot,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-baga,
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-returned {
+  background: transparent !important;
+  color: var(--primary);
+}
+
+/* =========================================================
+   HEADER (TOPBAR) — Khối logo màu đỏ đậm full-height, cùng bề rộng
+   sidebar, chữ/icon trắng, giống bố cục topbar bên admin.css. Chỉ đổi
+   kiểu dáng khối brand — giữ nguyên thanh tìm kiếm + user-chip hiện có.
+   ========================================================= */
+
+.app-shell .page-header {
+  padding: 0 20px 0 0;
+}
+
+.app-shell .brand {
+  order: -1;
+  height: var(--header-height, 60px);
+  width: var(--sidebar-width, 255px);
+  flex: 0 0 var(--sidebar-width, 255px);
+  background: #6B0805;
+  margin: 0;
+  padding: 0 14px;
+  box-sizing: border-box;
+  position: relative;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-shell .brand::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: #7E0B07;
+}
+.app-shell .brand .brand-badge {
+  background: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.app-shell .brand .brand-badge svg {
+  stroke: var(--primary);
+}
+.app-shell .brand .brand-text strong {
+  color: #FFFFFF;
+}
+.app-shell .brand .brand-text span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.app-shell:has(.app-sidebar.is-collapsed) .brand {
+  width: var(--sidebar-collapsed-width, 68px);
+  flex: 0 0 var(--sidebar-collapsed-width, 68px);
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+.app-shell:has(.app-sidebar.is-collapsed) .brand .brand-text {
+  display: none;
+}
+
+.app-shell .header-left {
+  max-width: none;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.app-shell .header-left .search-shell {
+  flex: 0 1 380px;
+  min-width: 160px;
+}
+
+/* Breadcrumb — kiểu giống hệt .admin-breadcrumb bên admin.css */
+.app-shell .page-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+.app-shell .page-breadcrumb .bc-home-ic {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  fill: none;
+}
+.app-shell .page-breadcrumb .bc-sep {
+  flex: 0 0 auto;
+  color: #94A3B8;
+}
+.app-shell .page-breadcrumb .bc-seg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-shell .page-breadcrumb .bc-current {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+@media (max-width: 992px) {
+  .app-shell .page-breadcrumb {
+    display: none;
+  }
+}
