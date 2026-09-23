@@ -7,7 +7,14 @@
         vé ĐÃ BÁN (vé mới đặt/giữ chỗ chưa thu đủ nên chưa tính vào doanh thu).
    ========================================================= */
 var AGENT_STATS_FILTER = { agentId: '', dateFrom: '', dateTo: '' };
+var AGENT_STATS_SUBTAB = 'summary';
 var AGENT_SETUP_SEARCH = '';
+
+function adminSetAgentStatsSubTab(tab) {
+  if (!['summary', 'detail'].includes(tab)) return;
+  AGENT_STATS_SUBTAB = tab;
+  renderAgentStatsView();
+}
 
 /* ---------------- 1. THIẾT LẬP ĐẠI LÝ ---------------- */
 function renderAgentSetupView() {
@@ -169,28 +176,32 @@ function renderAgentStatsView() {
     ? '<tr style="font-weight:800;"><td colspan="6">TỔNG</td><td class="mono" style="text-align:center;">' + totalTickets + '</td><td class="mono" style="text-align:center;">' + totalSold + '</td><td style="text-align:right;">' + fmtMoney(totalRevenue) + '</td></tr>'
     : '';
 
-  $('viewAgentStats').innerHTML =
-    '<div class="sd-toolbar" style="margin-bottom:16px;">' +
-      '<div class="filter-field"><label>Đại lý</label><select data-change-action="adminAgentStatsFilter" data-args=\'["agentId","__this_value__"]\'>' + agentOpts + '</select></div>' +
-      '<div class="filter-field"><label>Từ ngày (phơi)</label><input type="date" value="' + esc(f.dateFrom) + '" style="background:var(--white); min-width:190px;" data-change-action="adminAgentStatsFilter" data-args=\'["dateFrom","__this_value__"]\'></div>' +
-      '<div class="filter-field"><label>Đến ngày (phơi)</label><input type="date" value="' + esc(f.dateTo) + '" style="background:var(--white); min-width:190px;" data-change-action="adminAgentStatsFilter" data-args=\'["dateTo","__this_value__"]\'></div>' +
-      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="adminAgentStatsReset">Đặt lại</button></div>' +
-    '</div>' +
-    '<div class="sd-blocks">' +
-      '<div class="sd-section-block">' +
-        '<div class="sd-section-head"><span>Tổng hợp theo đại lý</span></div>' +
+  var currentTab = AGENT_STATS_SUBTAB || 'summary';
+  var tabContent = currentTab === 'summary'
+    ? '<div class="sd-section-block">' +
         '<div class="sd-table-wrap"><table class="admin-table">' +
           '<thead><tr><th>Đại lý</th><th style="text-align:center;">Số phơi</th><th style="text-align:center;">Số vé</th><th style="text-align:center;">Vé đã bán</th><th style="text-align:right;">Doanh thu</th></tr></thead>' +
           '<tbody>' + summaryRows + '</tbody></table></div>' +
-      '</div>' +
-      '<div class="sd-section-block">' +
-        '<div class="sd-section-head"><span>Vé và doanh thu theo phơi</span></div>' +
+      '</div>'
+    : '<div class="sd-section-block">' +
         '<div class="sd-table-wrap"><table class="admin-table">' +
           '<thead><tr><th class="num">STT</th><th>Đại lý</th><th>Giờ</th><th>Tuyến</th><th>Ngày</th><th>Biển số</th><th style="text-align:center;">Số vé</th><th style="text-align:center;">Vé đã bán</th><th style="text-align:right;">Doanh thu</th></tr></thead>' +
           '<tbody>' + detailRows + totalRow + '</tbody></table></div>' +
         '<div class="hint-inline" style="padding:8px 12px;">Số vé gồm cả vé giữ chỗ; doanh thu chỉ tính vé đã bán.</div>' +
-      '</div>' +
-    '</div>';
+      '</div>';
+
+  $('viewAgentStats').innerHTML =
+    '<div class="station-subtabs">' +
+      '<button type="button" class="station-subtab' + (currentTab === 'summary' ? ' active' : '') + '" data-action="adminSetAgentStatsSubTab" data-args=\'["summary"]\'>Tổng hợp theo đại lý</button>' +
+      '<button type="button" class="station-subtab' + (currentTab === 'detail' ? ' active' : '') + '" data-action="adminSetAgentStatsSubTab" data-args=\'["detail"]\'>Vé và doanh thu theo phơi</button>' +
+    '</div>' +
+    '<div class="sd-toolbar" style="margin-bottom:16px;">' +
+      '<div class="filter-field"><label>Đại lý</label><select data-change-action="adminAgentStatsFilter" data-args=\'["agentId","__this_value__"]\'>' + agentOpts + '</select></div>' +
+      '<div class="filter-field"><label>Từ ngày (phơi)</label><input type="date" value="' + esc(f.dateFrom) + '" style="background:var(--white);" data-change-action="adminAgentStatsFilter" data-args=\'["dateFrom","__this_value__"]\'></div>' +
+      '<div class="filter-field"><label>Đến ngày (phơi)</label><input type="date" value="' + esc(f.dateTo) + '" style="background:var(--white);" data-change-action="adminAgentStatsFilter" data-args=\'["dateTo","__this_value__"]\'></div>' +
+      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="adminAgentStatsReset">Đặt lại</button></div>' +
+    '</div>' +
+    '<div class="sd-blocks">' + tabContent + '</div>';
 }
 
 function adminAgentStatsFilter(field, val) {

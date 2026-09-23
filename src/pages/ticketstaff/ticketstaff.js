@@ -2236,6 +2236,7 @@ function setAgentFormState(agentId) {
   enabledEl.checked = !!agentId;
   selectEl.value = agentId || '';
   selectEl.style.display = agentId ? '' : 'none';
+  selectEl.closest('.agent-block')?.classList.toggle('agent-checked', !!agentId);
 }
 
 function onAgentToggle() {
@@ -2244,6 +2245,7 @@ function onAgentToggle() {
   this.checked = checked;
   const selectEl = document.getElementById('f_agent_id');
   selectEl.style.display = checked ? '' : 'none';
+  selectEl.closest('.agent-block')?.classList.toggle('agent-checked', checked);
   if (checked) selectEl.focus();
 }
 

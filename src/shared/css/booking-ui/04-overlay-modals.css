@@ -445,8 +445,10 @@
   font-size: 13.5px;
 }
 
-/* Ô "Đại lý" dưới "Đặt cọc": tick xong hiện select chọn đại lý ngay bên cạnh. */
-.agent-block > .checkbox-inline { flex: 0 0 auto; }
+/* Ô "Đại lý" dưới "Đặt cọc": chưa tick thì kéo dài hết hàng (giống "Đặt cọc" đứng một mình); tick xong
+   JS thêm .agent-checked để ô tick thu gọn lại, nhường chỗ cho select chọn đại lý hiện bên cạnh. */
+.agent-block > .checkbox-inline { flex: 1; }
+.agent-block.agent-checked > .checkbox-inline { flex: 0 0 auto; }
 .agent-block > .agent-select {
   flex: 1;
   min-width: 0;

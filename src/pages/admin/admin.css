@@ -1592,6 +1592,11 @@ table.admin-table {
 #viewAccountingThu .sd-toolbar .filter-field.sd-field-search,
 #viewAccountingChi .sd-toolbar .filter-field.sd-field-search,
 #viewAccountingExpenseRequests .sd-toolbar .filter-field.sd-field-search { flex: 1.6 1 0; min-width: 190px; }
+
+/* Thống kê đại lý (2 tab "Tổng hợp theo đại lý"/"Vé và doanh thu theo phơi" — .station-subtabs dùng
+   chung với Trạm Xe, xem renderAgentStatsView() admin-agents.js): 3 ô lọc Đại lý/Từ ngày/Đến ngày
+   căn ĐỀU cùng flex-basis cho cân đối, không co theo kích thước mặc định của input/select. */
+#viewAgentStats .sd-toolbar .filter-field { flex: 1 1 0; min-width: 160px; }
 /* Mọi ô lọc (kể cả Nguồn thu/Trạng thái/Ngày/Khu vực/Trạm xe — trước đây rơi về rule ".filter-field input"
    cao 38px, min-width 160px) đồng bộ cùng khung 35px với ô Tìm kiếm và giãn kín bề ngang ô của nó, để cả
    hàng cân đối; nút "Đặt lại" giữ 1 dòng, luôn nằm cuối hàng (không rớt xuống dòng riêng). */
