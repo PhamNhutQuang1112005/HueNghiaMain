@@ -505,14 +505,12 @@ function syncCargosWithManifests(cargos) {
         cargo.stationFrom = manifest.from || (manifest.route ? manifest.route.split('→')[0].trim() : (cargo.stationFrom || 'Chưa gán'));
         cargo.stationTo = manifest.to || (manifest.route ? manifest.route.split('→')[1].trim() : (cargo.stationTo || 'Chưa gán'));
       }
-      if (!cargo.status || cargo.status === 'pending') {
-        cargo.status = 'in-transit';
-        cargo.statusText = 'Đã chuyển';
-      }
+      cargo.status = 'in-transit';
+      cargo.statusText = 'Đã chuyển';
     } else {
       cargo.stationFrom = cargo.stationFrom || 'Chưa gán';
       cargo.stationTo = cargo.stationTo || 'Chưa gán';
-      if (!cargo.status) {
+      if (cargo.status === 'in-transit' || !cargo.status) {
         cargo.status = 'pending';
         cargo.statusText = 'Chưa chuyển';
       }
@@ -584,6 +582,180 @@ function showToast(message) {
   showToast.timeout = setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
+function removeVietnameseTones(str) {
+  str = String(str || '').toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, 'a');
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, 'e');
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, 'i');
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, 'o');
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, 'u');
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, 'y');
+  str = str.replace(/đ/g, 'd');
+  return str;
+}
+
+function matchSearchQuery(sourceText, query) {
+  if (!query) return true;
+  const rawSource = String(sourceText || '').toLowerCase();
+  const rawQuery = String(query || '').toLowerCase().trim();
+
+  if (rawSource.includes(rawQuery)) return true;
+
+  const normSource = removeVietnameseTones(rawSource);
+  const normQuery = removeVietnameseTones(rawQuery);
+  if (normSource.includes(normQuery)) return true;
+
+  const cleanSource = normSource.replace(/[^a-z0-9]/g, '');
+  const cleanQuery = normQuery.replace(/[^a-z0-9]/g, '');
+  if (cleanQuery && cleanSource.includes(cleanQuery)) return true;
+
+  return false;
+}
+
+function renderManifestCombobox(filterText = '') {
+  const dropdownMenu = document.getElementById('targetManifestDropdownMenu');
+  const hiddenInput = document.getElementById('targetManifestSelect');
+  if (!dropdownMenu) return;
+
+  const manifests = state.manifests || [];
+  const query = (filterText || '').trim();
+
+  const filtered = manifests.filter(m => {
+    if (!query) return true;
+    const combinedText = `${m.name || ''} ${m.plate || ''} ${m.route || ''} ${m.from || ''} ${m.to || ''} ${m.id || ''}`;
+    return matchSearchQuery(combinedText, query);
+  });
+
+  const selectedId = hiddenInput ? String(hiddenInput.value || '') : '';
+
+  if (!manifests.length) {
+    dropdownMenu.innerHTML = `<div class="manifest-empty-msg">Chưa có phơi hàng nào (Vui lòng tạo phơi xe trước)</div>`;
+    return;
+  }
+
+  const escapeFn = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  if (!filtered.length) {
+    dropdownMenu.innerHTML = `<div class="manifest-empty-msg">Không tìm thấy phơi phù hợp với "<strong>${escapeFn(filterText)}</strong>"</div>`;
+    return;
+  }
+
+  let html = `
+    <div class="manifest-option-item ${!selectedId ? 'selected' : ''}" data-id="" data-text="">
+      <div class="manifest-option-title" style="color:#64748b; font-weight:600;">
+        <span>-- Bỏ chọn phơi nhận --</span>
+      </div>
+    </div>
+  `;
+
+  html += filtered.map(m => {
+    const routeText = `${m.from || (m.route ? m.route.split('➔')[0].trim() : '')} ➔ ${m.to || (m.route ? m.route.split('➔')[1].trim() : '')}`;
+    const displayText = `${m.name} (${m.plate || 'Chưa gán xe'}) — ${routeText}`;
+    const isSelected = String(m.id) === selectedId;
+
+    return `
+      <div class="manifest-option-item ${isSelected ? 'selected' : ''}" data-id="${m.id}" data-text="${escapeFn(displayText)}">
+        <div class="manifest-option-title">
+          <span style="color:#000000; font-weight:700;">${escapeFn(m.name || 'Phơi hàng')}</span>
+          <span class="route-pill-tag" style="color:#000000;">${escapeFn(m.plate || 'Chưa gán xe')}</span>
+        </div>
+        <div class="manifest-option-meta" style="color:#475569;">
+          <span>${escapeFn(routeText)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  dropdownMenu.innerHTML = html;
+
+  dropdownMenu.querySelectorAll('.manifest-option-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = item.dataset.id;
+      const text = item.dataset.text;
+      
+      if (hiddenInput) hiddenInput.value = id;
+      const searchInput = document.getElementById('targetManifestSearchInput');
+      if (searchInput) searchInput.value = text;
+
+      dropdownMenu.classList.remove('open');
+    });
+  });
+}
+
+function positionManifestDropdown() {
+  const searchInput = document.getElementById('targetManifestSearchInput');
+  const dropdownMenu = document.getElementById('targetManifestDropdownMenu');
+  if (!searchInput || !dropdownMenu) return;
+
+  const rect = searchInput.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom - 12;
+  const spaceAbove = rect.top - 12;
+
+  dropdownMenu.style.position = 'fixed';
+  dropdownMenu.style.width = `${rect.width}px`;
+  dropdownMenu.style.left = `${rect.left}px`;
+
+  if (spaceBelow < 180 && spaceAbove > spaceBelow) {
+    dropdownMenu.style.top = 'auto';
+    dropdownMenu.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+    dropdownMenu.style.maxHeight = `${Math.min(260, Math.max(120, spaceAbove))}px`;
+  } else {
+    dropdownMenu.style.bottom = 'auto';
+    dropdownMenu.style.top = `${rect.bottom + 4}px`;
+    dropdownMenu.style.maxHeight = `${Math.min(220, Math.max(120, spaceBelow))}px`;
+  }
+}
+
+function initManifestComboboxEvents() {
+  const searchInput = document.getElementById('targetManifestSearchInput');
+  const dropdownMenu = document.getElementById('targetManifestDropdownMenu');
+  const dropdownToggle = document.getElementById('targetManifestDropdownToggle');
+  const hiddenInput = document.getElementById('targetManifestSelect');
+
+  if (searchInput && dropdownMenu) {
+    const showMenu = () => {
+      renderManifestCombobox(searchInput.value);
+      dropdownMenu.classList.add('open');
+      positionManifestDropdown();
+    };
+
+    searchInput.addEventListener('focus', showMenu);
+
+    searchInput.addEventListener('input', () => {
+      if (hiddenInput && !searchInput.value) {
+        hiddenInput.value = '';
+      }
+      showMenu();
+    });
+
+    if (dropdownToggle) {
+      dropdownToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdownMenu.classList.contains('open')) {
+          dropdownMenu.classList.remove('open');
+        } else {
+          showMenu();
+          searchInput.focus();
+        }
+      });
+    }
+
+    window.addEventListener('resize', () => {
+      if (dropdownMenu.classList.contains('open')) {
+        positionManifestDropdown();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('manifestComboboxWrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        dropdownMenu.classList.remove('open');
+      }
+    });
+  }
+}
+
 function updateManifestDropdowns() {
   state.manifests = loadManifests();
   const filterManifest = document.getElementById('filterManifest');
@@ -603,7 +775,11 @@ function updateManifestDropdowns() {
   `;
 
   if (filterManifest) filterManifest.innerHTML = optionsHtml;
-  if (targetManifestSelect) targetManifestSelect.innerHTML = transferOptionsHtml;
+  if (targetManifestSelect && targetManifestSelect.tagName === 'SELECT') {
+    targetManifestSelect.innerHTML = transferOptionsHtml;
+  }
+  
+  renderManifestCombobox();
 }
 
 const defaultStationsList = [
@@ -810,8 +986,8 @@ function renderTable() {
     ? rows.map((row, index) => {
         const manifest = state.manifests.find(m => String(m.id) === String(row.manifestId));
         const manifestInfo = manifest
-          ? `<div style="font-size:11.5px; color:#475569; font-weight:600; margin-top:2px;">${manifest.name}</div>`
-          : `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">Chưa gán phơi</div>`;
+          ? `<div style="font-size:13px; color:#475569; font-weight:600; margin-top:3px;">${manifest.name}</div>`
+          : `<div style="font-size:13px; color:#94a3b8; margin-top:3px;">Chưa gán phơi</div>`;
 
         const fromSt = row.stationFrom || (manifest ? manifest.from : 'Sài Gòn');
         const toSt = row.stationTo || (manifest ? manifest.to : 'AG');
@@ -824,7 +1000,7 @@ function renderTable() {
           dimParts.push(`${row.weight}kg`);
         }
         const dimBadge = dimParts.length
-          ? `<div style="font-size:11px; color:#475569; font-weight:600; margin-top:2px;">${dimParts.join(' • ')}</div>`
+          ? `<div style="font-size:13px; color:#475569; font-weight:500; margin-top:2px;">${dimParts.join(' • ')}</div>`
           : '';
 
         return `
@@ -832,49 +1008,62 @@ function renderTable() {
             <td style="text-align:center;">
               <input type="checkbox" class="row-checkbox" data-id="${row.id}" />
             </td>
-            <td style="text-align:center;"><strong>${index + 1}</strong></td>
-            <td>
-              <strong class="cargo-name">${(row.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:11.5px; font-weight:700; color:#64748b;">(${formatCargoQuantity(row)})</span><br>
+            <td style="text-align:center; font-weight:700; font-size:13px; color:#0f172a;">${index + 1}</td>
+            <td style="text-align:center;">
               <code>${row.code}</code>
+            </td>
+            <td>
+              <strong class="cargo-name">${(row.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:13px; font-weight:600; color:#64748b;">(${formatCargoQuantity(row)})</span>
               ${manifestInfo}
               ${dimBadge}
-              ${row.delayReason ? `<br><span style="display:inline-block; font-size:11px; color:#be123c; font-weight:700; background:#fff1f2; border:1px solid #fecdd3; padding:1px 6px; border-radius:4px; margin-top:2px;" title="${row.delayReason}">⚠️ Lý do hoãn: ${row.delayReason}</span>` : ''}
+              ${row.delayReason ? `<div style="margin-top:3px;"><span style="display:inline-block; font-size:13px; color:#be123c; font-weight:600; background:#fff1f2; border:1px solid #fecdd3; padding:2px 7px; border-radius:4px;" title="${row.delayReason}">Lý do hoãn: ${row.delayReason}</span></div>` : ''}
             </td>
             <td>
-              <div style="font-weight:700; color:#0f172a; font-size:12.5px;">${fromSt} ➔ ${toSt}</div>
-              <div style="font-size:11px; color:#64748b; margin-top:2px;">${row.transferTime || 'Vừa tạo'} • NV: ${row.staff || 'Nhiên'}</div>
+              <div style="font-weight:700; color:#0f172a; font-size:13px;">${fromSt} ➔ ${toSt}</div>
+              <div style="font-size:13px; color:#64748b; margin-top:3px;">${row.transferTime || 'Vừa tạo'} • NV: ${row.staff || 'Nhiên'}</div>
             </td>
             <td>
-              <div style="line-height:1.35; font-size:12px;">
-                <small style="color:var(--text-muted);">Gửi:</small> <strong>${row.sender}</strong> (${row.senderPhone})<br>
-                <small style="color:var(--text-muted);">Nhận:</small> <strong>${row.receiver}</strong> (${row.receiverPhone})
+              <div style="line-height:1.45; font-size:13px;">
+                <span style="color:#64748b; font-weight:500;">Gửi:</span> <strong style="color:#0f172a;">${row.sender}</strong> (${row.senderPhone})<br>
+                <span style="color:#64748b; font-weight:500;">Nhận:</span> <strong style="color:#0f172a;">${row.receiver}</strong> (${row.receiverPhone})
               </div>
             </td>
             <td>
-              <strong>${Number(row.fee || 0).toLocaleString('vi-VN')}đ</strong><br>
-              ${row.paymentStatus === 'free' ? `<span style="font-size:11px; color:#2563eb; font-weight:700;">Không thu phí</span>` : (row.paymentStatus === 'paid' ? `<span style="font-size:11px; color:#15803d; font-weight:700;">Tiền rồi (${row.paidMethod === 'transfer' ? (row.transferCode || 'CK') : 'Tiền mặt'})</span>` : '<span style="font-size:11px; color:#dc2626; font-weight:700;">Chưa tiền</span>')}
+              <div style="font-weight:700; color:#0f172a; font-size:13px;">${Number(row.fee || 0).toLocaleString('vi-VN')}đ</div>
+              ${row.paymentStatus === 'free' ? `<div style="font-size:13px; color:#0f172a; font-weight:600; margin-top:2px;">Không thu phí</div>` : (row.paymentStatus === 'paid' ? `<div style="font-size:13px; color:#0f172a; font-weight:600; margin-top:2px;">Tiền rồi (${row.paidMethod === 'transfer' ? (row.transferCode || 'CK') : 'Tiền mặt'})</div>` : '<div style="font-size:13px; color:#C20D08; font-weight:600; margin-top:2px;">Chưa tiền</div>')}
               ${(row.codAmount && Number(row.codAmount) > 0) || (row.baga && row.baga.code && !row.code.includes(row.baga.code)) ? `
-                <div class="mini-tag-row">
-                  ${row.codAmount && Number(row.codAmount) > 0 ? `<span class="mini-tag">COD: ${Number(row.codAmount).toLocaleString('vi-VN')}đ</span>` : ''}
-                  ${row.baga && row.baga.code && !row.code.includes(row.baga.code) ? `<span class="mini-tag">Baga: ${row.baga.code}</span>` : ''}
+                <div class="mini-tag-row" style="margin-top:3px;">
+                  ${row.codAmount && Number(row.codAmount) > 0 ? `<span class="mini-tag" style="font-size:13px;">COD: ${Number(row.codAmount).toLocaleString('vi-VN')}đ</span>` : ''}
+                  ${row.baga && row.baga.code && !row.code.includes(row.baga.code) ? `<span class="mini-tag" style="font-size:13px;">Baga: ${row.baga.code}</span>` : ''}
                 </div>
               ` : ''}
             </td>
             <td style="text-align:center;">
-              <select class="cargo-status-select-inline" onchange="updateCargoStatusFromTable('${row.id}', this.value)" ${row.manifestId != null ? 'disabled' : ''} style="padding:4px 4px; border-radius:6px; font-weight:700; font-size:11.5px; border:1.5px solid #cbd5e1; cursor:${row.manifestId != null ? 'not-allowed' : 'pointer'}; background:${row.manifestId != null ? '#f1f5f9' : 'white'}; color:${row.manifestId != null ? '#64748b' : '#1e293b'}; width:100%;" title="${row.manifestId != null ? 'Hàng đã gán phơi xe - Khóa không thể đổi' : 'Đổi trạng thái'}">
-                ${window.location.pathname.includes('delivery.html') ? `
+              ${window.location.pathname.includes('delivery.html') ? `
+                <select class="cargo-status-select-inline" onchange="updateCargoStatusFromTable('${row.id}', this.value)" style="padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px; border:1.5px solid #cbd5e1; cursor:pointer; background:white; color:#1e293b; width:100%; height:32px; box-sizing:border-box;" title="Đổi trạng thái giao hàng">
                   <option value="undelivered" ${row.status === 'undelivered' || row.status === 'pending' || !row.status ? 'selected' : ''}>Chưa giao</option>
                   <option value="delivered" ${row.status === 'delivered' ? 'selected' : ''}>Đã giao</option>
-                ` : `
-                  <option value="pending" ${row.status === 'pending' && !row.manifestId ? 'selected' : ''}>Chưa chuyển</option>
-                  <option value="in-transit" ${row.status === 'in-transit' || row.manifestId != null ? 'selected' : ''}>Đã chuyển</option>
-                `}
-              </select>
+                </select>
+              ` : (row.manifestId != null || row.status === 'in-transit' ? `
+                <span class="minimal-status-badge st-transit" title="Hàng đã được chuyển vào phơi xe">
+                  <span class="status-dot"></span>Đã chuyển
+                </span>
+              ` : `
+                <span class="minimal-status-badge st-pending" title="Hàng chưa chuyển vào phơi xe (Vui lòng chọn hàng và bấm 'Chuyển hàng vào phơi xe')">
+                  <span class="status-dot"></span>Chưa chuyển
+                </span>
+              `)}
             </td>
             <td style="text-align:center;">
               <div class="action-group">
                 <button class="rowicon-btn" data-action="detail" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'detail')" title="Xem chi tiết">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="rowicon-btn" data-action="receipt" data-id="${row.id}" onclick="openDeliveryReceiptModal('${row.id}')" title="Biên lai">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </button>
+                <button class="rowicon-btn" data-action="print" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'print')" title="In tem dán">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
                 </button>
                 <button class="rowicon-btn" data-action="edit" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'edit')" title="Chỉnh sửa">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -882,27 +1071,12 @@ function renderTable() {
                 <button class="rowicon-btn rowicon-btn--danger" data-action="delete" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'delete')" title="Xóa hàng hóa">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
-                <div class="action-more-wrap">
-                  <button class="rowicon-btn" onclick="toggleRowActionMenu(event, '${row.id}')" title="Thêm">
-                    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
-                  </button>
-                  <div class="action-more-menu" id="actionMenu-${row.id}">
-                    <button type="button" onclick="closeAllRowActionMenus(); openDeliveryReceiptModal('${row.id}')">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                      Biên lai
-                    </button>
-                    <button type="button" onclick="closeAllRowActionMenus(); handleCargoRowAction(event, '${row.id}', 'print')">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
-                      In tem dán
-                    </button>
-                  </div>
-                </div>
               </div>
             </td>
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
 
   updateBatchTransferButton();
 }
@@ -1243,6 +1417,14 @@ function openTransferModal(cargoIds) {
   updateManifestDropdowns();
   document.getElementById('transferCargoIds').value = cargoIds.join(',');
 
+  const hiddenInput = document.getElementById('targetManifestSelect');
+  const searchInput = document.getElementById('targetManifestSearchInput');
+  const dropdownMenu = document.getElementById('targetManifestDropdownMenu');
+  if (hiddenInput) hiddenInput.value = '';
+  if (searchInput) searchInput.value = '';
+  if (dropdownMenu) dropdownMenu.classList.remove('open');
+  renderManifestCombobox('');
+
   const container = document.getElementById('transferCargoQuantityContainer');
   if (container) {
     const selectedCargos = state.data.filter(c => cargoIds.map(String).includes(String(c.id)));
@@ -1253,19 +1435,20 @@ function openTransferModal(cargoIds) {
       const unitStr = isMoney ? displayQtyText : (cargo.unit || 'cái');
       const labelText = isMoney ? 'Tổng số tiền hiện có' : 'Tổng số lượng hiện có';
       return `
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #cbd5e1;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #E2E8F0;">
           <div>
-            <strong style="font-size:14px; color:#0f172a;">${cargo.name}</strong> <code style="font-size:12px;">(${cargo.code})</code><br>
-            <small style="color:#64748b;">${labelText}: <strong>${displayQtyText}</strong></small>
+            <span style="font-size:14px; font-weight:700; color:#0F172A;">${cargo.name}</span>
+            <span style="font-size:13px; font-weight:500; color:#64748B; margin-left:6px;">(${cargo.code})</span><br>
+            <span style="font-size:13px; font-weight:500; color:#64748B;">${labelText}: <strong style="color:#0F172A;">${displayQtyText}</strong></span>
           </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:13px; font-weight:600; color:#334155;">Chuyển đi:</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13.5px; font-weight:600; color:#0F172A;">Chuyển đi:</span>
             ${isMoney ? `
-              <span style="font-size:13px; font-weight:800; color:#1d4ed8; padding:5px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px;">${displayQtyText}</span>
+              <span style="font-size:14px; font-weight:700; color:#C20D08; padding:5px 12px; background:#FEEFEF; border:1px solid #FCA5A5; border-radius:6px;">${displayQtyText}</span>
               <input type="hidden" class="transfer-qty-input" data-cargo-id="${cargo.id}" data-max-qty="1" value="1" />
             ` : `
-              <input type="number" class="transfer-qty-input" data-cargo-id="${cargo.id}" data-max-qty="${q}" min="1" max="${q}" value="${q}" style="width:75px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; text-align:center; font-weight:800; font-size:14px; color:#1d4ed8; background:white;" />
-              <span style="font-size:13px; color:#64748b;">${unitStr}</span>
+              <input type="number" class="transfer-qty-input" data-cargo-id="${cargo.id}" data-max-qty="${q}" min="1" max="${q}" value="${q}" style="width:70px; padding:5px 8px; border:1.5px solid #E2E8F0; border-radius:6px; text-align:center; font-weight:700; font-size:14px; color:#C20D08; background:white; outline:none;" />
+              <span style="font-size:13.5px; font-weight:600; color:#64748B;">${unitStr}</span>
             `}
           </div>
         </div>
@@ -1650,7 +1833,7 @@ function openPrintStickerModal(cargoId) {
           <span class="sticker-label">Cước phí & Thanh toán</span>
           <div class="sticker-val">
             <strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
-            <small style="display:block; color:#059669; font-weight:700;">(Đã thanh toán)</small>
+            <small style="display:block; color:#000000; font-weight:700;">(Đã thanh toán)</small>
           </div>
         </div>
         <div class="sticker-box">
@@ -1696,15 +1879,6 @@ function openPrintStickerModal(cargoId) {
 
   const cargoStickerModal = document.getElementById('cargoStickerModal');
   if (cargoStickerModal) cargoStickerModal.classList.add('open');
-  
-  showToast(`Đang in tem dán đơn hàng ${cargo.code}...`);
-  setTimeout(() => {
-    if (printArea) printArea.style.display = 'block';
-    window.print();
-    setTimeout(() => {
-      closeCargoStickerModal();
-    }, 400);
-  }, 200);
 }
 
 const openCreateBundleBtn = document.getElementById('openCreateBundleBtn');
@@ -2273,19 +2447,14 @@ if (batchPrintCargoStickersBtn) {
 window.updateCargoStatusFromTable = function(id, newStatus) {
   const target = state.data.find(row => String(row.id) === String(id));
   if (target) {
-    if (target.manifestId != null && !window.location.pathname.includes('delivery.html')) {
-      alert('🔒 Đơn hàng đã được xếp vào phơi xe và ở trạng thái "Đã chuyển", không thể thay đổi!');
+    if (!window.location.pathname.includes('delivery.html')) {
+      alert('🔒 Trạng thái hàng hóa trong danh sách nhận hàng không thể chọn thủ công. Vui lòng xếp hàng vào phơi xe để thành "Đã chuyển"!');
       renderTable();
       return;
     }
     target.status = newStatus;
-    if (window.location.pathname.includes('delivery.html')) {
-      if (newStatus === 'undelivered') target.statusText = 'Chưa giao';
-      else if (newStatus === 'delivered') target.statusText = 'Đã giao';
-    } else {
-      if (newStatus === 'pending') target.statusText = 'Chưa chuyển';
-      else if (newStatus === 'in-transit') target.statusText = 'Đã chuyển';
-    }
+    if (newStatus === 'undelivered') target.statusText = 'Chưa giao';
+    else if (newStatus === 'delivered') target.statusText = 'Đã giao';
 
     saveCargos(state.data);
     showToast(`Đã chuyển trạng thái sang "${target.statusText}"`);
@@ -2827,7 +2996,7 @@ function openDeliveryReceiptModal(cargoId) {
           <button type="button" class="icon-btn" onclick="closeDeliveryReceiptModal()">✕</button>
         </div>
         <div style="padding:16px; max-height:75vh; overflow-y:auto;">
-          <div id="printableReceiptArea" style="background:white; border:1px solid #cbd5e1; border-radius:8px; padding:20px; font-family:-apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a;"></div>
+          <div id="printableReceiptArea" style="background:white; border:1px solid #cbd5e1; border-radius:8px; padding:20px; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;"></div>
         </div>
         <div class="modal-actions" style="padding:12px 18px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; background:#f8fafc;">
           <button type="button" class="ghost-btn" onclick="closeDeliveryReceiptModal()">Đóng</button>
@@ -2843,76 +3012,76 @@ function openDeliveryReceiptModal(cargoId) {
   const area = document.getElementById('printableReceiptArea');
   if (area) {
     area.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #000000; padding-bottom:12px; margin-bottom:14px;">
         <div>
-          <h2 style="margin:0; font-size:19px; font-weight:800; color:#dc2626;">HUỆ NGHĨA EXPRESS</h2>
-          <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa tận nơi</span>
+          <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:800; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif !important;">HUỆ NGHĨA EXPRESS</h2>
+          <span style="font-size:12px; color:#000000;">Dịch vụ vận tải & Giao nhận hàng hóa tận nơi</span>
         </div>
         <div style="text-align:right;">
-          <code style="font-size:16px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px; color:#0f172a;">${cargo.code}</code>
-          <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Ngày: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</div>
+          <code style="font-size:16px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px; color:#000000;">${cargo.code}</code>
+          <div style="font-size:11.5px; color:#000000; margin-top:2px;">Ngày: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</div>
         </div>
       </div>
 
       <div style="text-align:center; margin-bottom:14px;">
-        <h3 style="margin:0; font-size:16px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#1e293b;">${receiptTitle}</h3>
-        <span style="font-size:11.5px; color:#64748b;">${receiptSubtext}</span>
+        <h3 style="margin:0; font-size:16px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#000000;">${receiptTitle}</h3>
+        <span style="font-size:11.5px; color:#000000;">${receiptSubtext}</span>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:12.5px;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; background:#f8fafc; border:1px solid #000000; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:12.5px;">
         <div>
-          <div style="color:#64748b; font-size:10.5px; font-weight:700; text-transform:uppercase;">NGƯỜI GỬI:</div>
-          <strong style="color:#0f172a; font-size:13.5px;">${cargo.sender}</strong>
-          <div style="color:#475569;">SĐT: ${cargo.senderPhone}</div>
-          <div style="color:#64748b; font-size:11.5px;">Trạm đi: ${cargo.stationFrom || (manifest ? manifest.from : 'Sài Gòn')}</div>
+          <div style="color:#000000; font-size:10.5px; font-weight:700; text-transform:uppercase;">NGƯỜI GỬI:</div>
+          <strong style="color:#000000; font-size:13.5px;">${cargo.sender}</strong>
+          <div style="color:#000000;">SĐT: ${cargo.senderPhone}</div>
+          <div style="color:#000000; font-size:11.5px;">Trạm đi: ${cargo.stationFrom || (manifest ? manifest.from : 'Sài Gòn')}</div>
         </div>
         <div>
-          <div style="color:#64748b; font-size:10.5px; font-weight:700; text-transform:uppercase;">NGƯỜI NHẬN:</div>
-          <strong style="color:#0f172a; font-size:13.5px;">${cargo.receiver}</strong>
-          <div style="color:#475569;">SĐT: ${cargo.receiverPhone}</div>
-          <div style="color:#64748b; font-size:11.5px;">Địa chỉ/Trạm: ${cargo.deliveryAddress || cargo.stationTo || (manifest ? manifest.to : 'An Giang')}</div>
+          <div style="color:#000000; font-size:10.5px; font-weight:700; text-transform:uppercase;">NGƯỜI NHẬN:</div>
+          <strong style="color:#000000; font-size:13.5px;">${cargo.receiver}</strong>
+          <div style="color:#000000;">SĐT: ${cargo.receiverPhone}</div>
+          <div style="color:#000000; font-size:11.5px;">Địa chỉ/Trạm: ${cargo.deliveryAddress || cargo.stationTo || (manifest ? manifest.to : 'An Giang')}</div>
         </div>
       </div>
 
       <table style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:12.5px;">
         <thead>
-          <tr style="background:#f1f5f9; border-bottom:1.5px solid #cbd5e1; text-align:left; font-size:11px; text-transform:uppercase;">
-            <th style="padding:7px 10px;">TÊN HÀNG HÓA</th>
-            <th style="padding:7px 10px; text-align:center;">SỐ LƯỢNG</th>
-            <th style="padding:7px 10px; text-align:right;">PHÍ CƯỚC</th>
-            <th style="padding:7px 10px; text-align:right;">THU HỘ (COD)</th>
+          <tr style="background:#f1f5f9; border-bottom:1.5px solid #000000; text-align:left; font-size:11px; text-transform:uppercase; color:#000000;">
+            <th style="padding:7px 10px; color:#000000;">TÊN HÀNG HÓA</th>
+            <th style="padding:7px 10px; text-align:center; color:#000000;">SỐ LƯỢNG</th>
+            <th style="padding:7px 10px; text-align:right; color:#000000;">PHÍ CƯỚC</th>
+            <th style="padding:7px 10px; text-align:right; color:#000000;">THU HỘ (COD)</th>
           </tr>
         </thead>
         <tbody>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 10px;"><strong style="color:#0f172a;">${cargo.name}</strong></td>
-            <td style="padding:8px 10px; text-align:center;">${formatCargoQuantity(cargo)}</td>
-            <td style="padding:8px 10px; text-align:right; font-weight:700;">${feeVal.toLocaleString('vi-VN')}đ</td>
-            <td style="padding:8px 10px; text-align:right; font-weight:800; color:#7c3aed;">${codVal > 0 ? codVal.toLocaleString('vi-VN') + 'đ' : '0đ'}</td>
+          <tr style="border-bottom:1px solid #000000;">
+            <td style="padding:8px 10px;"><strong style="color:#000000;">${cargo.name}</strong></td>
+            <td style="padding:8px 10px; text-align:center; color:#000000;">${formatCargoQuantity(cargo)}</td>
+            <td style="padding:8px 10px; text-align:right; font-weight:700; color:#000000;">${feeVal.toLocaleString('vi-VN')}đ</td>
+            <td style="padding:8px 10px; text-align:right; font-weight:800; color:#000000;">${codVal > 0 ? codVal.toLocaleString('vi-VN') + 'đ' : '0đ'}</td>
           </tr>
         </tbody>
       </table>
 
-      <div style="background:#fff1f2; border:1.5px solid #fecdd3; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div style="background:#f8fafc; border:1.5px solid #000000; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <div>
-          <span style="font-size:11px; color:#9f1239; font-weight:700; display:block;">TRẠNG THÁI CƯỚC:</span>
-          <strong style="font-size:12.5px; color:#be123c;">${payStatusStr}</strong>
+          <span style="font-size:11px; color:#000000; font-weight:700; display:block;">TRẠNG THÁI CƯỚC:</span>
+          <strong style="font-size:12.5px; color:#000000;">${payStatusStr}</strong>
         </div>
         <div style="text-align:right;">
-          <span style="font-size:11px; color:#9f1239; font-weight:700; display:block;">TỔNG CẦN THU CỦA KHÁCH:</span>
-          <strong style="font-size:18px; color:#dc2626;">${totalCollect.toLocaleString('vi-VN')} VNĐ</strong>
+          <span style="font-size:11px; color:#000000; font-weight:700; display:block;">TỔNG CẦN THU CỦA KHÁCH:</span>
+          <strong style="font-size:18px; color:#000000;">${totalCollect.toLocaleString('vi-VN')} VNĐ</strong>
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; text-align:center; font-size:12px; margin-top:14px; border-top:1px solid #e2e8f0; padding-top:12px;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; text-align:center; font-size:12px; margin-top:14px; border-top:1px solid #000000; padding-top:12px;">
         <div>
-          <strong style="display:block; margin-bottom:4px; color:#0f172a;">${leftSigLabel}</strong>
-          <span style="font-size:10.5px; color:#64748b;">(Ký & ghi rõ họ tên)</span>
+          <strong style="display:block; margin-bottom:4px; color:#000000;">${leftSigLabel}</strong>
+          <span style="font-size:10.5px; color:#000000;">(Ký & ghi rõ họ tên)</span>
           <div style="height:45px;"></div>
         </div>
         <div>
-          <strong style="display:block; margin-bottom:4px; color:#0f172a;">${rightSigLabel}</strong>
-          <span style="font-size:10.5px; color:#64748b;">(Ký & ghi rõ họ tên)</span>
+          <strong style="display:block; margin-bottom:4px; color:#000000;">${rightSigLabel}</strong>
+          <span style="font-size:10.5px; color:#000000;">(Ký & ghi rõ họ tên)</span>
           <div style="height:45px;"></div>
         </div>
       </div>
@@ -2940,7 +3109,7 @@ function printReceiptNow() {
     document.body.appendChild(container);
   }
   container.innerHTML = `
-    <div style="max-width:580px; margin:0 auto; padding:20px; background:white; font-family:-apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a;">
+    <div style="max-width:580px; margin:0 auto; padding:20px; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;">
       ${receiptContent}
     </div>
   `;
@@ -3090,6 +3259,7 @@ window.submitOverdueReasons = submitOverdueReasons;
 
 // Auto trigger check on load
 document.addEventListener('DOMContentLoaded', () => {
+  initManifestComboboxEvents();
   checkAndDisplayOverdueWarning();
   const urlFilterNow = new URLSearchParams(window.location.search).get('filter');
   const isDelivery = window.location.pathname.includes('delivery.html');

@@ -6,7 +6,7 @@
   <title>Quản lý phơi hàng — Huệ Nghĩa Express</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&subset=vietnamese&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/manifest.css" />
   <link rel="stylesheet" href="../css/responsive.css" />
 </head>
@@ -190,6 +190,14 @@
                     </div>
                   </a>
 
+                  <a class="sidebar-nav-item" href="manifest.html?tab=unreceived" id="unreceivedNavItem" title="Hàng chưa giao (Chưa nhận)">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                      <span>Hàng chưa giao (Chưa nhận)</span>
+                    </div>
+                    <span id="unreceivedBadgeCount" style="margin-left:auto; background:#d97706; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+                  </a>
+
                   <a class="sidebar-nav-item" href="delivery-report.html" title="Báo cáo giao hàng">
                     <div class="nav-item-content">
                       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
@@ -322,13 +330,11 @@
         <section class="toolbar">
           <div class="toolbar-head">
             <div>
-              <p class="eyebrow" style="color:#b91c1c;">Vận chuyển & Nhập bến</p>
-              <h1>Danh sách xe cần nhận</h1>
-              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Nhấn <strong>"Nhận xe"</strong> để xác nhận xe vào bến & tự động chuyển tất cả đơn hàng sang DS Giao hàng.</p>
+              <p class="eyebrow">Vận chuyển & Nhập bến</p>
+              <h1>Danh sách chuyến xe đến</h1>
+              <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">Nhấn "Nhận xe" để xác nhận xe vào bến & chuyển các đơn sang danh sách giao hàng.</p>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <input type="text" id="searchReceiveManifest" oninput="renderReceiveTable()" placeholder="Tìm biển số, tên phơi, tài xế..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:260px;" />
-            </div>
+            <input type="text" id="searchReceiveManifest" oninput="renderReceiveTable()" placeholder="Tìm biển số, tên phơi, tài xế..." style="padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius-md); font-size:13.5px; width:260px;" />
           </div>
         </section>
 
@@ -381,6 +387,41 @@
                 </tr>
               </thead>
               <tbody id="deliveryTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION 4: DS HÀNG CHƯA GIAO / CHƯA NHẬN (UNRECEIVED CARGO LIST) -->
+      <div id="viewUnreceivedSection" style="display:none;">
+        <section class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <p class="eyebrow" style="color:#d97706;">Vận chuyển & Hàng chưa nhận</p>
+              <h1>Danh sách hàng chưa giao (Chưa nhận từ phơi)</h1>
+              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Danh sách các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn <strong>"Bổ sung & Nhận hàng"</strong> khi đơn hàng cập bến sau.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <input type="text" id="searchUnreceivedCargo" oninput="renderUnreceivedTable()" placeholder="Tìm mã đơn, tên hàng, biển số xe..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
+            </div>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:45px; text-align:center;">STT</th>
+                  <th>Mã đơn & Tên hàng</th>
+                  <th>Phơi xe & Biển số</th>
+                  <th>Người gửi ➔ Người nhận</th>
+                  <th>Cước phí & COD</th>
+                  <th style="text-align:center;">Trạng thái</th>
+                  <th style="text-align:center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="unreceivedTableBody"></tbody>
             </table>
           </div>
         </section>
@@ -488,7 +529,6 @@
                 <th style="padding: 8px 10px;">Người gửi - SĐT</th>
                 <th style="padding: 8px 10px;">Người nhận - SĐT</th>
                 <th style="width: 100px; padding: 8px 10px;">Phí cước</th>
-                <th style="width: 135px; text-align: center; padding: 8px 10px;">Trạng thái hàng</th>
                 <th style="width: 120px; text-align: center; padding: 8px 10px;">Hành động</th>
               </tr>
             </thead>
@@ -499,8 +539,8 @@
         </div>
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);">
           <button type="button" class="secondary-btn" id="printManifestBtn">In phơi hàng</button>
-          <button type="button" class="secondary-btn" id="batchPrintStickersBtn" style="background:#ecfeff; color:#0f766e; border:1px solid #cffafe; font-weight:700;">In tem dán</button>
-          <button type="button" class="secondary-btn" onclick="printAllReceiptsForCurrentManifest()" style="background:#2563eb; color:white; border:none; font-weight:700; box-shadow:0 1px 3px rgba(37,99,235,0.3);">In tất cả biên lai hàng</button>
+          <button type="button" class="secondary-btn" id="batchPrintStickersBtn" style="background:#ecfeff; color:#0f766e; border:1px solid #a5f3fc; font-weight:700;">In tem dán</button>
+          <button type="button" class="secondary-btn" onclick="printAllReceiptsForCurrentManifest()" style="background:#2563eb; color:white; border:none; font-weight:700; box-shadow:0 2px 6px rgba(37,99,235,0.25);">In tất cả biên lai hàng</button>
           <button type="button" class="ghost-btn" id="closeDetailBtn">Đóng</button>
         </div>
       </div>
@@ -519,7 +559,7 @@
       </div>
 
       <div style="padding:16px; max-height:75vh; overflow-y:auto;">
-        <div id="printableReceiptArea" style="background:white; border:1px solid #cbd5e1; border-radius:8px; padding:20px; font-family:-apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a;">
+        <div id="printableReceiptArea" style="background:white; border:1px solid #cbd5e1; border-radius:8px; padding:20px; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;">
           <!-- Content populated dynamically by JS -->
         </div>
       </div>
@@ -604,6 +644,92 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal Kiểm Nhận Hàng & Quét QR Theo Phơi -->
+  <div class="modal-overlay" id="receiveScanModal">
+    <div class="modal-card" style="width: min(1300px, 96%); max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; margin: auto;">
+      <!-- Modal Header -->
+      <div class="modal-head">
+        <div>
+          <h2 id="receiveScanModalTitle" style="font-size: 17px; font-weight: 800; margin: 0;">Kiểm nhận hàng phơi xe</h2>
+          <span id="receiveScanModalSub" style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px; display: block;">Quét mã QR hoặc tích chọn các đơn hàng thực nhận khi xe vào bến</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeReceiveScanModal()">✕</button>
+      </div>
+
+      <!-- Stats Bar & QR Input -->
+      <div style="padding: 14px 24px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; flex-wrap: wrap;">
+          <span class="status-pill status-pending">Tổng đơn: <strong id="scanTotalCount">0</strong></span>
+          <span class="status-pill status-delivered">Đã quét / Nhận: <strong id="scannedCount">0</strong></span>
+          <span class="status-pill status-enroute">Chưa quét: <strong id="unscannedCount">0</strong></span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="position: relative; flex: 1;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/>
+            </svg>
+            <input type="text" id="scanQrCodeInput" onkeydown="handleScanQrInputKeydown(event)" placeholder="Quét mã QR hoặc nhập mã đơn hàng (vd: HG1001)..." style="width: 100%; padding: 9px 12px 9px 38px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13.5px; font-weight: 500; outline: none; background: #ffffff;" />
+          </div>
+          <button type="button" onclick="processCurrentScanQrInput()" class="primary-btn" style="padding: 9px 18px; font-size: 13px;">Quét mã</button>
+        </div>
+      </div>
+
+      <!-- Cargo Table -->
+      <div class="table-scroll" style="padding: 16px 24px; overflow-y: auto; max-height: 60vh;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 38px;"><input type="checkbox" id="selectAllScanCargos" onchange="toggleSelectAllScanCargos(this.checked)" title="Chọn / Bỏ chọn tất cả" /></th>
+              <th style="width: 38px;">STT</th>
+              <th>Mã đơn & Tên hàng</th>
+              <th>Người gửi ➔ Người nhận</th>
+              <th>Cước phí & COD</th>
+              <th style="width: 130px;">Trạng thái kiểm</th>
+            </tr>
+          </thead>
+          <tbody id="scanCargoTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-actions" style="justify-content: space-between; margin-top: 0; padding: 16px 24px;">
+        <button type="button" class="ghost-btn" onclick="closeReceiveScanModal()">Đóng</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" onclick="confirmScanReceiveAll(currentScanManifestId)" class="ghost-btn">Nhận tất cả (Toàn phơi)</button>
+          <button type="button" onclick="confirmScanReceiveSelected(currentScanManifestId)" class="primary-btn">
+            <span>Xác nhận Nhận xe (<span id="confirmSelectedCount">0</span> đơn)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Xem Trước & In Tem Dán Cục Hàng -->
+  <div class="modal-overlay" id="cargoStickerModal">
+    <div class="modal-card" style="max-width: 500px; padding: 20px;">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Tem dán nhãn hàng hóa</p>
+          <h2 style="font-size:18px; margin:2px 0 0 0; color:#0f172a;">Xem trước mẫu in tem dán</h2>
+        </div>
+        <button class="icon-btn" type="button" onclick="closeCargoStickerModal()">✕</button>
+      </div>
+
+      <div id="cargoStickerPreview" style="padding:12px 0;">
+        <!-- Preview content rendered by JS -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 16px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="ghost-btn" onclick="closeCargoStickerModal()">Hủy</button>
+        <button type="button" class="primary-btn" id="confirmPrintStickerBtn" onclick="executePrintStickerFromModal()" style="background:#2563eb;">In tem dán</button>
+      </div>
+    </div>
+  </div>
+
   </div> <!-- .app-body -->
 </div> <!-- .app-shell -->
 
@@ -1081,33 +1207,38 @@
                 <td style="text-align:center;"><strong>${index + 1}</strong></td>
                 <td>
                   <strong>${cargo.name}</strong> 
-                  <small style="color:#1d4ed8; font-weight:700;">(x${formatCargoQuantity(cargo)})</small>
-                  ${isCargoReturned ? `<br><span style="font-size:11px; font-weight:800; color:#dc2626; background:#fee2e2; padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block;">⚠️ Hàng trả về</span>` : ''}
+                  <small style="color:#000000; font-weight:600;">(x${formatCargoQuantity(cargo)})</small>
+                  ${isCargoReturned ? `<br><span style="font-size:11px; font-weight:800; color:#C20D08; background:#fff1f2; border:1px solid #fecdd3; padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block;">⚠️ Hàng trả về</span>` : ''}
                 </td>
                 <td><code>${cargo.code}</code></td>
                 <td>${cargo.sender} (${cargo.senderPhone})</td>
                 <td>${cargo.receiver} (${cargo.receiverPhone})</td>
                 <td><strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong></td>
-                <td style="text-align:center;">
-                  <select class="cargo-status-select" onchange="updateCargoStatusInManifest(${cargo.id}, this.value)" style="padding:4px 6px; border-radius:6px; font-weight:700; font-size:12px; border:1.5px solid #cbd5e1; cursor:pointer; background:white; color:#1e293b; width:100%;">
-                    <option value="pending" ${st === 'pending' ? 'selected' : ''}>Chưa chuyển</option>
-                    <option value="in-transit" ${st === 'in-transit' ? 'selected' : ''}>Đã chuyển</option>
-                    <option value="undelivered" ${st === 'undelivered' ? 'selected' : ''}>Chưa giao</option>
-                    <option value="delivered" ${st === 'delivered' ? 'selected' : ''}>Đã giao</option>
-                    ${(isManifestReceived && isCargoUndelivered) || isCargoReturned ? `<option value="returned" ${st === 'returned' ? 'selected' : ''}>Hàng trả về</option>` : ''}
-                  </select>
-                </td>
                 <td style="text-align:center; white-space:nowrap;">
-                  <button class="btn-receipt" style="padding:3px 8px;font-size:12px;margin-right:4px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:700;box-shadow:0 1px 2px rgba(37,99,235,0.25);" onclick="openDeliveryReceiptModal(${cargo.id})" title="Xem & In biên lai giao hàng cho cục hàng này">Biên lai</button>
-                  <button class="btn-print" style="padding:3px 7px;font-size:12px;margin-right:4px;" onclick="printSingleSticker(${cargo.id})" title="In tem dán hàng hóa này">Tem</button>
-                  ${canReturnCargo ? `<button style="padding:3px 7px;font-size:12px;margin-right:4px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:4px;cursor:pointer;font-weight:700;" onclick="markCargoReturned(${cargo.id})" title="Trả hàng về do có vấn đề">↩ Trả hàng</button>` : ''}
-                  <button class="btn-edit" style="padding:3px 7px;font-size:12px;margin-right:4px;background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;border-radius:4px;cursor:pointer;font-weight:700;" onclick="editCargoInManifest(${cargo.id})" title="Chỉnh sửa hàng hóa này">Sửa</button>
-                  <button class="btn-delete" style="padding:3px 7px;font-size:12px;" onclick="removeFromManifest(${cargo.id})" title="Gỡ khỏi phơi này">Gỡ</button>
+                  <div class="action-group" style="justify-content:center;">
+                    <button class="btn-receipt" onclick="openDeliveryReceiptModal(${cargo.id})" title="Xem & In biên lai giao hàng">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </button>
+                    <button class="btn-print" onclick="printSingleSticker(${cargo.id})" title="In tem dán hàng hóa">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                    </button>
+                    ${canReturnCargo ? `
+                      <button class="btn-return" onclick="markCargoReturned(${cargo.id})" title="Trả hàng về do có vấn đề">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                      </button>
+                    ` : ''}
+                    <button class="btn-edit" onclick="editCargoInManifest(${cargo.id})" title="Chỉnh sửa hàng hóa">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </button>
+                    <button class="btn-delete" onclick="removeFromManifest(${cargo.id})" title="Gỡ khỏi phơi này">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             `;
           }).join('')
-        : '<tr><td colspan="9" style="text-align:center;padding:20px;color:#6b7280;">Chưa có hàng hóa nào được gán vào phơi này.</td></tr>';
+        : '<tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280;">Chưa có hàng hóa nào được gán vào phơi này.</td></tr>';
 
       const selectAll = document.getElementById('selectAllDetailCargos');
       const rowCheckboxes = document.querySelectorAll('.detail-row-checkbox');
@@ -1281,7 +1412,7 @@
           <style>
             @page { size: auto; margin: 10mm; }
             * { box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; color: #000; margin: 0; padding: 12px; }
+            body { font-family: 'Segoe UI', Arial, 'Inter', -apple-system, sans-serif; background: #fff; color: #000; margin: 0; padding: 12px; }
             code { font-family: monospace; }
             ${customCss}
           </style>
@@ -1301,34 +1432,42 @@
       printWin.document.close();
     }
 
+    let activeStickerCargoId = null;
+
+    window.closeCargoStickerModal = function() {
+      const modal = document.getElementById('cargoStickerModal');
+      if (modal) modal.classList.remove('open');
+    };
+
     window.printSingleSticker = function(cargoId) {
+      activeStickerCargoId = cargoId;
       const cargos = loadCargos();
       const manifests = loadManifests();
-      const cargo = cargos.find(c => c.id === cargoId);
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
       if (!cargo) return;
-      const manifest = manifests.find(m => m.id === Number(cargo.manifestId));
+      const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
 
       const stickerHtml = `
-        <div style="max-width:380px; margin:0 auto; border:2px solid #000; border-radius:10px; padding:14px; background:white; font-family:sans-serif;">
+        <div style="max-width:380px; margin:0 auto; border:2px solid #000; border-radius:10px; padding:14px; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;">
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
-            <strong style="color:#e53935; font-size:15px;">HUỆ NGHĨA EXPRESS</strong>
-            <span style="font-family:monospace; font-size:16px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px;">${cargo.code}</span>
+            <strong style="color:#C20D08; font-size:15px; font-weight:800;">HUỆ NGHĨA EXPRESS</strong>
+            <span style="font-family:ui-monospace, SFMono-Regular, monospace; font-size:15px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px;">${cargo.code}</span>
           </div>
           <div style="text-align:center; background:#fafafa; border:1px dashed #cbd5e1; border-radius:6px; padding:6px; margin-bottom:8px;">
             ${generateSVGBarcode(cargo.code)}
-            <div style="font-family:monospace; font-weight:800; font-size:13px; letter-spacing:0.2em;">* ${cargo.code} *</div>
+            <div style="font-family:ui-monospace, SFMono-Regular, monospace; font-weight:800; font-size:13px; letter-spacing:0.2em;">* ${cargo.code} *</div>
           </div>
           <div style="background:#1e293b; color:white; padding:6px; border-radius:6px; text-align:center; font-weight:800; font-size:15px; margin-bottom:8px;">
-            ${cargo.stationFrom} ➔ ${cargo.stationTo}
+            ${cargo.stationFrom || (manifest ? manifest.from : 'Sài Gòn')} ➔ ${cargo.stationTo || (manifest ? manifest.to : 'AG')}
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; margin-bottom:8px;">
             <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
               <small style="color:#64748b; font-weight:800; display:block;">HÀNG HÓA</small>
-              <strong>${cargo.name}</strong>
+              <strong style="font-size:13px;">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
             </div>
             <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
               <small style="color:#64748b; font-weight:800; display:block;">CƯỚC PHÍ</small>
-              <strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
+              <strong style="font-size:13px;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
             </div>
             <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
               <small style="color:#64748b; font-weight:800; display:block;">GỬI</small>
@@ -1351,7 +1490,23 @@
           </div>
         </div>
       `;
-      openPrintWindow(`Tem dán đơn ${cargo.code}`, stickerHtml);
+
+      const previewEl = document.getElementById('cargoStickerPreview');
+      if (previewEl) previewEl.innerHTML = stickerHtml;
+
+      const modal = document.getElementById('cargoStickerModal');
+      if (modal) modal.classList.add('open');
+    };
+
+    window.executePrintStickerFromModal = function() {
+      const previewEl = document.getElementById('cargoStickerPreview');
+      if (!previewEl || !previewEl.innerHTML) return;
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(activeStickerCargoId));
+      const code = cargo ? cargo.code : '';
+
+      openPrintWindow(`Tem dán đơn ${code}`, previewEl.innerHTML);
+      closeCargoStickerModal();
     };
 
     function printManifestSheet(manifestId) {
@@ -1798,6 +1953,8 @@
         segs = ['Hệ thống điều hành', 'Giao hàng', 'Danh sách chuyến xe đến'];
       } else if (tabName === 'delivery') {
         segs = ['Hệ thống điều hành', 'Danh sách giao hàng'];
+      } else if (tabName === 'unreceived') {
+        segs = ['Hệ thống điều hành', 'Giao hàng', 'Hàng chưa giao (Chưa nhận)'];
       } else if (typeof manifestsEntryGrouped !== 'undefined' && manifestsEntryGrouped) {
         segs = ['Hệ thống điều hành', 'Nhận hàng', 'Danh sách chuyến xe đi'];
       } else {
@@ -1820,6 +1977,7 @@
       const secManifests = document.getElementById('viewManifestsSection');
       const secReceive = document.getElementById('viewReceiveSection');
       const secDelivery = document.getElementById('viewDeliverySection');
+      const secUnreceived = document.getElementById('viewUnreceivedSection');
 
       if (btnManifests) {
         btnManifests.style.color = tabName === 'manifests' ? '#b91c1c' : '#64748b';
@@ -1837,12 +1995,14 @@
       if (secManifests) secManifests.style.display = tabName === 'manifests' ? 'block' : 'none';
       if (secReceive) secReceive.style.display = tabName === 'receive' ? 'block' : 'none';
       if (secDelivery) secDelivery.style.display = tabName === 'delivery' ? 'block' : 'none';
+      if (secUnreceived) secUnreceived.style.display = tabName === 'unreceived' ? 'block' : 'none';
 
       updateTabBadges();
 
       if (tabName === 'manifests') renderManifestTable();
       if (tabName === 'receive') renderReceiveTable();
       if (tabName === 'delivery') renderDeliveryTable();
+      if (tabName === 'unreceived') renderUnreceivedTable();
 
       renderManifestBreadcrumb(tabName);
     };
@@ -1853,18 +2013,25 @@
 
       const receiveCount = manifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe').length;
       
-      // RÀNG BUỘC: Chỉ đếm các đơn có phơi xe ĐÃ NHẬN
       const deliveryCount = cargos.filter(c => {
+        if (c.status === 'unreceived' || c.isUnreceived) return false;
         const manifest = manifests.find(m => Number(m.id) === Number(c.manifestId));
         const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
         const isCargoInDeliveryState = c.status === 'undelivered' || c.status === 'in-delivery' || c.status === 'delivered';
         return c.manifestId && (isManifestReceived || isCargoInDeliveryState);
       }).length;
 
+      const unreceivedCount = cargos.filter(c => c.status === 'unreceived' || c.isUnreceived).length;
+
       const rBadge = document.getElementById('receiveBadge');
       const dBadge = document.getElementById('deliveryBadge');
+      const uBadge = document.getElementById('unreceivedBadgeCount');
       if (rBadge) rBadge.textContent = receiveCount;
       if (dBadge) dBadge.textContent = deliveryCount;
+      if (uBadge) {
+        uBadge.textContent = unreceivedCount;
+        uBadge.style.display = unreceivedCount > 0 ? 'inline-block' : 'none';
+      }
     }
 
     window.renderReceiveTable = function() {
@@ -1893,44 +2060,332 @@
         const manifestCargos = cargos.filter(c => Number(c.manifestId) === item.id);
         const driverInfo = parseDriverDetails(item.driver);
         const isReceived = item.status === 'received' || item.statusText === 'Đã nhận xe';
+        const scannedCount = manifestCargos.filter(c => c.isScanned || (c.status !== 'unreceived' && !c.isUnreceived && isReceived)).length;
 
         return `
-          <tr style="${isReceived ? 'background:#f8fafc;' : ''}">
+          <tr>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
-              <strong style="font-size:15px; color:#0f172a;">${item.plate}</strong> 
-              <span class="route-text" style="font-size:12.5px; margin-left:4px;">(<strong>${item.from}</strong> <span style="color:var(--primary);">➔</span> <strong>${item.to}</strong>)</span><br>
-              <small style="color:#64748b; font-weight:600;">${item.name}</small>
+              <span class="plate-badge">${item.plate}</span>
+              <span class="route-text" style="margin-left:6px;">${item.from} <span style="color:var(--primary);">➔</span> ${item.to}</span><br>
+              <small style="color:var(--text-muted); font-weight:600;">${item.name}</small>
             </td>
             <td>
-              <div style="font-weight:600; color:#334155;">${driverInfo.name}</div>
+              <div style="font-weight:600;">${driverInfo.name}</div>
               <small style="color:var(--text-muted);">Phụ xe: ${item.helper || 'Không'}</small>
             </td>
             <td style="text-align:center;">
-              <span class="vehicle-pill" style="font-size:12.5px; padding:2px 8px; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">${manifestCargos.length} đơn hàng</span>
+              <span class="vehicle-pill">${manifestCargos.length} đơn hàng</span>
+              ${manifestCargos.length > 0 ? `<div style="font-size:12px; color:var(--green); font-weight:700; margin-top:4px;">Đã kiểm: ${scannedCount}/${manifestCargos.length}</div>` : ''}
             </td>
             <td style="text-align:center;">
-              ${isReceived
-                ? `<span style="background:#dcfce7; color:#15803d; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; border:1px solid #86efac;">Đã nhận xe</span>`
-                : `<span style="background:#fef3c7; color:#b45309; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; border:1px solid #fde047;">Đang chuyển</span>`
-              }
+              <span class="status-pill ${isReceived ? 'status-delivered' : 'status-enroute'}">${isReceived ? 'Đã nhận xe' : 'Đang chuyển'}</span>
             </td>
             <td style="text-align:center;">
-              ${isReceived
-                ? `<span style="font-size:12px; font-weight:700; color:#94a3b8; background:#e2e8f0; padding:4px 10px; border-radius:6px;">Đã nhập bến</span>`
-                : `<button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Xác nhận Nhận xe vào bến" style="width:34px; height:34px; border-radius:8px; background:#fef2f2; color:#b91c1c; border:1px solid #fca5a5; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:all 0.15s ease;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="1" y="3" width="15" height="13" rx="2"></rect>
-                      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                      <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                      <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                    </svg>
-                  </button>`
-              }
+              <div style="display:inline-flex; align-items:center; gap:8px;">
+                <button type="button" onclick="openReceiveScanModal(${item.id})" title="Quét mã QR / Kiểm từng đơn trong phơi" class="ghost-btn">Quét QR / Kiểm hàng</button>
+                ${isReceived
+                  ? `<span class="status-pill status-pending">Đã nhập bến</span>`
+                  : `<button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Xác nhận Nhận xe (Nhận hết tất cả đơn trong phơi)" class="primary-btn">Nhận xe (Nhận hết)</button>`
+                }
+              </div>
             </td>
           </tr>
         `;
       }).join('');
+    };
+
+    let currentScanManifestId = null;
+    let currentScanMap = {};
+
+    window.openReceiveScanModal = function(manifestId) {
+      currentScanManifestId = manifestId;
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
+      if (!manifest) return;
+
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
+      currentScanMap = {};
+      manifestCargos.forEach(c => {
+        if (c.isScanned || (c.status !== 'unreceived' && !c.isUnreceived && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe'))) {
+          currentScanMap[c.id] = true;
+        } else {
+          currentScanMap[c.id] = false;
+        }
+      });
+
+      const titleEl = document.getElementById('receiveScanModalTitle');
+      const subEl = document.getElementById('receiveScanModalSub');
+      if (titleEl) titleEl.innerHTML = `Kiểm nhận phơi xe: <strong>${manifest.plate}</strong> (${manifest.from || '---'} ➔ ${manifest.to || '---'})`;
+      if (subEl) subEl.textContent = `Lộ trình: ${manifest.from || '---'} ➔ ${manifest.to || '---'} • Lái xe: ${manifest.driver || '---'}`;
+
+      const modal = document.getElementById('receiveScanModal');
+      if (modal) modal.classList.add('open');
+
+      renderScanCargoTable();
+
+      setTimeout(() => {
+        const input = document.getElementById('scanQrCodeInput');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+      }, 100);
+    };
+
+    window.closeReceiveScanModal = function() {
+      const modal = document.getElementById('receiveScanModal');
+      if (modal) modal.classList.remove('open');
+    };
+
+    window.renderScanCargoTable = function() {
+      if (!currentScanManifestId) return;
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentScanManifestId));
+
+      let scannedCount = 0;
+      manifestCargos.forEach(c => {
+        if (currentScanMap[c.id]) scannedCount++;
+      });
+
+      const totalCount = manifestCargos.length;
+      const unscannedCount = totalCount - scannedCount;
+
+      const totEl = document.getElementById('scanTotalCount');
+      const scaEl = document.getElementById('scannedCount');
+      const unsEl = document.getElementById('unscannedCount');
+      const cnfEl = document.getElementById('confirmSelectedCount');
+      if (totEl) totEl.textContent = totalCount;
+      if (scaEl) scaEl.textContent = scannedCount;
+      if (unsEl) unsEl.textContent = unscannedCount;
+      if (cnfEl) cnfEl.textContent = scannedCount;
+
+      const tbody = document.getElementById('scanCargoTableBody');
+      if (!tbody) return;
+
+      if (!manifestCargos.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Phơi xe này chưa có đơn hàng nào.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = manifestCargos.map((cargo, index) => {
+        const isChecked = !!currentScanMap[cargo.id];
+        return `
+          <tr style="${isChecked ? 'background:var(--surface-2);' : ''}">
+            <td style="text-align:center;">
+              <input type="checkbox" class="scan-cargo-checkbox" data-id="${cargo.id}" ${isChecked ? 'checked' : ''} onchange="toggleScanCargoItem(${cargo.id}, this.checked)" />
+            </td>
+            <td style="text-align:center; color:var(--text-muted);">${index + 1}</td>
+            <td>
+              <code>${cargo.code}</code>
+              <span style="font-weight:700; margin-left:6px;">${(cargo.name || '').replace(/🧳/g, '').trim()}</span>
+              <span style="font-size:12px; color:var(--text-muted);">(${cargo.quantity || 1} ${cargo.unit || 'cái'})</span>
+            </td>
+            <td style="font-size:12.5px;">
+              <span>${cargo.sender}</span> ➔ <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+            </td>
+            <td style="font-size:12.5px; font-weight:700;">
+              ${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ
+              ${cargo.codAmount ? `<span style="color:var(--primary); font-weight:700; margin-left:4px;">(COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ)</span>` : ''}
+            </td>
+            <td style="text-align:center;">
+              <span class="status-pill ${isChecked ? 'status-delivered' : 'status-enroute'}">${isChecked ? '✓ Đã quét QR' : 'Chưa quét'}</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.toggleScanCargoItem = function(cargoId, isChecked) {
+      currentScanMap[cargoId] = isChecked;
+      renderScanCargoTable();
+    };
+
+    window.toggleSelectAllScanCargos = function(isChecked) {
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentScanManifestId));
+      manifestCargos.forEach(c => {
+        currentScanMap[c.id] = isChecked;
+      });
+      renderScanCargoTable();
+    };
+
+    window.handleScanQrInputKeydown = function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        processCurrentScanQrInput();
+      }
+    };
+
+    window.processCurrentScanQrInput = function() {
+      const input = document.getElementById('scanQrCodeInput');
+      if (!input) return;
+      const rawCode = input.value.trim().toLowerCase();
+      if (!rawCode) return;
+
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentScanManifestId));
+
+      const targetCargo = manifestCargos.find(c => 
+        (c.code || '').toLowerCase() === rawCode ||
+        (c.code || '').toLowerCase().includes(rawCode) ||
+        (c.baga && (c.baga.code || '').toLowerCase() === rawCode)
+      );
+
+      if (targetCargo) {
+        if (currentScanMap[targetCargo.id]) {
+          showToast(`Đơn ${targetCargo.code} đã được quét`);
+        } else {
+          currentScanMap[targetCargo.id] = true;
+          showToast(`Đã quét đơn ${targetCargo.code}`);
+        }
+        input.value = '';
+        renderScanCargoTable();
+      } else {
+        showToast(`Không tìm thấy đơn "${input.value}" trong phơi xe này`);
+        input.select();
+      }
+    };
+
+    window.confirmScanReceiveSelected = function(manifestId) {
+      if (!manifestId) return;
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
+      if (!manifest) return;
+
+      let scannedCount = 0;
+      let unreceivedCount = 0;
+
+      cargos.forEach(c => {
+        if (Number(c.manifestId) === Number(manifestId)) {
+          if (currentScanMap[c.id]) {
+            c.isScanned = true;
+            c.isUnreceived = false;
+            c.status = 'undelivered';
+            c.statusText = 'Chờ giao';
+            scannedCount++;
+          } else {
+            c.isScanned = false;
+            c.isUnreceived = true;
+            c.status = 'unreceived';
+            c.statusText = 'Chưa nhận';
+            unreceivedCount++;
+          }
+        }
+      });
+
+      manifest.status = 'received';
+      manifest.statusText = 'Đã nhận xe';
+      if (!manifest.arrivedAt) {
+        manifest.arrivedAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+      }
+
+      saveManifests(manifests);
+      saveCargos(cargos);
+
+      closeReceiveScanModal();
+
+      if (unreceivedCount > 0) {
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn sang DS Giao hàng, ${unreceivedCount} đơn chưa nhận.`);
+      } else {
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã chuyển sang DS Giao hàng.`);
+      }
+
+      renderReceiveTable();
+      updateTabBadges();
+      switchManifestTab('delivery');
+    };
+
+    window.confirmScanReceiveAll = function(manifestId) {
+      if (!manifestId) return;
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
+      manifestCargos.forEach(c => {
+        currentScanMap[c.id] = true;
+      });
+      confirmScanReceiveSelected(manifestId);
+    };
+
+    window.renderUnreceivedTable = function() {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const tbody = document.getElementById('unreceivedTableBody');
+      const query = (document.getElementById('searchUnreceivedCargo')?.value || '').toLowerCase().trim();
+
+      if (!tbody) return;
+
+      let filtered = cargos.filter(c => c.status === 'unreceived' || c.isUnreceived);
+
+      if (query) {
+        filtered = filtered.filter(c => 
+          (c.code || '').toLowerCase().includes(query) ||
+          (c.name || '').toLowerCase().includes(query) ||
+          (c.receiver || '').toLowerCase().includes(query) ||
+          (c.receiverPhone || '').toLowerCase().includes(query)
+        );
+      }
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có đơn hàng nào trong danh sách hàng chưa giao (Chưa nhận).</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((cargo, index) => {
+        const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+        const manifestText = manifest ? `${manifest.name} (${manifest.plate})` : 'Chưa gán phơi xe';
+
+        return `
+          <tr>
+            <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td>
+              <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:700; color:#0f172a;">${cargo.code}</code><br>
+              <strong style="font-size:14px; color:#0f172a;">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
+            </td>
+            <td>
+              <div style="font-size:13px; font-weight:700; color:#1e293b;">${manifestText}</div>
+              <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || '---'} ➔ ${cargo.stationTo || '---'}</small>
+            </td>
+            <td>
+              <div style="font-size:13px;">
+                <span style="color:#64748b;">Gửi:</span> <strong>${cargo.sender}</strong> (${cargo.senderPhone})<br>
+                <span style="color:#64748b;">Nhận:</span> <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+              </div>
+            </td>
+            <td>
+              <div style="font-size:13px; font-weight:700; color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</div>
+              ${cargo.codAmount ? `<small style="color:#dc2626; font-weight:700;">COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</small>` : ''}
+            </td>
+            <td style="text-align:center;">
+              <span style="background:#fef3c7; color:#b45309; border:1px solid #fde047; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; display:inline-block;">
+                ⚠️ Chưa nhận từ phơi
+              </span>
+            </td>
+            <td style="text-align:center;">
+              <button type="button" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Nhận bổ sung đơn hàng này" class="primary-btn" style="padding:5px 12px; font-size:12.5px; background:#16a34a; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Bổ sung & Nhận hàng</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.receiveSingleUnreceivedCargo = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (cargo) {
+        cargo.status = 'undelivered';
+        cargo.statusText = 'Chờ giao';
+        cargo.isUnreceived = false;
+        cargo.isScanned = true;
+        saveCargos(cargos);
+        showToast(`✅ Đã bổ sung đơn ${cargo.code} vào Danh sách Giao hàng thành công!`);
+        renderUnreceivedTable();
+        updateTabBadges();
+      }
     };
 
     window.receiveManifestAndRedirect = function(manifestId) {
@@ -1951,6 +2406,8 @@
       cargos.forEach(c => {
         if (Number(c.manifestId) === manifestId) {
           if (c.status !== 'delivered' && c.status !== 'returned') {
+            c.isScanned = true;
+            c.isUnreceived = false;
             c.status = 'undelivered';
             c.statusText = 'Chờ giao';
             updatedCount++;
@@ -1959,9 +2416,8 @@
       });
 
       saveCargos(cargos);
-      showToast(`✅ Đã nhận xe ${manifest.plate}! ${updatedCount} đơn hàng đã chuyển sang DS Giao hàng.`);
+      showToast(`✅ Đã nhận xe ${manifest.plate}! Toàn bộ ${updatedCount} đơn hàng đã chuyển sang DS Giao hàng.`);
 
-      // Jump directly to DS Giao hàng tab
       switchManifestTab('delivery');
     };
 
@@ -2084,7 +2540,7 @@
         area.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
             <div>
-              <h2 style="margin:0; font-size:19px; font-weight:800; color:#dc2626;">HUỆ NGHĨA EXPRESS</h2>
+              <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:800; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
               <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa tận nơi</span>
             </div>
             <div style="text-align:right;">
@@ -2171,7 +2627,7 @@
       const receiptContent = document.getElementById('printableReceiptArea')?.innerHTML;
       if (receiptContent) {
         const receiptHtml = `
-          <div style="max-width:480px; margin:0 auto; padding:16px; border:2px solid #000; background:white; font-family:sans-serif;">
+          <div style="max-width:480px; margin:0 auto; padding:16px; border:2px solid #000; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif;">
             ${receiptContent}
           </div>
         `;
@@ -2204,10 +2660,10 @@
         else if (isFeePaid) payStatusStr = `Tiền rồi (${cargo.paidMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt'})`;
 
         return `
-          <div style="max-width:480px; margin:0 auto 30px auto; padding:16px; border:2px solid #000; background:white; font-family:sans-serif; page-break-after:always;">
+          <div style="max-width:480px; margin:0 auto 30px auto; padding:16px; border:2px solid #000; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; page-break-after:always;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
               <div>
-                <h2 style="margin:0; font-size:19px; font-weight:800; color:#dc2626;">HUỆ NGHĨA EXPRESS</h2>
+                <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:800; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
                 <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa</span>
               </div>
               <div style="text-align:right;">
@@ -2456,7 +2912,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab');
     const manifestsEntryGrouped = initialTab === 'manifests';
-    if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests')) {
+    if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests' || initialTab === 'unreceived')) {
       switchManifestTab(initialTab);
     } else {
       renderManifestTable();
@@ -2466,6 +2922,9 @@
     if (initialTab === 'receive') {
       document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
       document.getElementById('inboundTripsNavItem')?.classList.add('active');
+    } else if (initialTab === 'unreceived') {
+      document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
+      document.getElementById('unreceivedNavItem')?.classList.add('active');
     } else if (initialTab === 'manifests' || !initialTab) {
       document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
       document.getElementById('outboundTripsNavItem')?.classList.add('active');

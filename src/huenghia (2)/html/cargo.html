@@ -6,7 +6,7 @@
   <title>Nhập hàng — Huệ Nghĩa Express</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&subset=vietnamese&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/cargo.css" />
   <link rel="stylesheet" href="../css/responsive.css" />
 </head>
@@ -192,6 +192,13 @@
                     </div>
                   </a>
 
+                  <a class="sidebar-nav-item" href="manifest.html?tab=unreceived" id="unreceivedNavItem" title="Hàng chưa giao (Chưa nhận)">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                      <span>Hàng chưa giao (Chưa nhận)</span>
+                    </div>
+                  </a>
+
                   <a class="sidebar-nav-item" href="delivery-report.html" title="Báo cáo giao hàng">
                     <div class="nav-item-content">
                       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
@@ -349,14 +356,15 @@
           <table>
             <thead>
               <tr>
-                <th style="width: 32px; text-align: center;"><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
-                <th style="width: 36px; text-align: center;">STT</th>
+                <th style="width: 36px; text-align: center;"><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
+                <th style="width: 42px; text-align: center;">STT</th>
+                <th style="min-width: 100px; text-align: center;">Mã đơn</th>
                 <th style="min-width: 170px;">Hàng hóa & Phơi xe</th>
-                <th style="min-width: 140px;">Tuyến đường & Thời gian</th>
-                <th style="min-width: 160px;">Người gửi / Người nhận</th>
+                <th style="min-width: 150px;">Tuyến đường & Thời gian</th>
+                <th style="min-width: 170px;">Người gửi / Người nhận</th>
                 <th style="min-width: 150px;">Cước phí & COD</th>
-                <th style="width: 115px; text-align: center;">Trạng thái</th>
-                <th style="width: 195px; text-align: center;">Hành động</th>
+                <th style="width: 135px; text-align: center;">Trạng thái</th>
+                <th style="width: 180px; text-align: center;">Hành động</th>
               </tr>
             </thead>
             <tbody id="cargoTableBody"></tbody>
@@ -458,19 +466,8 @@
             <input type="text" id="cargoUnitCustom" placeholder="vd: Can, M3, Bó, Chai..." />
           </label>
 
-          <!-- Hàng 2: Hướng đi + Trạm gửi + Trạm nhận + Phí cước -->
+          <!-- Hàng 2: Trạm gửi + Trạm nhận + Phí cước -->
           <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-            <label style="flex: 1 1 150px; min-width: 150px;">
-              <span>Hướng đi</span>
-              <select id="cargoDirection" style="font-weight:700;">
-                <option value="Sài Gòn|Châu Đốc">Sài Gòn → Châu Đốc</option>
-                <option value="Châu Đốc|Sài Gòn">Châu Đốc → Sài Gòn</option>
-                <option value="Sài Gòn|Tân Châu">Sài Gòn → Tân Châu</option>
-                <option value="Tân Châu|Sài Gòn">Tân Châu → Sài Gòn</option>
-                <option value="Châu Đốc|Tân Châu">Châu Đốc → Tân Châu</option>
-                <option value="Tân Châu|Châu Đốc">Tân Châu → Châu Đốc</option>
-              </select>
-            </label>
             <label style="flex: 1 1 150px; min-width: 150px;">
               <span>Trạm gửi (Điểm đi) <strong style="color:var(--primary);">*</strong></span>
               <select name="stationFrom" id="stationFrom" required style="font-weight:700;">
@@ -833,48 +830,62 @@
 
 
 
-  <!-- Popup Chuyển hàng vào phơi -->
+  <!-- Popup Chuyển hàng vào phơi (Admin Panel Style) -->
   <div class="modal-overlay" id="transferModal">
-    <div class="modal-card" style="max-width: 560px;">
-      <div class="modal-head">
+    <div class="modal-card transfer-modal-card">
+      <div class="modal-head transfer-modal-head">
         <div>
-          <p class="eyebrow">Điều xe & Xếp phơi</p>
-          <h2>Chuyển hàng vào phơi hàng</h2>
+          <div class="admin-eyebrow">Điều xe & Xếp phơi</div>
+          <h2 class="transfer-modal-title">Chuyển hàng vào phơi hàng</h2>
         </div>
-        <button class="icon-btn" type="button" id="closeTransferModalBtn">✕</button>
+        <button class="icon-close" type="button" id="closeTransferModalBtn" aria-label="Đóng">✕</button>
       </div>
       <form id="transferForm" class="modal-form">
         <input type="hidden" id="transferCargoIds" />
 
         <!-- Bước 1: Nhập số lượng -->
-        <div style="margin-bottom:14px;">
-          <div style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-            <span style="background:#e53935; color:white; font-size:12px; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">1</span>
-            <span>Bước 1: Chọn số lượng hàng chuyển đi</span>
+        <div class="transfer-step-card">
+          <div class="transfer-step-header">
+            <span class="step-num">1</span>
+            <span class="step-title">Bước 1: Chọn số lượng hàng chuyển đi</span>
           </div>
-          <div id="transferCargoQuantityContainer" style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:var(--radius-sm); padding:12px; max-height:220px; overflow-y:auto;">
+          <div id="transferCargoQuantityContainer" class="transfer-quantity-container">
             <!-- JS rendered list of selected items with quantity controls -->
           </div>
         </div>
 
-        <!-- Bước 2: Chỉ định phơi -->
-        <div style="margin-bottom:16px;">
-          <div style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-            <span style="background:#1d4ed8; color:white; font-size:12px; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">2</span>
-            <span>Bước 2: Chỉ định phơi hàng vận chuyển</span>
+        <!-- Bước 2: Chỉ định phơi hàng (Combobox Tìm kiếm & Dropdown) -->
+        <div class="transfer-step-card">
+          <div class="transfer-step-header">
+            <span class="step-num">2</span>
+            <span class="step-title">Bước 2: Chỉ định phơi hàng vận chuyển</span>
           </div>
-          <div class="form-grid">
-            <label class="full-width" style="margin:0;">
-              <select name="targetManifestId" id="targetManifestSelect" required style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:var(--radius-sm); font-size:14.5px; font-weight:600; background:white;">
-                <!-- JS Populated -->
-              </select>
-            </label>
+          
+          <div class="manifest-combobox-wrapper" id="manifestComboboxWrapper">
+            <!-- Giá trị ID phơi được chọn để gửi form -->
+            <input type="hidden" name="targetManifestId" id="targetManifestSelect" required />
+
+            <div class="manifest-search-input-wrap">
+              <input type="text" 
+                     id="targetManifestSearchInput" 
+                     class="manifest-search-input"
+                     placeholder="-- Chọn phơi nhận hàng --" 
+                     autocomplete="off" 
+                     spellcheck="false" />
+              <button type="button" class="combobox-trigger-btn" id="targetManifestDropdownToggle" tabindex="-1" title="Mở danh sách phơi xe">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </div>
+
+            <div class="manifest-dropdown-menu" id="targetManifestDropdownMenu">
+              <!-- Render danh sách phơi tự động bằng JS -->
+            </div>
           </div>
         </div>
 
-        <div class="modal-actions">
+        <div class="modal-actions transfer-modal-actions">
           <button type="button" class="ghost-btn" id="cancelTransferBtn">Hủy</button>
-          <button type="submit" class="primary-btn">Xác nhận chuyển phơi</button>
+          <button type="submit" class="primary-btn transfer-submit-btn">Xác nhận chuyển phơi</button>
         </div>
       </form>
     </div>

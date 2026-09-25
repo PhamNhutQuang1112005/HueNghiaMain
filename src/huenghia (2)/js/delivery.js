@@ -103,9 +103,11 @@ function isManifestArrived(manifest) {
   return !!manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
 }
 
-/* Hiển thị tất cả hàng hóa từ Nhận hàng sang Danh sách giao hàng */
+/* Hiển thị tất cả hàng hóa đã nhận sang Danh sách giao hàng (loại trừ hàng chưa nhận từ phơi) */
 function isEligibleForDelivery(cargo) {
-  return !!cargo;
+  if (!cargo) return false;
+  if (cargo.status === 'unreceived' || cargo.isUnreceived) return false;
+  return true;
 }
 
 /* Gán mặc định "Chờ giao" cho các đơn vừa đủ điều kiện giao mà chưa từng được khởi tạo

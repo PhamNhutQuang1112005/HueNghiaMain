@@ -12,7 +12,7 @@
   --text-muted: #6B6E70;
   --green: #16A34A;
 
-  /* Màu trạng thái theo quy ước FR-04.1 (đồng bộ shuttle.css) */
+  /* Màu trạng thái chuẩn theo FR-04.1 */
   --status-waiting:#9CA3AF;
   --status-waiting-bg:#F3F4F6;
   --status-enroute:#B45309;
@@ -33,7 +33,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Segoe UI', Arial, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
   color: var(--text-main);
   font-size: 15px;
@@ -423,14 +423,15 @@ code {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
-  background: var(--surface-2);
+  background: var(--status-onboard-bg);
   color: var(--status-onboard);
+  border: 1px solid rgba(29, 78, 216, 0.2);
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13.5px;
 }
 
-/* Thẻ Trạng thái (Đã bỏ màu vàng) */
+/* Thẻ Trạng thái */
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -440,9 +441,10 @@ code {
   font-weight: 700;
   white-space: nowrap;
 }
-.status-pending { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
-.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); border: 1px solid rgba(29,78,216,.25); }
-.status-delivered { background: #EAFBF1; color: var(--green); border: 1px solid rgba(22,163,74,.25); }
+.status-pending { background: var(--status-waiting-bg); color: var(--status-waiting); }
+.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); }
+.status-delivered { background: #EAFBF1; color: var(--green); }
+.status-enroute { background: var(--status-enroute-bg); color: var(--status-enroute); }
 
 /* Cụm nút hành động */
 .action-group {
@@ -475,6 +477,24 @@ code {
 }
 .action-group .btn-detail:hover {
   background: var(--border);
+}
+
+.action-group .btn-receipt {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border-color: var(--status-onboard-bg);
+}
+.action-group .btn-receipt:hover {
+  background: #DCE7FB;
+}
+
+.action-group .btn-return {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+.action-group .btn-return:hover {
+  background: #ffe4e6;
 }
 
 .action-group .btn-edit {

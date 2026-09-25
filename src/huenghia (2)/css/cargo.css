@@ -24,16 +24,18 @@
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.05);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
+  /* Thang bo góc đồng bộ với pages/admin/admin.css (--radius-sm/md/lg 8/12/16) để card, input, nút
+     bo tròn cùng tỉ lệ giữa 2 khu vực. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 9999px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Segoe UI', Arial, 'Inter', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
   color: var(--text-main);
   font-size: 15px;
@@ -216,7 +218,7 @@ button { cursor: pointer; border: none; background: none; }
   background: var(--primary);
   color: white;
   padding: 8px 18px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 700;
   box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25);
@@ -225,6 +227,8 @@ button { cursor: pointer; border: none; background: none; }
 }
 .primary-btn:hover {
   background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(194, 13, 8, 0.32);
 }
 
 .ghost-btn {
@@ -232,7 +236,7 @@ button { cursor: pointer; border: none; background: none; }
   color: var(--text-main);
   border: 1px solid var(--border);
   padding: 8px 16px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: 13.5px;
   font-weight: 600;
   white-space: nowrap;
@@ -241,6 +245,7 @@ button { cursor: pointer; border: none; background: none; }
 .ghost-btn:hover {
   background: var(--surface-2);
   border-color: var(--border-dark);
+  transform: translateY(-1px);
 }
 
 .secondary-btn {
@@ -248,13 +253,15 @@ button { cursor: pointer; border: none; background: none; }
   color: var(--status-onboard);
   border: 1px solid var(--status-onboard-bg);
   padding: 8px 16px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: 13.5px;
   font-weight: 700;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 .secondary-btn:hover {
   background: #DCE7FB;
+  transform: translateY(-1px);
 }
 
 .user-chip {
@@ -387,6 +394,8 @@ button { cursor: pointer; border: none; background: none; }
 }
 .filter-submit-btn:hover {
   background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(194, 13, 8, 0.32);
 }
 
 /* Bảng không cuộn ngang */
@@ -414,10 +423,26 @@ button { cursor: pointer; border: none; background: none; }
    2 file dùng chung đúng giá trị màu --border/--surface-2/--text-muted nên chuyển sang không lệch tông.
    Scope trong .table-scroll (bảng danh sách chính) để không ảnh hưởng các bảng tự vẽ inline-style
    khác trong trang (Lịch sử xóa, phiếu in...). */
+.table-scroll th,
+.table-scroll td,
+.table-scroll td *,
+.table-scroll .cargo-name,
+.table-scroll code,
+.table-scroll .mini-tag,
+.table-scroll select,
+.table-scroll input,
+.table-scroll span,
+.table-scroll div,
+.table-scroll strong,
+.table-scroll small,
+.table-scroll b {
+  font-size: 13px !important;
+}
+
 .table-scroll th {
   background: var(--surface-2);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px !important;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -430,7 +455,7 @@ button { cursor: pointer; border: none; background: none; }
 .table-scroll td {
   padding: 10px 12px;
   border: 1px solid var(--border);
-  font-size: 13.5px;
+  font-size: 13px !important;
   color: var(--text-main);
   vertical-align: middle;
 }
@@ -442,7 +467,7 @@ button { cursor: pointer; border: none; background: none; }
 .cargo-name {
   color: var(--text-main);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 code {
@@ -483,14 +508,14 @@ code {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
-  background: var(--surface-2);
+  background: var(--status-onboard-bg);
   color: var(--status-onboard);
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 13.5px;
 }
 
-/* Thẻ Trạng thái (Đã bỏ màu vàng) */
+/* Thẻ Trạng thái */
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -500,9 +525,9 @@ code {
   font-weight: 700;
   white-space: nowrap;
 }
-.status-pending { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
-.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); border: 1px solid rgba(29,78,216,.25); }
-.status-delivered { background: #EAFBF1; color: var(--green); border: 1px solid rgba(22,163,74,.25); }
+.status-pending { background: var(--status-waiting-bg); color: var(--status-waiting); }
+.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); }
+.status-delivered { background: #EAFBF1; color: var(--green); }
 
 /* Cụm nút hành động */
 .action-group {
@@ -538,13 +563,22 @@ code {
   background: var(--border);
 }
 
+.action-group .btn-receipt {
+  background: var(--status-onboard-bg);
+  color: var(--status-onboard);
+  border-color: var(--status-onboard-bg);
+}
+.action-group .btn-receipt:hover {
+  background: #DCE7FB;
+}
+
 .action-group .btn-transfer {
-  background: #ecfeff;
-  color: #0f766e;
-  border-color: #cffafe;
+  background: var(--surface-2);
+  color: var(--text-main);
+  border-color: var(--border);
 }
 .action-group .btn-transfer:hover {
-  background: #cffafe;
+  background: var(--border);
 }
 
 .action-group .btn-edit {
@@ -1115,6 +1149,29 @@ code {
   color: var(--text-muted);
 }
 
+#deliveryReceiptModal,
+#deliveryReceiptModal *,
+#printableReceiptArea,
+#printableReceiptArea *,
+#printableStickerArea,
+#printableStickerArea *,
+#cargoStickerPreview,
+#cargoStickerPreview *,
+.cargo-sticker-card,
+.cargo-sticker-card * {
+  font-family: 'Segoe UI', Arial, 'Inter', Roboto, sans-serif !important;
+  color: #000000 !important;
+}
+
+#deliveryReceiptModal .receipt-brand-title,
+#printableReceiptArea .receipt-brand-title,
+#printableStickerArea .sticker-brand span,
+#cargoStickerPreview .sticker-brand span,
+.cargo-sticker-card .sticker-brand span,
+.receipt-brand-title {
+  color: #C20D08 !important;
+}
+
 @media print {
   body * {
     visibility: hidden !important;
@@ -1555,7 +1612,7 @@ input[type=number] {
 }
 .mini-tag {
   display: inline-block;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-main);
   background: var(--surface-2);
@@ -1563,5 +1620,305 @@ input[type=number] {
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
+}
+
+/* =========================================================
+   GIAO DIỆN HÀNG HÓA CHUẨN ADMIN PANEL (RED BRAND THEME)
+   ========================================================= */
+.transfer-modal-card {
+  max-width: 780px !important;
+  width: 92vw !important;
+  max-height: calc(100vh - 40px) !important;
+  border-radius: 16px !important;
+  padding: 0 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25) !important;
+  background: #ffffff !important;
+  overflow: visible !important;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #0F172A !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.transfer-modal-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 16px 24px !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+  margin-bottom: 0 !important;
+  background: #ffffff !important;
+  border-radius: 16px 16px 0 0 !important;
+}
+
+.admin-eyebrow {
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  color: #64748B !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-bottom: 2px !important;
+}
+
+.transfer-modal-title {
+  font-size: 18.5px !important;
+  font-weight: 800 !important;
+  color: #0F172A !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.icon-close {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  border: 1px solid #E2E8F0 !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #64748B !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.icon-close:hover {
+  background: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+.modal-form {
+  padding: 18px 24px 0 24px !important;
+}
+
+.transfer-step-card {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 14px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+  transition: border-color 0.15s ease !important;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.transfer-step-card:focus-within,
+.transfer-step-card:hover {
+  border-color: #CBD5E1 !important;
+}
+
+.transfer-step-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.step-num {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #FFFFFF !important;
+  background: #C20D08 !important;
+  flex-shrink: 0 !important;
+}
+
+.step-title {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #64748B !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+}
+
+.transfer-quantity-container {
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  max-height: 120px !important;
+  overflow-y: auto !important;
+  font-size: 14px !important;
+  color: #0F172A !important;
+}
+
+/* Combobox Tìm kiếm chuẩn Admin */
+.manifest-combobox-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  overflow: visible !important;
+  z-index: 100 !important;
+}
+
+.manifest-search-input-wrap {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.manifest-search-input {
+  width: 100% !important;
+  padding: 10px 38px 10px 16px !important;
+  border: 1.5px solid #E2E8F0 !important;
+  border-radius: 999px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #0F172A !important;
+  background: #FFFFFF !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.manifest-search-input:focus {
+  border-color: #C20D08 !important;
+  box-shadow: 0 0 0 3px rgba(194, 13, 8, 0.12) !important;
+}
+
+.combobox-trigger-btn {
+  position: absolute !important;
+  right: 12px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #64748B !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.combobox-trigger-btn:hover {
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+
+.manifest-dropdown-menu {
+  position: fixed !important;
+  z-index: 999999 !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px -6px rgba(15, 23, 42, 0.22) !important;
+  max-height: 220px !important;
+  overflow-y: auto !important;
+  display: none;
+  padding: 6px !important;
+}
+
+.manifest-dropdown-menu.open {
+  display: block !important;
+}
+
+.manifest-option-item {
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.12s ease !important;
+  margin-bottom: 3px !important;
+}
+
+.manifest-option-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+.manifest-option-item:hover,
+.manifest-option-item.highlighted {
+  background: #FEEFEF !important;
+  border-color: #FCA5A5 !important;
+}
+
+.manifest-option-item.selected {
+  background: #FEEFEF !important;
+  border-color: #C20D08 !important;
+}
+
+.manifest-option-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.manifest-option-meta {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #64748B !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.route-pill-tag {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #E2E8F0 !important;
+  white-space: nowrap !important;
+}
+
+.manifest-empty-msg {
+  padding: 16px !important;
+  text-align: center !important;
+  color: #64748B !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+}
+
+/* Panel Footer chuẩn Admin */
+.transfer-modal-actions {
+  padding: 14px 24px !important;
+  border-top: 1px solid #E2E8F0 !important;
+  margin-top: 14px !important;
+  margin-left: -24px !important;
+  margin-right: -24px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: #FFFFFF !important;
+  border-radius: 0 0 16px 16px !important;
+}
+
+.transfer-submit-btn {
+  background: #C20D08 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 9px 22px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25) !important;
+  transition: all 0.15s ease !important;
+}
+
+.transfer-submit-btn:hover {
+  background: #990A06 !important;
+  box-shadow: 0 4px 14px rgba(194, 13, 8, 0.35) !important;
 }
 
