@@ -2085,7 +2085,7 @@ function updateCargoCategoryVisibility() {
   }
 
   const codFormSection = document.getElementById('codFormSection');
-  if (codFormSection) codFormSection.style.display = isGoods ? '' : 'none';
+  if (codFormSection) codFormSection.style.display = isGoods ? 'flex' : 'none';
 
   const deliveryCard = document.getElementById('deliveryCard');
   if (deliveryCard) deliveryCard.style.display = isGoods ? '' : 'none';

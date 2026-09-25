@@ -35,7 +35,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Segoe UI', Arial, 'Inter', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Đồng bộ font chữ với pages/admin/admin.css (--admin-body dùng Plus Jakarta Sans) — cargo.html đã
+     load sẵn font này qua thẻ <link> Google Fonts ở <head>. */
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
   color: var(--text-main);
   font-size: 15px;
@@ -1149,6 +1151,8 @@ code {
   color: var(--text-muted);
 }
 
+/* Đồng bộ font biên lai/tem dán với trang Tổng đài (ticketstaff.html dùng Inter làm font chính,
+   Roboto Mono cho số/mã — xem src/shared/css/base.css). Font đã sẵn trong <head> cargo.html. */
 #deliveryReceiptModal,
 #deliveryReceiptModal *,
 #printableReceiptArea,
@@ -1159,8 +1163,26 @@ code {
 #cargoStickerPreview *,
 .cargo-sticker-card,
 .cargo-sticker-card * {
-  font-family: 'Segoe UI', Arial, 'Inter', Roboto, sans-serif !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   color: #000000 !important;
+}
+
+#deliveryReceiptModal code,
+#deliveryReceiptModal .barcode-text,
+#deliveryReceiptModal .sticker-code-badge,
+#printableReceiptArea code,
+#printableReceiptArea .barcode-text,
+#printableReceiptArea .sticker-code-badge,
+#printableStickerArea code,
+#printableStickerArea .barcode-text,
+#printableStickerArea .sticker-code-badge,
+#cargoStickerPreview code,
+#cargoStickerPreview .barcode-text,
+#cargoStickerPreview .sticker-code-badge,
+.cargo-sticker-card code,
+.cargo-sticker-card .barcode-text,
+.cargo-sticker-card .sticker-code-badge {
+  font-family: 'Roboto Mono', monospace !important;
 }
 
 #deliveryReceiptModal .receipt-brand-title,

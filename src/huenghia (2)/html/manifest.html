@@ -2060,7 +2060,7 @@
         const manifestCargos = cargos.filter(c => Number(c.manifestId) === item.id);
         const driverInfo = parseDriverDetails(item.driver);
         const isReceived = item.status === 'received' || item.statusText === 'Đã nhận xe';
-        const scannedCount = manifestCargos.filter(c => c.isScanned || (c.status !== 'unreceived' && !c.isUnreceived && isReceived)).length;
+        const scannedCount = manifestCargos.filter(c => c.isScanned).length;
 
         return `
           <tr>
@@ -2108,11 +2108,7 @@
       const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
       currentScanMap = {};
       manifestCargos.forEach(c => {
-        if (c.isScanned || (c.status !== 'unreceived' && !c.isUnreceived && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe'))) {
-          currentScanMap[c.id] = true;
-        } else {
-          currentScanMap[c.id] = false;
-        }
+        currentScanMap[c.id] = !!c.isScanned;
       });
 
       const titleEl = document.getElementById('receiveScanModalTitle');
