@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -69,7 +69,7 @@
             <nav class="sidebar-nav">
               
               <!-- Group 1: Nhận hàng (Accordion Group) -->
-              <div class="sidebar-nav-group open" id="receiveNavGroup">
+              <div class="sidebar-nav-group" id="receiveNavGroup">
                 <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('receiveNavGroup', event)" title="Nhận hàng">
                   <div class="nav-item-content">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -80,7 +80,7 @@
 
                 <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #fee2e2;">
                   <!-- Subgroup: Nhận hàng -->
-                  <div class="sidebar-subgroup open" id="cargoSubgroup">
+                  <div class="sidebar-subgroup" id="cargoSubgroup">
                     <a class="sidebar-nav-item" href="cargo.html" id="cargoSubmenuToggle" title="Danh sách nhận hàng">
                       <div class="nav-item-content">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px; height:16px;"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -137,7 +137,7 @@
               </div>
 
               <!-- Group 2: Giao hàng (Accordion Group) -->
-              <div class="sidebar-nav-group open" id="deliveryNavGroup">
+              <div class="sidebar-nav-group" id="deliveryNavGroup">
                 <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('deliveryNavGroup', event)" title="Giao hàng">
                   <div class="nav-item-content">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -148,7 +148,7 @@
 
                 <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #bfdbfe;">
                   <!-- Subgroup: Giao hàng -->
-                  <div class="sidebar-subgroup open" id="deliverySubgroup">
+                  <div class="sidebar-subgroup" id="deliverySubgroup">
                     <a class="sidebar-nav-item" href="delivery.html" id="deliverySubmenuToggle" title="Danh sách giao hàng">
                       <div class="nav-item-content">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M16 16l3 3 5-5"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="M3.29 7L12 12l8.71-5"/><path d="M12 22V12"/></svg>
@@ -190,10 +190,10 @@
                     </div>
                   </a>
 
-                  <a class="sidebar-nav-item" href="manifest.html?tab=unreceived" id="unreceivedNavItem" title="Hàng chưa giao (Chưa nhận)">
+                  <a class="sidebar-nav-item" href="manifest.html?tab=unreceived" id="unreceivedNavItem" title="Hàng chưa giao">
                     <div class="nav-item-content">
                       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                      <span>Hàng chưa giao (Chưa nhận)</span>
+                      <span>Hàng chưa giao</span>
                     </div>
                     <span id="unreceivedBadgeCount" style="margin-left:auto; background:#d97706; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
                   </a>
@@ -1869,7 +1869,7 @@
       } else if (tabName === 'delivery') {
         segs = ['Hệ thống điều hành', 'Danh sách giao hàng'];
       } else if (tabName === 'unreceived') {
-        segs = ['Hệ thống điều hành', 'Giao hàng', 'Hàng chưa giao (Chưa nhận)'];
+        segs = ['Hệ thống điều hành', 'Giao hàng', 'Hàng chưa giao'];
       } else if (typeof manifestsEntryGrouped !== 'undefined' && manifestsEntryGrouped) {
         segs = ['Hệ thống điều hành', 'Nhận hàng', 'Danh sách chuyến xe đi'];
       } else {
@@ -1998,10 +1998,10 @@
             </td>
             <td style="text-align:center;">
               <div style="display:inline-flex; align-items:center; gap:8px;">
-                <button type="button" onclick="openReceiveScanModal(${item.id})" title="Quét mã QR / Kiểm từng đơn trong phơi" class="ghost-btn">Quét QR / Kiểm hàng</button>
                 ${isReceived
-                  ? `<span class="status-pill status-pending">Đã nhập bến</span>`
-                  : `<button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Xác nhận Nhận xe (Nhận hết tất cả đơn trong phơi)" class="primary-btn">Nhận xe (Nhận hết)</button>`
+                  ? `<span class="status-pill status-pending">Đã nhập bến (không thể sửa)</span>`
+                  : `<button type="button" onclick="openReceiveScanModal(${item.id})" title="Quét mã QR / Kiểm từng đơn trong phơi" class="ghost-btn">Quét QR / Kiểm hàng</button>
+                     <button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Xác nhận Nhận xe (Nhận hết tất cả đơn trong phơi)" class="primary-btn">Nhận xe (Nhận hết)</button>`
                 }
               </div>
             </td>
@@ -2019,6 +2019,10 @@
       const cargos = loadCargos();
       const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
       if (!manifest) return;
+      if (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe') {
+        showToast('Phơi này đã nhận xe rồi, không thể sửa lại.');
+        return;
+      }
 
       const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
       currentScanMap = {};
@@ -2180,6 +2184,11 @@
       const cargos = loadCargos();
       const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
       if (!manifest) return;
+      if (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe') {
+        showToast('Phơi này đã nhận xe rồi, không thể sửa lại.');
+        closeReceiveScanModal();
+        return;
+      }
 
       let scannedCount = 0;
       let unreceivedCount = 0;
@@ -2227,6 +2236,8 @@
 
     window.confirmScanReceiveAll = function(manifestId) {
       if (!manifestId) return;
+      // "Nhận tất cả (Toàn phơi)" = coi như đã quét đủ toàn bộ số lượng hàng trong phơi, khác với
+      // "Xác nhận Nhận xe" (chỉ tính đúng những đơn thật sự đã tích quét, có thể chưa đủ).
       const cargos = loadCargos();
       const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
       manifestCargos.forEach(c => {
@@ -2255,7 +2266,7 @@
       }
 
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có đơn hàng nào trong danh sách hàng chưa giao (Chưa nhận).</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có đơn hàng nào trong danh sách Hàng chưa giao.</td></tr>`;
         return;
       }
 
@@ -2322,6 +2333,10 @@
       const manifest = manifests.find(m => m.id === manifestId);
 
       if (!manifest) return;
+      if (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe') {
+        showToast('Phơi này đã nhận xe rồi, không thể sửa lại.');
+        return;
+      }
 
       const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
       manifest.status = 'received';
