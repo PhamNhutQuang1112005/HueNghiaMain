@@ -252,15 +252,6 @@
               <h1>Danh sách phơi hàng</h1>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
-              <div id="batchManifestStatusWrap" style="display:none; align-items:center; gap:8px; background:#f1f5f9; padding:5px 12px; border-radius:8px; border:1px solid #cbd5e1;">
-                <span style="font-size:13.5px; font-weight:700; color:#334155;">Đổi trạng thái phơi đã chọn (<span id="selectedManifestCount">0</span>):</span>
-                <select id="batchManifestStatusSelect" onchange="batchUpdateManifestStatus(this.value)" style="padding:6px 10px; border-radius:6px; font-weight:700; font-size:13px; border:1.5px solid #cbd5e1; background:white; cursor:pointer;">
-                  <option value="">-- Chọn trạng thái --</option>
-                  <option value="pending">Chờ xử lý</option>
-                  <option value="departed">Đã xuất bến</option>
-                  <option value="received">Đã nhận xe</option>
-                </select>
-              </div>
               <button type="button" class="ghost-btn" id="filterBtn">Lọc</button>
               <button type="button" class="secondary-btn" id="openDeletedHistoryBtn" onclick="openDeletedManifestHistoryModal()" style="background:#fff1f2; color:#be123c; border:1px solid #fecdd3; font-weight:700; display:flex; align-items:center; gap:6px;">
                 <span>Lịch sử xóa phơi</span>
@@ -309,7 +300,6 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 36px; text-align: center;"><input type="checkbox" id="selectAllManifests" title="Chọn tất cả phơi xe" /></th>
                   <th style="width: 45px; text-align: center;">STT</th>
                   <th>Biển số xe & Phơi</th>
                   <th>Tài xế lái xe</th>
@@ -398,7 +388,7 @@
           <div class="toolbar-head">
             <div>
               <p class="eyebrow" style="color:#d97706;">Vận chuyển & Hàng chưa nhận</p>
-              <h1>Danh sách hàng chưa giao (Chưa nhận từ phơi)</h1>
+              <h1>Danh sách hàng chưa giao</h1>
               <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Danh sách các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn <strong>"Bổ sung & Nhận hàng"</strong> khi đơn hàng cập bến sau.</p>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -687,6 +677,7 @@
               <th>Người gửi ➔ Người nhận</th>
               <th>Cước phí & COD</th>
               <th style="width: 130px;">Trạng thái kiểm</th>
+              <th style="width: 120px;">Biên lai</th>
             </tr>
           </thead>
           <tbody id="scanCargoTableBody">
@@ -1677,48 +1668,6 @@
       openPrintWindow(`Tem dán phơi ${manifest.plate}`, stickersHtml);
     }
 
-    window.updateManifestStatusFromTable = function(manifestId, newStatus) {
-      const manifests = loadManifests();
-      const target = manifests.find(m => String(m.id) === String(manifestId));
-      if (target) {
-        target.status = newStatus;
-        if (newStatus === 'pending') target.statusText = 'Chờ xử lý';
-        else if (newStatus === 'departed' || newStatus === 'in-transit') target.statusText = 'Đã xuất bến';
-        else if (newStatus === 'received' || newStatus === 'loaded') target.statusText = 'Đã nhận xe';
-
-        saveManifests(manifests);
-        showToast(`Đã đổi trạng thái phơi sang "${target.statusText}"`);
-        renderManifestTable();
-      }
-    };
-
-    window.batchUpdateManifestStatus = function(newStatus) {
-      if (!newStatus) return;
-      const checkedCbs = document.querySelectorAll('.manifest-row-checkbox:checked');
-      if (checkedCbs.length === 0) {
-        alert('Vui lòng chọn ít nhất 1 phơi xe trong danh sách!');
-        document.getElementById('batchManifestStatusSelect').value = '';
-        return;
-      }
-      const ids = Array.from(checkedCbs).map(cb => Number(cb.dataset.id));
-      const manifests = loadManifests();
-      let statusText = 'Chờ xử lý';
-      if (newStatus === 'departed') statusText = 'Đã xuất bến';
-      else if (newStatus === 'received') statusText = 'Đã nhận xe';
-
-      manifests.forEach(m => {
-        if (ids.includes(m.id)) {
-          m.status = newStatus;
-          m.statusText = statusText;
-        }
-      });
-
-      saveManifests(manifests);
-      renderManifestTable();
-      showToast(`Đã cập nhật ${ids.length} phơi xe sang "${statusText}"`);
-      document.getElementById('batchManifestStatusSelect').value = '';
-    };
-
     function renderManifestTable() {
       manifestData = loadManifests();
       const nameVal = document.getElementById('filterManifestName').value.trim().toLowerCase();
@@ -1742,9 +1691,6 @@
           const driverInfo = parseDriverDetails(row.driver);
           return `
           <tr>
-            <td style="text-align:center;">
-              <input type="checkbox" class="manifest-row-checkbox" data-id="${row.id}" />
-            </td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
               <strong style="font-size:15px; color:#0f172a;">${row.plate}</strong> 
@@ -1763,12 +1709,11 @@
               <span>${row.time}</span><br>
               <small style="color:var(--text-muted);">NV: ${row.staff}</small>
             </td>
-            <td>
-              <select class="manifest-status-select" onchange="updateManifestStatusFromTable('${row.id}', this.value)" style="padding:5px 8px; border-radius:6px; font-weight:700; font-size:12.5px; border:1.5px solid #cbd5e1; cursor:pointer; background:white; color:#1e293b; width:100%;">
-                <option value="pending" ${row.status === 'pending' || !row.status ? 'selected' : ''}>Chờ xử lý</option>
-                <option value="departed" ${row.status === 'departed' || row.status === 'in-transit' ? 'selected' : ''}>Đã xuất bến</option>
-                <option value="received" ${row.status === 'received' || row.status === 'loaded' || row.status === 'delivered' ? 'selected' : ''}>Đã nhận xe</option>
-              </select>
+            <td style="text-align:center;">
+              ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
+                ? `<span class="status-pill status-delivered">Đã nhận xe</span>`
+                : `<span class="status-pill status-enroute">Chưa nhận xe</span>`
+              }
             </td>
             <td>
               <div class="action-group">
@@ -1789,37 +1734,7 @@
           </tr>
         `;
       }).join('')
-        : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
-
-      const selectAllManifests = document.getElementById('selectAllManifests');
-      const manifestCheckboxes = document.querySelectorAll('.manifest-row-checkbox');
-      const batchManifestWrap = document.getElementById('batchManifestStatusWrap');
-      const selectedManifestCountEl = document.getElementById('selectedManifestCount');
-
-      function updateManifestSelectionState() {
-        const count = Array.from(manifestCheckboxes).filter(cb => cb.checked).length;
-        if (selectedManifestCountEl) selectedManifestCountEl.textContent = count;
-        if (batchManifestWrap) batchManifestWrap.style.display = count > 0 ? 'inline-flex' : 'none';
-        if (selectAllManifests) {
-          selectAllManifests.checked = manifestCheckboxes.length > 0 && count === manifestCheckboxes.length;
-          selectAllManifests.indeterminate = count > 0 && count < manifestCheckboxes.length;
-        }
-      }
-
-      if (selectAllManifests) {
-        selectAllManifests.checked = false;
-        selectAllManifests.indeterminate = false;
-        selectAllManifests.onclick = () => {
-          manifestCheckboxes.forEach(cb => cb.checked = selectAllManifests.checked);
-          updateManifestSelectionState();
-        };
-      }
-
-      manifestCheckboxes.forEach(cb => {
-        cb.addEventListener('change', updateManifestSelectionState);
-      });
-
-      updateManifestSelectionState();
+        : '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
     }
 
     ['manifestSearch', 'filterManifestName', 'filterDate', 'filterFrom', 'filterTo', 'filterPlate'].forEach(id => {
@@ -2161,7 +2076,7 @@
       if (!tbody) return;
 
       if (!manifestCargos.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Phơi xe này chưa có đơn hàng nào.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Phơi xe này chưa có đơn hàng nào.</td></tr>`;
         return;
       }
 
@@ -2188,9 +2103,24 @@
             <td style="text-align:center;">
               <span class="status-pill ${isChecked ? 'status-delivered' : 'status-enroute'}">${isChecked ? '✓ Đã quét QR' : 'Chưa quét'}</span>
             </td>
+            <td style="text-align:center;">
+              ${isChecked
+                ? `<button type="button" class="ghost-btn" onclick="printSingleScanReceipt(${cargo.id})" style="padding:4px 10px; font-size:12px;">In biên lai</button>`
+                : `<span style="color:var(--text-muted); font-size:12px;">—</span>`
+              }
+            </td>
           </tr>
         `;
       }).join('');
+    };
+
+    window.printSingleScanReceipt = function(cargoId) {
+      const cargos = loadCargos();
+      const manifests = loadManifests();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+      const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+      printReceiptsForCargoList([cargo], manifest, `Biên lai giao hàng - ${cargo.code}`);
     };
 
     window.toggleScanCargoItem = function(cargoId, isChecked) {
@@ -2253,14 +2183,16 @@
 
       let scannedCount = 0;
       let unreceivedCount = 0;
+      const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
 
       cargos.forEach(c => {
         if (Number(c.manifestId) === Number(manifestId)) {
           if (currentScanMap[c.id]) {
             c.isScanned = true;
             c.isUnreceived = false;
-            c.status = 'undelivered';
-            c.statusText = 'Chờ giao';
+            c.status = 'delivered';
+            c.statusText = 'Đã giao';
+            c.deliveredAt = now;
             scannedCount++;
           } else {
             c.isScanned = false;
@@ -2275,7 +2207,7 @@
       manifest.status = 'received';
       manifest.statusText = 'Đã nhận xe';
       if (!manifest.arrivedAt) {
-        manifest.arrivedAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+        manifest.arrivedAt = now;
       }
 
       saveManifests(manifests);
@@ -2284,14 +2216,13 @@
       closeReceiveScanModal();
 
       if (unreceivedCount > 0) {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn sang DS Giao hàng, ${unreceivedCount} đơn chưa nhận.`);
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã giao xong, ${unreceivedCount} đơn chưa nhận.`);
       } else {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã chuyển sang DS Giao hàng.`);
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã giao xong.`);
       }
 
       renderReceiveTable();
       updateTabBadges();
-      switchManifestTab('delivery');
     };
 
     window.confirmScanReceiveAll = function(manifestId) {
@@ -2373,12 +2304,13 @@
       const cargos = loadCargos();
       const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
       if (cargo) {
-        cargo.status = 'undelivered';
-        cargo.statusText = 'Chờ giao';
+        cargo.status = 'delivered';
+        cargo.statusText = 'Đã giao';
         cargo.isUnreceived = false;
         cargo.isScanned = true;
+        cargo.deliveredAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
         saveCargos(cargos);
-        showToast(`✅ Đã bổ sung đơn ${cargo.code} vào Danh sách Giao hàng thành công!`);
+        showToast(`✅ Đã bổ sung & giao đơn ${cargo.code} thành công!`);
         renderUnreceivedTable();
         updateTabBadges();
       }
@@ -2391,30 +2323,44 @@
 
       if (!manifest) return;
 
+      const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
       manifest.status = 'received';
       manifest.statusText = 'Đã nhận xe';
       if (!manifest.arrivedAt) {
-        manifest.arrivedAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+        manifest.arrivedAt = now;
       }
       saveManifests(manifests);
 
-      let updatedCount = 0;
+      let scannedCount = 0;
+      let unreceivedCount = 0;
       cargos.forEach(c => {
         if (Number(c.manifestId) === manifestId) {
           if (c.status !== 'delivered' && c.status !== 'returned') {
-            c.isScanned = true;
-            c.isUnreceived = false;
-            c.status = 'undelivered';
-            c.statusText = 'Chờ giao';
-            updatedCount++;
+            if (c.isScanned) {
+              c.isUnreceived = false;
+              c.status = 'delivered';
+              c.statusText = 'Đã giao';
+              c.deliveredAt = now;
+              scannedCount++;
+            } else {
+              c.isUnreceived = true;
+              c.status = 'unreceived';
+              c.statusText = 'Chưa nhận';
+              unreceivedCount++;
+            }
           }
         }
       });
 
       saveCargos(cargos);
-      showToast(`✅ Đã nhận xe ${manifest.plate}! Toàn bộ ${updatedCount} đơn hàng đã chuyển sang DS Giao hàng.`);
+      if (unreceivedCount > 0) {
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã giao xong, ${unreceivedCount} đơn chưa quét (vào DS chưa giao).`);
+      } else {
+        showToast(`✅ Đã nhận xe ${manifest.plate}! Toàn bộ ${scannedCount} đơn hàng đã giao xong.`);
+      }
 
-      switchManifestTab('delivery');
+      renderReceiveTable();
+      updateTabBadges();
     };
 
     window.renderDeliveryTable = function() {
@@ -2428,6 +2374,7 @@
       // RÀNG BUỘC CHẶT CHẼ: Chỉ lọc các đơn hàng có phơi xe ĐÃ NHẬN (manifest.status === 'received')
       let filtered = cargos.filter(c => {
         if (!c.manifestId) return false;
+        if (c.status === 'unreceived' || c.isUnreceived) return false;
         const manifest = manifests.find(m => Number(m.id) === Number(c.manifestId));
         const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
         const isCargoInDeliveryState = c.status === 'undelivered' || c.status === 'in-delivery' || c.status === 'delivered';
@@ -2631,19 +2578,7 @@
       }
     };
 
-    window.printAllReceiptsForCurrentManifest = function() {
-      if (!currentDetailManifestId) return;
-      const cargos = loadCargos();
-      const manifests = loadManifests();
-      const manifest = manifests.find(m => Number(m.id) === Number(currentDetailManifestId));
-      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentDetailManifestId));
-
-      if (!manifestCargos.length) {
-        alert('Phơi này chưa có hàng hóa nào để in biên lai!');
-        return;
-      }
-
-      const htmlList = manifestCargos.map((cargo, idx) => {
+    function buildDeliveryReceiptCard(cargo, manifest, idx) {
         const feeVal = Number(cargo.fee || 0);
         const codVal = Number(cargo.codAmount || 0);
         const isFeePaid = cargo.paymentStatus === 'paid';
@@ -2732,10 +2667,29 @@
             </div>
           </div>
         `;
-      }).join('');
+    }
 
+    window.printAllReceiptsForCurrentManifest = function() {
+      if (!currentDetailManifestId) return;
+      const cargos = loadCargos();
+      const manifests = loadManifests();
+      const manifest = manifests.find(m => Number(m.id) === Number(currentDetailManifestId));
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentDetailManifestId));
+
+      if (!manifestCargos.length) {
+        alert('Phơi này chưa có hàng hóa nào để in biên lai!');
+        return;
+      }
+
+      const htmlList = manifestCargos.map((cargo, idx) => buildDeliveryReceiptCard(cargo, manifest, idx)).join('');
       openPrintWindow(`Tất cả biên lai - ${manifest ? manifest.name : ''}`, htmlList);
     };
+
+    function printReceiptsForCargoList(cargoList, manifest, title) {
+      if (!cargoList.length) return;
+      const htmlList = cargoList.map((cargo, idx) => buildDeliveryReceiptCard(cargo, manifest, idx)).join('');
+      openPrintWindow(title, htmlList);
+    }
 
     // --- LỊCH SỬ XÓA PHƠI HÀNG (DELETED MANIFEST HISTORY) ---
     STORAGE_KEYS.DELETED_MANIFESTS = 'hueNghia_deleted_manifests';
