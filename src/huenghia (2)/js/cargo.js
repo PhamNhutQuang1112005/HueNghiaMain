@@ -552,6 +552,11 @@ const savedCategory = urlFilter || localStorage.getItem(categoryStorageKey) || '
 
 localStorage.setItem(categoryStorageKey, savedCategory);
 
+// Nhân viên đang đăng nhập (src/auth/session.js + FleetStore.getStaff(), cầu nối ở js/auth-bridge.js)
+// — mọi hàng hóa tạo mới đều đóng dấu bằng mã/tên NV THẬT này, không hard-code 'Bạn'/'Nhiên' nữa.
+const currentStaff = window.HNAuth ? window.HNAuth.requireLogin() : { code: '', name: 'Nhân viên' };
+if (window.HNAuth) window.HNAuth.renderUserChip(currentStaff);
+
 const state = {
   manifests: loadManifests(),
   data: loadCargos(),
@@ -617,7 +622,8 @@ function renderManifestCombobox(filterText = '') {
   const hiddenInput = document.getElementById('targetManifestSelect');
   if (!dropdownMenu) return;
 
-  const manifests = state.manifests || [];
+  const allManifests = state.manifests || [];
+  const manifests = allManifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe');
   const query = (filterText || '').trim();
 
   const filtered = manifests.filter(m => {
@@ -629,7 +635,9 @@ function renderManifestCombobox(filterText = '') {
   const selectedId = hiddenInput ? String(hiddenInput.value || '') : '';
 
   if (!manifests.length) {
-    dropdownMenu.innerHTML = `<div class="manifest-empty-msg">Chưa có phơi hàng nào (Vui lòng tạo phơi xe trước)</div>`;
+    dropdownMenu.innerHTML = allManifests.length
+      ? `<div class="manifest-empty-msg">Tất cả phơi hiện có đều đã "Đã nhận xe" — vui lòng tạo phơi mới để chuyển hàng vào</div>`
+      : `<div class="manifest-empty-msg">Chưa có phơi hàng nào (Vui lòng tạo phơi xe trước)</div>`;
     return;
   }
 
@@ -767,10 +775,11 @@ function updateManifestDropdowns() {
     ${state.manifests.map(m => `<option value="${m.id}">${m.name} (${m.plate})</option>`).join('')}
   `;
 
+  const receivableManifests = state.manifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe');
   const transferOptionsHtml = `
     <option value="">-- Chọn phơi nhận hàng --</option>
-    ${state.manifests.length
-      ? state.manifests.map(m => `<option value="${m.id}">${m.name} (${m.plate}) — ${m.from || (m.route ? m.route.split('➔')[0].trim() : '')} ➔ ${m.to || (m.route ? m.route.split('➔')[1].trim() : '')}</option>`).join('')
+    ${receivableManifests.length
+      ? receivableManifests.map(m => `<option value="${m.id}">${m.name} (${m.plate}) — ${m.from || (m.route ? m.route.split('➔')[0].trim() : '')} ➔ ${m.to || (m.route ? m.route.split('➔')[1].trim() : '')}</option>`).join('')
       : '<option value="">Chưa có phơi hàng nào (Vui lòng tạo phơi trước)</option>'}
   `;
 
@@ -1576,7 +1585,8 @@ if (bundleForm) {
         deliveryPaymentMethod: formData.get('deliveryPaymentMethod') || 'cash',
         deliveryFee: parseFeeInput(formData.get('deliveryFee'), 0),
         deliveryTransferCode: formData.get('deliveryTransferCode') || '',
-        staff: 'Bạn',
+        staff: currentStaff.name,
+        staffCode: currentStaff.code,
         transferTime: `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
         receiveTime: 'Chưa nhận',
         status: 'pending',
@@ -1609,6 +1619,10 @@ if (transferForm) {
     const newItemsToAdd = [];
 
     const targetManifest = state.manifests.find(m => String(m.id) === String(manifestId));
+    if (targetManifest && (targetManifest.status === 'received' || targetManifest.statusText === 'Đã nhận xe')) {
+      showToast(`⚠️ Xe ${targetManifest.plate} đã nhận xe rồi, không thể thêm hàng vào phơi này nữa!`);
+      return;
+    }
     const stFrom = targetManifest ? (targetManifest.from || targetManifest.route.split('→')[0].trim()) : 'Chưa gán';
     const stTo = targetManifest ? (targetManifest.to || targetManifest.route.split('→')[1].trim()) : 'Chưa gán';
 
@@ -2931,7 +2945,8 @@ window.confirmBagaPayment = function() {
       stationFrom: stationFrom,
       stationTo: stationTo,
       fee: feeNum,
-      staff: 'Nhiên',
+      staff: currentStaff.name,
+      staffCode: currentStaff.code,
       transferTime: `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
       status: 'pending',
       statusText: 'Chưa chuyển',

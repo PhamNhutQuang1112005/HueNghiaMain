@@ -16,7 +16,7 @@
 // Nếu tài khoản đăng nhập có "redirect" không nằm trong danh sách này,
 // hệ thống sẽ báo cho người dùng biết trang đó đang được xây dựng,
 // thay vì điều hướng tới một liên kết không tồn tại.
-const existingPages = ["ticketstaff.html", "admin.html"];
+const existingPages = ["ticketstaff.html", "admin.html", "../huenghia (2)/html/cargo.html"];
 
 const loginForm      = document.getElementById("loginForm");
 const usernameInput  = document.getElementById("username");

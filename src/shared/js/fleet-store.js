@@ -186,7 +186,8 @@
     { code: 'TX02', name: 'Trịnh Công Sơn', username: '', role: 'shuttle_driver', phone: '0918222333', license: 'B2', active: true },
     { code: 'TX03', name: 'Lê Hoài Nam', username: '', role: 'shuttle_driver', phone: '0927333444', license: 'E', active: true },
     { code: 'TX04', name: 'Phạm Đức Duy', username: '', role: 'shuttle_driver', phone: '0936444555', license: 'D', active: true },
-    { code: 'TX05', name: 'Trần Văn Hải', username: '', role: 'shuttle_driver', phone: '0907222333', license: 'FC', active: true }
+    { code: 'TX05', name: 'Trần Văn Hải', username: '', role: 'shuttle_driver', phone: '0907222333', license: 'FC', active: true },
+    { code: '933', name: 'Đinh Hồ Khả Thy', username: 'nhanhang01', role: 'cashier', phone: '', license: '', station: 'Sài Gòn', active: true }
   ];
 
   // Thông báo tuyển dụng (Nhân sự > Thông báo tuyển dụng, admin-recruitment.js) — 3 mẫu minh hoạ để
@@ -640,7 +641,19 @@
   function setVehicles(a) { writeJSON(HN_VEHICLES_KEY, Array.isArray(a) ? a : []); }
 
   function getStaff(opts) {
-    var list = readJSON(HN_STAFF_KEY, clone(SEED_STAFF));
+    var list = readJSON(HN_STAFF_KEY, null);
+    if (!Array.isArray(list)) list = clone(SEED_STAFF);
+
+    // Vá nhân viên SEED mới thêm (có `code`) mà trình duyệt chưa từng thấy — cùng lý do với
+    // getAccountsList() (auth/accounts.js): seed chỉ chạy 1 lần lúc HN_STAFF_KEY rỗng, nên nhân
+    // viên demo thêm SAU khi đã seed sẽ không bao giờ xuất hiện nếu không merge lại mỗi lần đọc.
+    var existingCodes = list.map(function (s) { return s.code; });
+    var missing = SEED_STAFF.filter(function (s) { return s.code && existingCodes.indexOf(s.code) === -1; });
+    if (missing.length) {
+      list = list.concat(clone(missing));
+      setStaff(list);
+    }
+
     if (opts && opts.role) list = list.filter(function (s) { return s.role === opts.role; });
     return list;
   }
@@ -667,7 +680,8 @@
     { key: 'ticket_office', label: 'Nhân viên phòng vé', permissions: [], redirect: 'ticketstaff.html' },
     { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', permissions: [], redirect: 'ticketstaff.html' },
     { key: 'dispatch_manager', label: 'Điều hành bến xe', permissions: [], redirect: 'dieuhanh.html' },
-    { key: 'accountant', label: 'Kế toán / Thu ngân', permissions: [], redirect: 'ketoan.html' }
+    { key: 'accountant', label: 'Kế toán / Thu ngân', permissions: [], redirect: 'ketoan.html' },
+    { key: 'cashier', label: 'Nhân viên thu ngân / Nhận hàng', permissions: [], redirect: '../huenghia (2)/html/cargo.html' }
   ];
   function getStaffRoles() {
     var list = readJSON(HN_STAFF_ROLES_KEY, null);

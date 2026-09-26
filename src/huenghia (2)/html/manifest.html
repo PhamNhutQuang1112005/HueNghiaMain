@@ -861,6 +861,11 @@
       localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify(data));
     }
 
+    // Cứ đã gán vào phơi mà chưa quét QR là tính "chưa giao" ngay, không cần đợi bấm Nhận xe/Xác nhận.
+    function isCargoUnreceived(c) {
+      return !!c.manifestId && !c.isScanned && c.status !== 'delivered' && c.status !== 'returned';
+    }
+
     let manifestData = loadManifests();
     let currentDetailManifestId = null;
 
@@ -1441,7 +1446,7 @@
       const stickerHtml = `
         <div style="max-width:380px; margin:0 auto; border:2px solid #000; border-radius:10px; padding:14px; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;">
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
-            <strong style="color:#C20D08; font-size:15px; font-weight:800;">HUỆ NGHĨA EXPRESS</strong>
+            <strong style="color:#C20D08; font-size:15px; font-weight:700;">HUỆ NGHĨA EXPRESS</strong>
             <span style="font-family:ui-monospace, SFMono-Regular, monospace; font-size:15px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px;">${cargo.code}</span>
           </div>
           <div style="text-align:center; background:#fafafa; border:1px dashed #cbd5e1; border-radius:6px; padding:6px; margin-bottom:8px;">
@@ -1514,7 +1519,7 @@
         <div class="manifest-print-sheet" style="font-family:sans-serif; padding:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #000; padding-bottom:10px; margin-bottom:12px;">
             <div>
-              <h2 style="margin:0; font-size:22px; font-weight:800; color:#e53935;">HUỆ NGHĨA EXPRESS</h2>
+              <h2 style="margin:0; font-size:22px; font-weight:700; color:#e53935;">HUỆ NGHĨA EXPRESS</h2>
               <p style="margin:2px 0 0 0; font-size:13px; color:#475569;">Hệ thống vận tải & Giao nhận hàng hóa chuyên nghiệp</p>
             </div>
             <div style="text-align:right;">
@@ -1929,14 +1934,14 @@
       const receiveCount = manifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe').length;
       
       const deliveryCount = cargos.filter(c => {
-        if (c.status === 'unreceived' || c.isUnreceived) return false;
+        if (isCargoUnreceived(c)) return false;
         const manifest = manifests.find(m => Number(m.id) === Number(c.manifestId));
         const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
         const isCargoInDeliveryState = c.status === 'undelivered' || c.status === 'in-delivery' || c.status === 'delivered';
         return c.manifestId && (isManifestReceived || isCargoInDeliveryState);
       }).length;
 
-      const unreceivedCount = cargos.filter(c => c.status === 'unreceived' || c.isUnreceived).length;
+      const unreceivedCount = cargos.filter(isCargoUnreceived).length;
 
       const rBadge = document.getElementById('receiveBadge');
       const dBadge = document.getElementById('deliveryBadge');
@@ -2254,7 +2259,7 @@
 
       if (!tbody) return;
 
-      let filtered = cargos.filter(c => c.status === 'unreceived' || c.isUnreceived);
+      let filtered = cargos.filter(isCargoUnreceived);
 
       if (query) {
         filtered = filtered.filter(c => 
@@ -2389,7 +2394,7 @@
       // RÀNG BUỘC CHẶT CHẼ: Chỉ lọc các đơn hàng có phơi xe ĐÃ NHẬN (manifest.status === 'received')
       let filtered = cargos.filter(c => {
         if (!c.manifestId) return false;
-        if (c.status === 'unreceived' || c.isUnreceived) return false;
+        if (isCargoUnreceived(c)) return false;
         const manifest = manifests.find(m => Number(m.id) === Number(c.manifestId));
         const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
         const isCargoInDeliveryState = c.status === 'undelivered' || c.status === 'in-delivery' || c.status === 'delivered';
@@ -2498,7 +2503,7 @@
         area.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
             <div>
-              <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:800; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
+              <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:700; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
               <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa tận nơi</span>
             </div>
             <div style="text-align:right;">
@@ -2609,7 +2614,7 @@
           <div style="max-width:480px; margin:0 auto 30px auto; padding:16px; border:2px solid #000; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; page-break-after:always;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
               <div>
-                <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:800; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
+                <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:700; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
                 <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa</span>
               </div>
               <div style="text-align:right;">

@@ -71,6 +71,16 @@ window.AUTH_ACCOUNTS = [
     // Trang lịch chạy/danh sách khách lên xe — chưa xây dựng trong bản demo.
     redirect: 'taixe.html',
     color: '#FBBF24'
+  },
+  {
+    username: 'nhanhang01',
+    password: '123456',
+    role: 'cashier',
+    roleLabel: 'Nhân viên thu ngân / Nhận hàng',
+    // Module hàng hóa (cargo.html/receive-report.html...) nằm ở cây thư mục riêng
+    // (src/huenghia (2)/html/), không chung layout với pages/ — xem README của module đó.
+    redirect: '../huenghia (2)/html/cargo.html',
+    color: '#C20D08'
   }
 ];
 
@@ -84,6 +94,25 @@ window.AUTH_ACCOUNTS = [
    Định nghĩa ở đây (không phải admin-accounts.js) vì index.html (trang đăng nhập) không nạp file admin,
    chỉ nạp auth/accounts.js — 2 trang vì vậy luôn đọc/ghi cùng 1 hàm, không lệch logic seed.
    --------------------------------------------------------- */
+// Tự "vá" danh sách "sống" bằng tài khoản demo mới thêm vào AUTH_ACCOUNTS (vd: khi code cập nhật
+// thêm 1 tài khoản demo mới) — trước đây chỉ seed 1 LẦN DUY NHẤT lúc localStorage rỗng, nên tài khoản
+// demo thêm SAU khi trình duyệt đã từng seed sẽ không bao giờ xuất hiện dù sửa lại AUTH_ACCOUNTS, dẫn
+// tới đăng nhập báo sai tài khoản/mật khẩu dù mã đã đúng. Chỉ THÊM tài khoản demo còn thiếu (so khớp
+// theo username), không đụng tới tài khoản đã có (kể cả admin đã sửa/khoá qua UI Admin > Tài khoản).
+function toAccountRecord(a) {
+  return {
+    id: 'acc_' + a.username,
+    username: a.username,
+    password: a.password || '123456',
+    fullName: a.roleLabel || a.username,
+    role: a.role,
+    roleLabel: a.roleLabel,
+    redirect: a.redirect || 'ticketstaff.html',
+    active: true,
+    createdAt: Date.now()
+  };
+}
+
 function getAccountsList() {
   var list = null;
   try {
@@ -91,20 +120,15 @@ function getAccountsList() {
     list = raw === null ? null : JSON.parse(raw);
   } catch (e) { list = null; }
 
-  if (!Array.isArray(list) || list.length === 0) {
-    list = (window.AUTH_ACCOUNTS || []).map(function (a) {
-      return {
-        id: 'acc_' + a.username,
-        username: a.username,
-        password: a.password || '123456',
-        fullName: a.roleLabel || a.username,
-        role: a.role,
-        roleLabel: a.roleLabel,
-        redirect: a.redirect || 'ticketstaff.html',
-        active: true,
-        createdAt: Date.now()
-      };
-    });
+  if (!Array.isArray(list)) list = [];
+
+  var existingUsernames = list.map(function (a) { return a.username; });
+  var missing = (window.AUTH_ACCOUNTS || []).filter(function (a) {
+    return existingUsernames.indexOf(a.username) === -1;
+  });
+
+  if (list.length === 0 || missing.length > 0) {
+    missing.forEach(function (a) { list.push(toAccountRecord(a)); });
     saveAccountsList(list);
   }
   return list;
