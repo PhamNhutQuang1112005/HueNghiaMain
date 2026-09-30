@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -269,6 +269,45 @@
       background: #fffbeb;
       color: #b45309;
       border: 1px solid #fde68a;
+    }
+
+    /* Master Report Table Styling */
+    .cargo-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .cargo-table th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 12px 14px;
+      border-bottom: 2px solid #e2e8f0;
+      white-space: nowrap;
+      vertical-align: middle;
+      text-align: left;
+    }
+    .cargo-table th.text-center {
+      text-align: center;
+    }
+    .cargo-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+    .cargo-table tbody tr:hover {
+      background: #f8fafc;
+    }
+    .cargo-table th .th-checkbox-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
     }
 
     /* Modal Backdrop & Dialog */
@@ -804,9 +843,6 @@
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center;">
-              <button type="button" class="primary-btn" onclick="window.openCreateShiftModal()" style="height:36px; padding:0 16px; font-size:12.5px; background:var(--primary); border-color:var(--primary);">
-                <span>Mở Ca Mới</span>
-              </button>
               <button type="button" onclick="window.clearAllRealShifts()" style="height:36px; padding:0 12px; font-size:12px; background:#ffffff; color:#dc2626; border:1px solid #fecaca; border-radius:8px; font-weight:700; cursor:pointer;" title="Xóa tất cả danh sách ca">
                 Xóa Dữ Liệu
               </button>
@@ -817,13 +853,18 @@
             <table class="cargo-table" style="width: 100%; table-layout: auto;">
               <thead>
                 <tr>
-                  <th style="width: 48px; text-align: center;"><input type="checkbox" id="selectAllShifts" style="margin-right:2px;" /> STT</th>
-                  <th style="width: 28%; min-width: 220px;">THU NGÂN & MÃ CA</th>
+                  <th style="width: 65px; text-align: center;" class="text-center">
+                    <div class="th-checkbox-wrap">
+                      <input type="checkbox" id="selectAllShifts" />
+                      <span>STT</span>
+                    </div>
+                  </th>
+                  <th style="width: 25%; min-width: 200px;">THU NGÂN & MÃ CA</th>
                   <th style="width: 22%; min-width: 170px;">THỜI GIAN CA</th>
-                  <th style="width: 18%; min-width: 140px; text-align: right;">CƯỚC PHÍ & NỘP</th>
-                  <th style="width: 18%; min-width: 130px;">GHI CHÚ</th>
-                  <th style="width: 100px; text-align: center;">TRẠNG THÁI</th>
-                  <th style="width: 130px; text-align: center;">HÀNH ĐỘNG</th>
+                  <th style="width: 22%; min-width: 180px;">CƯỚC PHÍ & NỘP</th>
+                  <th style="width: 17%; min-width: 130px;">GHI CHÚ</th>
+                  <th style="width: 110px; text-align: center;" class="text-center">TRẠNG THÁI</th>
+                  <th style="width: 120px; text-align: center;" class="text-center">HÀNH ĐỘNG</th>
                 </tr>
               </thead>
               <tbody id="shiftsTbody">

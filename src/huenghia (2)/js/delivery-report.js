@@ -247,31 +247,35 @@
         return `
         <tr data-shift-id="${shift.id}">
           <td style="text-align: center; vertical-align: middle;">
-            <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
               <input type="checkbox" class="shift-checkbox" />
               <span style="font-weight:700; color:#64748b;">${idx + 1}</span>
             </div>
           </td>
-          <td>
+          <td style="vertical-align: middle;">
             <div class="staff-cell">
-              <strong>${shift.staffName}</strong>
-              <div style="margin-top:2px; font-size:12px;">
-                <span class="code-badge" style="font-size:11.5px; padding:1px 5px;">Mã ca: ${shift.id}</span>
-                <span class="station-chip" style="margin-left:4px; font-size:11.5px;">📍 ${shift.station}</span>
+              <strong style="font-size:13.5px; color:#0f172a;">${shift.staffName}</strong>
+              <div style="margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span class="code-badge" style="font-size:11px; padding:2px 6px;">Mã ca: ${shift.id}</span>
+                <span class="station-chip" style="font-size:11px; padding:2px 6px;">${shift.station}</span>
               </div>
             </div>
           </td>
-          <td>
+          <td style="vertical-align: middle;">
             <div class="time-block">
-              <span><strong>${startTimeStr} ➔ ${endTimeStr}</strong></span>
-              <small style="color:#64748b; margin-top:2px;">🕒 ${dateStr} • NV: ${shift.staffId}</small>
+              <span style="font-size:13px; font-weight:700; color:#1e293b;">${startTimeStr} ➔ ${endTimeStr}</span>
+              <small style="color:#64748b; margin-top:3px; display:block; font-size:11.5px;">${dateStr} • NV: ${shift.staffId}</small>
             </div>
           </td>
-          <td class="text-right">
-            <strong style="font-size:14.5px; color:#0f172a;">${formatCurrency(shift.totalCollected)}</strong>
-            <div style="font-size:11.5px; color:#16a34a; font-weight:700; margin-top:1px;">Đã thu tiền giao</div>
+          <td style="vertical-align: middle;">
+            <div class="amount-block" style="display:flex; flex-direction:column; gap:3px;">
+              <strong style="font-size:14px; color:#0f172a; font-weight:800;">${formatCurrency(shift.totalCollected)}</strong>
+              <div style="font-size:11px; font-weight:700; margin-top:1px;">
+                <span style="color:#16a34a; background:#f0fdf4; padding:1.5px 6px; border-radius:4px; border:1px solid #dcfce7; white-space:nowrap;">Đã thu tiền giao</span>
+              </div>
+            </div>
           </td>
-          <td><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
+          <td style="vertical-align: middle;"><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
           <td class="text-center" style="vertical-align: middle;">
             <select class="status-select-box ${shift.isHandedOver ? 'handed' : 'unhanded'}" onchange="window.toggleShiftHandover(${shift.id})">
               <option value="handed" ${shift.isHandedOver ? 'selected' : ''}>Đã giao</option>
@@ -639,6 +643,18 @@
     if (filterDate) filterDate.addEventListener('change', renderShiftsTable);
     if (shiftSearch) shiftSearch.addEventListener('input', renderShiftsTable);
     if (btnApplyFilter) btnApplyFilter.addEventListener('click', renderShiftsTable);
+
+    // Live Auto-Update khi có đơn hàng mới từ các tab khác hoặc thao tác phơi
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'hueNghia_cargos' || e.key === STORAGE_KEY) {
+        currentShifts = getStoredShifts();
+        renderShiftsTable();
+      }
+    });
+
+    setInterval(() => {
+      renderShiftsTable();
+    }, 2500);
 
     renderShiftsTable();
   });

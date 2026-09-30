@@ -61,35 +61,140 @@
     return `${dd}/${mm}/${yyyy} ${hh}:${mi}:${ss}`;
   }
 
-  // Toàn bộ hàng hóa (mọi loại: goods/cash/hot/baga) mà NV của ca này đã nhận trong
-  // khoảng ca đang mở/đã đóng — cargo.id = Date.now() lúc tạo (xem cargo.js) nên dùng
-  // thẳng làm mốc thời gian, không cần field createdAt riêng.
+  // Tự động kiểm tra & đồng bộ ca thu ngân từ danh sách hàng hóa (hueNghia_cargos)
+  // và từ tài khoản NV đang đăng nhập, không bắt buộc người dùng bấm "Mở Ca Mới" thủ công.
+  function autoSyncShiftsFromCargos() {
+    const allCargos = loadCargos();
+    let updated = false;
+
+    // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu chưa có ca mở hôm nay
+    if (currentStaff && (currentStaff.code || currentStaff.name)) {
+      const code = String(currentStaff.code || '').trim();
+      const name = String(currentStaff.name || '').trim().toLowerCase();
+      const existingOpen = currentShifts.find(
+        (s) => !s.endTime && (String(s.staffCode) === code || (name && s.staffName && s.staffName.toLowerCase() === name))
+      );
+      if (!existingOpen) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const staffCargosToday = allCargos.filter((c) => {
+          const cCode = String(c.staffCode || c.staff || '').trim();
+          const cStaff = String(c.staff || '').trim().toLowerCase();
+          const isStaff = (code && cCode === code) || (name && cStaff === name);
+          return isStaff && (c.id >= todayStart.getTime());
+        });
+
+        const earliestTime = staffCargosToday.length > 0
+          ? Math.min(...staffCargosToday.map((c) => c.id))
+          : Date.now();
+
+        const autoShift = {
+          id: earliestTime,
+          staffCode: currentStaff.code || '933',
+          staffName: currentStaff.name || 'Nhân viên',
+          station: currentStaff.station || 'Sài Gòn',
+          startTime: earliestTime,
+          endTime: null,
+          submittedCash: null,
+          note: 'Ca tự động từ thao tác đăng nhập & nhận hàng',
+          isHandedOver: false,
+          isChecked: false
+        };
+
+        currentShifts.unshift(autoShift);
+        updated = true;
+      }
+    }
+
+    // 2. Tự động tạo ca cho các nhân viên khác có đơn hàng nhưng chưa có ca trong danh sách
+    const staffMap = {};
+    allCargos.forEach((c) => {
+      const sCode = String(c.staffCode || c.staff || '933').trim();
+      const sName = c.staff || currentStaff.name || 'Nhân viên';
+      const sStation = c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
+      if (!staffMap[sCode]) {
+        staffMap[sCode] = { code: sCode, name: sName, station: sStation, cargos: [] };
+      }
+      staffMap[sCode].cargos.push(c);
+    });
+
+    Object.values(staffMap).forEach((st) => {
+      const hasShift = currentShifts.some(
+        (s) => String(s.staffCode) === st.code || (st.name && s.staffName && s.staffName.toLowerCase() === st.name.toLowerCase())
+      );
+      if (!hasShift && st.cargos.length > 0) {
+        const earliestTime = Math.min(...st.cargos.map((c) => c.id));
+        currentShifts.unshift({
+          id: earliestTime,
+          staffCode: st.code,
+          staffName: st.name,
+          station: st.station,
+          startTime: earliestTime,
+          endTime: null,
+          submittedCash: null,
+          note: 'Ca tự động từ đơn hàng nhận',
+          isHandedOver: false,
+          isChecked: false
+        });
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      saveShifts(currentShifts);
+    }
+  }
+
+  // Toàn bộ hàng hóa mà NV ca này đã xử lý / nhận
   function getShiftCargoItems(shift, allCargos) {
     const cargos = allCargos || loadCargos();
-    const start = shift.startTime;
-    const end = shift.endTime || Date.now();
+    const shiftCode = String(shift.staffCode || '').trim();
+    const shiftName = String(shift.staffName || '').trim().toLowerCase();
+
     return cargos.filter((c) => {
-      const code = c.staffCode || c.staff;
-      return code === shift.staffCode && c.id >= start && c.id <= end;
+      const cCode = String(c.staffCode || c.staff || '').trim();
+      const cStaff = String(c.staff || '').trim().toLowerCase();
+
+      const matchStaff =
+        (shiftCode && cCode === shiftCode) ||
+        (shiftName && cStaff === shiftName) ||
+        (shiftCode && cStaff.includes(shiftCode)) ||
+        (cCode && shiftName.includes(cCode));
+
+      if (!matchStaff) return false;
+
+      if (shift.endTime) {
+        return c.id >= shift.startTime && c.id <= shift.endTime;
+      }
+
+      const shiftDateObj = new Date(shift.startTime);
+      shiftDateObj.setHours(0, 0, 0, 0);
+      return c.id >= shiftDateObj.getTime();
     });
   }
 
-  // Tính lại toàn bộ số liệu tiền của 1 ca từ dữ liệu hàng hóa thật — không lưu lại,
-  // luôn tính mới để không bao giờ lệch với cargo.js.
+  // Tính lại toàn bộ số liệu tiền thực tế của ca từ danh sách cargo thật
   function computeShiftStats(shift, allCargos) {
     const items = getShiftCargoItems(shift, allCargos);
-    const paidItems = items.filter((c) => c.paymentStatus === 'paid');
-    const unpaidItems = items.filter((c) => c.paymentStatus === 'unpaid');
+    const paidItems = items.filter((c) => c.paymentStatus === 'paid' || c.isPaid === true);
+    const unpaidItems = items.filter((c) => c.paymentStatus !== 'paid' && !c.isPaid);
 
     let cashPaid = 0;
     let transferPaid = 0;
     paidItems.forEach((c) => {
-      const fee = Number(c.fee) || 0;
-      if (c.paidMethod === 'transfer') transferPaid += fee;
-      else cashPaid += fee;
+      const fee = Number(c.fee) != null && !isNaN(Number(c.fee)) ? Number(c.fee) : (Number(c.moneyAmount) || 0);
+      if (c.paidMethod === 'transfer' || c.paymentMethod === 'transfer') {
+        transferPaid += fee;
+      } else {
+        cashPaid += fee;
+      }
     });
 
-    const unpaidAmount = unpaidItems.reduce((sum, c) => sum + (Number(c.fee) || 0), 0);
+    const unpaidAmount = unpaidItems.reduce((sum, c) => {
+      const fee = Number(c.fee) != null && !isNaN(Number(c.fee)) ? Number(c.fee) : (Number(c.moneyAmount) || 0);
+      return sum + fee;
+    }, 0);
+
     const totalCollected = cashPaid + transferPaid;
     const submittedCash = shift.submittedCash == null ? null : Number(shift.submittedCash);
     const diff = submittedCash == null ? null : submittedCash - cashPaid;
@@ -113,6 +218,8 @@
 
   // Render Master Shifts Table
   function renderShiftsTable() {
+    autoSyncShiftsFromCargos();
+
     const tbody = document.getElementById('shiftsTbody');
     const shiftsCountEl = document.getElementById('shiftsCount');
     const totalCollectedStat = document.getElementById('statTotalCollected');
@@ -200,32 +307,36 @@
         return `
         <tr data-shift-id="${shift.id}">
           <td style="text-align: center; vertical-align: middle;">
-            <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
               <input type="checkbox" class="shift-checkbox" />
               <span style="font-weight:700; color:#64748b;">${idx + 1}</span>
             </div>
           </td>
-          <td>
+          <td style="vertical-align: middle;">
             <div class="staff-cell">
-              <strong>${shift.staffName}</strong>
-              <div style="margin-top:2px; font-size:12px;">
-                <span class="code-badge" style="font-size:11.5px; padding:1px 5px;">Mã ca: ${shift.id}</span>
-                <span class="station-chip" style="margin-left:4px; font-size:11.5px;">📍 ${shift.station}</span>
+              <strong style="font-size:13.5px; color:#0f172a;">${shift.staffName}</strong>
+              <div style="margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span class="code-badge" style="font-size:11px; padding:2px 6px;">Mã ca: ${shift.id}</span>
+                <span class="station-chip" style="font-size:11px; padding:2px 6px;">${shift.station}</span>
               </div>
             </div>
           </td>
-          <td>
+          <td style="vertical-align: middle;">
             <div class="time-block">
-              <span><strong>${startStr[1] || ''} ➔ ${endStr[1] || 'Đang mở'}</strong></span>
-              <small style="color:#64748b; margin-top:2px;">🕒 ${startStr[0] || ''} • NV: ${shift.staffCode}</small>
+              <span style="font-size:13px; font-weight:700; color:#1e293b;">${startStr[1] || ''} ➔ ${endStr[1] || 'Đang mở'}</span>
+              <small style="color:#64748b; margin-top:3px; display:block; font-size:11.5px;">${startStr[0] || ''} • NV: ${shift.staffCode}</small>
             </div>
           </td>
-          <td class="text-right">
-            <strong style="font-size:14.5px; color:#0f172a;">${formatCurrency(stats.totalCollected)}</strong>
-            <div style="font-size:11px; color:#16a34a; font-weight:700; margin-top:1px;">Mặt: ${formatCurrency(stats.cashPaid)}</div>
-            <div style="font-size:11px; color:#2563eb; font-weight:700;">CK: ${formatCurrency(stats.transferPaid)}</div>
+          <td style="vertical-align: middle;">
+            <div class="amount-block" style="display:flex; flex-direction:column; gap:3px;">
+              <strong style="font-size:14px; color:#0f172a; font-weight:800;">${formatCurrency(stats.totalCollected)}</strong>
+              <div style="display:flex; gap:6px; align-items:center; font-size:11px; font-weight:700; flex-wrap:wrap;">
+                <span style="color:#16a34a; background:#f0fdf4; padding:1.5px 6px; border-radius:4px; border:1px solid #dcfce7; white-space:nowrap;">Mặt: ${formatCurrency(stats.cashPaid)}</span>
+                <span style="color:#2563eb; background:#eff6ff; padding:1.5px 6px; border-radius:4px; border:1px solid #dbeafe; white-space:nowrap;">CK: ${formatCurrency(stats.transferPaid)}</span>
+              </div>
+            </div>
           </td>
-          <td><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
+          <td style="vertical-align: middle;"><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
           <td class="text-center" style="vertical-align: middle;">
             <select class="status-select-box ${shift.isHandedOver ? 'handed' : 'unhanded'}" onchange="window.toggleShiftHandover(${shift.id})">
               <option value="handed" ${shift.isHandedOver ? 'selected' : ''}>Đã giao</option>
@@ -549,6 +660,18 @@
     if (filterDate) filterDate.addEventListener('change', renderShiftsTable);
     if (shiftSearch) shiftSearch.addEventListener('input', renderShiftsTable);
     if (btnApplyFilter) btnApplyFilter.addEventListener('click', renderShiftsTable);
+
+    // Live Auto-Update khi có đơn hàng mới từ các tab khác hoặc thao tác phơi
+    window.addEventListener('storage', (e) => {
+      if (e.key === CARGOS_KEY || e.key === SHIFTS_KEY) {
+        currentShifts = loadShifts();
+        renderShiftsTable();
+      }
+    });
+
+    setInterval(() => {
+      renderShiftsTable();
+    }, 2500);
 
     renderShiftsTable();
   });
