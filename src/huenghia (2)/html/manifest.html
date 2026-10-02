@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -257,7 +257,7 @@
                 <span>Lịch sử xóa phơi</span>
                 <span id="deletedManifestBadgeCount" style="background:#be123c; color:white; font-size:11px; padding:1px 7px; border-radius:10px; font-weight:800;">0</span>
               </button>
-              <button type="button" class="primary-btn" id="openCreateManifestBtn">Tạo phơi mới</button>
+              <button type="button" class="primary-btn" id="openCreateManifestBtn" onclick="openManifestModal()">Tạo phơi mới</button>
             </div>
           </div>
 
@@ -306,7 +306,7 @@
                   <th>Xe & Phụ xe</th>
                   <th>Nhân viên & Thời gian</th>
                   <th style="width: 145px; text-align: center;">Trạng thái phơi</th>
-                  <th style="text-align: center;">Hành động</th>
+                  <th style="width: 220px; text-align: center;">Hành động</th>
                 </tr>
               </thead>
               <tbody id="manifestTableBody"></tbody>
@@ -439,7 +439,16 @@
           </label>
           <label>
             <span>Điểm đi <strong style="color:var(--primary);">*</strong></span>
-            <select name="from" id="manifestFromSelect" required style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:600; background:white;"></select>
+            <select name="from" id="manifestFromSelect" required style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:600; background:white;">
+              <option value="Sài Gòn" selected>Sài Gòn</option>
+              <option value="Châu Đốc">Châu Đốc</option>
+              <option value="Tân Châu">Tân Châu</option>
+              <option value="Hà Tiên">Hà Tiên</option>
+              <option value="Long Xuyên">Long Xuyên</option>
+              <option value="Tri Tôn">Tri Tôn</option>
+              <option value="Cái Dầu">Cái Dầu</option>
+              <option value="Long Bình">Long Bình</option>
+            </select>
           </label>
 
           <label class="full-width" style="display:flex; flex-direction:column; gap:6px;">
@@ -460,7 +469,7 @@
 
           <label>
             <span>Tên tài xế</span>
-            <input name="driverName" id="manifestDriverName" required placeholder="vd: Nguyễn Văn Long" />
+            <input name="driverName" id="manifestDriverName" placeholder="vd: Nguyễn Văn Long" />
           </label>
           <label>
             <span>SĐT tài xế</span>
@@ -468,7 +477,13 @@
           </label>
           <label>
             <span>Loại xe vận chuyển</span>
-            <select name="vehicleType" id="manifestVehicleType" style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:600; background:white;"></select>
+            <select name="vehicleType" id="manifestVehicleType" style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:600; background:white;">
+              <option value="Đội xe 40 Giường" selected>Đội xe 40 Giường</option>
+              <option value="Đội xe 36 giường">Đội xe 36 giường</option>
+              <option value="Đội xe 44 Giường">Đội xe 44 Giường</option>
+              <option value="Đội Xe Limousine 11 Chỗ">Đội Xe Limousine 11 Chỗ</option>
+              <option value="Đội xe Limousine 34 giường">Đội xe Limousine 34 giường</option>
+            </select>
           </label>
           <label>
             <span>Phụ xe</span>
@@ -527,11 +542,23 @@
             </tbody>
           </table>
         </div>
-        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);">
-          <button type="button" class="secondary-btn" id="printManifestBtn">In phơi hàng</button>
-          <button type="button" class="secondary-btn" id="batchPrintStickersBtn" style="background:#ecfeff; color:#0f766e; border:1px solid #a5f3fc; font-weight:700;">In tem dán</button>
-          <button type="button" class="secondary-btn" onclick="printAllReceiptsForCurrentManifest()" style="background:#2563eb; color:white; border:none; font-weight:700; box-shadow:0 2px 6px rgba(37,99,235,0.25);">In tất cả biên lai hàng</button>
-          <button type="button" class="ghost-btn" id="closeDetailBtn">Đóng</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="primary-btn" onclick="openReceiveScanModal(currentDetailManifestId)" style="background:#2563eb; color:white; border:none; font-weight:700; padding:8px 14px; border-radius:6px; font-size:13px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+              <span>Quét QR theo món</span>
+            </button>
+            <button type="button" class="secondary-btn" onclick="confirmScanReceiveAllFromDetail()" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:700; padding:8px 14px; border-radius:6px; font-size:13px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Nhận tất cả hàng trong phơi</span>
+            </button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="secondary-btn" id="printManifestBtn">In phơi hàng</button>
+            <button type="button" class="secondary-btn" id="batchPrintStickersBtn" style="background:#ecfeff; color:#0f766e; border:1px solid #a5f3fc; font-weight:700;">In tem dán</button>
+            <button type="button" class="secondary-btn" onclick="printAllReceiptsForCurrentManifest()" style="background:#2563eb; color:white; border:none; font-weight:700; box-shadow:0 2px 6px rgba(37,99,235,0.25);">In tất cả biên lai hàng</button>
+            <button type="button" class="ghost-btn" id="closeDetailBtn">Đóng</button>
+          </div>
         </div>
       </div>
     </div>
@@ -838,11 +865,14 @@
 
     function loadManifests() {
       const saved = localStorage.getItem(STORAGE_KEYS.MANIFESTS);
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+      if (saved !== null) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (e) {}
       }
-      localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify(defaultManifests));
-      return defaultManifests;
+      localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify([]));
+      return [];
     }
 
     function saveManifests(data) {
@@ -895,7 +925,7 @@
 
     function renderDestinationCheckboxes(selectedFrom, selectedDestinations = [], isReadOnly = false) {
       const container = document.getElementById('destinationStationsContainer');
-      if (!container || !window.HueNghiaStations) return;
+      if (!container) return;
 
       const selectAllBtn = document.getElementById('selectAllDestinationsBtn');
       const deselectAllBtn = document.getElementById('deselectAllDestinationsBtn');
@@ -910,7 +940,10 @@
         deselectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
       }
 
-      const stations = window.HueNghiaStations.getStations();
+      const stations = (window.HueNghiaStations && typeof window.HueNghiaStations.getStations === 'function')
+        ? window.HueNghiaStations.getStations()
+        : ['Châu Đốc', 'Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Hà Tiên', 'Long Xuyên', 'Sài Gòn'];
+
       container.innerHTML = stations.map(st => {
         const isSameAsFrom = st === selectedFrom;
         const isChecked = !isSameAsFrom && selectedDestinations.includes(st);
@@ -951,17 +984,21 @@
       destinationSearchInput.addEventListener('input', (e) => filterDestinationStationList(e.target.value));
     }
 
-    function openManifestModal(editId = null) {
+    window.openManifestModal = function (editId = null) {
       const titleEl = document.getElementById('manifestModalTitle');
       const eyebrowEl = document.getElementById('manifestModalEyebrow');
       const fromSelect = document.getElementById('manifestFromSelect');
       const errEl = document.getElementById('destinationValidationError');
+      const manifestModal = document.getElementById('manifestModal');
+      const manifestForm = document.getElementById('manifestForm');
+      if (!manifestModal) return;
+
       if (errEl) errEl.style.display = 'none';
 
       const searchInput = document.getElementById('destinationSearchInput');
       if (searchInput) searchInput.value = '';
 
-      if (window.HueNghiaStations) {
+      if (window.HueNghiaStations && fromSelect) {
         window.HueNghiaStations.populateStationDropdowns(fromSelect, 'Sài Gòn');
       }
 
@@ -970,12 +1007,12 @@
       if (editId) {
         const item = manifestData.find((row) => row.id === editId);
         if (item) {
-          titleEl.textContent = 'Chỉnh sửa phơi hàng';
-          eyebrowEl.textContent = 'Cập nhật phơi';
-          document.getElementById('manifestId').value = item.id;
+          if (titleEl) titleEl.textContent = 'Chỉnh sửa phơi hàng';
+          if (eyebrowEl) eyebrowEl.textContent = 'Cập nhật phơi';
+          if (document.getElementById('manifestId')) document.getElementById('manifestId').value = item.id;
           if (document.getElementById('manifestName')) document.getElementById('manifestName').value = item.name;
           if (document.getElementById('manifestRoute')) document.getElementById('manifestRoute').value = item.route;
-          document.getElementById('manifestPlate').value = item.plate;
+          if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = item.plate;
           if (fromSelect) {
             fromSelect.value = item.from;
             fromSelect.disabled = true;
@@ -983,22 +1020,22 @@
             fromSelect.style.cursor = 'not-allowed';
           }
           const driverInfo = parseDriverDetails(item.driver);
-          document.getElementById('manifestDriverName').value = driverInfo.name === '—' ? '' : driverInfo.name;
-          document.getElementById('manifestDriverPhone').value = driverInfo.phone || '';
+          if (document.getElementById('manifestDriverName')) document.getElementById('manifestDriverName').value = driverInfo.name === '—' ? '' : driverInfo.name;
+          if (document.getElementById('manifestDriverPhone')) document.getElementById('manifestDriverPhone').value = driverInfo.phone || '';
           if (window.HueNghiaStations && vehicleSelect) {
             window.HueNghiaStations.populateVehicleDropdowns(vehicleSelect, driverInfo.vehicle);
           }
-          document.getElementById('manifestHelper').value = item.helper || '';
-          document.getElementById('manifestStaff').value = item.staff;
-          document.getElementById('manifestTime').value = item.time;
+          if (document.getElementById('manifestHelper')) document.getElementById('manifestHelper').value = item.helper || '';
+          if (document.getElementById('manifestStaff')) document.getElementById('manifestStaff').value = item.staff;
+          if (document.getElementById('manifestTime')) document.getElementById('manifestTime').value = item.time;
           renderDestinationCheckboxes(item.from, [item.to], true);
         }
       } else {
-        titleEl.textContent = 'Thêm phơi mới';
-        eyebrowEl.textContent = 'Tạo phơi hàng';
-        manifestForm.reset();
-        document.getElementById('manifestId').value = '';
-        document.getElementById('manifestPlate').value = '64855';
+        if (titleEl) titleEl.textContent = 'Thêm phơi mới';
+        if (eyebrowEl) eyebrowEl.textContent = 'Tạo phơi hàng';
+        if (manifestForm) manifestForm.reset();
+        if (document.getElementById('manifestId')) document.getElementById('manifestId').value = '';
+        if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = '64855';
         if (fromSelect) {
           fromSelect.value = 'Sài Gòn';
           fromSelect.disabled = false;
@@ -1008,12 +1045,12 @@
         if (window.HueNghiaStations && vehicleSelect) {
           window.HueNghiaStations.populateVehicleDropdowns(vehicleSelect, 'Đội xe 40 Giường');
         }
-        document.getElementById('manifestTime').value = '12h';
+        if (document.getElementById('manifestTime')) document.getElementById('manifestTime').value = '12h';
         renderDestinationCheckboxes('Sài Gòn', ['Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Châu Đốc'], false);
       }
       filterDestinationStationList('');
       manifestModal.classList.add('open');
-    }
+    };
 
     const fromSelect = document.getElementById('manifestFromSelect');
     if (fromSelect) {
@@ -1722,6 +1759,12 @@
             </td>
             <td>
               <div class="action-group">
+                <button class="btn-scan" data-action="scan" data-id="${row.id}" title="Quét QR / Kiểm từng món trong phơi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+                </button>
+                <button class="btn-receive-all" data-action="receive-all" data-id="${row.id}" title="Nhận tất cả hàng trong phơi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
                 <button class="btn-detail" data-action="detail" data-id="${row.id}" title="Xem chi tiết">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
@@ -1804,8 +1847,7 @@
       } else {
         // Creating new manifest(s)
         if (selectedDestinations.length === 0) {
-          if (errEl) errEl.style.display = 'block';
-          return;
+          selectedDestinations = [fromVal === 'Châu Đốc' ? 'Sài Gòn' : 'Châu Đốc'];
         }
         if (errEl) errEl.style.display = 'none';
 
@@ -1847,6 +1889,12 @@
 
       if (action === 'detail') {
         openDetailModal(targetId);
+      } else if (action === 'scan') {
+        openReceiveScanModal(targetId);
+      } else if (action === 'receive-all') {
+        if (confirm('Xác nhận nhận tất cả hàng hóa trong phơi xe này?')) {
+          confirmScanReceiveAll(targetId);
+        }
       } else if (action === 'print') {
         currentDetailManifestId = targetId;
         printManifestSheet(targetId);
@@ -1856,6 +1904,14 @@
         promptDeleteManifest(targetId);
       }
     });
+
+    window.confirmScanReceiveAllFromDetail = function() {
+      if (!currentDetailManifestId) return;
+      if (confirm('Xác nhận nhận tất cả hàng hóa trong phơi xe này?')) {
+        confirmScanReceiveAll(currentDetailManifestId);
+        renderDetailCargos(currentDetailManifestId);
+      }
+    };
 
     // --- SUB-TAB & VEHICLE RECEIVING & DELIVERY & RECEIPT FUNCTIONS ---
     let currentManifestTab = 'manifests';
@@ -2169,6 +2225,28 @@
       );
 
       if (targetCargo) {
+        const curStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+        const sName = curStaff ? curStaff.name : 'Nhân viên';
+        const sCode = curStaff ? curStaff.code : '933';
+        const nowTs = Date.now();
+        const nowStr = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+
+        targetCargo.isScanned = true;
+        targetCargo.scannedBy = sName;
+        targetCargo.scannedByCode = sCode;
+        targetCargo.scannedAt = nowTs;
+        targetCargo.receivedBy = sName;
+        targetCargo.receivedByCode = sCode;
+        targetCargo.receivedAtTimestamp = nowTs;
+        targetCargo.receivedAt = nowStr;
+
+        const allCargosList = loadCargos();
+        const mainIdx = allCargosList.findIndex(c => Number(c.id) === Number(targetCargo.id));
+        if (mainIdx !== -1) {
+          allCargosList[mainIdx] = targetCargo;
+          saveCargos(allCargosList);
+        }
+
         if (currentScanMap[targetCargo.id]) {
           showToast(`Đơn ${targetCargo.code} đã được quét`);
         } else {
@@ -2198,15 +2276,26 @@
       let scannedCount = 0;
       let unreceivedCount = 0;
       const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+      const curStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+      const sName = curStaff ? curStaff.name : 'Nhân viên';
+      const sCode = curStaff ? curStaff.code : '933';
+      const nowTs = Date.now();
 
       cargos.forEach(c => {
         if (Number(c.manifestId) === Number(manifestId)) {
           if (currentScanMap[c.id]) {
             c.isScanned = true;
             c.isUnreceived = false;
-            c.status = 'delivered';
-            c.statusText = 'Đã giao';
-            c.deliveredAt = now;
+            c.deliveryStatus = 'cho-giao';
+            c.status = 'in_transit';
+            c.statusText = 'Chờ giao';
+            c.scannedBy = c.scannedBy || sName;
+            c.scannedByCode = c.scannedByCode || sCode;
+            c.scannedAt = c.scannedAt || nowTs;
+            c.receivedBy = sName;
+            c.receivedByCode = sCode;
+            c.receivedAtTimestamp = nowTs;
+            c.receivedAt = now;
             scannedCount++;
           } else {
             c.isScanned = false;
@@ -2230,13 +2319,17 @@
       closeReceiveScanModal();
 
       if (unreceivedCount > 0) {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã giao xong, ${unreceivedCount} đơn chưa nhận.`);
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn chuyển sang Giao hàng (Chờ giao), ${unreceivedCount} đơn chưa nhận.`);
       } else {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã giao xong.`);
+        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã chuyển sang Giao hàng (Chờ giao).`);
       }
 
+      renderManifestTable();
       renderReceiveTable();
       updateTabBadges();
+      if (typeof currentDetailManifestId !== 'undefined' && currentDetailManifestId === manifestId) {
+        renderDetailCargos(manifestId);
+      }
     };
 
     window.confirmScanReceiveAll = function(manifestId) {
@@ -2353,31 +2446,34 @@
 
       let scannedCount = 0;
       let unreceivedCount = 0;
+      const curStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+      const sName = curStaff ? curStaff.name : 'Nhân viên';
+      const sCode = curStaff ? curStaff.code : '933';
+      const nowTs = Date.now();
+
       cargos.forEach(c => {
         if (Number(c.manifestId) === manifestId) {
-          if (c.status !== 'delivered' && c.status !== 'returned') {
-            if (c.isScanned) {
+          if (c.deliveryStatus !== 'da-giao' && c.status !== 'returned') {
+            if (c.isScanned || true) {
               c.isUnreceived = false;
-              c.status = 'delivered';
-              c.statusText = 'Đã giao';
-              c.deliveredAt = now;
+              c.deliveryStatus = 'cho-giao';
+              c.status = 'in_transit';
+              c.statusText = 'Chờ giao';
+              c.scannedBy = c.scannedBy || sName;
+              c.scannedByCode = c.scannedByCode || sCode;
+              c.scannedAt = c.scannedAt || nowTs;
+              c.receivedBy = sName;
+              c.receivedByCode = sCode;
+              c.receivedAtTimestamp = nowTs;
+              c.receivedAt = now;
               scannedCount++;
-            } else {
-              c.isUnreceived = true;
-              c.status = 'unreceived';
-              c.statusText = 'Chưa nhận';
-              unreceivedCount++;
             }
           }
         }
       });
 
       saveCargos(cargos);
-      if (unreceivedCount > 0) {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã giao xong, ${unreceivedCount} đơn chưa quét (vào DS chưa giao).`);
-      } else {
-        showToast(`✅ Đã nhận xe ${manifest.plate}! Toàn bộ ${scannedCount} đơn hàng đã giao xong.`);
-      }
+      showToast(`✅ Đã nhận xe ${manifest.plate}! Toàn bộ ${scannedCount} đơn hàng đã chuyển sang danh sách Giao hàng (Chờ giao).`);
 
       renderReceiveTable();
       updateTabBadges();

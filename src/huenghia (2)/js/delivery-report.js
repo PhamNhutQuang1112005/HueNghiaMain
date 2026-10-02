@@ -1,173 +1,262 @@
 /**
  * Báo cáo Giao hàng — Courier Delivery Report Controller
  * Huệ Nghĩa Express
+ *
+ * Dữ liệu THẬT: đọc real-time từ local storage `hueNghia_cargos` (đồng bộ với delivery.js).
+ * - Đơn "Tiền rồi" (đã trả cước tại nhận hàng): KHÔNG chuyển thành CT ở giao hàng (số tiền cần thu = 0đ).
+ * - Đơn "Chưa tiền" (chưa trả cước tại nhận hàng) hoặc có COD:
+ *   + Khi chưa quét giao: hiển thị CT (Chưa thu) với số tiền lấy đúng từ Cước phí/COD.
+ *   + Khi quét giao thành công: tự động chuyển thành TR (Đã thu) và tính vào số tiền thu của ca giao hàng.
  */
 
 (function () {
-  const STORAGE_KEY = 'huenghia_cashier_delivery_shifts_real_v2';
+  const SHIFTS_KEY = 'hueNghia_delivery_shift_reports';
+  const CARGOS_KEY = 'hueNghia_cargos';
 
-  // Seed data for Delivery Shifts
-  function getStoredShifts() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Error parsing stored delivery shifts:', e);
-      }
+  const currentStaff = window.HNAuth ? window.HNAuth.requireLogin() : { code: '', name: 'Nhân viên', station: '' };
+  if (window.HNAuth) window.HNAuth.renderUserChip(currentStaff);
+
+  function loadShifts() {
+    try {
+      return JSON.parse(localStorage.getItem(SHIFTS_KEY) || '[]');
+    } catch (e) {
+      console.error('Error parsing stored delivery shifts:', e);
+      return [];
     }
-    return [];
-      {
-        id: 590102,
-        staffName: 'Lê Văn Nam GH SG',
-        staffId: 883,
-        station: 'Sài Gòn',
-        startTime: '01/09/2026 08:00:00',
-        endTime: '01/09/2026 12:30:00',
-        totalCollected: 150000,
-        submittedAmount: 150000,
-        diffAmount: 0,
-        note: 'Ca giao hàng tuyến Quận 5 - Châu Đốc',
-        isHandedOver: true,
-        isChecked: true,
-        summaryStats: {
-          totalItems: 3,
-          staffId: 883,
-          unpaidCount: 0,
-          unpaidAmount: 0,
-          paidCount: 3,
-          paidAmount: 150000
-        },
-        paidCodes: ['12691270', '12691255', '12691180'],
-        cargoItems: [
-          {
-            no: 1,
-            code: '12691270',
-            cargoName: '1 bao thư giấy tờ xe * ko xử lý đền bù * nhẹ tay không bao hư bể ldh',
-            sender: 'Hải',
-            senderPhone: '0359301921',
-            stationFrom: 'Sài Gòn (1)',
-            stationTo: 'Châu Đốc (4)',
-            receiver: 'Thái',
-            receiverPhone: '0919710517',
-            staffEntry: 735,
-            staffReceive: 883,
-            trAmount: 50000,
-            ctAmount: 0,
-            isPaid: true,
-            receiveDate: '01/09/2026 13:12:07'
-          },
-          {
-            no: 2,
-            code: '12691255',
-            cargoName: '1 thùng phụ tùng xe gắn máy',
-            sender: 'Nguyên',
-            senderPhone: '0901091530',
-            stationFrom: 'Sài Gòn (1)',
-            stationTo: 'Long Xuyên (29)',
-            receiver: 'HẬU DECAL',
-            receiverPhone: '0944442403',
-            staffEntry: 735,
-            staffReceive: 883,
-            trAmount: 50000,
-            ctAmount: 0,
-            isPaid: true,
-            receiveDate: '01/09/2026 13:07:26'
-          },
-          {
-            no: 3,
-            code: '12691180',
-            cargoName: '1 kiện mỹ phẩm xách tay',
-            sender: 'Chị Hồng',
-            senderPhone: '0903112233',
-            stationFrom: 'Sài Gòn (1)',
-            stationTo: 'Long Xuyên (29)',
-            receiver: 'Tiệm Spa Mỹ',
-            receiverPhone: '0944556677',
-            staffEntry: 49,
-            staffReceive: 883,
-            trAmount: 50000,
-            ctAmount: 0,
-            isPaid: true,
-            receiveDate: '01/09/2026 10:05:00'
-          }
-        ]
-      },
-      {
-        id: 590088,
-        staffName: 'Trần Minh Quân GH SG',
-        staffId: 512,
-        station: 'Sài Gòn',
-        startTime: '01/09/2026 13:15:00',
-        endTime: '01/09/2026 17:00:00',
-        totalCollected: 90000,
-        submittedAmount: 90000,
-        diffAmount: 0,
-        note: 'Giao hàng trạm thành công',
-        isHandedOver: false,
-        isChecked: false,
-        summaryStats: {
-          totalItems: 2,
-          staffId: 512,
-          unpaidCount: 0,
-          unpaidAmount: 0,
-          paidCount: 2,
-          paidAmount: 90000
-        },
-        paidCodes: ['12691050', '12691100'],
-        cargoItems: [
-          {
-            no: 1,
-            code: '12691050',
-            cargoName: '1 hộp bánh trung thu cao cấp',
-            sender: 'Ngô Thanh',
-            senderPhone: '0901239999',
-            stationFrom: 'Sài Gòn (1)',
-            stationTo: 'Châu Đốc (4)',
-            receiver: 'Dương Hùng',
-            receiverPhone: '0918887776',
-            staffEntry: 708,
-            staffReceive: 512,
-            trAmount: 45000,
-            ctAmount: 0,
-            isPaid: true,
-            receiveDate: '01/09/2026 14:00:00'
-          },
-          {
-            no: 2,
-            code: '12691100',
-            cargoName: '1 bao tài liệu công ty',
-            sender: 'Văn phòng ABC',
-            senderPhone: '02838112233',
-            stationFrom: 'Sài Gòn (1)',
-            stationTo: 'Bình Dương (3)',
-            receiver: 'Chi nhánh BD',
-            receiverPhone: '0909887766',
-            staffEntry: 585,
-            staffReceive: 512,
-            trAmount: 45000,
-            ctAmount: 0,
-            isPaid: true,
-            receiveDate: '01/09/2026 14:30:00'
-          }
-        ]
-      }
-    ];
   }
 
-  function saveStoredShifts(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  function saveShifts(data) {
+    localStorage.setItem(SHIFTS_KEY, JSON.stringify(data));
   }
 
-  let currentShifts = getStoredShifts();
+  function loadCargos() {
+    try {
+      return JSON.parse(localStorage.getItem(CARGOS_KEY) || '[]');
+    } catch (e) {
+      console.error('Error parsing stored cargos:', e);
+      return [];
+    }
+  }
+
+  let currentShifts = loadShifts();
   let selectedShiftId = null;
 
   function formatCurrency(amount) {
     if (!amount && amount !== 0) return '0 VNĐ';
-    return amount.toLocaleString('vi-VN') + ' VNĐ';
+    return Math.round(amount).toLocaleString('vi-VN') + ' VNĐ';
   }
 
+  function formatDateTime(ms) {
+    if (!ms) return '';
+    if (typeof ms === 'string' && ms.includes('/')) return ms;
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return String(ms);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${mi}:${ss}`;
+  }
+
+  function formatShortDate(val) {
+    if (!val) return '—';
+    if (typeof val === 'string' && (val.includes(':') || val.includes('-') || val.includes('/')) && val.length <= 16) return val;
+    const d = new Date(Number(val) || val);
+    if (isNaN(d.getTime())) return String(val);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${hh}:${mi} ${dd}-${mm}`;
+  }
+
+  // Số tiền giao hàng cần thu từ người nhận cho 1 đơn hàng
+  function getDeliveryCollectAmount(c) {
+    if (!c) return 0;
+    let amt = 0;
+    // Nếu ở nhận hàng chưa trả cước (Chưa tiền) -> Lấy cước phí làm số tiền phải thu
+    if (c.paymentStatus === 'unpaid' || c.isPaid === false) {
+      amt += Number(c.fee || 0);
+    }
+    // Nếu có tiền COD thu hộ -> Cộng thêm COD
+    if (Number(c.codAmount || 0) > 0) {
+      amt += Number(c.codAmount || 0);
+    }
+    return amt;
+  }
+
+  // Đơn CT ở Giao hàng: Chưa quét giao VÀ có tiền cần thu tại giao hàng (> 0đ)
+  function isDeliveryItemUnpaid(c) {
+    if (c.deliveryStatus === 'da-giao') return false;
+    return getDeliveryCollectAmount(c) > 0;
+  }
+
+  // Đơn TR ở Giao hàng: Đã quét giao hàng thành công
+  function isDeliveryItemPaid(c) {
+    return c.deliveryStatus === 'da-giao';
+  }
+
+  // Tự động kiểm tra & đồng bộ ca giao hàng từ danh sách hàng hóa (hueNghia_cargos)
+  function autoSyncShiftsFromCargos() {
+    const allCargos = loadCargos();
+    let updated = false;
+
+    // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu có đơn giao
+    if (currentStaff && (currentStaff.code || currentStaff.name)) {
+      const code = String(currentStaff.code || '').trim();
+      const name = String(currentStaff.name || '').trim().toLowerCase();
+      const existingOpen = currentShifts.find(
+        (s) => !s.endTime && (String(s.staffCode || s.staffId) === code || (name && s.staffName && s.staffName.toLowerCase() === name))
+      );
+
+      const staffCargos = allCargos.filter((c) => {
+        if (c.status === 'unreceived' || c.isUnreceived) return false;
+        const cCode = String(c.deliveryStaffCode || c.deliveredByCode || c.staffCode || c.staff || '').trim();
+        const cStaff = String(c.deliveryStaff || c.deliveredBy || c.staff || '').trim().toLowerCase();
+        return (code && cCode === code) || (name && cStaff.includes(name));
+      });
+
+      if (!existingOpen && staffCargos.length > 0) {
+        const earliestTime = Math.min(...staffCargos.map((c) => c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id));
+        const autoShift = {
+          id: earliestTime,
+          staffCode: currentStaff.code || '883',
+          staffId: currentStaff.code || '883',
+          staffName: currentStaff.name || 'NV Giao Hàng',
+          station: currentStaff.station || 'Sài Gòn',
+          startTime: earliestTime,
+          endTime: null,
+          submittedCash: null,
+          note: 'Ca tự động đơn giao hàng',
+          isHandedOver: false,
+          isChecked: false
+        };
+        currentShifts.unshift(autoShift);
+        updated = true;
+      }
+    }
+
+    // 2. Tự động tạo ca cho các NV giao hàng khác có đơn hàng
+    const staffMap = {};
+    allCargos.forEach((c) => {
+      if (c.status === 'unreceived' || c.isUnreceived) return;
+      const sCode = String(c.deliveredByCode || c.deliveryStaffCode || c.staffCode || c.staff || '883').trim();
+      const sName = c.deliveredBy || c.deliveryStaff || c.staff || currentStaff.name || 'NV Giao Hàng';
+      const sStation = c.stationTo || c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
+      if (!staffMap[sCode]) {
+        staffMap[sCode] = { code: sCode, name: sName, station: sStation, cargos: [] };
+      }
+      staffMap[sCode].cargos.push(c);
+    });
+
+    Object.values(staffMap).forEach((st) => {
+      const hasShift = currentShifts.some(
+        (s) => String(s.staffCode || s.staffId) === st.code || (st.name && s.staffName && s.staffName.toLowerCase() === st.name.toLowerCase())
+      );
+      if (!hasShift && st.cargos.length > 0) {
+        const earliestTime = Math.min(...st.cargos.map((c) => c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id));
+        currentShifts.unshift({
+          id: earliestTime,
+          staffCode: st.code,
+          staffId: st.code,
+          staffName: st.name,
+          station: st.station,
+          startTime: earliestTime,
+          endTime: null,
+          submittedCash: null,
+          note: 'Ca tự động đơn giao hàng',
+          isHandedOver: false,
+          isChecked: false
+        });
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      saveShifts(currentShifts);
+    }
+  }
+
+  // Toàn bộ hàng hóa thuộc ca giao hàng này (bao gồm cả đơn TR đã giao và đơn CT chưa giao)
+  function getShiftCargoItems(shift, allCargos) {
+    const cargos = allCargos || loadCargos();
+    const shiftCode = String(shift.staffCode || shift.staffId || '').trim();
+    const shiftName = String(shift.staffName || '').trim().toLowerCase();
+
+    return cargos.filter((c) => {
+      if (c.status === 'unreceived' || c.isUnreceived) return false;
+
+      const cCode = String(c.deliveryStaffCode || c.deliveredByCode || c.staffCode || c.staff || '').trim();
+      const cStaff = String(c.deliveryStaff || c.deliveredBy || c.staff || '').trim().toLowerCase();
+
+      const matchStaff =
+        (shiftCode && (cCode === shiftCode || cCode.includes(shiftCode))) ||
+        (shiftName && (cStaff === shiftName || cStaff.includes(shiftName))) ||
+        (!shiftCode && !shiftName);
+
+      if (!matchStaff) return false;
+
+      const itemTimestamp = c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id;
+
+      if (shift.endTime) {
+        const startMs = typeof shift.startTime === 'number' ? shift.startTime : new Date(shift.startTime).getTime();
+        const endMs = typeof shift.endTime === 'number' ? shift.endTime : new Date(shift.endTime).getTime();
+        return (c.id >= startMs && c.id <= endMs) ||
+               (itemTimestamp >= startMs && itemTimestamp <= endMs);
+      }
+
+      const startMs = typeof shift.startTime === 'number' ? shift.startTime : new Date(shift.startTime).getTime();
+      const shiftDateObj = new Date(startMs || Date.now());
+      shiftDateObj.setHours(0, 0, 0, 0);
+      return c.id >= shiftDateObj.getTime() || itemTimestamp >= shiftDateObj.getTime() || c.deliveryStatus != null;
+    });
+  }
+
+  // Tính toán số liệu tiền thực tế của ca giao hàng
+  function computeShiftStats(shift, allCargos) {
+    const items = getShiftCargoItems(shift, allCargos);
+
+    const paidItems = items.filter((c) => isDeliveryItemPaid(c));
+    const unpaidItems = items.filter((c) => isDeliveryItemUnpaid(c));
+
+    let cashPaid = 0;
+    let transferPaid = 0;
+    paidItems.forEach((c) => {
+      const amt = getDeliveryCollectAmount(c) || Number(c.codCollected || c.codAmount || c.fee || 0);
+      if (c.paidMethod === 'transfer' || c.paymentMethod === 'transfer') {
+        transferPaid += amt;
+      } else {
+        cashPaid += amt;
+      }
+    });
+
+    const unpaidAmount = unpaidItems.reduce((sum, c) => {
+      return sum + getDeliveryCollectAmount(c);
+    }, 0);
+
+    const totalCollected = cashPaid + transferPaid;
+    const submittedCash = shift.submittedAmount == null ? null : Number(shift.submittedAmount);
+    const diff = submittedCash == null ? null : submittedCash - cashPaid;
+
+    return {
+      items,
+      paidItems,
+      unpaidItems,
+      cashPaid,
+      transferPaid,
+      unpaidAmount,
+      totalCollected,
+      submittedCash,
+      diff
+    };
+  }
+
+  // Render Master Shifts Table
   function renderShiftsTable() {
+    autoSyncShiftsFromCargos();
+
     const tbody = document.getElementById('shiftsTbody');
     const shiftsCountEl = document.getElementById('shiftsCount');
     const totalCollectedStat = document.getElementById('statTotalCollected');
@@ -176,12 +265,20 @@
 
     if (!tbody) return;
 
+    const allCargos = loadCargos();
+
     const stationFilter = document.getElementById('filterStation')?.value || 'all';
     const statusFilter = document.getElementById('filterStatus')?.value || 'all';
     const filterDateVal = document.getElementById('filterDate')?.value || '';
     const searchQuery = (document.getElementById('shiftSearch')?.value || '').toLowerCase().trim();
 
-    const filtered = currentShifts.filter((shift) => {
+    // Loại bỏ các ca trống không có đơn hàng nào
+    const validShifts = currentShifts.filter((shift) => {
+      const stats = computeShiftStats(shift, allCargos);
+      return stats.items.length > 0;
+    });
+
+    const filtered = validShifts.filter((shift) => {
       const matchStation = stationFilter === 'all' || shift.station === stationFilter;
       let matchStatus = true;
       if (statusFilter === 'handed') matchStatus = shift.isHandedOver;
@@ -192,17 +289,23 @@
       if (filterDateVal) {
         const [fy, fm, fd] = filterDateVal.split('-');
         if (fy && fm && fd) {
-          const dateFormatted = `${fd.padStart(2, '0')}/${fm.padStart(2, '0')}/${fy}`;
-          matchDate = shift.startTime && shift.startTime.startsWith(dateFormatted);
+          const dayStart = new Date(Number(fy), Number(fm) - 1, Number(fd), 0, 0, 0).getTime();
+          const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+          const startMs = typeof shift.startTime === 'number' ? shift.startTime : new Date(shift.startTime).getTime();
+          const endMs = shift.endTime ? (typeof shift.endTime === 'number' ? shift.endTime : new Date(shift.endTime).getTime()) : null;
+
+          matchDate = (startMs >= dayStart && startMs < dayEnd) ||
+                     (!endMs && startMs <= dayEnd) ||
+                     (endMs && startMs <= dayEnd && endMs >= dayStart);
         }
       }
 
       const matchSearch =
         !searchQuery ||
-        shift.id.toString().includes(searchQuery) ||
-        shift.staffName.toLowerCase().includes(searchQuery) ||
-        shift.staffId.toString().includes(searchQuery) ||
-        shift.station.toLowerCase().includes(searchQuery) ||
+        String(shift.id).includes(searchQuery) ||
+        (shift.staffName || '').toLowerCase().includes(searchQuery) ||
+        String(shift.staffCode || shift.staffId || '').toLowerCase().includes(searchQuery) ||
+        (shift.station || '').toLowerCase().includes(searchQuery) ||
         (shift.note || '').toLowerCase().includes(searchQuery);
 
       return matchStation && matchStatus && matchDate && matchSearch;
@@ -213,7 +316,8 @@
     let totalSum = 0;
     let handoverCount = 0;
     filtered.forEach((s) => {
-      totalSum += s.totalCollected;
+      const stats = computeShiftStats(s, allCargos);
+      totalSum += stats.totalCollected;
       if (s.isHandedOver) handoverCount++;
     });
 
@@ -238,11 +342,9 @@
 
     tbody.innerHTML = filtered
       .map((shift, idx) => {
-        const startParts = shift.startTime ? shift.startTime.split(' ') : ['', ''];
-        const endParts = shift.endTime ? shift.endTime.split(' ') : ['', 'Đang mở'];
-        const startTimeStr = startParts[1] || startParts[0] || '';
-        const endTimeStr = endParts[1] || endParts[0] || 'Đang mở';
-        const dateStr = startParts[0] || '';
+        const stats = computeShiftStats(shift, allCargos);
+        const startStr = formatDateTime(shift.startTime).split(' ');
+        const endStr = shift.endTime ? formatDateTime(shift.endTime).split(' ') : ['', 'Đang mở'];
 
         return `
         <tr data-shift-id="${shift.id}">
@@ -263,15 +365,16 @@
           </td>
           <td style="vertical-align: middle;">
             <div class="time-block">
-              <span style="font-size:13px; font-weight:700; color:#1e293b;">${startTimeStr} ➔ ${endTimeStr}</span>
-              <small style="color:#64748b; margin-top:3px; display:block; font-size:11.5px;">${dateStr} • NV: ${shift.staffId}</small>
+              <span style="font-size:13px; font-weight:700; color:#1e293b;">${startStr[1] || ''} ➔ ${endStr[1] || 'Đang mở'}</span>
+              <small style="color:#64748b; margin-top:3px; display:block; font-size:11.5px;">${startStr[0] || ''} • NV: ${shift.staffCode || shift.staffId}</small>
             </div>
           </td>
           <td style="vertical-align: middle;">
             <div class="amount-block" style="display:flex; flex-direction:column; gap:3px;">
-              <strong style="font-size:14px; color:#0f172a; font-weight:800;">${formatCurrency(shift.totalCollected)}</strong>
-              <div style="font-size:11px; font-weight:700; margin-top:1px;">
-                <span style="color:#16a34a; background:#f0fdf4; padding:1.5px 6px; border-radius:4px; border:1px solid #dcfce7; white-space:nowrap;">Đã thu tiền giao</span>
+              <strong style="font-size:14px; color:#0f172a; font-weight:800;">${formatCurrency(stats.totalCollected)}</strong>
+              <div style="display:flex; gap:6px; align-items:center; font-size:11px; font-weight:700; flex-wrap:wrap;">
+                <span style="color:#16a34a; background:#f0fdf4; padding:1.5px 6px; border-radius:4px; border:1px solid #dcfce7; white-space:nowrap;">TR (Đã thu): ${formatCurrency(stats.totalCollected)} (${stats.paidItems.length})</span>
+                <span style="color:#b45309; background:#fffbeb; padding:1.5px 6px; border-radius:4px; border:1px solid #fde68a; white-space:nowrap;">CT (Chưa thu): ${formatCurrency(stats.unpaidAmount)} (${stats.unpaidItems.length})</span>
               </div>
             </div>
           </td>
@@ -301,38 +404,20 @@
       .join('');
   }
 
-  function getRealLiveDateTimeString(dateObj = new Date()) {
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const y = dateObj.getFullYear();
-    const h = String(dateObj.getHours()).padStart(2, '0');
-    const min = String(dateObj.getMinutes()).padStart(2, '0');
-    const s = String(dateObj.getSeconds()).padStart(2, '0');
-    return `${d}/${m}/${y} ${h}:${min}:${s}`;
-  }
-
   function syncModalFormWithTablesBelow(shift) {
-    const staffNameVal = document.getElementById('modalStaffName')?.value || shift.staffName || '';
-    const totalCollectedStr = document.getElementById('modalTotalCollected')?.value || '0';
-    const paidCodesStr = document.getElementById('modalPaidCodes')?.value || '';
-
-    const staffIdMatch = staffNameVal.match(/(\d+)/);
-    const staffId = staffIdMatch ? staffIdMatch[1] : (shift.staffId || '883');
-
-    const totalCollectedNum = parseFloat(totalCollectedStr.replace(/\./g, '').replace(/,/g, '')) || shift.totalCollected || 0;
-    const paidCodesArr = paidCodesStr ? paidCodesStr.split(',').map((c) => c.trim()).filter(Boolean) : (shift.paidCodes || []);
-    const paidCount = paidCodesArr.length || 1;
+    const allCargos = loadCargos();
+    const stats = computeShiftStats(shift, allCargos);
 
     const summaryTbody = document.getElementById('modalSummaryTbody');
     if (summaryTbody) {
       summaryTbody.innerHTML = `
         <tr>
           <td style="text-align: center; font-weight: 600;">1</td>
-          <td style="font-weight: 700; color: #334155; text-align: center;">${staffId}</td>
-          <td style="text-align: center; font-weight: 600;">0 (món)</td>
-          <td style="text-align: right; font-weight: 700; color: #0f172a;">0 VNĐ</td>
-          <td style="text-align: center; font-weight: 600;">${paidCount} (món)</td>
-          <td style="text-align: right; font-weight: 700; color: #2563eb;">${formatCurrency(totalCollectedNum)}</td>
+          <td style="font-weight: 700; color: #334155; text-align: center;">${shift.staffCode || shift.staffId}</td>
+          <td style="text-align: center; font-weight: 600;">${stats.unpaidItems.length} (món)</td>
+          <td style="text-align: right; font-weight: 700; color: #b45309;">${formatCurrency(stats.unpaidAmount)}</td>
+          <td style="text-align: center; font-weight: 600;">${stats.paidItems.length} (món)</td>
+          <td style="text-align: right; font-weight: 700; color: #16a34a;">${formatCurrency(stats.totalCollected)}</td>
         </tr>
       `;
     }
@@ -341,37 +426,63 @@
     const paidSumStat = document.getElementById('modalPaidSumStat');
     const unpaidSumStat = document.getElementById('modalUnpaidSumStat');
 
-    if (cargoCountStat) cargoCountStat.textContent = paidCount + ' (Món)';
-    if (paidSumStat) paidSumStat.textContent = formatCurrency(totalCollectedNum);
-    if (unpaidSumStat) unpaidSumStat.textContent = '0 VNĐ';
+    if (cargoCountStat) cargoCountStat.textContent = stats.items.length + ' (Món)';
+    if (paidSumStat) paidSumStat.textContent = formatCurrency(stats.totalCollected);
+    if (unpaidSumStat) unpaidSumStat.textContent = formatCurrency(stats.unpaidAmount);
 
     const cargoTbody = document.getElementById('modalCargoTbody');
-    const realNowStr = getRealLiveDateTimeString();
-
     if (cargoTbody) {
-      const codeList = paidCodesArr.length > 0 ? paidCodesArr : ['12691270', '12691255'];
-      const unitAmount = Math.round(totalCollectedNum / codeList.length);
+      if (stats.items.length === 0) {
+        cargoTbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding: 20px; color:#94a3b8;">Chưa có đơn hàng nào phân công/giao trong ca này.</td></tr>`;
+      } else {
+        cargoTbody.innerHTML = stats.items
+          .map((item, idx) => {
+            const collectAmt = getDeliveryCollectAmount(item);
+            const isPaidAtStation = item.paymentStatus === 'paid' && Number(item.codAmount || 0) === 0;
+            const isDelivered = item.deliveryStatus === 'da-giao';
 
-      cargoTbody.innerHTML = codeList
-        .map((code, idx) => `
+            let badgeHtml = '';
+            let feeDisplayHtml = '';
+
+            if (isDelivered) {
+              badgeHtml = `<span style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-size:11px; padding:2px 7px; border-radius:12px; font-weight:600; white-space:nowrap; display:inline-block;">TR (Đã thu)</span>`;
+              feeDisplayHtml = `<strong style="color:#16a34a; font-size:11.5px;">${formatCurrency(collectAmt || Number(item.fee || 0))}</strong>`;
+            } else if (isPaidAtStation) {
+              badgeHtml = `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px; padding:2px 7px; border-radius:12px; font-weight:600; white-space:nowrap; display:inline-block;">Tiền rồi</span>`;
+              feeDisplayHtml = `<strong style="color:#2563eb; font-size:11.5px;">0 VNĐ</strong>`;
+            } else {
+              badgeHtml = `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; padding:2px 7px; border-radius:12px; font-weight:600; white-space:nowrap; display:inline-block;">CT (Chưa thu)</span>`;
+              feeDisplayHtml = `<strong style="color:#d97706; font-size:11.5px;">${formatCurrency(collectAmt || Number(item.fee || 0))}</strong>`;
+            }
+
+            const formattedDate = formatShortDate(item.deliveredAtTimestamp || item.transferredAt || item.id);
+
+            return `
           <tr>
-            <td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>
-            <td><strong style="color:#0f172a; font-family:'Roboto Mono', monospace;">${code}</strong></td>
-            <td style="max-width: 280px; font-size: 13px; line-height:1.4;">1 kiện hàng giao tận nơi * nhẹ tay</td>
-            <td><strong>Khách hàng gửi ${idx + 1}</strong><br/><small style="color:#64748b;">📞 0359301921</small></td>
-            <td style="text-align: center;"><span class="branch-pill-from">Sài Gòn (1)</span></td>
-            <td style="text-align: center;"><span class="branch-pill-to">Châu Đốc (4)</span></td>
-            <td><strong>Người nhận ${idx + 1}</strong><br/><small style="color:#64748b;">📞 0919710517</small></td>
-            <td style="text-align: center; font-weight: 600;">${staffId}</td>
-            <td style="text-align: center; font-weight: 600;">${staffId}</td>
-            <td style="text-align: right; font-weight: 700; color: #2563eb;">${formatCurrency(unitAmount)}</td>
-            <td style="text-align: center;">0đ</td>
-            <td style="text-align: center;">
-              <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px;">True (Đã ĐT)</span>
+            <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 11.5px;">${idx + 1}</td>
+            <td style="text-align: center;"><strong style="color:#0f172a; font-family:'Roboto Mono', monospace; font-size:12px;">${item.code || ''}</strong></td>
+            <td style="max-width: 240px; font-size: 11.5px; line-height:1.3; color:#1e293b;">${(item.name || '').replace(/🧳/g, '').trim()}</td>
+            <td>
+              <div style="font-weight:600; color:#0f172a; font-size:11.5px;">${item.sender || '—'}</div>
+              <div style="font-size:10.5px; color:#64748b;">${item.senderPhone || ''}</div>
             </td>
-            <td><span style="font-size: 12px; color: #64748b; white-space: nowrap;">${realNowStr}</span></td>
+            <td style="text-align: center;"><span class="branch-pill-from">${item.stationFrom || '—'}</span></td>
+            <td style="text-align: center;"><span class="branch-pill-to">${item.stationTo || '—'}</span></td>
+            <td>
+              <div style="font-weight:600; color:#0f172a; font-size:11.5px;">${item.receiver || '—'}</div>
+              <div style="font-size:10.5px; color:#64748b;">${item.receiverPhone || ''}</div>
+            </td>
+            <td style="text-align: center; font-weight: 600; font-size:11.5px; color:#475569;">${item.deliveryStaffCode || item.staffCode || shift.staffCode || ''}</td>
+            <td style="text-align: center; font-weight: 600; font-size:11.5px; color:#475569;">${item.deliveredByCode || item.deliveryStaffCode || shift.staffCode || ''}</td>
+            <td style="text-align: right;">${feeDisplayHtml}</td>
+            <td style="text-align: right; font-weight: 600; font-size:11.5px; color:#334155;">${item.codAmount ? formatCurrency(item.codAmount) : '—'}</td>
+            <td style="text-align: center;">${badgeHtml}</td>
+            <td style="text-align: center;"><span style="font-size: 11px; color: #64748b; white-space: nowrap;">${formattedDate}</span></td>
           </tr>
-        `).join('');
+        `;
+          })
+          .join('');
+      }
     }
   }
 
@@ -383,7 +494,7 @@
     const modal = document.getElementById('reportDetailModal');
     if (!modal) return;
 
-    const realNowStr = getRealLiveDateTimeString();
+    const stats = computeShiftStats(shift);
 
     document.getElementById('modalShiftTitle').textContent = `CHI TIẾT BÁO CÁO GIAO HÀNG`;
     const statusPill = document.getElementById('modalShiftStatusPill');
@@ -401,25 +512,16 @@
     const paidCodesEl = document.getElementById('modalPaidCodes');
     const noteTextEl = document.getElementById('modalNoteText');
 
-    if (staffNameEl) staffNameEl.value = `${shift.staffName} (Mã NV: ${shift.staffId})`;
-    if (timeFromEl) timeFromEl.value = shift.startTime || realNowStr;
-    if (timeToEl) timeToEl.value = shift.endTime || realNowStr;
-    if (totalCollectedEl) totalCollectedEl.value = shift.totalCollected ? shift.totalCollected.toLocaleString('vi-VN') : '0';
-    if (submittedAmountEl) submittedAmountEl.value = shift.submittedAmount ? shift.submittedAmount.toLocaleString('vi-VN') : '0';
-    if (diffAmountEl) diffAmountEl.value = shift.diffAmount ? shift.diffAmount.toLocaleString('vi-VN') : '0';
-    if (paidCodesEl) paidCodesEl.value = (shift.paidCodes && shift.paidCodes.length > 0) ? shift.paidCodes.join(', ') : '';
+    if (staffNameEl) staffNameEl.value = `${shift.staffName} (Mã NV: ${shift.staffCode || shift.staffId})`;
+    if (timeFromEl) timeFromEl.value = formatDateTime(shift.startTime);
+    if (timeToEl) timeToEl.value = shift.endTime ? formatDateTime(shift.endTime) : 'Đang mở ca...';
+    if (totalCollectedEl) totalCollectedEl.value = stats.totalCollected.toLocaleString('vi-VN');
+    if (submittedAmountEl) submittedAmountEl.value = stats.submittedCash != null ? stats.submittedCash.toLocaleString('vi-VN') : '';
+    if (diffAmountEl) diffAmountEl.value = stats.diff != null ? stats.diff.toLocaleString('vi-VN') : '—';
+    if (paidCodesEl) paidCodesEl.value = stats.paidItems.map((c) => c.code).join(', ');
     if (noteTextEl) noteTextEl.value = shift.note || '';
 
     syncModalFormWithTablesBelow(shift);
-
-    ['modalStaffName', 'modalTotalCollected', 'modalPaidCodes'].forEach((id) => {
-      const inputEl = document.getElementById(id);
-      if (inputEl) {
-        inputEl.oninput = function () {
-          syncModalFormWithTablesBelow(shift);
-        };
-      }
-    });
 
     modal.classList.add('show');
   };
@@ -434,27 +536,14 @@
     const shift = currentShifts.find((s) => s.id === selectedShiftId);
     if (!shift) return;
 
-    const staffNameVal = document.getElementById('modalStaffName')?.value || '';
-    const timeFromVal = document.getElementById('modalTimeFrom')?.value || '';
-    const timeToVal = document.getElementById('modalTimeTo')?.value || '';
-    const totalCollectedVal = document.getElementById('modalTotalCollected')?.value || '0';
     const submittedVal = document.getElementById('modalSubmittedAmount')?.value || '0';
-    const diffVal = document.getElementById('modalDiffAmount')?.value || '0';
-    const paidCodesVal = document.getElementById('modalPaidCodes')?.value || '';
     const noteVal = document.getElementById('modalNoteText')?.value || '';
 
-    if (staffNameVal) shift.staffName = staffNameVal;
-    if (timeFromVal) shift.startTime = timeFromVal;
-    if (timeToVal) shift.endTime = timeToVal;
-
-    shift.totalCollected = parseFloat(totalCollectedVal.replace(/\./g, '').replace(/,/g, '')) || 0;
     shift.submittedAmount = parseFloat(submittedVal.replace(/\./g, '').replace(/,/g, '')) || 0;
-    shift.diffAmount = parseFloat(diffVal.replace(/\./g, '').replace(/,/g, '')) || 0;
     shift.note = noteVal;
-    shift.paidCodes = paidCodesVal ? paidCodesVal.split(',').map((c) => c.trim()).filter(Boolean) : [];
     shift.isHandedOver = true;
 
-    saveStoredShifts(currentShifts);
+    saveShifts(currentShifts);
     renderShiftsTable();
     window.closeDetailReportModal();
     showToastNotification(`Đã lưu thông tin ca giao hàng [Mã ca ${shift.id}]!`);
@@ -464,7 +553,7 @@
     const shift = currentShifts.find((s) => s.id === shiftId);
     if (!shift) return;
     shift.isHandedOver = !shift.isHandedOver;
-    saveStoredShifts(currentShifts);
+    saveShifts(currentShifts);
     renderShiftsTable();
     showToastNotification(`Đã cập nhật trạng thái giao ca [Mã ${shift.id}]: ${shift.isHandedOver ? 'ĐÃ GIAO CA' : 'CHƯA GIAO CA'}`);
   };
@@ -473,7 +562,7 @@
     const shift = currentShifts.find((s) => s.id === shiftId);
     if (!shift) return;
     shift.isChecked = !shift.isChecked;
-    saveStoredShifts(currentShifts);
+    saveShifts(currentShifts);
     renderShiftsTable();
     showToastNotification(`Đã kiểm tra ca giao hàng [Mã ${shift.id}]`);
   };
@@ -493,78 +582,10 @@
     }, 2800);
   }
 
-  window.openCreateShiftModal = function () {
-    const modal = document.getElementById('createShiftModal');
-    if (!modal) return;
-    const nowStr = getRealLiveDateTimeString();
-    const startTimeInput = document.getElementById('newStartTime');
-    if (startTimeInput) startTimeInput.value = nowStr;
-    modal.classList.add('show');
-    modal.style.display = 'flex';
-    modal.style.opacity = '1';
-    modal.style.pointerEvents = 'auto';
-  };
-
-  window.closeCreateShiftModal = function () {
-    const modal = document.getElementById('createShiftModal');
-    if (modal) {
-      modal.classList.remove('show');
-      modal.style.display = 'none';
-      modal.style.opacity = '0';
-      modal.style.pointerEvents = 'none';
-    }
-  };
-
-  window.saveNewShift = function (e) {
-    e.preventDefault();
-    const staffName = document.getElementById('newStaffName')?.value.trim() || 'Nhân viên mới';
-    const staffId = document.getElementById('newStaffId')?.value.trim() || '883';
-    const station = document.getElementById('newStation')?.value || 'Sài Gòn';
-    const totalCollectedVal = document.getElementById('newTotalCollected')?.value || '0';
-    const totalCollected = parseFloat(totalCollectedVal.replace(/\./g, '').replace(/,/g, '')) || 0;
-    const startTime = document.getElementById('newStartTime')?.value || new Date().toLocaleString('vi-VN');
-    const endTime = document.getElementById('newEndTime')?.value || '';
-    const note = document.getElementById('newNote')?.value || '';
-
-    const newId = Math.floor(590000 + Math.random() * 9000);
-
-    const newShiftObj = {
-      id: newId,
-      staffName,
-      staffId,
-      station,
-      startTime,
-      endTime,
-      totalCollected,
-      submittedAmount: totalCollected,
-      diffAmount: 0,
-      note,
-      isHandedOver: false,
-      isChecked: false,
-      summaryStats: {
-        totalItems: 0,
-        staffId,
-        unpaidCount: 0,
-        unpaidAmount: 0,
-        paidCount: 0,
-        paidAmount: totalCollected
-      },
-      paidCodes: [],
-      cargoItems: []
-    };
-
-    currentShifts.unshift(newShiftObj);
-    saveStoredShifts(currentShifts);
-    renderShiftsTable();
-    window.closeCreateShiftModal();
-    document.getElementById('newShiftForm')?.reset();
-    showToastNotification(`Đã mở ca giao hàng mới [Mã ca ${newId}] thành công!`);
-  };
-
   window.clearAllRealShifts = function () {
     if (confirm('Bạn có chắc chắn muốn làm sạch dữ liệu ca giao hàng?')) {
       currentShifts = [];
-      saveStoredShifts(currentShifts);
+      saveShifts(currentShifts);
       renderShiftsTable();
       showToastNotification('Đã làm sạch danh sách ca giao hàng!');
     }
@@ -607,7 +628,7 @@
     const shiftId = pendingDeleteShiftId;
 
     currentShifts = currentShifts.filter((s) => String(s.id) !== String(shiftId));
-    saveStoredShifts(currentShifts);
+    saveShifts(currentShifts);
     renderShiftsTable();
     window.closeDeleteModal();
     showToastNotification(`Đã xóa thành công ca giao hàng [Mã ca ${shiftId}]!`);
@@ -634,20 +655,20 @@
 
     const filterStation = document.getElementById('filterStation');
     const filterStatus = document.getElementById('filterStatus');
-    const filterDate = document.getElementById('filterDate');
+    const filterDateInput = document.getElementById('filterDate');
     const shiftSearch = document.getElementById('shiftSearch');
     const btnApplyFilter = document.getElementById('btnApplyFilter');
 
     if (filterStation) filterStation.addEventListener('change', renderShiftsTable);
     if (filterStatus) filterStatus.addEventListener('change', renderShiftsTable);
-    if (filterDate) filterDate.addEventListener('change', renderShiftsTable);
+    if (filterDateInput) filterDateInput.addEventListener('change', renderShiftsTable);
     if (shiftSearch) shiftSearch.addEventListener('input', renderShiftsTable);
     if (btnApplyFilter) btnApplyFilter.addEventListener('click', renderShiftsTable);
 
-    // Live Auto-Update khi có đơn hàng mới từ các tab khác hoặc thao tác phơi
+    // Live Auto-Update khi có đơn hàng mới từ các tab giao hàng
     window.addEventListener('storage', (e) => {
-      if (e.key === 'hueNghia_cargos' || e.key === STORAGE_KEY) {
-        currentShifts = getStoredShifts();
+      if (e.key === CARGOS_KEY || e.key === SHIFTS_KEY) {
+        currentShifts = loadShifts();
         renderShiftsTable();
       }
     });

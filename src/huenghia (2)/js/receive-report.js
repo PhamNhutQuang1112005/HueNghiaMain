@@ -61,6 +61,18 @@
     return `${dd}/${mm}/${yyyy} ${hh}:${mi}:${ss}`;
   }
 
+  function formatShortDate(val) {
+    if (!val) return '—';
+    if (typeof val === 'string' && (val.includes(':') || val.includes('-') || val.includes('/')) && val.length <= 16) return val;
+    const d = new Date(Number(val) || val);
+    if (isNaN(d.getTime())) return String(val);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${hh}:${mi} ${dd}-${mm}`;
+  }
+
   // Tự động kiểm tra & đồng bộ ca thu ngân từ danh sách hàng hóa (hueNghia_cargos)
   // và từ tài khoản NV đang đăng nhập, không bắt buộc người dùng bấm "Mở Ca Mới" thủ công.
   function autoSyncShiftsFromCargos() {
@@ -80,12 +92,15 @@
         const staffCargosToday = allCargos.filter((c) => {
           const cCode = String(c.staffCode || c.staff || '').trim();
           const cStaff = String(c.staff || '').trim().toLowerCase();
-          const isStaff = (code && cCode === code) || (name && cStaff === name);
-          return isStaff && (c.id >= todayStart.getTime());
+          const rCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || '').trim();
+          const rStaff = String(c.receivedBy || c.scannedBy || c.transferredBy || '').trim().toLowerCase();
+          const isStaff = (code && (cCode === code || rCode === code)) || (name && (cStaff === name || rStaff === name));
+          const itemTs = c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id;
+          return isStaff && (itemTs >= todayStart.getTime());
         });
 
         const earliestTime = staffCargosToday.length > 0
-          ? Math.min(...staffCargosToday.map((c) => c.id))
+          ? Math.min(...staffCargosToday.map((c) => c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id))
           : Date.now();
 
         const autoShift = {
@@ -109,9 +124,9 @@
     // 2. Tự động tạo ca cho các nhân viên khác có đơn hàng nhưng chưa có ca trong danh sách
     const staffMap = {};
     allCargos.forEach((c) => {
-      const sCode = String(c.staffCode || c.staff || '933').trim();
-      const sName = c.staff || currentStaff.name || 'Nhân viên';
-      const sStation = c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
+      const sCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || c.staffCode || c.staff || '933').trim();
+      const sName = c.receivedBy || c.scannedBy || c.transferredBy || c.staff || currentStaff.name || 'Nhân viên';
+      const sStation = c.stationTo || c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
       if (!staffMap[sCode]) {
         staffMap[sCode] = { code: sCode, name: sName, station: sStation, cargos: [] };
       }
@@ -123,7 +138,7 @@
         (s) => String(s.staffCode) === st.code || (st.name && s.staffName && s.staffName.toLowerCase() === st.name.toLowerCase())
       );
       if (!hasShift && st.cargos.length > 0) {
-        const earliestTime = Math.min(...st.cargos.map((c) => c.id));
+        const earliestTime = Math.min(...st.cargos.map((c) => c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id));
         currentShifts.unshift({
           id: earliestTime,
           staffCode: st.code,
@@ -145,7 +160,7 @@
     }
   }
 
-  // Toàn bộ hàng hóa mà NV ca này đã xử lý / nhận
+  // Toàn bộ hàng hóa mà NV ca này đã xử lý / nhận (bao gồm ca nhận xe & quét QR)
   function getShiftCargoItems(shift, allCargos) {
     const cargos = allCargos || loadCargos();
     const shiftCode = String(shift.staffCode || '').trim();
@@ -154,22 +169,34 @@
     return cargos.filter((c) => {
       const cCode = String(c.staffCode || c.staff || '').trim();
       const cStaff = String(c.staff || '').trim().toLowerCase();
+      const rCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || '').trim();
+      const rStaff = String(c.receivedBy || c.scannedBy || c.transferredBy || '').trim().toLowerCase();
 
       const matchStaff =
-        (shiftCode && cCode === shiftCode) ||
-        (shiftName && cStaff === shiftName) ||
-        (shiftCode && cStaff.includes(shiftCode)) ||
-        (cCode && shiftName.includes(cCode));
+        (shiftCode && (cCode === shiftCode || rCode === shiftCode)) ||
+        (shiftName && (cStaff === shiftName || rStaff === shiftName)) ||
+        (shiftCode && (cStaff.includes(shiftCode) || rStaff.includes(shiftCode))) ||
+        (cCode && shiftName.includes(cCode)) ||
+        (rCode && shiftName.includes(rCode));
 
       if (!matchStaff) return false;
 
+      const itemTimestamp = c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id;
+
       if (shift.endTime) {
-        return c.id >= shift.startTime && c.id <= shift.endTime;
+        return (c.id >= shift.startTime && c.id <= shift.endTime) ||
+               (itemTimestamp >= shift.startTime && itemTimestamp <= shift.endTime);
       }
 
       const shiftDateObj = new Date(shift.startTime);
       shiftDateObj.setHours(0, 0, 0, 0);
-      return c.id >= shiftDateObj.getTime();
+      return (
+        c.manifestId != null ||
+        c.status === 'in-transit' ||
+        c.status === 'transferred' ||
+        c.id >= shiftDateObj.getTime() ||
+        itemTimestamp >= shiftDateObj.getTime()
+      );
     });
   }
 
@@ -248,7 +275,9 @@
         if (fy && fm && fd) {
           const dayStart = new Date(Number(fy), Number(fm) - 1, Number(fd), 0, 0, 0).getTime();
           const dayEnd = dayStart + 24 * 60 * 60 * 1000;
-          matchDate = shift.startTime >= dayStart && shift.startTime < dayEnd;
+          matchDate = (shift.startTime >= dayStart && shift.startTime < dayEnd) ||
+                     (!shift.endTime && shift.startTime <= dayEnd) ||
+                     (shift.endTime && shift.startTime <= dayEnd && shift.endTime >= dayStart);
         }
       }
 
@@ -425,33 +454,47 @@
         cargoTbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding: 20px; color:#94a3b8;">Chưa có hàng hóa phát sinh trong ca này.</td></tr>`;
       } else {
         cargoTbody.innerHTML = stats.items
-          .map(
-            (item, idx) => `
+          .map((item, idx) => {
+            let badgeHtml = '';
+            let feeDisplayHtml = '';
+
+            if (item.paymentStatus === 'paid') {
+              badgeHtml = `<span style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-size:11px; padding:2px 7px; border-radius:12px; font-weight:600; white-space:nowrap; display:inline-block;">TR (Đã thu)</span>`;
+              feeDisplayHtml = `<strong style="color:#16a34a; font-size:11.5px;">${formatCurrency(item.fee)}</strong>`;
+            } else if (item.paymentStatus === 'free') {
+              badgeHtml = `<span style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size:11px; padding:2px 7px; border-radius:12px; font-weight:600; white-space:nowrap; display:inline-block;">Miễn phí</span>`;
+              feeDisplayHtml = `<strong style="color:#64748b; font-size:11.5px;">0 VNĐ</strong>`;
+            } else {
+              badgeHtml = `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; padding:2px 7px; border-radius:12px; font-weight:600; white-space:nowrap; display:inline-block;">CT (Chưa thu)</span>`;
+              feeDisplayHtml = `<strong style="color:#d97706; font-size:11.5px;">${formatCurrency(item.fee)}</strong>`;
+            }
+
+            const formattedDate = formatShortDate(item.receivedAtTimestamp || item.transferredAt || item.id);
+
+            return `
           <tr>
-            <td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>
-            <td><strong style="color:#0f172a; font-family:'Roboto Mono', monospace;">${item.code || ''}</strong></td>
-            <td style="max-width: 280px; font-size: 13px; line-height:1.4;">${item.name || ''}</td>
-            <td><strong>${item.sender || '—'}</strong><br/><small style="color:#64748b;">📞 ${item.senderPhone || '—'}</small></td>
+            <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 11.5px;">${idx + 1}</td>
+            <td style="text-align: center;"><strong style="color:#0f172a; font-family:'Roboto Mono', monospace; font-size:12px;">${item.code || ''}</strong></td>
+            <td style="max-width: 240px; font-size: 11.5px; line-height:1.3; color:#1e293b;">${(item.name || '').replace(/🧳/g, '').trim()}</td>
+            <td>
+              <div style="font-weight:600; color:#0f172a; font-size:11.5px;">${item.sender || '—'}</div>
+              <div style="font-size:10.5px; color:#64748b;">${item.senderPhone || ''}</div>
+            </td>
             <td style="text-align: center;"><span class="branch-pill-from">${item.stationFrom || '—'}</span></td>
             <td style="text-align: center;"><span class="branch-pill-to">${item.stationTo || '—'}</span></td>
-            <td><strong>${item.receiver || '—'}</strong><br/><small style="color:#64748b;">📞 ${item.receiverPhone || '—'}</small></td>
-            <td style="text-align: center; font-weight: 600;">${item.staffCode || ''}</td>
-            <td style="text-align: center; font-weight: 600;">${item.staffCode || ''}</td>
-            <td style="text-align: right; font-weight: 700; color: #0f172a;">${formatCurrency(item.fee)}</td>
-            <td style="text-align: center;">${item.codAmount ? formatCurrency(item.codAmount) : '—'}</td>
-            <td style="text-align: center;">
-              ${
-                item.paymentStatus === 'paid'
-                  ? `<span class="badge" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; font-size:11px;">True (Đã TT)</span>`
-                  : item.paymentStatus === 'free'
-                  ? `<span class="badge" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; font-size:11px;">Không thu phí</span>`
-                  : `<span class="badge" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-size:11px;">False (Chưa TT)</span>`
-              }
+            <td>
+              <div style="font-weight:600; color:#0f172a; font-size:11.5px;">${item.receiver || '—'}</div>
+              <div style="font-size:10.5px; color:#64748b;">${item.receiverPhone || ''}</div>
             </td>
-            <td><span style="font-size: 12px; color: #64748b; white-space: nowrap;">${formatDateTime(item.id)}</span></td>
+            <td style="text-align: center; font-weight: 600; font-size:11.5px; color:#475569;">${item.transferredByCode || item.staffCode || shift.staffCode || ''}</td>
+            <td style="text-align: center; font-weight: 600; font-size:11.5px; color:#475569;">${item.receivedByCode || item.staffCode || shift.staffCode || ''}</td>
+            <td style="text-align: right;">${feeDisplayHtml}</td>
+            <td style="text-align: right; font-weight: 600; font-size:11.5px; color:#334155;">${item.codAmount ? formatCurrency(item.codAmount) : '—'}</td>
+            <td style="text-align: center;">${badgeHtml}</td>
+            <td style="text-align: center;"><span style="font-size: 11px; color: #64748b; white-space: nowrap;">${formattedDate}</span></td>
           </tr>
-        `
-          )
+        `;
+          })
           .join('');
       }
     }

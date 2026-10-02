@@ -54,10 +54,23 @@
     if (btn) btn.addEventListener('click', logout);
   }
 
+  function clearAllSystemData() {
+    if (confirm('Xác nhận XÓA SẠCH toàn bộ dữ liệu đơn hàng, phơi xe và báo cáo để chạy lại từ đầu?')) {
+      localStorage.setItem('hueNghia_cargos', JSON.stringify([]));
+      localStorage.setItem('hueNghia_manifests', JSON.stringify([]));
+      localStorage.setItem('hueNghia_receive_shift_reports', JSON.stringify([]));
+      localStorage.setItem('hueNghia_delivery_shift_reports', JSON.stringify([]));
+      localStorage.setItem('hueNghia_cod_tickets', JSON.stringify([]));
+      localStorage.setItem('cargo_deletion_history', JSON.stringify([]));
+      window.location.reload();
+    }
+  }
+
   window.HNAuth = {
     getCurrentStaff: getCurrentStaff,
     requireLogin: requireLogin,
     logout: logout,
-    renderUserChip: renderUserChip
+    renderUserChip: renderUserChip,
+    clearAllSystemData: clearAllSystemData
   };
 })();

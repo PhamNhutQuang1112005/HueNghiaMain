@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -244,7 +244,11 @@
             <p class="eyebrow">Giao hàng</p>
             <h1>Danh sách giao hàng</h1>
           </div>
-          <div class="toolbar-actions">
+          <div class="toolbar-actions" style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="primary-btn" id="openDeliveryScanModalBtn" style="background:#16a34a; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:700; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+              <span>Quét QR giao hàng</span>
+            </button>
             <button type="button" class="ghost-btn" id="filterBtn">Lọc</button>
           </div>
         </div>
@@ -439,6 +443,61 @@
         <button type="button" class="primary-btn" onclick="printReceiptNow()" style="background:#2563eb; display:flex; align-items:center; gap:6px; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">
           <span>In biên lai</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Quét QR Giao Hàng -->
+  <div class="modal-overlay" id="deliveryScanModal">
+    <div class="modal-card" style="width: min(880px, 95%); max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; margin: auto;">
+      <div class="modal-head">
+        <div>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0; color:#15803d; display:flex; align-items:center; gap:8px;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+            Quét mã QR giao hàng cho khách
+          </h2>
+          <span style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px; display: block;">Quét mã QR đơn hàng để kiểm tra & cập nhật trạng thái đã giao thành công</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeDeliveryScanModal()">✕</button>
+      </div>
+
+      <div style="padding: 16px 24px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="position: relative; flex: 1;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/>
+            </svg>
+            <input type="text" id="deliveryQrCodeInput" onkeydown="handleDeliveryQrInputKeydown(event)" placeholder="Quét mã QR từng đơn giao hàng (vd: DH-5596)..." style="width: 100%; padding: 10px 12px 10px 38px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 600; outline: none; background: #ffffff;" />
+          </div>
+          <button type="button" onclick="processDeliveryQrScanInput()" class="primary-btn" style="background:#16a34a; padding: 10px 20px; font-size: 13.5px; font-weight:700;">Quét mã (Từng cục)</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#f0fdf4; border:1px solid #bbf7d0; padding:10px 14px; border-radius:8px;">
+          <div style="font-size:13px; font-weight:700; color:#15803d; display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            <span>Hoặc chọn Quét hết (Giao cả xe):</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="deliveryTripSelect" style="padding:6px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; font-weight:600; background:white; cursor:pointer;">
+              <option value="">-- Chọn chuyến xe --</option>
+            </select>
+            <button type="button" onclick="batchDeliverTripCargos()" class="primary-btn" style="background:#15803d; font-size:12.5px; padding:6px 14px; font-weight:700; border-radius:6px;">
+              ✓ Quét hết (Giao cả xe)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="deliveryScanResultArea" style="padding: 20px 24px; overflow-y: auto; max-height: 55vh;">
+        <div style="text-align:center; padding: 40px 20px; color:#64748b;">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin:0 auto 12px auto; display:block;"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+          <div style="font-weight:700; font-size:15px; color:#334155;">Sẵn sàng quét mã QR giao hàng</div>
+          <p style="font-size:13px; margin:4px 0 0 0;">Sử dụng máy quét mã QR / Barcode hoặc nhập mã đơn ở ô phía trên.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="justify-content: space-between; margin-top: 0; padding: 16px 24px; border-top:1px solid #e2e8f0; background:#f8fafc;">
+        <button type="button" class="ghost-btn" onclick="closeDeliveryScanModal()">Đóng</button>
       </div>
     </div>
   </div>

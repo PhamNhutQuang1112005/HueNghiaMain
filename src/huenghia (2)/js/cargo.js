@@ -457,14 +457,14 @@ const _old_defaultCargos = [
 ];
 
 // Auto reset dữ liệu về 0 theo yêu cầu người dùng
-if (!localStorage.getItem('hueNghia_data_reset_clean_v3')) {
+if (!localStorage.getItem('hueNghia_data_reset_clean_v5')) {
   localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify([]));
   localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify([]));
   localStorage.setItem('hueNghia_receive_shift_reports', JSON.stringify([]));
   localStorage.setItem('hueNghia_delivery_shift_reports', JSON.stringify([]));
   localStorage.setItem('hueNghia_cod_tickets', JSON.stringify([]));
   localStorage.setItem('cargo_deletion_history', JSON.stringify([]));
-  localStorage.setItem('hueNghia_data_reset_clean_v3', 'true');
+  localStorage.setItem('hueNghia_data_reset_clean_v5', 'true');
 }
 
 function loadManifests() {
@@ -507,6 +507,8 @@ function syncCargosWithManifests(cargos) {
       }
       cargo.status = 'in-transit';
       cargo.statusText = 'Đã chuyển';
+      cargo.isScanned = true;
+      cargo.scanned = true;
     } else {
       cargo.stationFrom = cargo.stationFrom || 'Chưa gán';
       cargo.stationTo = cargo.stationTo || 'Chưa gán';
@@ -636,8 +638,8 @@ function renderManifestCombobox(filterText = '') {
 
   if (!manifests.length) {
     dropdownMenu.innerHTML = allManifests.length
-      ? `<div class="manifest-empty-msg">Tất cả phơi hiện có đều đã "Đã nhận xe" — vui lòng tạo phơi mới để chuyển hàng vào</div>`
-      : `<div class="manifest-empty-msg">Chưa có phơi hàng nào (Vui lòng tạo phơi xe trước)</div>`;
+      ? `<div class="manifest-empty-msg" style="padding:14px; text-align:center; line-height:1.6;">Tất cả phơi hiện có đều đã "Đã nhận xe".<br><a href="manifest.html?tab=manifests" style="display:inline-block; margin-top:8px; padding:6px 14px; background:#b91c1c; color:white; border-radius:6px; font-weight:700; font-size:12.5px; text-decoration:none;">➕ Click vào đây để Tạo phơi xe mới</a></div>`
+      : `<div class="manifest-empty-msg" style="padding:14px; text-align:center; line-height:1.6;">Chưa có phơi hàng nào khả dụng.<br><a href="manifest.html?tab=manifests" style="display:inline-block; margin-top:8px; padding:6px 14px; background:#b91c1c; color:white; border-radius:6px; font-weight:700; font-size:12.5px; text-decoration:none;">➕ Click vào đây để Tạo phơi xe mới</a></div>`;
     return;
   }
 
@@ -1637,6 +1639,7 @@ if (transferForm) {
       if (isNaN(qtyToTransfer) || qtyToTransfer <= 0) qtyToTransfer = totalQty;
       if (qtyToTransfer > totalQty) qtyToTransfer = totalQty;
 
+      const activeStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : (typeof currentStaff !== 'undefined' ? currentStaff : null);
       if (qtyToTransfer >= totalQty) {
         // Transfer all quantity
         item.manifestId = manifestId;
@@ -1644,6 +1647,18 @@ if (transferForm) {
         item.stationTo = stTo;
         item.status = 'in-transit';
         item.statusText = 'Đã chuyển';
+        item.isScanned = true;
+        item.scanned = true;
+        if (activeStaff) {
+          item.transferredBy = activeStaff.name;
+          item.transferredByCode = activeStaff.code;
+          item.transferredAt = Date.now();
+          if (!item.receivedBy) {
+            item.receivedBy = activeStaff.name;
+            item.receivedByCode = activeStaff.code;
+            item.receivedAtTimestamp = Date.now();
+          }
+        }
         count += qtyToTransfer;
       } else {
         // Partial quantity transfer -> split into a new transferred item
@@ -1668,7 +1683,15 @@ if (transferForm) {
           stationFrom: stFrom,
           stationTo: stTo,
           status: 'in-transit',
-          statusText: 'Đã chuyển'
+          statusText: 'Đã chuyển',
+          isScanned: true,
+          scanned: true,
+          transferredBy: activeStaff ? activeStaff.name : (item.transferredBy || item.staff),
+          transferredByCode: activeStaff ? activeStaff.code : (item.transferredByCode || item.staffCode),
+          transferredAt: Date.now(),
+          receivedBy: activeStaff ? activeStaff.name : (item.receivedBy || item.staff),
+          receivedByCode: activeStaff ? activeStaff.code : (item.receivedByCode || item.staffCode),
+          receivedAtTimestamp: Date.now()
         };
 
         newItemsToAdd.push(transferredItem);
@@ -3299,8 +3322,172 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newBagaBtn) newBagaBtn.style.display = 'none';
     if (newOrderBtn) newOrderBtn.style.display = 'inline-flex';
   }
+
+  const scanTransferBtn = document.getElementById('openCargoScanTransferModalBtn');
+  if (scanTransferBtn) scanTransferBtn.addEventListener('click', openCargoScanTransferModal);
 });
 setTimeout(() => {
   checkAndDisplayOverdueWarning();
 }, 200);
+
+/* ---------------------------------------------------------
+   QUÉT QR CHUYỂN PHƠI (QR SCANNER CARGO TRANSFER TO MANIFEST)
+   --------------------------------------------------------- */
+let cargoScanTransferLog = [];
+
+window.openCargoScanTransferModal = function () {
+  const modal = document.getElementById('cargoScanTransferModal');
+  if (modal) modal.classList.add('open');
+
+  populateScanTargetManifests();
+
+  const input = document.getElementById('cargoScanTransferInput');
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 100);
+  }
+};
+
+window.closeCargoScanTransferModal = function () {
+  const modal = document.getElementById('cargoScanTransferModal');
+  if (modal) modal.classList.remove('open');
+};
+
+function populateScanTargetManifests() {
+  const select = document.getElementById('scanTargetManifestSelect');
+  if (!select) return;
+
+  const activeManifests = (state.manifests || []).filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe');
+
+  if (!activeManifests.length) {
+    select.innerHTML = `<option value="">⚠️ Chưa có phơi xe khả dụng (Vui lòng tạo phơi xe trước)</option>`;
+    return;
+  }
+
+  select.innerHTML = `<option value="">-- Chọn phơi xe đích cần xếp hàng vào --</option>` +
+    activeManifests.map(m => {
+      const route = `${m.from || ''} ➔ ${m.to || ''}`;
+      return `<option value="${m.id}">${m.name} [Biển số: ${m.plate || 'Chưa gán'}] — ${route}</option>`;
+    }).join('');
+}
+
+window.handleCargoScanTransferKeydown = function (event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    processCargoScanTransferInput();
+  }
+};
+
+window.processCargoScanTransferInput = function () {
+  const select = document.getElementById('scanTargetManifestSelect');
+  const manifestId = Number(select?.value || 0);
+
+  if (!manifestId) {
+    alert('Vui lòng chọn 1 phơi xe đích để xếp hàng vào trước khi quét mã!');
+    if (select) select.focus();
+    return;
+  }
+
+  const targetManifest = state.manifests.find(m => Number(m.id) === manifestId);
+  if (!targetManifest) {
+    alert('Phơi xe đã chọn không tồn tại!');
+    return;
+  }
+
+  if (targetManifest.status === 'received' || targetManifest.statusText === 'Đã nhận xe') {
+    showToast(`⚠️ Xe ${targetManifest.plate} đã nhận xe rồi, không thể xếp hàng vào phơi này nữa!`);
+    return;
+  }
+
+  const input = document.getElementById('cargoScanTransferInput');
+  if (!input) return;
+  const rawCode = input.value.trim().toLowerCase();
+  if (!rawCode) return;
+
+  const cargo = state.data.find(c =>
+    (c.code || '').toLowerCase() === rawCode ||
+    (c.code || '').toLowerCase().includes(rawCode) ||
+    (c.baga && (c.baga.code || '').toLowerCase() === rawCode)
+  );
+
+  if (!cargo) {
+    showToast(`⚠️ Không tìm thấy đơn hàng "${input.value}" trong Danh sách nhận hàng`);
+    input.select();
+    return;
+  }
+
+  const stFrom = targetManifest.from || (targetManifest.route ? targetManifest.route.split('→')[0].trim() : 'Chưa gán');
+  const stTo = targetManifest.to || (targetManifest.route ? targetManifest.route.split('→')[1].trim() : 'Chưa gán');
+
+  cargo.manifestId = manifestId;
+  cargo.stationFrom = stFrom;
+  cargo.stationTo = stTo;
+  cargo.status = 'in-transit';
+  cargo.statusText = 'Đã chuyển';
+  cargo.isScanned = true;
+  cargo.scanned = true;
+
+  const activeStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : (typeof currentStaff !== 'undefined' ? currentStaff : null);
+  if (activeStaff) {
+    cargo.transferredBy = activeStaff.name;
+    cargo.transferredByCode = activeStaff.code;
+    cargo.transferredAt = Date.now();
+    if (!cargo.receivedBy) {
+      cargo.receivedBy = activeStaff.name;
+      cargo.receivedByCode = activeStaff.code;
+      cargo.receivedAtTimestamp = Date.now();
+    }
+  }
+
+  saveCargos(state.data);
+  renderTable();
+
+  cargoScanTransferLog.unshift({
+    code: cargo.code,
+    name: cargo.name,
+    sender: cargo.sender,
+    receiver: cargo.receiver,
+    manifestName: targetManifest.name,
+    plate: targetManifest.plate,
+    time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  });
+
+  renderCargoScanTransferLog();
+  showToast(`✅ Đã chuyển đơn ${cargo.code} (${cargo.name}) vào phơi ${targetManifest.plate || targetManifest.name}!`);
+  input.value = '';
+};
+
+function renderCargoScanTransferLog() {
+  const tbody = document.getElementById('cargoScanTransferLogTbody');
+  const countEl = document.getElementById('scanTransferLogCount');
+
+  if (countEl) countEl.textContent = `${cargoScanTransferLog.length} đơn`;
+
+  if (!tbody) return;
+
+  if (!cargoScanTransferLog.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#64748b;">Chưa có đơn hàng nào được quét chuyển trong phiên này.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = cargoScanTransferLog.map((item, idx) => `
+    <tr>
+      <td style="text-align:center; font-weight:700; color:#64748b;">${idx + 1}</td>
+      <td>
+        <code>${item.code}</code>
+        <strong style="margin-left:6px; color:#0f172a;">${(item.name || '').replace(/🧳/g, '').trim()}</strong>
+      </td>
+      <td style="font-size:12.5px;">
+        ${item.sender || '—'} ➔ <strong>${item.receiver || '—'}</strong>
+      </td>
+      <td>
+        <strong style="color:#2563eb;">${item.manifestName}</strong>
+        <span style="font-size:11px; color:#64748b; margin-left:4px;">(${item.plate || 'Chưa gán xe'})</span>
+      </td>
+      <td style="text-align:center;">
+        <span class="status-pill status-delivered" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; padding:2px 8px; font-weight:700; font-size:11.5px; border-radius:12px;">✓ Đã chuyển phơi</span>
+      </td>
+    </tr>
+  `).join('');
+}
 

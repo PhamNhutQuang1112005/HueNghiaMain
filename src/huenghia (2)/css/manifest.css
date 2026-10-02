@@ -470,6 +470,24 @@ code {
   height: 16px;
 }
 
+.action-group .btn-scan {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.action-group .btn-scan:hover {
+  background: #dbeafe;
+}
+
+.action-group .btn-receive-all {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.action-group .btn-receive-all:hover {
+  background: #dcfce7;
+}
+
 .action-group .btn-detail {
   background: var(--surface-2);
   color: var(--text-main);

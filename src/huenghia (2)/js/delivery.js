@@ -490,6 +490,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Đồng bộ field dùng chung để Đối soát COD (cod.js) tự nhận đơn đã giao.
         cargo.status = 'delivered';
         cargo.statusText = 'Đã giao';
+        cargo.paymentStatus = 'paid';
+        cargo.paymentStatusText = 'TR';
+        cargo.isPaid = true;
+        cargo.paidMethod = cargo.paidMethod || 'cash';
+        const activeStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+        if (activeStaff) {
+          cargo.deliveredBy = activeStaff.name;
+          cargo.deliveredByCode = activeStaff.code;
+          cargo.deliveredAtTimestamp = Date.now();
+        }
       } else if (newStatus === 'that-bai' || newStatus === 'hen-lai') {
         cargo.deliveryFailReason = document.getElementById('assignReason').value.trim();
       }
@@ -638,4 +648,186 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const searchInput = document.getElementById('globalSearch');
   if (searchInput) searchInput.addEventListener('input', renderTable);
+
+  const scanBtn = document.getElementById('openDeliveryScanModalBtn');
+  if (scanBtn) scanBtn.addEventListener('click', openDeliveryScanModal);
 });
+
+/* ---------------------------------------------------------
+   QUÉT QR GIAO HÀNG (QUICK QR DELIVERY SCANNER & GIAO CẢ XE)
+   --------------------------------------------------------- */
+window.populateDeliveryTripSelect = function () {
+  const select = document.getElementById('deliveryTripSelect');
+  if (!select) return;
+
+  const manifests = loadManifests();
+  const cargos = loadCargos();
+
+  const availableManifests = manifests.filter(m => {
+    return cargos.some(c => Number(c.manifestId) === Number(m.id) && c.deliveryStatus !== 'da-giao');
+  });
+
+  if (availableManifests.length === 0) {
+    select.innerHTML = '<option value="">-- Không có chuyến xe chờ giao --</option>';
+  } else {
+    select.innerHTML = '<option value="">-- Chọn chuyến xe để Quét hết (Giao cả xe) --</option>' +
+      availableManifests.map(m => {
+        const count = cargos.filter(c => Number(c.manifestId) === Number(m.id) && c.deliveryStatus !== 'da-giao').length;
+        return `<option value="${m.id}">Xe: ${m.plate || m.name} (${m.stationFrom || ''} ➔ ${m.stationTo || ''}) — ${count} đơn chờ giao</option>`;
+      }).join('');
+  }
+};
+
+window.openDeliveryScanModal = function () {
+  const modal = document.getElementById('deliveryScanModal');
+  if (modal) modal.classList.add('open');
+  const input = document.getElementById('deliveryQrCodeInput');
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 100);
+  }
+  populateDeliveryTripSelect();
+};
+
+window.batchDeliverTripCargos = function (targetManifestId) {
+  const select = document.getElementById('deliveryTripSelect');
+  const mId = targetManifestId || (select ? select.value : null);
+
+  if (!mId) {
+    showDeliveryToast('Vui lòng chọn chuyến xe để Quét hết (Giao cả xe)!');
+    return;
+  }
+
+  const manifests = loadManifests();
+  const manifest = manifests.find(m => Number(m.id) === Number(mId));
+  const manifestName = manifest ? `Xe ${manifest.plate || manifest.name || mId}` : `Chuyến xe ${mId}`;
+
+  const eligibleCargos = allCargos.filter(c =>
+    Number(c.manifestId) === Number(mId) &&
+    c.deliveryStatus !== 'da-giao'
+  );
+
+  if (eligibleCargos.length === 0) {
+    showDeliveryToast(`Không có đơn hàng nào cần giao trên ${manifestName}`);
+    return;
+  }
+
+  const activeStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+  const now = nowStr();
+  const nowTs = Date.now();
+
+  eligibleCargos.forEach(cargo => {
+    cargo.deliveryStatus = 'da-giao';
+    cargo.status = 'delivered';
+    cargo.statusText = 'Đã giao';
+    cargo.paymentStatus = 'paid';
+    cargo.paymentStatusText = 'TR';
+    cargo.isPaid = true;
+    cargo.codCollected = Number(cargo.codAmount || 0);
+    cargo.deliveredAt = now;
+    cargo.deliveredAtTimestamp = nowTs;
+    if (activeStaff) {
+      cargo.deliveredBy = activeStaff.name;
+      cargo.deliveredByCode = activeStaff.code;
+    }
+  });
+
+  saveCargos(allCargos);
+  renderTable();
+  populateDeliveryTripSelect();
+
+  showDeliveryToast(`✅ Đã giao thành công toàn bộ ${eligibleCargos.length} đơn hàng trên ${manifestName}!`);
+
+  const container = document.getElementById('deliveryScanResultArea');
+  if (container) {
+    container.innerHTML = `
+      <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:12px; padding:24px; text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">🚚✅</div>
+        <h3 style="margin:0; font-size:20px; font-weight:800; color:#15803d;">GIAO CẢ XE THÀNH CÔNG</h3>
+        <p style="margin:6px 0 16px 0; font-size:14px; color:#166534;">Đã tự động chuyển trạng thái <strong>"Đã giao"</strong> cho tất cả <strong>${eligibleCargos.length} đơn hàng</strong> thuộc ${manifestName}.</p>
+      </div>
+    `;
+  }
+};
+
+window.closeDeliveryScanModal = function () {
+  const modal = document.getElementById('deliveryScanModal');
+  if (modal) modal.classList.remove('open');
+};
+
+window.handleDeliveryQrInputKeydown = function (event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    processDeliveryQrScanInput();
+  }
+};
+
+window.processDeliveryQrScanInput = function () {
+  const input = document.getElementById('deliveryQrCodeInput');
+  if (!input) return;
+  const code = input.value.trim().toLowerCase();
+  if (!code) return;
+
+  const cargo = allCargos.find(c =>
+    (c.code || '').toLowerCase() === code ||
+    (c.code || '').toLowerCase().includes(code)
+  );
+
+  const container = document.getElementById('deliveryScanResultArea');
+  if (!container) return;
+
+  if (!cargo) {
+    showDeliveryToast(`Không tìm thấy đơn hàng "${input.value}" trong danh sách giao hàng`);
+    container.innerHTML = `
+      <div style="text-align:center; padding:30px; background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; color:#991b1b;">
+        <div style="font-weight:800; font-size:16px;">⚠️ Không tìm thấy đơn hàng "${input.value}"</div>
+        <div style="font-size:13px; margin-top:4px;">Vui lòng kiểm tra lại mã QR hoặc nhập lại mã đơn.</div>
+      </div>
+    `;
+    input.select();
+    return;
+  }
+
+  // TỰ ĐỘNG CHUYỂN TRẠNG THÁI THÀNH "ĐÃ GIAO" NGAY KHI QUÉT QR THÀNH CÔNG
+  confirmDeliveryScanItem(cargo.id);
+  input.value = '';
+  setTimeout(() => input.focus(), 100);
+};
+
+window.confirmDeliveryScanItem = function (cargoId) {
+  const cargo = allCargos.find(c => Number(c.id) === Number(cargoId));
+  if (!cargo) return;
+
+  cargo.deliveryStatus = 'da-giao';
+  cargo.codCollected = Number(cargo.codAmount || 0);
+  cargo.deliveredAt = nowStr();
+  cargo.status = 'delivered';
+  cargo.statusText = 'Đã giao';
+  cargo.paymentStatus = 'paid';
+  cargo.paymentStatusText = 'TR';
+  cargo.isPaid = true;
+  cargo.paidMethod = cargo.paidMethod || 'cash';
+
+  const activeStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+  if (activeStaff) {
+    cargo.deliveredBy = activeStaff.name;
+    cargo.deliveredByCode = activeStaff.code;
+    cargo.deliveredAtTimestamp = Date.now();
+  }
+
+  saveCargos(allCargos);
+  showDeliveryToast(`Đã xác nhận giao thành công đơn ${cargo.code}!`);
+  renderTable();
+
+  const container = document.getElementById('deliveryScanResultArea');
+  if (container) {
+    container.innerHTML = `
+      <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:12px; padding:24px; text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">✅</div>
+        <h3 style="margin:0; font-size:20px; font-weight:800; color:#15803d;">GIAO HÀNG THÀNH CÔNG</h3>
+        <p style="margin:6px 0 16px 0; font-size:14px; color:#166534;">Đã cập nhật trạng thái "Đã giao" cho đơn <strong>${cargo.code}</strong> - ${cargo.name}</p>
+        <button type="button" onclick="openDeliveryReceiptModal(${cargo.id})" class="primary-btn" style="background:#2563eb; padding:8px 18px; font-size:13px;">In biên lai giao hàng</button>
+      </div>
+    `;
+  }
+};
