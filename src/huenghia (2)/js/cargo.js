@@ -131,341 +131,15 @@ function formatCargoQuantity(cargo) {
 }
 
 const defaultCargos = [];
-const _old_defaultCargos = [
-  {
-    id: 4,
-    name: 'Tivi Sony 55 inch',
-    code: 'SG00125',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'cái',
-    sender: 'Vũ Văn Hùng',
-    senderPhone: '0907777888',
-    receiver: 'Nguyễn Thị Mai',
-    receiverPhone: '0909999000',
-    stationTo: 'Châu Đốc',
-    stationFrom: 'Sài Gòn',
-    fee: '150000',
-    codAmount: 500000,
-    staff: 'Linh',
-    transferTime: `09:00 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `11:30 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'delivered',
-    statusText: 'Đã giao',
-    manifestId: null,
-    cargoCategory: 'goods'
-  },
-  {
-    id: 5,
-    name: 'Thùng Điện Thoại iPhone 15',
-    code: 'SG00126',
-    quantity: 2,
-    originalQuantity: 2,
-    unit: 'thùng',
-    sender: 'Trần Văn Hoàng',
-    senderPhone: '0912345678',
-    receiver: 'Phạm Thanh Thảo',
-    receiverPhone: '0987654321',
-    stationTo: 'Châu Đốc',
-    stationFrom: 'Sài Gòn',
-    fee: '200000',
-    codAmount: 500000,
-    staff: 'Thành',
-    transferTime: `10:15 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `14:00 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'delivered',
-    statusText: 'Đã giao',
-    manifestId: null,
-    cargoCategory: 'goods'
-  },
-  {
-    id: 6,
-    name: 'Lô Quần Áo May Mặc',
-    code: 'AG00340',
-    quantity: 5,
-    originalQuantity: 5,
-    unit: 'bao',
-    sender: 'Nguyễn Thị Bích',
-    senderPhone: '0933111222',
-    receiver: 'Đặng Quốc Bảo',
-    receiverPhone: '0944333444',
-    stationTo: 'Sài Gòn',
-    stationFrom: 'Châu Đốc',
-    fee: '350000',
-    codAmount: 1200000,
-    staff: 'Minh',
-    transferTime: `07:45 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `12:15 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'delivered',
-    statusText: 'Đã giao',
-    manifestId: null,
-    cargoCategory: 'goods'
-  },
-  {
-    id: 7,
-    name: 'Bộ Máy Tính Văn Phòng',
-    code: 'SG00128',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'bộ',
-    sender: 'Lê Hoàng Nam',
-    senderPhone: '0977888999',
-    receiver: 'Huỳnh Mẫn Nhi',
-    receiverPhone: '0966555444',
-    stationTo: 'Long Xuyên',
-    stationFrom: 'Sài Gòn',
-    fee: '180000',
-    codAmount: 850000,
-    staff: 'Phương',
-    transferTime: `13:30 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `16:45 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'delivered',
-    statusText: 'Đã giao',
-    manifestId: null,
-    cargoCategory: 'goods'
-  },
-  {
-    id: 1,
-    name: 'Máy lạnh 2HP',
-    code: 'DH-1001',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'cái',
-    sender: 'Nguyễn Văn Long',
-    senderPhone: '0901111111',
-    receiver: 'Trần Thị Hạnh',
-    receiverPhone: '0902222222',
-    stationTo: 'Châu Đốc',
-    stationFrom: 'Sài Gòn',
-    fee: '180000',
-    staff: 'Linh',
-    transferTime: `08:30 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `12:00 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'in-transit',
-    statusText: 'Đã chuyển',
-    manifestId: 101,
-    cargoCategory: 'goods'
-  },
-  {
-    id: 15,
-    name: 'Xe máy Honda Vision (Chở Baga)',
-    code: 'BG00901',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'chiếc',
-    sender: 'Nguyễn Thanh Tùng',
-    senderPhone: '0977888999',
-    receiver: 'Lê Hoàng Nam',
-    receiverPhone: '0966555444',
-    stationTo: 'Châu Đốc',
-    stationFrom: 'Sài Gòn',
-    fee: '450000',
-    staff: 'Thành',
-    transferTime: `08:00 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `12:30 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'transferred',
-    statusText: 'Đã nhận phơi',
-    manifestId: 105,
-    cargoCategory: 'baga'
-  },
-  {
-    id: 16,
-    name: 'Bộ Baga mui chở hàng inox xe tải',
-    code: 'BG00902',
-    quantity: 2,
-    originalQuantity: 2,
-    unit: 'bộ',
-    sender: 'Phạm Minh Đức',
-    senderPhone: '0911222333',
-    receiver: 'Vũ Thị Loan',
-    receiverPhone: '0933444555',
-    stationTo: 'Tân Châu',
-    stationFrom: 'Sài Gòn',
-    fee: '250000',
-    staff: 'Linh',
-    transferTime: `09:15 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    receiveTime: `13:45 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    status: 'transferred',
-    statusText: 'Đã nhận phơi',
-    manifestId: 102,
-    cargoCategory: 'baga'
-  },
-  {
-    id: 2,
-    name: 'mười triệu VNĐ',
-    code: 'DH-1002',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'Nguyên vẹn',
-    moneyAmount: '10000000',
-    sender: 'Phạm Minh Tâm',
-    senderPhone: '0903333333',
-    receiver: 'Võ Anh Dũng',
-    receiverPhone: '0904444444',
-    stationTo: 'Sài Gòn',
-    stationFrom: 'Tân Châu',
-    fee: '240000',
-    staff: 'Huy',
-    transferTime: '10:15 21/07',
-    receiveTime: '17:20 21/07',
-    status: 'undelivered',
-    statusText: 'Chưa giao',
-    manifestId: 102,
-    cargoCategory: 'cash'
-  },
-  {
-    id: 3,
-    name: 'năm mươi triệu VNĐ',
-    code: 'DH-1003',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'Nguyên vẹn',
-    moneyAmount: '50000000',
-    sender: 'Đỗ Thu Hà',
-    senderPhone: '0905555555',
-    receiver: 'Lê Quốc Bảo',
-    receiverPhone: '0906666666',
-    stationTo: 'Tân Châu',
-    stationFrom: 'Châu Đốc',
-    fee: '320000',
-    staff: 'Mai',
-    transferTime: '13:10 20/07',
-    receiveTime: '08:00 21/07',
-    status: 'delivered',
-    statusText: 'Đã giao',
-    manifestId: null,
-    cargoCategory: 'hot'
-  },
 
-  /* ===== Dữ liệu mẫu nghiệp vụ Giao hàng — hàng đã đến trạm qua manifest 108 (đã "Đã nhận xe"),
-     dùng cho trang delivery.html (Danh sách giao hàng, xem js/delivery.js). Không phải hàng mới tạo
-     từ Nhận hàng — đây là 4 đơn thể hiện đủ trạng thái giao: Chờ giao/Đang giao/Đã giao/Thất bại. ===== */
-  {
-    id: 17,
-    name: 'Baga: Xe máy',
-    code: 'BG-W6B3ZW',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'cái',
-    sender: 'Khách gửi Baga',
-    senderPhone: '0900000001',
-    receiver: 'Khách nhận Baga',
-    receiverPhone: '123456789',
-    deliveryAddress: 'Long Xuyên, An Giang',
-    stationTo: 'AG',
-    stationFrom: 'Sài Gòn',
-    fee: '50000',
-    codAmount: 0,
-    staff: 'Nhiên',
-    transferTime: `19:22 03/09`,
-    status: 'in-transit',
-    statusText: 'Đã chuyển',
-    manifestId: 108,
-    cargoCategory: 'baga',
-    baga: { code: 'W6B3ZW' },
-    deliveryStatus: 'cho-giao',
-    deliveryStaff: '',
-    deliveryStaffPhone: '',
-    codCollected: 0
-  },
-  {
-    id: 18,
-    name: 'Máy lạnh',
-    code: 'DH-9971',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'cái',
-    sender: 'Người gửi mẫu',
-    senderPhone: '0900000002',
-    receiver: 'Nguyễn Văn B',
-    receiverPhone: '0901234567',
-    deliveryAddress: 'Long Xuyên, An Giang',
-    stationTo: 'AG',
-    stationFrom: 'Sài Gòn',
-    fee: '150000',
-    codAmount: 450000,
-    staff: 'Bạn',
-    transferTime: `20:11 21/08`,
-    status: 'in-transit',
-    statusText: 'Đã chuyển',
-    manifestId: 108,
-    cargoCategory: 'goods',
-    deliveryStatus: 'dang-giao',
-    deliveryStaff: 'Nguyễn Văn C',
-    deliveryStaffPhone: '0913000111',
-    codCollected: 0,
-    pickedUpAt: `15:05 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`
-  },
-  {
-    id: 19,
-    name: 'ML',
-    code: 'DH-6267',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'cái',
-    sender: 'Người gửi mẫu',
-    senderPhone: '0900000003',
-    receiver: 'Nguyễn Thị B',
-    receiverPhone: '0987654321',
-    deliveryAddress: 'Long Xuyên, An Giang',
-    stationTo: 'AG',
-    stationFrom: 'Sài Gòn',
-    fee: '150000',
-    codAmount: 0,
-    staff: 'Bạn',
-    transferTime: `19:08 21/08`,
-    status: 'delivered',
-    statusText: 'Đã giao',
-    manifestId: 108,
-    cargoCategory: 'goods',
-    deliveryStatus: 'da-giao',
-    deliveryStaff: 'Trần Văn D',
-    deliveryStaffPhone: '0913000222',
-    codCollected: 150000,
-    pickedUpAt: `14:40 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`,
-    deliveredAt: `16:10 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`
-  },
-  {
-    id: 20,
-    name: 'Tivi',
-    code: 'DH-2184',
-    quantity: 1,
-    originalQuantity: 1,
-    unit: 'cái',
-    sender: 'Người gửi mẫu',
-    senderPhone: '0900000004',
-    receiver: 'Trần Văn A',
-    receiverPhone: '0912345678',
-    deliveryAddress: 'Long Xuyên, An Giang',
-    stationTo: 'AG',
-    stationFrom: 'Sài Gòn',
-    fee: '100000',
-    codAmount: 75000,
-    staff: 'Bạn',
-    transferTime: `14:54 05/08`,
-    status: 'undelivered',
-    statusText: 'Chưa giao',
-    manifestId: 108,
-    cargoCategory: 'goods',
-    deliveryStatus: 'that-bai',
-    deliveryStaff: 'Nguyễn Văn C',
-    deliveryStaffPhone: '0913000111',
-    deliveryFailReason: 'Không liên lạc được',
-    codCollected: 0,
-    pickedUpAt: `10:20 ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`
-  }
-];
-
-// Auto reset dữ liệu về 0 theo yêu cầu người dùng
-if (!localStorage.getItem('hueNghia_data_reset_clean_v5')) {
+// Tự động xóa sạch dữ liệu hàng hóa cũ để test tính năng mới
+if (!localStorage.getItem("hueNghia_cargo_clean_test_v4")) {
   localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify([]));
   localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify([]));
-  localStorage.setItem('hueNghia_receive_shift_reports', JSON.stringify([]));
-  localStorage.setItem('hueNghia_delivery_shift_reports', JSON.stringify([]));
-  localStorage.setItem('hueNghia_cod_tickets', JSON.stringify([]));
-  localStorage.setItem('cargo_deletion_history', JSON.stringify([]));
-  localStorage.setItem('hueNghia_data_reset_clean_v5', 'true');
+  localStorage.setItem("cargo_deletion_history", JSON.stringify([]));
+  localStorage.setItem("hueNghia_cargo_clean_test_v4", "true");
 }
+
 
 function loadManifests() {
   const saved = localStorage.getItem(STORAGE_KEYS.MANIFESTS);
@@ -507,7 +181,6 @@ function syncCargosWithManifests(cargos) {
       }
       cargo.status = 'in-transit';
       cargo.statusText = 'Đã chuyển';
-      cargo.isScanned = true;
       cargo.scanned = true;
     } else {
       cargo.stationFrom = cargo.stationFrom || 'Chưa gán';
@@ -1647,7 +1320,6 @@ if (transferForm) {
         item.stationTo = stTo;
         item.status = 'in-transit';
         item.statusText = 'Đã chuyển';
-        item.isScanned = true;
         item.scanned = true;
         if (activeStaff) {
           item.transferredBy = activeStaff.name;
@@ -1684,7 +1356,6 @@ if (transferForm) {
           stationTo: stTo,
           status: 'in-transit',
           statusText: 'Đã chuyển',
-          isScanned: true,
           scanned: true,
           transferredBy: activeStaff ? activeStaff.name : (item.transferredBy || item.staff),
           transferredByCode: activeStaff ? activeStaff.code : (item.transferredByCode || item.staffCode),
@@ -2127,6 +1798,9 @@ function updateCargoCategoryVisibility() {
   const deliveryCard = document.getElementById('deliveryCard');
   if (deliveryCard) deliveryCard.style.display = isGoods ? '' : 'none';
 
+  const deliveryServiceSection = document.getElementById('deliveryServiceSection');
+  if (deliveryServiceSection) deliveryServiceSection.style.display = isGoods ? '' : 'none';
+
   if (!isGoods) {
     const dimensionsCheckbox = document.getElementById('dimensionsCheckbox');
     const dimensionsFieldsWrap = document.getElementById('dimensionsFieldsWrap');
@@ -2157,6 +1831,46 @@ function updateCargoCategoryVisibility() {
 if (cargoCategorySelect) {
   cargoCategorySelect.addEventListener('change', updateCargoCategoryVisibility);
 }
+
+/* ── Cargo Category Tab logic ── */
+(function initCargoCategoryTabs() {
+  const tabsContainer = document.getElementById('cargoCategoryTabs');
+  const hiddenSelect  = document.getElementById('cargoCategorySelect');
+  if (!tabsContainer || !hiddenSelect) return;
+
+  // Khi click vào tab → cập nhật active + đồng bộ select + gọi visibility
+  tabsContainer.addEventListener('click', function (e) {
+    const btn = e.target.closest('.cat-tab');
+    if (!btn) return;
+    tabsContainer.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    hiddenSelect.value = btn.dataset.value;
+    hiddenSelect.dispatchEvent(new Event('change'));
+  });
+
+  // Helper để đồng bộ tab active từ bên ngoài (khi JS set select.value trực tiếp)
+  function syncTabsFromSelect() {
+    const val = hiddenSelect.value || 'goods';
+    tabsContainer.querySelectorAll('.cat-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.value === val);
+    });
+  }
+
+  // Patch setter của select.value để tự động đồng bộ tab
+  const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  const patchedSet = function (v) {
+    origDescriptor.set.call(this, v);
+    if (this === hiddenSelect) syncTabsFromSelect();
+  };
+  Object.defineProperty(hiddenSelect, 'value', {
+    get: function () { return origDescriptor.get.call(this); },
+    set: patchedSet,
+    configurable: true
+  });
+
+  // Khởi tạo ngay lần đầu
+  syncTabsFromSelect();
+})();
 
 function attachMoneyFieldFormatter(el) {
   if (!el) return;
@@ -3424,7 +3138,6 @@ window.processCargoScanTransferInput = function () {
   cargo.stationTo = stTo;
   cargo.status = 'in-transit';
   cargo.statusText = 'Đã chuyển';
-  cargo.isScanned = true;
   cargo.scanned = true;
 
   const activeStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : (typeof currentStaff !== 'undefined' ? currentStaff : null);

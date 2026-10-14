@@ -106,8 +106,8 @@ function isManifestArrived(manifest) {
 /* Hiển thị tất cả hàng hóa đã nhận sang Danh sách giao hàng (loại trừ hàng chưa nhận từ phơi) */
 function isEligibleForDelivery(cargo) {
   if (!cargo) return false;
-  if (cargo.status === 'unreceived' || cargo.isUnreceived) return false;
-  return true;
+  // Chỉ hàng đã quét QR nhận hàng mới vào danh sách giao; chưa quét thì nằm ở "Hàng chưa giao".
+  return !!cargo.isScanned && cargo.status !== 'unreceived' && !cargo.isUnreceived;
 }
 
 /* Gán mặc định "Chờ giao" cho các đơn vừa đủ điều kiện giao mà chưa từng được khởi tạo
@@ -195,7 +195,11 @@ function getFilteredList() {
 
 function statusBadgeHtml(cargo) {
   const def = DELIVERY_STATUS_DEFS[cargo.deliveryStatus] || DELIVERY_STATUS_DEFS['cho-giao'];
-  return `<span class="status-pill ${def.cls}">${def.label}</span>`;
+  // Quét QR giao hàng độc lập với quét QR nhận hàng (isScanned bên manifest).
+  const scan = cargo.deliveryScanned
+    ? '<div style="font-size:10.5px; color:#15803d; margin-top:3px;">✓ Đã quét QR giao</div>'
+    : '<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Chưa quét</div>';
+  return `<span class="status-pill ${def.cls}">${def.label}</span>${scan}`;
 }
 
 function closeAllRowActionMenus() {
@@ -664,7 +668,7 @@ window.populateDeliveryTripSelect = function () {
   const cargos = loadCargos();
 
   const availableManifests = manifests.filter(m => {
-    return cargos.some(c => Number(c.manifestId) === Number(m.id) && c.deliveryStatus !== 'da-giao');
+    return cargos.some(c => Number(c.manifestId) === Number(m.id) && isEligibleForDelivery(c) && c.deliveryStatus !== 'da-giao');
   });
 
   if (availableManifests.length === 0) {
@@ -672,7 +676,7 @@ window.populateDeliveryTripSelect = function () {
   } else {
     select.innerHTML = '<option value="">-- Chọn chuyến xe để Quét hết (Giao cả xe) --</option>' +
       availableManifests.map(m => {
-        const count = cargos.filter(c => Number(c.manifestId) === Number(m.id) && c.deliveryStatus !== 'da-giao').length;
+        const count = cargos.filter(c => Number(c.manifestId) === Number(m.id) && isEligibleForDelivery(c) && c.deliveryStatus !== 'da-giao').length;
         return `<option value="${m.id}">Xe: ${m.plate || m.name} (${m.stationFrom || ''} ➔ ${m.stationTo || ''}) — ${count} đơn chờ giao</option>`;
       }).join('');
   }
@@ -704,6 +708,7 @@ window.batchDeliverTripCargos = function (targetManifestId) {
 
   const eligibleCargos = allCargos.filter(c =>
     Number(c.manifestId) === Number(mId) &&
+    isEligibleForDelivery(c) &&
     c.deliveryStatus !== 'da-giao'
   );
 
@@ -717,6 +722,7 @@ window.batchDeliverTripCargos = function (targetManifestId) {
   const nowTs = Date.now();
 
   eligibleCargos.forEach(cargo => {
+    cargo.deliveryScanned = true;
     cargo.deliveryStatus = 'da-giao';
     cargo.status = 'delivered';
     cargo.statusText = 'Đã giao';
@@ -788,6 +794,18 @@ window.processDeliveryQrScanInput = function () {
     return;
   }
 
+  if (!isEligibleForDelivery(cargo)) {
+    showDeliveryToast(`Đơn ${cargo.code} chưa quét QR nhận hàng, không thể giao`);
+    container.innerHTML = `
+      <div style="text-align:center; padding:30px; background:#fffbeb; border:1px solid #fde047; border-radius:10px; color:#92400e;">
+        <div style="font-weight:800; font-size:16px;">⚠️ Đơn ${cargo.code} chưa được quét nhận hàng</div>
+        <div style="font-size:13px; margin-top:4px;">Quét QR nhận hàng ở trang Phơi hàng trước, rồi mới quét giao.</div>
+      </div>
+    `;
+    input.select();
+    return;
+  }
+
   // TỰ ĐỘNG CHUYỂN TRẠNG THÁI THÀNH "ĐÃ GIAO" NGAY KHI QUÉT QR THÀNH CÔNG
   confirmDeliveryScanItem(cargo.id);
   input.value = '';
@@ -798,6 +816,7 @@ window.confirmDeliveryScanItem = function (cargoId) {
   const cargo = allCargos.find(c => Number(c.id) === Number(cargoId));
   if (!cargo) return;
 
+  cargo.deliveryScanned = true;
   cargo.deliveryStatus = 'da-giao';
   cargo.codCollected = Number(cargo.codAmount || 0);
   cargo.deliveredAt = nowStr();

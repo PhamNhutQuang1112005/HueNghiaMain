@@ -1944,3 +1944,48 @@ input[type=number] {
   box-shadow: 0 4px 14px rgba(194, 13, 8, 0.35) !important;
 }
 
+/* ── Cargo Category Tabs (thay thế dropdown Loại hàng hóa) ── */
+.cargo-category-tabs {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f3f5;
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.cat-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.cat-tab:hover:not(.active) {
+  background: rgba(0,0,0,0.06);
+  color: #1e293b;
+}
+
+.cat-tab.active {
+  background: var(--primary, #C20D08);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(194, 13, 8, 0.30);
+}
+
+/* ── Modal Category Bar (thanh tab ngay dưới tiêu đề modal) ── */
+.modal-category-bar {
+  padding: 10px 24px 14px;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 2px;
+}
+

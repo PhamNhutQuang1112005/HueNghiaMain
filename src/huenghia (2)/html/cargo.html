@@ -406,10 +406,25 @@
     <div class="modal-card">
       <div class="modal-head">
         <div>
-          <p class="eyebrow" id="modalEyebrow">Tạo hàng hóa</p>
           <h2 id="modalTitle">Tạo mới lô hàng</h2>
         </div>
         <button class="icon-btn" type="button" id="closeBundleModalBtn" aria-label="Đóng">✕</button>
+      </div>
+      <!-- Tab Loại hàng hóa – nằm ngay dưới tiêu đề modal -->
+      <div class="modal-category-bar">
+        <div class="cargo-category-tabs" id="cargoCategoryTabs">
+          <button type="button" class="cat-tab active" data-value="goods">Hàng hóa</button>
+          <button type="button" class="cat-tab" data-value="cash">Tiền thường</button>
+          <button type="button" class="cat-tab" data-value="partner_cash">Bạn hàng</button>
+          <button type="button" class="cat-tab" data-value="hot">Tiền nóng</button>
+        </div>
+        <!-- Hidden select để JS/formData vẫn đọc được giá trị -->
+        <select name="cargoCategory" id="cargoCategorySelect" style="display:none;" aria-hidden="true">
+          <option value="goods">Hàng hóa</option>
+          <option value="cash">Tiền thường</option>
+          <option value="partner_cash">Bạn hàng gửi tiền thường</option>
+          <option value="hot">Tiền nóng</option>
+        </select>
       </div>
 
       <form id="bundleForm" class="modal-form">
@@ -419,17 +434,8 @@
         <div class="form-section">
           <div class="section-title">Thông tin hàng hóa & Lộ trình</div>
 
-          <!-- Hàng 1: Loại hàng hóa + Số tiền gửi / Tên hàng gửi + Số lượng & Đơn vị tính -->
+          <!-- Hàng 1: Số tiền gửi / Tên hàng gửi + Số lượng & Đơn vị tính -->
           <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-            <label style="flex: 0 0 160px; min-width: 140px;">
-              <span>Loại hàng hóa</span>
-              <select name="cargoCategory" id="cargoCategorySelect">
-                <option value="goods">Hàng hóa</option>
-                <option value="cash">Tiền thường</option>
-                <option value="partner_cash">Bạn hàng gửi tiền thường</option>
-                <option value="hot">Tiền nóng</option>
-              </select>
-            </label>
 
             <!-- Tiền: Hiện Ô nhập Số tiền gửi (nằm trước Tên hàng gửi) -->
             <label id="moneyAmountWrap" style="flex: 0 0 220px; min-width: 190px; display: none; flex-direction: column; gap: 5px;">
@@ -619,7 +625,7 @@
         </div>
 
         <!-- Section 4: Dịch vụ Giao / Nhận tận nơi -->
-        <div class="form-section">
+        <div class="form-section" id="deliveryServiceSection">
           <div class="section-title">Dịch vụ Giao / Nhận tận nơi</div>
           
           <div class="service-cards-grid">

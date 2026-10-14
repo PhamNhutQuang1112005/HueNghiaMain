@@ -424,7 +424,6 @@
     <div class="modal-card">
       <div class="modal-head">
         <div>
-          <p class="eyebrow" id="manifestModalEyebrow">Tạo phơi hàng</p>
           <h2 id="manifestModalTitle">Thêm phơi mới</h2>
         </div>
         <button class="icon-btn" type="button" id="closeManifestModalBtn" aria-label="Đóng">✕</button>
@@ -544,20 +543,19 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" class="primary-btn" onclick="openReceiveScanModal(currentDetailManifestId)" style="background:#2563eb; color:white; border:none; font-weight:700; padding:8px 14px; border-radius:6px; font-size:13px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
-              <span>Quét QR theo món</span>
-            </button>
-            <button type="button" class="secondary-btn" onclick="confirmScanReceiveAllFromDetail()" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:700; padding:8px 14px; border-radius:6px; font-size:13px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
-              <span>Nhận tất cả hàng trong phơi</span>
-            </button>
+            <button type="button" class="ghost-btn" id="closeDetailBtn">Đóng</button>
+            <details style="position:relative;">
+              <summary class="secondary-btn" style="list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">In ▾</summary>
+              <div style="position:absolute; bottom:calc(100% + 6px); left:0; min-width:200px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:4px; display:flex; flex-direction:column; z-index:10;">
+                <button type="button" class="ghost-btn" id="printManifestBtn" style="border:none; text-align:left;">In phơi hàng</button>
+                <button type="button" class="ghost-btn" id="batchPrintStickersBtn" style="border:none; text-align:left;">In tem dán</button>
+                <button type="button" class="ghost-btn" onclick="printAllReceiptsForCurrentManifest()" style="border:none; text-align:left;">In tất cả biên lai hàng</button>
+              </div>
+            </details>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" class="secondary-btn" id="printManifestBtn">In phơi hàng</button>
-            <button type="button" class="secondary-btn" id="batchPrintStickersBtn" style="background:#ecfeff; color:#0f766e; border:1px solid #a5f3fc; font-weight:700;">In tem dán</button>
-            <button type="button" class="secondary-btn" onclick="printAllReceiptsForCurrentManifest()" style="background:#2563eb; color:white; border:none; font-weight:700; box-shadow:0 2px 6px rgba(37,99,235,0.25);">In tất cả biên lai hàng</button>
-            <button type="button" class="ghost-btn" id="closeDetailBtn">Đóng</button>
+            <button type="button" class="ghost-btn" onclick="confirmScanReceiveAllFromDetail()">Nhận tất cả</button>
+            <button type="button" class="primary-btn" onclick="openReceiveScanModal(currentDetailManifestId)">Quét QR theo món</button>
           </div>
         </div>
       </div>
@@ -664,7 +662,7 @@
 
   <!-- Modal Kiểm Nhận Hàng & Quét QR Theo Phơi -->
   <div class="modal-overlay" id="receiveScanModal">
-    <div class="modal-card" style="width: min(1300px, 96%); max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; margin: auto;">
+    <div class="modal-card" style="width: min(920px, 96%); max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; margin: auto;">
       <!-- Modal Header -->
       <div class="modal-head">
         <div>
@@ -676,10 +674,9 @@
 
       <!-- Stats Bar & QR Input -->
       <div style="padding: 14px 24px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
-        <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; flex-wrap: wrap;">
-          <span class="status-pill status-pending">Tổng đơn: <strong id="scanTotalCount">0</strong></span>
-          <span class="status-pill status-delivered">Đã quét / Nhận: <strong id="scannedCount">0</strong></span>
-          <span class="status-pill status-enroute">Chưa quét: <strong id="unscannedCount">0</strong></span>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="font-size:14px; color:var(--text);">Đã quét <strong id="scannedCount" style="font-size:18px; color:#15803d;">0</strong> / <strong id="scanTotalCount">0</strong> đơn <span style="color:var(--text-muted); margin-left:6px;">· còn <strong id="unscannedCount">0</strong> chưa quét</span></div>
+          <div style="flex:1; height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden;"><div id="scanProgressBar" style="height:100%; width:0; background:#16a34a; transition:width .2s;"></div></div>
         </div>
 
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -698,13 +695,11 @@
         <table>
           <thead>
             <tr>
-              <th style="width: 38px;"><input type="checkbox" id="selectAllScanCargos" onchange="toggleSelectAllScanCargos(this.checked)" title="Chọn / Bỏ chọn tất cả" /></th>
-              <th style="width: 38px;">STT</th>
-              <th>Mã đơn & Tên hàng</th>
-              <th>Người gửi ➔ Người nhận</th>
-              <th>Cước phí & COD</th>
-              <th style="width: 130px;">Trạng thái kiểm</th>
-              <th style="width: 120px;">Biên lai</th>
+              <th style="width: 44px; text-align:center;"><input type="checkbox" id="selectAllScanCargos" onchange="toggleSelectAllScanCargos(this.checked)" title="Chọn / Bỏ chọn tất cả" /></th>
+              <th>Đơn hàng</th>
+              <th>Người nhận</th>
+              <th style="width: 150px;">Cước phí</th>
+              <th style="width: 170px;">Trạng thái</th>
             </tr>
           </thead>
           <tbody id="scanCargoTableBody">
@@ -717,9 +712,9 @@
       <div class="modal-actions" style="justify-content: space-between; margin-top: 0; padding: 16px 24px;">
         <button type="button" class="ghost-btn" onclick="closeReceiveScanModal()">Đóng</button>
         <div style="display: flex; align-items: center; gap: 10px;">
-          <button type="button" onclick="confirmScanReceiveAll(currentScanManifestId)" class="ghost-btn">Nhận tất cả (Toàn phơi)</button>
-          <button type="button" onclick="confirmScanReceiveSelected(currentScanManifestId)" class="primary-btn">
-            <span>Xác nhận Nhận xe (<span id="confirmSelectedCount">0</span> đơn)</span>
+          <button type="button" onclick="confirmScanReceiveAll(currentScanManifestId, currentScanMode)" class="ghost-btn" title="Tích nhận toàn bộ đơn trong phơi và xác nhận ngay">Nhận tất cả</button>
+          <button type="button" onclick="confirmScanReceiveSelected(currentScanManifestId, currentScanMode)" class="primary-btn">
+            <span>Xác nhận <span id="confirmSelectedCount">0</span> đơn</span>
           </button>
         </div>
       </div>
@@ -893,7 +888,7 @@
 
     // Cứ đã gán vào phơi mà chưa quét QR là tính "chưa giao" ngay, không cần đợi bấm Nhận xe/Xác nhận.
     function isCargoUnreceived(c) {
-      return !!c.manifestId && !c.isScanned && c.status !== 'delivered' && c.status !== 'returned';
+      return !c.isScanned && c.status !== 'delivered' && c.status !== 'returned';
     }
 
     let manifestData = loadManifests();
@@ -1753,8 +1748,8 @@
             </td>
             <td style="text-align:center;">
               ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
-                ? `<span class="status-pill status-delivered">Đã nhận xe</span>`
-                : `<span class="status-pill status-enroute">Chưa nhận xe</span>`
+                ? `<span class="status-pill status-delivered">Đã nhận hàng</span>`
+                : `<span class="status-pill status-enroute">Chưa nhận hàng</span>`
               }
             </td>
             <td>
@@ -1991,10 +1986,7 @@
       
       const deliveryCount = cargos.filter(c => {
         if (isCargoUnreceived(c)) return false;
-        const manifest = manifests.find(m => Number(m.id) === Number(c.manifestId));
-        const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
-        const isCargoInDeliveryState = c.status === 'undelivered' || c.status === 'in-delivery' || c.status === 'delivered';
-        return c.manifestId && (isManifestReceived || isCargoInDeliveryState);
+        return !!c.manifestId;
       }).length;
 
       const unreceivedCount = cargos.filter(isCargoUnreceived).length;
@@ -2036,7 +2028,7 @@
         const manifestCargos = cargos.filter(c => Number(c.manifestId) === item.id);
         const driverInfo = parseDriverDetails(item.driver);
         const isReceived = item.status === 'received' || item.statusText === 'Đã nhận xe';
-        const scannedCount = manifestCargos.filter(c => c.isScanned).length;
+        const scannedCount = manifestCargos.filter(c => c.arrivalScanned).length;
 
         return `
           <tr>
@@ -2059,11 +2051,8 @@
             </td>
             <td style="text-align:center;">
               <div style="display:inline-flex; align-items:center; gap:8px;">
-                ${isReceived
-                  ? `<span class="status-pill status-pending">Đã nhập bến (không thể sửa)</span>`
-                  : `<button type="button" onclick="openReceiveScanModal(${item.id})" title="Quét mã QR / Kiểm từng đơn trong phơi" class="ghost-btn">Quét QR / Kiểm hàng</button>
-                     <button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Xác nhận Nhận xe (Nhận hết tất cả đơn trong phơi)" class="primary-btn">Nhận xe (Nhận hết)</button>`
-                }
+                <button type="button" onclick="openReceiveScanModal(${item.id}, 'arrive')" title="Quét mã QR nhận hàng khi xe đến trạm" class="${isReceived ? 'ghost-btn' : 'primary-btn'}">${isReceived ? 'Sửa kiểm nhận' : 'Quét QR / Kiểm hàng'}</button>
+                ${isReceived ? '' : `<button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Chỉ đổi trạng thái chuyến xe sang Đã nhận xe, không đụng tới hàng hóa" class="ghost-btn">Nhận xe</button>`}
               </div>
             </td>
           </tr>
@@ -2073,27 +2062,27 @@
 
     let currentScanManifestId = null;
     let currentScanMap = {};
+    // 'depart' = nhận hàng lên xe (ds chuyến xe đi) → cờ isScanned; 'arrive' = nhận xe tại trạm giao (ds chuyến xe đến) → cờ arrivalScanned.
+    let currentScanMode = 'depart';
+    const scanFlag = (mode) => mode === 'arrive' ? 'arrivalScanned' : 'isScanned';
 
-    window.openReceiveScanModal = function(manifestId) {
+    window.openReceiveScanModal = function(manifestId, mode) {
+      currentScanMode = mode === 'arrive' ? 'arrive' : 'depart';
       currentScanManifestId = manifestId;
       const manifests = loadManifests();
       const cargos = loadCargos();
       const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
       if (!manifest) return;
-      if (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe') {
-        showToast('Phơi này đã nhận xe rồi, không thể sửa lại.');
-        return;
-      }
 
       const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
       currentScanMap = {};
       manifestCargos.forEach(c => {
-        currentScanMap[c.id] = !!c.isScanned;
+        currentScanMap[c.id] = !!c[scanFlag(currentScanMode)];
       });
 
       const titleEl = document.getElementById('receiveScanModalTitle');
       const subEl = document.getElementById('receiveScanModalSub');
-      if (titleEl) titleEl.innerHTML = `Kiểm nhận phơi xe: <strong>${manifest.plate}</strong> (${manifest.from || '---'} ➔ ${manifest.to || '---'})`;
+      if (titleEl) titleEl.innerHTML = `${currentScanMode === 'arrive' ? 'Nhận xe tại trạm' : 'Nhận hàng lên xe'}: <strong>${manifest.plate}</strong> (${manifest.from || '---'} ➔ ${manifest.to || '---'})`;
       if (subEl) subEl.textContent = `Lộ trình: ${manifest.from || '---'} ➔ ${manifest.to || '---'} • Lái xe: ${manifest.driver || '---'}`;
 
       const modal = document.getElementById('receiveScanModal');
@@ -2136,43 +2125,43 @@
       if (scaEl) scaEl.textContent = scannedCount;
       if (unsEl) unsEl.textContent = unscannedCount;
       if (cnfEl) cnfEl.textContent = scannedCount;
+      const barEl = document.getElementById('scanProgressBar');
+      if (barEl) barEl.style.width = (totalCount ? scannedCount * 100 / totalCount : 0) + '%';
 
       const tbody = document.getElementById('scanCargoTableBody');
       if (!tbody) return;
 
       if (!manifestCargos.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Phơi xe này chưa có đơn hàng nào.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Phơi xe này chưa có đơn hàng nào.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = manifestCargos.map((cargo, index) => {
+      tbody.innerHTML = manifestCargos.map((cargo) => {
         const isChecked = !!currentScanMap[cargo.id];
         return `
-          <tr style="${isChecked ? 'background:var(--surface-2);' : ''}">
+          <tr style="${isChecked ? 'background:#f0fdf4;' : ''}">
             <td style="text-align:center;">
               <input type="checkbox" class="scan-cargo-checkbox" data-id="${cargo.id}" ${isChecked ? 'checked' : ''} onchange="toggleScanCargoItem(${cargo.id}, this.checked)" />
             </td>
-            <td style="text-align:center; color:var(--text-muted);">${index + 1}</td>
             <td>
-              <code>${cargo.code}</code>
-              <span style="font-weight:700; margin-left:6px;">${(cargo.name || '').replace(/🧳/g, '').trim()}</span>
-              <span style="font-size:12px; color:var(--text-muted);">(${cargo.quantity || 1} ${cargo.unit || 'cái'})</span>
+              <div style="font-weight:700;">${(cargo.name || '').replace(/🧳/g, '').trim()} <span style="font-weight:500; font-size:12px; color:var(--text-muted);">(${cargo.quantity || 1} ${cargo.unit || 'cái'})</span></div>
+              <code style="font-size:12px;">${cargo.code}</code>
             </td>
-            <td style="font-size:12.5px;">
-              <span>${cargo.sender}</span> ➔ <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+            <td style="font-size:13px;">
+              <div style="font-weight:700;">${cargo.receiver || '—'}</div>
+              <div style="font-size:12px; color:var(--text-muted);">${cargo.receiverPhone || ''}</div>
             </td>
-            <td style="font-size:12.5px; font-weight:700;">
-              ${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ
-              ${cargo.codAmount ? `<span style="color:var(--primary); font-weight:700; margin-left:4px;">(COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ)</span>` : ''}
+            <td style="font-size:13px;">
+              <div style="font-weight:700;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</div>
+              ${cargo.codAmount ? `<div style="font-size:12px; color:var(--text-muted);">COD ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</div>` : ''}
             </td>
-            <td style="text-align:center;">
-              <span class="status-pill ${isChecked ? 'status-delivered' : 'status-enroute'}">${isChecked ? '✓ Đã quét QR' : 'Chưa quét'}</span>
-            </td>
-            <td style="text-align:center;">
-              ${isChecked
-                ? `<button type="button" class="ghost-btn" onclick="printSingleScanReceipt(${cargo.id})" style="padding:4px 10px; font-size:12px;">In biên lai</button>`
-                : `<span style="color:var(--text-muted); font-size:12px;">—</span>`
-              }
+            <td>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                ${isChecked
+                  ? `<span style="color:#15803d; font-weight:700; font-size:13px;">✓ Đã quét</span>
+                     <button type="button" class="ghost-btn" onclick="printSingleScanReceipt(${cargo.id})" style="padding:4px 10px; font-size:12px;">In</button>`
+                  : `<span style="color:var(--text-muted); font-size:13px;">Chưa quét</span>`}
+              </div>
             </td>
           </tr>
         `;
@@ -2231,6 +2220,9 @@
         const nowTs = Date.now();
         const nowStr = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
 
+        if (currentScanMode === 'arrive') {
+          targetCargo.arrivalScanned = true;
+        } else {
         targetCargo.isScanned = true;
         targetCargo.scannedBy = sName;
         targetCargo.scannedByCode = sCode;
@@ -2239,6 +2231,7 @@
         targetCargo.receivedByCode = sCode;
         targetCargo.receivedAtTimestamp = nowTs;
         targetCargo.receivedAt = nowStr;
+        }
 
         const allCargosList = loadCargos();
         const mainIdx = allCargosList.findIndex(c => Number(c.id) === Number(targetCargo.id));
@@ -2261,17 +2254,13 @@
       }
     };
 
-    window.confirmScanReceiveSelected = function(manifestId) {
+    window.confirmScanReceiveSelected = function(manifestId, mode) {
       if (!manifestId) return;
+      mode = mode === 'arrive' ? 'arrive' : 'depart';
       const manifests = loadManifests();
       const cargos = loadCargos();
       const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
       if (!manifest) return;
-      if (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe') {
-        showToast('Phơi này đã nhận xe rồi, không thể sửa lại.');
-        closeReceiveScanModal();
-        return;
-      }
 
       let scannedCount = 0;
       let unreceivedCount = 0;
@@ -2282,13 +2271,16 @@
       const nowTs = Date.now();
 
       cargos.forEach(c => {
-        if (Number(c.manifestId) === Number(manifestId)) {
+        if (mode === 'arrive') {
+          if (Number(c.manifestId) === Number(manifestId)) {
+            c.arrivalScanned = !!currentScanMap[c.id];
+            if (c.arrivalScanned) scannedCount++;
+          }
+        } else if (Number(c.manifestId) === Number(manifestId)) {
           if (currentScanMap[c.id]) {
             c.isScanned = true;
             c.isUnreceived = false;
-            c.deliveryStatus = 'cho-giao';
-            c.status = 'in_transit';
-            c.statusText = 'Chờ giao';
+            if (c.status === 'unreceived') { c.status = 'in_transit'; c.statusText = 'Chờ giao'; }
             c.scannedBy = c.scannedBy || sName;
             c.scannedByCode = c.scannedByCode || sCode;
             c.scannedAt = c.scannedAt || nowTs;
@@ -2297,7 +2289,7 @@
             c.receivedAtTimestamp = nowTs;
             c.receivedAt = now;
             scannedCount++;
-          } else {
+          } else if (c.status !== 'delivered' && c.deliveryStatus !== 'da-giao') {
             c.isScanned = false;
             c.isUnreceived = true;
             c.status = 'unreceived';
@@ -2307,22 +2299,25 @@
         }
       });
 
-      manifest.status = 'received';
-      manifest.statusText = 'Đã nhận xe';
-      if (!manifest.arrivedAt) {
-        manifest.arrivedAt = now;
+      // Nhận hàng lên xe (đi) KHÔNG đổi trạng thái chuyến xe; chỉ nhận xe tại trạm giao (đến) mới là "Đã nhận xe".
+      if (mode === 'arrive') {
+        manifest.status = 'received';
+        manifest.statusText = 'Đã nhận xe';
+        if (!manifest.arrivedAt) manifest.arrivedAt = now;
+        saveManifests(manifests);
+      } else if (manifest.status !== 'received') {
+        // Nhận hàng lên xe: phơi chuyển thành "Đã nhận hàng" (khác với "Đã nhận xe" tại trạm giao).
+        manifest.status = 'loaded';
+        manifest.statusText = 'Đã nhận hàng';
+        saveManifests(manifests);
       }
-
-      saveManifests(manifests);
       saveCargos(cargos);
 
       closeReceiveScanModal();
 
-      if (unreceivedCount > 0) {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn chuyển sang Giao hàng (Chờ giao), ${unreceivedCount} đơn chưa nhận.`);
-      } else {
-        showToast(`Đã nhận xe ${manifest.plate}! ${scannedCount} đơn đã chuyển sang Giao hàng (Chờ giao).`);
-      }
+      showToast(mode === 'arrive'
+        ? `Đã nhận xe ${manifest.plate} (${scannedCount} đơn).`
+        : `Đã nhận ${scannedCount} đơn hàng lên xe ${manifest.plate}` + (unreceivedCount > 0 ? `, ${unreceivedCount} đơn chưa nhận.` : '. Hàng đã hiện trong ds giao hàng của chuyến xe đến.'));
 
       renderManifestTable();
       renderReceiveTable();
@@ -2332,16 +2327,16 @@
       }
     };
 
-    window.confirmScanReceiveAll = function(manifestId) {
+    window.confirmScanReceiveAll = function(manifestId, mode) {
       if (!manifestId) return;
       // "Nhận tất cả (Toàn phơi)" = coi như đã quét đủ toàn bộ số lượng hàng trong phơi, khác với
-      // "Xác nhận Nhận xe" (chỉ tính đúng những đơn thật sự đã tích quét, có thể chưa đủ).
+      // "Xác nhận Nhận hàng" (chỉ tính đúng những đơn thật sự đã tích quét, có thể chưa đủ).
       const cargos = loadCargos();
       const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
       manifestCargos.forEach(c => {
         currentScanMap[c.id] = true;
       });
-      confirmScanReceiveSelected(manifestId);
+      confirmScanReceiveSelected(manifestId, mode);
     };
 
     window.renderUnreceivedTable = function() {
@@ -2413,13 +2408,12 @@
       const cargos = loadCargos();
       const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
       if (cargo) {
-        cargo.status = 'delivered';
-        cargo.statusText = 'Đã giao';
+        cargo.status = 'in_transit';
+        cargo.statusText = 'Chờ giao';
         cargo.isUnreceived = false;
         cargo.isScanned = true;
-        cargo.deliveredAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
         saveCargos(cargos);
-        showToast(`✅ Đã bổ sung & giao đơn ${cargo.code} thành công!`);
+        showToast(`✅ Đã nhận đơn ${cargo.code}, chuyển sang danh sách giao hàng.`);
         renderUnreceivedTable();
         updateTabBadges();
       }
@@ -2431,49 +2425,16 @@
       const manifest = manifests.find(m => m.id === manifestId);
 
       if (!manifest) return;
-      if (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe') {
-        showToast('Phơi này đã nhận xe rồi, không thể sửa lại.');
-        return;
-      }
 
-      const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+      const now =`${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
       manifest.status = 'received';
       manifest.statusText = 'Đã nhận xe';
       if (!manifest.arrivedAt) {
         manifest.arrivedAt = now;
       }
       saveManifests(manifests);
-
-      let scannedCount = 0;
-      let unreceivedCount = 0;
-      const curStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
-      const sName = curStaff ? curStaff.name : 'Nhân viên';
-      const sCode = curStaff ? curStaff.code : '933';
-      const nowTs = Date.now();
-
-      cargos.forEach(c => {
-        if (Number(c.manifestId) === manifestId) {
-          if (c.deliveryStatus !== 'da-giao' && c.status !== 'returned') {
-            if (c.isScanned || true) {
-              c.isUnreceived = false;
-              c.deliveryStatus = 'cho-giao';
-              c.status = 'in_transit';
-              c.statusText = 'Chờ giao';
-              c.scannedBy = c.scannedBy || sName;
-              c.scannedByCode = c.scannedByCode || sCode;
-              c.scannedAt = c.scannedAt || nowTs;
-              c.receivedBy = sName;
-              c.receivedByCode = sCode;
-              c.receivedAtTimestamp = nowTs;
-              c.receivedAt = now;
-              scannedCount++;
-            }
-          }
-        }
-      });
-
-      saveCargos(cargos);
-      showToast(`✅ Đã nhận xe ${manifest.plate}! Toàn bộ ${scannedCount} đơn hàng đã chuyển sang danh sách Giao hàng (Chờ giao).`);
+      // Nhận xe chỉ đổi trạng thái chuyến xe, không đụng tới hàng hóa / giao hàng.
+      showToast(`✅ Đã nhận xe ${manifest.plate}!`);
 
       renderReceiveTable();
       updateTabBadges();
@@ -2487,14 +2448,11 @@
 
       if (!tbody) return;
 
-      // RÀNG BUỘC CHẶT CHẼ: Chỉ lọc các đơn hàng có phơi xe ĐÃ NHẬN (manifest.status === 'received')
+      // Hàng đã nhận lên xe (isScanned) là hiện ở đây, không cần chuyến xe đã "Đã nhận xe".
       let filtered = cargos.filter(c => {
         if (!c.manifestId) return false;
         if (isCargoUnreceived(c)) return false;
-        const manifest = manifests.find(m => Number(m.id) === Number(c.manifestId));
-        const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
-        const isCargoInDeliveryState = c.status === 'undelivered' || c.status === 'in-delivery' || c.status === 'delivered';
-        return isManifestReceived || isCargoInDeliveryState;
+        return true;
       });
 
       if (query) {

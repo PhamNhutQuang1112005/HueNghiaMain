@@ -128,6 +128,9 @@ function adminLogout() {
 function adminGoToTicketStaff(view) {
   window.location.href = 'ticketstaff.html?view=' + encodeURIComponent(view || 'booking');
 }
+function adminGoToCargo() {
+  window.location.href = '../huenghia (2)/html/cargo.html';
+}
 document.addEventListener('click', function (e) {
   var m = $('userMenu');
   if (m && m.classList.contains('open') && !m.contains(e.target)) m.classList.remove('open');

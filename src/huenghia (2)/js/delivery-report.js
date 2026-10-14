@@ -112,7 +112,7 @@
       );
 
       const staffCargos = allCargos.filter((c) => {
-        if (c.status === 'unreceived' || c.isUnreceived) return false;
+        if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived) return false;
         const cCode = String(c.deliveryStaffCode || c.deliveredByCode || c.staffCode || c.staff || '').trim();
         const cStaff = String(c.deliveryStaff || c.deliveredBy || c.staff || '').trim().toLowerCase();
         return (code && cCode === code) || (name && cStaff.includes(name));
@@ -141,7 +141,7 @@
     // 2. Tự động tạo ca cho các NV giao hàng khác có đơn hàng
     const staffMap = {};
     allCargos.forEach((c) => {
-      if (c.status === 'unreceived' || c.isUnreceived) return;
+      if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived) return;
       const sCode = String(c.deliveredByCode || c.deliveryStaffCode || c.staffCode || c.staff || '883').trim();
       const sName = c.deliveredBy || c.deliveryStaff || c.staff || currentStaff.name || 'NV Giao Hàng';
       const sStation = c.stationTo || c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
@@ -186,7 +186,7 @@
     const shiftName = String(shift.staffName || '').trim().toLowerCase();
 
     return cargos.filter((c) => {
-      if (c.status === 'unreceived' || c.isUnreceived) return false;
+      if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived) return false;
 
       const cCode = String(c.deliveryStaffCode || c.deliveredByCode || c.staffCode || c.staff || '').trim();
       const cStaff = String(c.deliveryStaff || c.deliveredBy || c.staff || '').trim().toLowerCase();
