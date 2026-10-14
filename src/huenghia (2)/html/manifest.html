@@ -436,17 +436,21 @@
             <span>Biển số xe / Tên xe <strong style="color:var(--primary);">*</strong></span>
             <input name="plate" id="manifestPlate" required placeholder="vd: 64855 hoặc 67F-088.99" />
           </label>
-          <label>
-            <span>Điểm đi <strong style="color:var(--primary);">*</strong></span>
-            <select name="from" id="manifestFromSelect" required style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:600; background:white;">
+          <label class="full-width" style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:14px; font-weight:700; color:#1e293b;">Điểm đi <strong style="color:var(--primary);">*</strong></span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" id="selectAllDeparturesBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; font-weight:700; color:#1d4ed8; border:1px solid #bfdbfe; background:#eff6ff;">Chọn tất cả</button>
+                <button type="button" id="deselectAllDeparturesBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; color:#64748b; border:1px solid #e2e8f0; background:#f8fafc;">Bỏ chọn</button>
+              </div>
+            </div>
+            <div id="departureStationsContainer" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px;">
+              <!-- Rendered by JS -->
+            </div>
+            <small id="departureValidationError" style="color:var(--primary); font-weight:600; display:none; margin-top:2px;">⚠️ Vui lòng chọn ít nhất 1 điểm đi!</small>
+            <!-- Hidden select để tương thích JS cũ (disabled, giá trị lấy từ checkboxes) -->
+            <select name="from" id="manifestFromSelect" style="display:none;" aria-hidden="true">
               <option value="Sài Gòn" selected>Sài Gòn</option>
-              <option value="Châu Đốc">Châu Đốc</option>
-              <option value="Tân Châu">Tân Châu</option>
-              <option value="Hà Tiên">Hà Tiên</option>
-              <option value="Long Xuyên">Long Xuyên</option>
-              <option value="Tri Tôn">Tri Tôn</option>
-              <option value="Cái Dầu">Cái Dầu</option>
-              <option value="Long Bình">Long Bình</option>
             </select>
           </label>
 
@@ -918,6 +922,58 @@
       showToast.timeout = setTimeout(() => toast.classList.remove('show'), 1800);
     }
 
+    /* ── Render checkbox lưới ĐIỂM ĐI ── */
+    function renderDepartureCheckboxes(selectedDepartures = [], isReadOnly = false) {
+      const container = document.getElementById('departureStationsContainer');
+      if (!container) return;
+
+      const selectAllBtn = document.getElementById('selectAllDeparturesBtn');
+      const deselectAllBtn = document.getElementById('deselectAllDeparturesBtn');
+      if (selectAllBtn) {
+        selectAllBtn.disabled = isReadOnly;
+        selectAllBtn.style.opacity = isReadOnly ? '0.4' : '1';
+        selectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
+      }
+      if (deselectAllBtn) {
+        deselectAllBtn.disabled = isReadOnly;
+        deselectAllBtn.style.opacity = isReadOnly ? '0.4' : '1';
+        deselectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
+      }
+
+      const stations = (window.HueNghiaStations && typeof window.HueNghiaStations.getStations === 'function')
+        ? window.HueNghiaStations.getStations()
+        : ['Châu Đốc', 'Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Hà Tiên', 'Long Xuyên', 'Sài Gòn'];
+
+      container.innerHTML = stations.map(st => {
+        const isChecked = selectedDepartures.includes(st);
+        const isDisabled = isReadOnly;
+        return `
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:${isChecked ? '#1d4ed8' : '#1e293b'}; background:${isChecked ? '#eff6ff' : 'white'}; padding:5px 8px; border-radius:5px; border:1px solid ${isChecked ? '#bfdbfe' : '#cbd5e1'}; cursor:${isDisabled ? 'not-allowed' : 'pointer'}; opacity:${isDisabled ? '0.6' : '1'};">
+            <input type="checkbox" name="departureStation" value="${st}" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''} style="accent-color:#1d4ed8; width:15px; height:15px; cursor:${isDisabled ? 'not-allowed' : 'pointer'};" />
+            <span>${st}</span>
+          </label>
+        `;
+      }).join('');
+
+      if (!isReadOnly) {
+        container.querySelectorAll('input[name="departureStation"]').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const lbl = e.target.closest('label');
+            if (lbl) {
+              lbl.style.background = e.target.checked ? '#eff6ff' : 'white';
+              lbl.style.color = e.target.checked ? '#1d4ed8' : '#1e293b';
+              lbl.style.borderColor = e.target.checked ? '#bfdbfe' : '#cbd5e1';
+            }
+            // Cập nhật lại điểm đến khi điểm đi thay đổi
+            const checkedDeps = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(c => c.value);
+            const currentDest = Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(c => c.value);
+            // Dùng điểm đi đầu tiên để lọc điểm đến (ẩn các trạm đã chọn làm điểm đi)
+            renderDestinationCheckboxes(checkedDeps[0] || '', currentDest);
+          });
+        });
+      }
+    }
+
     function renderDestinationCheckboxes(selectedFrom, selectedDestinations = [], isReadOnly = false) {
       const container = document.getElementById('destinationStationsContainer');
       if (!container) return;
@@ -935,12 +991,15 @@
         deselectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
       }
 
+      // Lấy tất cả điểm đi đã chọn để ẩn chúng khỏi điểm đến
+      const selectedDeps = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(c => c.value);
+
       const stations = (window.HueNghiaStations && typeof window.HueNghiaStations.getStations === 'function')
         ? window.HueNghiaStations.getStations()
         : ['Châu Đốc', 'Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Hà Tiên', 'Long Xuyên', 'Sài Gòn'];
 
       container.innerHTML = stations.map(st => {
-        const isSameAsFrom = st === selectedFrom;
+        const isSameAsFrom = selectedDeps.length > 0 ? selectedDeps.includes(st) : st === selectedFrom;
         const isChecked = !isSameAsFrom && selectedDestinations.includes(st);
         const isDisabled = isSameAsFrom || isReadOnly;
         return `
@@ -993,9 +1052,8 @@
       const searchInput = document.getElementById('destinationSearchInput');
       if (searchInput) searchInput.value = '';
 
-      if (window.HueNghiaStations && fromSelect) {
-        window.HueNghiaStations.populateStationDropdowns(fromSelect, 'Sài Gòn');
-      }
+      // Điểm đi: render checkboxes thay vì populate select
+      renderDepartureCheckboxes(['Sài Gòn']);
 
       const vehicleSelect = document.getElementById('manifestVehicleType');
 
@@ -1008,12 +1066,8 @@
           if (document.getElementById('manifestName')) document.getElementById('manifestName').value = item.name;
           if (document.getElementById('manifestRoute')) document.getElementById('manifestRoute').value = item.route;
           if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = item.plate;
-          if (fromSelect) {
-            fromSelect.value = item.from;
-            fromSelect.disabled = true;
-            fromSelect.style.background = '#f1f5f9';
-            fromSelect.style.cursor = 'not-allowed';
-          }
+          // Điểm đi edit: chỉ hiển thị 1 trạm, lock readonly
+          renderDepartureCheckboxes([item.from], true);
           const driverInfo = parseDriverDetails(item.driver);
           if (document.getElementById('manifestDriverName')) document.getElementById('manifestDriverName').value = driverInfo.name === '—' ? '' : driverInfo.name;
           if (document.getElementById('manifestDriverPhone')) document.getElementById('manifestDriverPhone').value = driverInfo.phone || '';
@@ -1031,12 +1085,7 @@
         if (manifestForm) manifestForm.reset();
         if (document.getElementById('manifestId')) document.getElementById('manifestId').value = '';
         if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = '64855';
-        if (fromSelect) {
-          fromSelect.value = 'Sài Gòn';
-          fromSelect.disabled = false;
-          fromSelect.style.background = 'white';
-          fromSelect.style.cursor = 'pointer';
-        }
+        renderDepartureCheckboxes(['Sài Gòn']);
         if (window.HueNghiaStations && vehicleSelect) {
           window.HueNghiaStations.populateVehicleDropdowns(vehicleSelect, 'Đội xe 40 Giường');
         }
@@ -1047,21 +1096,35 @@
       manifestModal.classList.add('open');
     };
 
-    const fromSelect = document.getElementById('manifestFromSelect');
-    if (fromSelect) {
-      fromSelect.addEventListener('change', () => {
-        const selectedFrom = fromSelect.value;
-        const currentChecked = Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(cb => cb.value);
-        renderDestinationCheckboxes(selectedFrom, currentChecked);
-        const searchInput = document.getElementById('destinationSearchInput');
-        if (searchInput) filterDestinationStationList(searchInput.value);
+    // Nút Chọn tất cả / Bỏ chọn cho ĐIỂM ĐI
+    const selectAllDepsBtn = document.getElementById('selectAllDeparturesBtn');
+    if (selectAllDepsBtn) {
+      selectAllDepsBtn.addEventListener('click', () => {
+        document.querySelectorAll('input[name="departureStation"]').forEach(cb => {
+          cb.checked = true;
+          const lbl = cb.closest('label');
+          if (lbl) { lbl.style.background = '#eff6ff'; lbl.style.color = '#1d4ed8'; lbl.style.borderColor = '#bfdbfe'; }
+        });
+        renderDestinationCheckboxes('', Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(c => c.value));
+      });
+    }
+    const deselectAllDepsBtn = document.getElementById('deselectAllDeparturesBtn');
+    if (deselectAllDepsBtn) {
+      deselectAllDepsBtn.addEventListener('click', () => {
+        document.querySelectorAll('input[name="departureStation"]').forEach(cb => {
+          cb.checked = false;
+          const lbl = cb.closest('label');
+          if (lbl) { lbl.style.background = 'white'; lbl.style.color = '#1e293b'; lbl.style.borderColor = '#cbd5e1'; }
+        });
+        renderDestinationCheckboxes('', Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(c => c.value));
       });
     }
 
     const selectAllBtn = document.getElementById('selectAllDestinationsBtn');
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', () => {
-        const fromVal = document.getElementById('manifestFromSelect').value;
+        const selectedDeps = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(c => c.value);
+        const fromVal = selectedDeps[0] || '';
         const checkboxes = document.querySelectorAll('input[name="destinationStation"]');
         checkboxes.forEach(cb => {
           if (cb.value !== fromVal) {
@@ -1808,7 +1871,6 @@
       const idVal = data.get('id');
 
       const plate = data.get('plate') || '';
-      const fromVal = document.getElementById('manifestFromSelect').value;
       const driverName = data.get('driverName') || '';
       const driverPhone = data.get('driverPhone') || '';
       const vehicleType = data.get('vehicleType') || 'Xe khách';
@@ -1819,9 +1881,14 @@
       const customRoute = data.get('route') || '';
       const combinedDriver = `${driverName} • ${driverPhone} • ${vehicleType}`;
 
-      const checkedBoxes = Array.from(document.querySelectorAll('input[name="destinationStation"]:checked'));
-      let selectedDestinations = checkedBoxes.map(cb => cb.value).filter(val => val !== fromVal);
+      // Lấy danh sách điểm đi đã chọn
+      const selectedDepartures = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(cb => cb.value);
+      const primaryFrom = selectedDepartures[0] || 'Sài Gòn';
 
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="destinationStation"]:checked'));
+      let selectedDestinations = checkedBoxes.map(cb => cb.value).filter(val => !selectedDepartures.includes(val));
+
+      const errDepEl = document.getElementById('departureValidationError');
       const errEl = document.getElementById('destinationValidationError');
 
       if (idVal) {
@@ -1840,31 +1907,43 @@
           showToast('Đã cập nhật phơi hàng');
         }
       } else {
-        // Creating new manifest(s)
+        // Validate điểm đi
+        if (selectedDepartures.length === 0) {
+          if (errDepEl) errDepEl.style.display = 'block';
+          return;
+        }
+        if (errDepEl) errDepEl.style.display = 'none';
+
+        // Creating new manifest(s) — tạo phơi cho từng cặp (from × to)
         if (selectedDestinations.length === 0) {
-          selectedDestinations = [fromVal === 'Châu Đốc' ? 'Sài Gòn' : 'Châu Đốc'];
+          selectedDestinations = [primaryFrom === 'Châu Đốc' ? 'Sài Gòn' : 'Châu Đốc'];
         }
         if (errEl) errEl.style.display = 'none';
 
-        selectedDestinations.forEach((dest, idx) => {
-          const manifestName = (selectedDestinations.length === 1 && customName) ? customName : `Xe : ${plate} ${fromVal}->${dest} ${time}`;
-          const route = (selectedDestinations.length === 1 && customRoute) ? customRoute : `${fromVal} → ${dest}`;
-          
-          manifestData.unshift({
-            id: Date.now() + idx,
-            name: manifestName,
-            route: route,
-            plate: plate,
-            from: fromVal,
-            to: dest,
-            driver: combinedDriver,
-            helper: helper,
-            staff: staff,
-            time: time
+        let count = 0;
+        selectedDepartures.forEach(fromVal => {
+          selectedDestinations.forEach((dest, idx) => {
+            if (fromVal === dest) return; // bỏ qua nếu trùng
+            const isSinglePair = selectedDepartures.length === 1 && selectedDestinations.length === 1;
+            const manifestName = isSinglePair && customName ? customName : `Xe : ${plate} ${fromVal}->${dest} ${time}`;
+            const route = isSinglePair && customRoute ? customRoute : `${fromVal} → ${dest}`;
+            manifestData.unshift({
+              id: Date.now() + count,
+              name: manifestName,
+              route: route,
+              plate: plate,
+              from: fromVal,
+              to: dest,
+              driver: combinedDriver,
+              helper: helper,
+              staff: staff,
+              time: time
+            });
+            count++;
           });
         });
 
-        if (selectedDestinations.length === 1) {
+        if (count === 1) {
           showToast('Đã thêm 1 phơi hàng mới');
         } else {
           showToast(`Đã tạo thành công ${selectedDestinations.length} phơi hàng mới cho xe ${plate}`);
