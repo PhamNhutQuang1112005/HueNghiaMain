@@ -79,6 +79,18 @@
     const allCargos = loadCargos();
     let updated = false;
 
+    // 0. Dọn dẹp ca bị tạo sai: staffCode là tên NV thay vì mã số (bug cũ)
+    // Nhận biết: staffCode dài > 10 ký tự hoặc chứa khoảng trắng = là tên, không phải mã
+    const badShiftsBefore = currentShifts.length;
+    currentShifts = currentShifts.filter((s) => {
+      const sc = String(s.staffCode || '');
+      const isNameNotCode = sc.includes(' ') || sc.length > 15;
+      return !isNameNotCode;
+    });
+    if (currentShifts.length !== badShiftsBefore) {
+      updated = true;
+    }
+
     // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu chưa có ca mở hôm nay
     if (currentStaff && (currentStaff.code || currentStaff.name)) {
       const code = String(currentStaff.code || '').trim();
@@ -124,7 +136,7 @@
     // 2. Tự động tạo ca cho các nhân viên khác có đơn hàng nhưng chưa có ca trong danh sách
     const staffMap = {};
     allCargos.forEach((c) => {
-      const sCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || c.staffCode || c.staff || '933').trim();
+      const sCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || c.staffCode || '933').trim();
       const sName = c.receivedBy || c.scannedBy || c.transferredBy || c.staff || currentStaff.name || 'Nhân viên';
       const sStation = c.stationTo || c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
       if (!staffMap[sCode]) {
@@ -209,7 +221,7 @@
     let cashPaid = 0;
     let transferPaid = 0;
     paidItems.forEach((c) => {
-      const fee = Number(c.fee) != null && !isNaN(Number(c.fee)) ? Number(c.fee) : (Number(c.moneyAmount) || 0);
+      const fee = (c.fee != null && c.fee !== '' && !isNaN(Number(c.fee))) ? Number(c.fee) : (Number(c.moneyAmount) || 0);
       if (c.paidMethod === 'transfer' || c.paymentMethod === 'transfer') {
         transferPaid += fee;
       } else {
@@ -218,7 +230,7 @@
     });
 
     const unpaidAmount = unpaidItems.reduce((sum, c) => {
-      const fee = Number(c.fee) != null && !isNaN(Number(c.fee)) ? Number(c.fee) : (Number(c.moneyAmount) || 0);
+      const fee = (c.fee != null && c.fee !== '' && !isNaN(Number(c.fee))) ? Number(c.fee) : (Number(c.moneyAmount) || 0);
       return sum + fee;
     }, 0);
 

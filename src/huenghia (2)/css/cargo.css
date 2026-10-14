@@ -1246,9 +1246,118 @@ input[type=number] {
   .form-grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  /* Ẩn breadcrumb */
+  .app-shell .page-breadcrumb {
+    display: none;
+  }
+}
+
+/* ── Tablet (769px – 992px) ── */
+@media (max-width: 992px) and (min-width: 769px) {
+  /* Brand khớp với sidebar icon-only 68px */
+  .app-shell .brand {
+    width: var(--sidebar-collapsed-width, 68px) !important;
+    flex: 0 0 var(--sidebar-collapsed-width, 68px) !important;
+    padding: 0 !important;
+    justify-content: center;
+  }
+  .app-shell .brand .brand-text {
+    display: none;
+  }
+  /* Search shell hẹp lại */
+  .app-shell .header-left .search-shell {
+    max-width: 220px;
+  }
+  /* User chip ẩn tên */
+  .user-chip span:not(.avatar) {
+    display: none;
+  }
+  .user-chip {
+    padding: 4px;
+    border-radius: 50%;
+  }
+  /* Toolbar: wrap nút xuống dòng */
+  .toolbar-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1 1 100%;
+  }
+  .toolbar-actions .primary-btn,
+  .toolbar-actions .secondary-btn,
+  .toolbar-actions .ghost-btn {
+    font-size: 13px;
+    padding: 7px 12px;
+    white-space: nowrap;
+  }
+  /* Filter grid: 2-col trên tablet */
+  .filter-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px;
+  }
 }
 
 @media (max-width: 768px) {
+  /* ── Header: ẩn brand-text, search-shell thu nhỏ, user-chip chỉ giữ avatar ── */
+  .app-shell .brand .brand-text {
+    display: none;
+  }
+  .app-shell .header-left .search-shell {
+    max-width: 130px;
+    min-width: 80px;
+    padding: 6px 10px;
+  }
+  .app-shell .header-left {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .user-chip .user-name {
+    display: none;
+  }
+  .user-chip {
+    padding: 4px 8px 4px 4px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  /* ── Toolbar: tiêu đề + nút xuống dòng ── */
+  .toolbar {
+    padding: 10px 12px;
+  }
+  .toolbar-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .toolbar-head h1 {
+    font-size: 17px;
+  }
+  .toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+  .toolbar-actions .primary-btn,
+  .toolbar-actions .secondary-btn,
+  .toolbar-actions .ghost-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  /* ── Filter grid stack dọc ── */
+  .filter-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px;
+  }
+
+  /* ── Modal full width ── */
   .modal-overlay {
     padding: 10px;
   }

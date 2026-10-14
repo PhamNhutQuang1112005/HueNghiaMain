@@ -36,9 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sidebarToggleBtn && appSidebar) {
     sidebarToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      appSidebar.classList.toggle('is-collapsed');
-      const collapsedNow = appSidebar.classList.contains('is-collapsed');
-      localStorage.setItem('hueNghia_sidebar_collapsed', collapsedNow);
+      if (window.innerWidth <= 768) {
+        // Mobile: slide-in/out sidebar
+        appSidebar.classList.toggle('mobile-open');
+        if (backdrop) backdrop.classList.toggle('active');
+      } else {
+        // Desktop: collapse/expand sidebar
+        appSidebar.classList.toggle('is-collapsed');
+        const collapsedNow = appSidebar.classList.contains('is-collapsed');
+        localStorage.setItem('hueNghia_sidebar_collapsed', collapsedNow);
+      }
     });
   }
 

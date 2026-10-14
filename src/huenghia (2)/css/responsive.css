@@ -549,3 +549,123 @@
     background: transparent !important;
   }
 }
+
+/* ── Mobile Sidebar Backdrop ── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.sidebar-backdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ── Mobile: bảng cuộn ngang, không vỡ layout ── */
+@media (max-width: 768px) {
+  .app-main {
+    overflow-x: hidden;
+  }
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Toolbar filter row wrap xuống dòng thay vì tràn ra ngoài */
+  .toolbar-row,
+  .filter-bar,
+  .table-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* Stat cards stack dọc */
+  .stat-cards-row,
+  .stats-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  /* Category tabs cuộn ngang */
+  .cargo-category-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    width: 100%;
+    border-radius: 12px;
+  }
+  .cargo-category-tabs::-webkit-scrollbar { display: none; }
+  /* Modal full-width */
+  .modal-overlay { padding: 8px; }
+  .modal-card,
+  .transfer-modal-card {
+    width: 100% !important;
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* ── Tablet (769px – 992px): sidebar luôn hiện nhưng thu gọn ── */
+@media (max-width: 992px) and (min-width: 769px) {
+  .app-sidebar {
+    width: var(--sidebar-collapsed-width);
+  }
+  .app-sidebar .sidebar-section-title,
+  .app-sidebar .sidebar-nav-item span:not(.status-dot-icon),
+  .app-sidebar .sidebar-nav-item .submenu-chevron,
+  .app-sidebar .group-children {
+    display: none !important;
+  }
+  .app-sidebar .sidebar-nav-item {
+    justify-content: center;
+    padding: 10px;
+  }
+}
+/* ── Mobile: Header user-chip chỉ hiện avatar, ẩn tên ── */
+@media (max-width: 768px) {
+  /* Ẩn tên trong user-chip, chỉ giữ avatar */
+  .user-chip span:not(.avatar) {
+    display: none;
+  }
+  .user-chip {
+    padding: 4px;
+    border-radius: 50%;
+    min-width: unset;
+  }
+  /* Header right không bị shrink */
+  .header-right {
+    flex-shrink: 0;
+  }
+  /* Brand: ẩn toàn bộ brand-text trên mobile */
+  .brand-text {
+    display: none;
+  }
+  /* Search shell nhỏ lại */
+  .header-left .search-shell {
+    max-width: 130px;
+    min-width: 80px;
+    flex: 0 1 130px;
+  }
+  /* Toolbar actions wrap xuống dòng */
+  .toolbar-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .toolbar-actions {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+  .toolbar-actions .primary-btn,
+  .toolbar-actions .secondary-btn,
+  .toolbar-actions .ghost-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    white-space: nowrap;
+  }
+}

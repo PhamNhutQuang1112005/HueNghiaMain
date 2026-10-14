@@ -36,7 +36,12 @@
     }
     @media (max-width: 1100px) {
       .filter-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 768px) {
+      .filter-grid {
+        grid-template-columns: 1fr;
       }
     }
     .filter-item label {
@@ -76,7 +81,13 @@
     }
     @media (max-width: 1100px) {
       .stat-cards-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 768px) {
+      .stat-cards-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
       }
     }
     .stat-card {
@@ -516,6 +527,34 @@
       transform: translateY(0);
     }
     .report-toast svg { color: #4ade80; }
+      /* ── Responsive: Tablet (769-992px) ── */
+    @media (max-width: 992px) and (min-width: 769px) {
+      .app-shell .brand {
+        width: var(--sidebar-collapsed-width, 68px) !important;
+        flex: 0 0 var(--sidebar-collapsed-width, 68px) !important;
+        padding: 0 !important;
+        justify-content: center;
+      }
+      .app-shell .brand .brand-text { display: none; }
+      .user-chip span:not(.avatar) { display: none; }
+      .user-chip { padding: 4px; border-radius: 50%; }
+      .header-right { flex-shrink: 0; }
+      .app-shell .header-left .search-shell { max-width: 220px; }
+      /* Toolbar toolbar-head wrap */
+      .toolbar-head { flex-wrap: wrap; gap: 8px; }
+    }
+    /* ── Responsive: Mobile (<=768px) ── */
+    @media (max-width: 768px) {
+      .app-shell .brand .brand-text { display: none; }
+      .user-chip span:not(.avatar) { display: none; }
+      .user-chip { padding: 4px; border-radius: 50%; }
+      .header-right { flex-shrink: 0; }
+      .report-filter-card { padding: 12px 14px; }
+      .stat-card { padding: 12px 14px; gap: 10px; }
+      .stat-info .stat-val { font-size: 15px; }
+      .table-container-card { overflow-x: auto; }
+      .table-header-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -711,6 +750,13 @@
                   </a>
                 </div>
               </div>
+
+              <a class="sidebar-nav-item" href="ket-ca.html" title="Kết ca">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                  <span>Kết ca</span>
+                </div>
+              </a>
 
               <!-- Main Standalone Menu Items -->
               <a class="sidebar-nav-item" href="cod.html" title="Đối soát COD">
