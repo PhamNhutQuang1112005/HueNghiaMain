@@ -133,11 +133,12 @@ function formatCargoQuantity(cargo) {
 const defaultCargos = [];
 
 // Tự động xóa sạch dữ liệu hàng hóa cũ để test tính năng mới
-if (!localStorage.getItem("hueNghia_cargo_clean_test_v4")) {
+if (!localStorage.getItem("hueNghia_cargo_clean_test_v5")) {
   localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify([]));
   localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify([]));
   localStorage.setItem("cargo_deletion_history", JSON.stringify([]));
-  localStorage.setItem("hueNghia_cargo_clean_test_v4", "true");
+  localStorage.setItem("hueNghia_deleted_manifests", JSON.stringify([]));
+  localStorage.setItem("hueNghia_cargo_clean_test_v5", "true");
 }
 
 
@@ -1269,6 +1270,17 @@ if (bundleForm) {
         manifestId: null
       };
       state.data.unshift(newRecord);
+      // Xóa mọi bộ lọc đang bật để hàng vừa tạo luôn hiện trong danh sách
+      ['globalSearch', 'filterDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      ['filterDirection', 'filterFrom', 'filterTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
+      const allOpt = statusOptions.find(i => i.value === 'all');
+      if (allOpt) {
+        statusOptions.forEach(opt => opt.closest('.status-option')?.classList.remove('active'));
+        allOpt.checked = true;
+        allOpt.closest('.status-option')?.classList.add('active');
+      }
+      state.selectedCategory = 'all';
+      localStorage.setItem(categoryStorageKey, 'all');
       showToast('Đã tạo hàng hóa mới');
     }
 

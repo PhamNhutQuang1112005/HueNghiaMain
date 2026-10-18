@@ -288,11 +288,16 @@
           </div>
         </section>
 
+        <div style="display:flex; align-items:center; gap:10px; margin:0 0 8px;">
+          <button type="button" id="batchReceiveAllBtn" class="primary-btn" disabled>Nhận tất cả hàng (<span id="manifestSelCount">0</span> phơi)</button>
+          <button type="button" id="batchPrintManifestsBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
+        </div>
         <section class="table-card">
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
+                  <th style="width: 40px; text-align: center;"><input type="checkbox" class="select-all-rows" data-body="manifestTableBody" title="Chọn tất cả" /></th>
                   <th style="width: 45px; text-align: center;">STT</th>
                   <th>Biển số xe & Phơi</th>
                   <th>Tài xế lái xe</th>
@@ -321,11 +326,16 @@
           </div>
         </section>
 
+        <div style="display:flex; align-items:center; gap:10px; margin:0 0 8px;">
+          <button type="button" id="batchReceiveVehicleBtn" class="primary-btn" disabled>Nhận xe (<span id="receiveSelCount">0</span> phơi)</button>
+          <button type="button" id="batchPrintReceiveBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
+        </div>
         <section class="table-card">
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
+                  <th style="width:40px; text-align:center;"><input type="checkbox" class="select-all-rows" data-body="receiveTableBody" title="Chọn tất cả" /></th>
                   <th style="width:45px; text-align:center;">STT</th>
                   <th>Biển số xe & Phơi</th>
                   <th>Tài xế & Phụ xe</th>
@@ -425,6 +435,7 @@
       <div id="manifestModalBody" style="display:flex; flex:1; min-height:0;">
       <aside id="reuseManifestBox" style="width:340px; flex:none; display:flex; flex-direction:column; gap:10px; padding:20px 18px; border-right:1px solid var(--border); overflow-y:auto;">
         <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Đặt lại từ phơi đã tạo</h3>
+        <div id="reuseDirections" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
           <input type="date" id="reuseDate" title="Ngày tạo phơi (để trống = tất cả)" style="min-width:0; padding:9px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; background:white;" />
           <select id="reuseTime" style="min-width:0; padding:9px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; background:white;">
@@ -775,6 +786,12 @@
       CARGOS: 'hueNghia_cargos'
     };
 
+    // Xóa sạch phơi/hàng cũ 1 lần (bản v5): từ giờ phơi hàng được tạo từ phơi xe vé
+    if (!localStorage.getItem('hueNghia_cargo_clean_test_v5')) {
+      [STORAGE_KEYS.MANIFESTS, STORAGE_KEYS.CARGOS, 'hueNghia_deleted_manifests', 'cargo_deletion_history'].forEach(k => localStorage.setItem(k, '[]'));
+      localStorage.setItem('hueNghia_cargo_clean_test_v5', 'true');
+    }
+
     const defaultManifests = [
       {
         id: 101,
@@ -1112,46 +1129,99 @@
         reusePickedId = null;
         document.getElementById('reuseDate').value = '';
         document.getElementById('reuseTime').value = 'all';
+        renderReuseDirections();
         renderReuseList();
       }
       manifestModal.classList.add('open');
     };
 
-    // "Đặt lại" từ phơi đã tạo: bấm 1 thẻ bên trái → điền sẵn biển số, tài xế, phụ xe, giờ, điểm đi/đến.
+    // Tạo phơi hàng từ phơi xe vé (ticketstaff, key hn_ts_manifests_v1): bấm 1 thẻ bên trái → điền sẵn biển số, tài xế, phụ xe, giờ.
     let reusePickedId = null;
+    // Danh sách chuyến bên bán vé (hn_trips_meta_v9) + biển số/tài xế/phụ xe từ sơ đồ ghế, phơi đã khởi hành ghi đè
+    function loadTicketManifests() {
+      const rd = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+      const bank = rd(HN_STORAGE_KEY, {}), mans = rd('hn_ts_manifests_v1', {});
+      return rd(HN_TRIPS_KEY, []).filter(t => !t.isTemplate).map(t => {
+        const b = bank[t.id] || {}, m = mans[t.id] || {};
+        return { ...t, tripId: t.id, plate: m.plate || b.plate || t.plate || '', driver: m.driver || b.driver || '', helper: m.helper || b.helper || '' };
+      });
+    }
+    // Quy tên trạm của vé về danh sách trạm trang hàng; chưa có thì thêm mới để form không lệch
+    function ticketStation(name, add) {
+      name = String(name || '').trim();
+      if (!name) return '';
+      const S = window.HueNghiaStations, strip = x => x.toLowerCase().replace(/^(trạm|bến) /, '');
+      const hit = S.getStations().find(st => strip(st) === strip(name)) || (add && S.addCustomStation(name), name);
+      return hit;
+    }
+    // Chuyến vé → thông tin điền form
+    function ticketTripInfo(t, add) {
+      const parts = (t.route || '').split(' - ').map(x => x.trim());
+      const from = ticketStation(t.fromStation || parts[0], add) || 'Sài Gòn';
+      // Cùng quy tắc stationsForTrip bên bán vé: có tick trạm nhận thêm → trạm đến chính + trạm đó; không → mọi trạm vùng điểm đến
+      let dest = [t.toStation || parts[1], ...(t.pickupStations || [])];
+      if (!(t.pickupStations || []).length) {
+        try { dest = FleetStore.buildDirTripCfg()[FleetStore.getRouteDirectionId(t.route)].toStations; } catch (e) {}
+      }
+      const tos = [...new Set(dest.map(x => ticketStation(x, add)).filter(x => x && x !== from))];
+      const [h, mi] = String(t.time || '').split(':');
+      return { from, tos, vehicle: matchVehicle(t.vehicleType), time: h ? `${+h}h${+mi ? mi : ''}` : '' };
+    }
+    // Loại xe vé ("Giường nằm 34 chỗ") ≠ tên đội xe ("Đội xe Limousine 34 giường"): khớp theo số chỗ + limousine
+    function matchVehicle(text) {
+      const t = String(text || '').toLowerCase(), n = (t.match(/\d+/) || [])[0];
+      const list = window.HueNghiaStations.VEHICLE_TYPES;
+      const cand = list.filter(v => n && v.includes(' ' + n + ' '));
+      return cand.find(v => v.toLowerCase().includes('limousine') === t.includes('limousine')) || cand[0] || list[1];
+    }
+    // Chọn hướng giống bên bán vé (FleetStore.getDirections); 'all' = mọi hướng
+    let reuseDir = 'all';
+    function renderReuseDirections() {
+      const dirs = [{ id: 'all', label: 'Tất cả hướng' }, ...FleetStore.getDirections().filter(d => d && d.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))];
+      document.getElementById('reuseDirections').innerHTML = dirs.map(d => {
+        const on = d.id === reuseDir;
+        return `<button type="button" data-dir="${d.id}" style="padding:6px 10px; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${on ? '#b91c1c' : '#cbd5e1'}; background:${on ? '#b91c1c' : 'white'}; color:${on ? 'white' : '#334155'};">${d.label}</button>`;
+      }).join('');
+    }
+    document.getElementById('reuseDirections').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-dir]');
+      if (!b) return;
+      reuseDir = b.dataset.dir;
+      renderReuseDirections();
+      renderReuseList();
+    });
     function renderReuseList() {
       const date = document.getElementById('reuseDate').value;
       const slot = document.getElementById('reuseTime').value;
-      const rows = manifestData.filter(m => {
+      const rows = loadTicketManifests().filter(m => {
         const h = parseInt(m.time, 10);
-        const created = m.id > 1e12 ? new Date(m.id).toLocaleDateString('sv') : '';
-        if (date && created !== date) return false;
+        if (date && m.date !== date) return false;
+        if (reuseDir !== 'all' && FleetStore.getRouteDirectionId(m.route) !== reuseDir) return false;
         if (slot !== 'all' && !isNaN(h) && !(slot === 'morning' ? h < 12 : slot === 'afternoon' ? h >= 12 && h < 18 : h >= 18)) return false;
         return true;
       });
       document.getElementById('reuseList').innerHTML = rows.map(m => {
-        const on = m.id === reusePickedId;
-        return `<div class="reuse-card" data-id="${m.id}" style="cursor:pointer; padding:8px 12px; border:2px solid ${on ? '#b91c1c' : '#e2e8f0'}; border-radius:12px; background:${on ? '#fef2f2' : 'white'};">
+        const on = String(m.tripId) === reusePickedId;
+        return `<div class="reuse-card" data-id="${m.tripId}" style="cursor:pointer; padding:8px 12px; border:2px solid ${on ? '#b91c1c' : '#e2e8f0'}; border-radius:12px; background:${on ? '#fef2f2' : 'white'};">
           <div style="display:flex; gap:10px; font-weight:800;"><span>${m.time || ''}</span><span style="color:#b91c1c;">${m.plate || 'Chưa có'}</span></div>
-          <div style="font-size:13px; font-weight:600; color:#475569;">${m.from} → ${m.to}</div></div>`;
-      }).join('') || '<div style="padding:10px; text-align:center; color:#94a3b8; font-size:13px;">Chưa có phơi nào để đặt lại</div>';
+          <div style="font-size:13px; font-weight:600; color:#475569;">${m.fromStation || ''} → ${m.toStation || ''}${m.date ? ' • ' + m.date : ''}</div></div>`;
+      }).join('') || '<div style="padding:10px; text-align:center; color:#94a3b8; font-size:13px;">Chưa có phơi bán vé nào</div>';
     }
     document.getElementById('reuseDate').addEventListener('change', renderReuseList);
     document.getElementById('reuseTime').addEventListener('change', renderReuseList);
     document.getElementById('reuseList').addEventListener('click', (e) => {
       const card = e.target.closest('.reuse-card');
-      const m = card && manifestData.find(r => String(r.id) === card.dataset.id);
+      const m = card && loadTicketManifests().find(r => String(r.tripId) === card.dataset.id);
       if (!m) return;
-      reusePickedId = m.id;
+      reusePickedId = String(m.tripId);
       renderReuseList();
-      const d = parseDriverDetails(m.driver);
       const set = (id, v) => { document.getElementById(id).value = v || ''; };
-      set('manifestPlate', m.plate); set('manifestTime', m.time); set('manifestHelper', m.helper); set('manifestStaff', m.staff);
-      set('manifestDriverName', d.name === '—' ? '' : d.name); set('manifestDriverPhone', d.phone);
-      if (window.HueNghiaStations) window.HueNghiaStations.populateVehicleDropdowns(document.getElementById('manifestVehicleType'), d.vehicle);
-      const tos = [m.to];
-      renderDepartureCheckboxes([m.from]);
-      renderDestinationCheckboxes(m.from, tos, false);
+      const info = ticketTripInfo(m, true);
+      set('manifestPlate', m.plate); set('manifestTime', info.time); set('manifestHelper', m.helper);
+      set('manifestDriverName', m.driver); set('manifestDriverPhone', '');
+      window.HueNghiaStations.populateVehicleDropdowns(document.getElementById('manifestVehicleType'), info.vehicle);
+      renderDepartureCheckboxes([info.from]);
+      renderDestinationCheckboxes(info.from, info.tos, false);
       filterDestinationStationList('');
     });
 
@@ -1659,11 +1729,11 @@
       closeCargoStickerModal();
     };
 
-    function printManifestSheet(manifestId) {
+    function buildManifestSheetHtml(manifestId) {
       const manifests = loadManifests();
       const cargos = loadCargos();
       const manifest = manifests.find(m => m.id === manifestId);
-      if (!manifest) return;
+      if (!manifest) return '';
 
       const manifestCargos = cargos.filter(c => Number(c.manifestId) === manifestId);
       const totalFee = manifestCargos.reduce((sum, c) => sum + Number(c.fee || 0), 0);
@@ -1749,7 +1819,21 @@
           </div>
         </div>
       `;
-      openPrintWindow(`Phơi ${manifest.name}`, sheetHtml);
+      return sheetHtml;
+    }
+
+    function printManifestSheet(manifestId) {
+      const html = buildManifestSheetHtml(manifestId);
+      if (!html) return;
+      const manifest = loadManifests().find(m => m.id === manifestId);
+      openPrintWindow(`Phơi ${manifest.name}`, html);
+    }
+
+    // In nhiều phơi cùng lúc: mỗi phơi 1 trang
+    function printManifestSheets(ids) {
+      const html = ids.map(buildManifestSheetHtml).filter(Boolean)
+        .join('<div style="page-break-after:always;"></div>');
+      if (html) openPrintWindow(`In ${ids.length} phơi`, html);
     }
 
     function printBatchStickers(manifestId, printAllOverride = false) {
@@ -1850,9 +1934,10 @@
           const driverInfo = parseDriverDetails(row.driver);
           return `
           <tr>
+            <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
-              <strong style="font-size:15px; color:#0f172a;">${row.plate}</strong> 
+              <strong style="font-size:15px; color:#0f172a;">${row.plate}</strong>
               <span class="route-text" style="font-size:12.5px; margin-left:4px;">(<strong>${row.from}</strong> <span style="color:var(--primary);">➔</span> <strong>${row.to}</strong>)</span><br>
               <small style="color:#64748b; font-weight:600;">${row.name}</small>
             </td>
@@ -1899,8 +1984,65 @@
           </tr>
         `;
       }).join('')
-        : '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+        : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+      syncRowSelection('manifestTableBody');
     }
+
+    // Tick chọn nhiều phơi ở ds chuyến xe đi (manifestTableBody) và chuyến xe đến (receiveTableBody)
+    const selectedManifestIds = new Set();
+    const selectedReceiveIds = new Set();
+    const selectionCfg = {
+      manifestTableBody: { ids: selectedManifestIds, btn: 'batchReceiveAllBtn', print: 'batchPrintManifestsBtn', count: 'manifestSelCount' },
+      receiveTableBody: { ids: selectedReceiveIds, btn: 'batchReceiveVehicleBtn', print: 'batchPrintReceiveBtn', count: 'receiveSelCount' }
+    };
+    function syncRowSelection(bodyId) {
+      const cfg = selectionCfg[bodyId];
+      const boxes = Array.from(document.querySelectorAll(`#${bodyId} .row-select`));
+      const checked = boxes.filter(b => b.checked).length;
+      const all = document.querySelector(`.select-all-rows[data-body="${bodyId}"]`);
+      if (all) {
+        all.checked = boxes.length > 0 && checked === boxes.length;
+        all.indeterminate = checked > 0 && checked < boxes.length;
+      }
+      document.getElementById(cfg.count).textContent = cfg.ids.size;
+      document.getElementById(cfg.btn).disabled = cfg.ids.size === 0;
+      document.getElementById(cfg.print).disabled = cfg.ids.size === 0;
+    }
+    Object.values(selectionCfg).forEach(({ ids, print }) => {
+      document.getElementById(print).addEventListener('click', () => printManifestSheets([...ids]));
+    });
+    Object.keys(selectionCfg).forEach(bodyId => {
+      const { ids } = selectionCfg[bodyId];
+      document.getElementById(bodyId).addEventListener('change', (e) => {
+        if (!e.target.classList.contains('row-select')) return;
+        const id = Number(e.target.dataset.id);
+        e.target.checked ? ids.add(id) : ids.delete(id);
+        syncRowSelection(bodyId);
+      });
+    });
+    document.querySelectorAll('.select-all-rows').forEach(all => {
+      all.addEventListener('change', () => {
+        const bodyId = all.dataset.body;
+        document.querySelectorAll(`#${bodyId} .row-select`).forEach(b => {
+          b.checked = all.checked;
+          const id = Number(b.dataset.id);
+          all.checked ? selectionCfg[bodyId].ids.add(id) : selectionCfg[bodyId].ids.delete(id);
+        });
+        syncRowSelection(bodyId);
+      });
+    });
+    document.getElementById('batchReceiveAllBtn').addEventListener('click', () => {
+      if (!confirm(`Xác nhận nhận tất cả hàng hóa trong ${selectedManifestIds.size} phơi đã chọn?`)) return;
+      [...selectedManifestIds].forEach(id => confirmScanReceiveAll(id));
+      selectedManifestIds.clear();
+      renderManifestTable();
+    });
+    document.getElementById('batchReceiveVehicleBtn').addEventListener('click', () => {
+      if (!confirm(`Xác nhận nhận ${selectedReceiveIds.size} xe đã chọn?`)) return;
+      [...selectedReceiveIds].forEach(id => receiveManifestAndRedirect(id));
+      selectedReceiveIds.clear();
+      renderReceiveTable();
+    });
 
     ['manifestSearch', 'filterManifestName', 'filterDate', 'filterFrom', 'filterTo', 'filterPlate'].forEach(id => {
       const el = document.getElementById(id);
@@ -2158,7 +2300,7 @@
       }
 
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#64748b;">Không có xe nào trong danh sách nhận xe.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có xe nào trong danh sách nhận xe.</td></tr>`;
         return;
       }
 
@@ -2170,6 +2312,7 @@
 
         return `
           <tr>
+            <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${item.id}" ${selectedReceiveIds.has(item.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
               <span class="plate-badge">${item.plate}</span>
@@ -2196,6 +2339,7 @@
           </tr>
         `;
       }).join('');
+      syncRowSelection('receiveTableBody');
     };
 
     let currentScanManifestId = null;
