@@ -90,6 +90,19 @@
     if (currentShifts.length !== badShiftsBefore) {
       updated = true;
     }
+    // 0b. Reset ca hôm nay có startTime sai (> 0h) — do bug cũ gán startTime = timestamp cargo.
+    // Xóa để autoSync tạo lại với startTime = 0h đúng.
+    const todayStart0 = (function(){ const _t = new Date(); _t.setHours(0,0,0,0); return _t.getTime(); })();
+    const todayEnd0 = todayStart0 + 86400000;
+    const beforeReset = currentShifts.length;
+    currentShifts = currentShifts.filter((s) => {
+      // Chỉ xóa ca hôm nay chưa đóng mà startTime > 0h (tức startTime != 0h đầu ngày)
+      const isToday = s.startTime >= todayStart0 && s.startTime < todayEnd0;
+      const isOpen = !s.endTime;
+      const isWrongStart = s.startTime > todayStart0; // 0h = đúng, >0h = sai
+      return !(isToday && isOpen && isWrongStart);
+    });
+    if (currentShifts.length !== beforeReset) { updated = true; }
 
     // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu chưa có ca mở hôm nay
     if (currentStaff && (currentStaff.code || currentStaff.name)) {
@@ -111,9 +124,7 @@
           return isStaff && (itemTs >= todayStart.getTime());
         });
 
-        const earliestTime = staffCargosToday.length > 0
-          ? Math.min(...staffCargosToday.map((c) => c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id))
-          : Date.now();
+        const earliestTime = (function(){ const _d = new Date(); _d.setHours(0,0,0,0); return _d.getTime(); })()
 
         const autoShift = {
           id: earliestTime,
@@ -150,7 +161,7 @@
         (s) => String(s.staffCode) === st.code || (st.name && s.staffName && s.staffName.toLowerCase() === st.name.toLowerCase())
       );
       if (!hasShift && st.cargos.length > 0) {
-        const earliestTime = Math.min(...st.cargos.map((c) => c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id));
+        const d2 = new Date(); d2.setHours(0,0,0,0); const earliestTime = d2.getTime(); // 0h hôm nay
         currentShifts.unshift({
           id: earliestTime,
           staffCode: st.code,
@@ -175,45 +186,31 @@
   // Toàn bộ hàng hóa mà NV ca này đã xử lý / nhận (bao gồm ca nhận xe & quét QR)
   function getShiftCargoItems(shift, allCargos) {
     const cargos = allCargos || loadCargos();
-    const shiftCode = String(shift.staffCode || '').trim();
+    const shiftCode = String(shift.staffCode || '').trim().toLowerCase();
     const shiftName = String(shift.staffName || '').trim().toLowerCase();
-
     return cargos.filter((c) => {
-      const cCode = String(c.staffCode || c.staff || '').trim();
+      // Match nhân viên theo mã staffCode (ưu tiên) hoặc tên
+      const cCode = String(c.staffCode || '').trim().toLowerCase();
       const cStaff = String(c.staff || '').trim().toLowerCase();
-      const rCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || '').trim();
+      const rCode = String(c.receivedByCode || c.scannedByCode || c.transferredByCode || '').trim().toLowerCase();
       const rStaff = String(c.receivedBy || c.scannedBy || c.transferredBy || '').trim().toLowerCase();
-
       const matchStaff =
         (shiftCode && (cCode === shiftCode || rCode === shiftCode)) ||
-        (shiftName && (cStaff === shiftName || rStaff === shiftName)) ||
-        (shiftCode && (cStaff.includes(shiftCode) || rStaff.includes(shiftCode))) ||
-        (cCode && shiftName.includes(cCode)) ||
-        (rCode && shiftName.includes(rCode));
-
+        (shiftName && shiftName.length > 1 && (cStaff === shiftName || rStaff === shiftName));
       if (!matchStaff) return false;
-
-      const itemTimestamp = c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id;
-
+      // Match thời gian
+      const itemTs = c.transferredAt || c.receivedAtTimestamp || c.scannedAt || c.id;
       if (shift.endTime) {
         return (c.id >= shift.startTime && c.id <= shift.endTime) ||
-               (itemTimestamp >= shift.startTime && itemTimestamp <= shift.endTime);
+               (itemTs  >= shift.startTime && itemTs  <= shift.endTime);
       }
-
-      const shiftDateObj = new Date(shift.startTime);
-      shiftDateObj.setHours(0, 0, 0, 0);
-      return (
-        c.manifestId != null ||
-        c.status === 'in-transit' ||
-        c.status === 'transferred' ||
-        c.id >= shiftDateObj.getTime() ||
-        itemTimestamp >= shiftDateObj.getTime()
-      );
+      // Ca đang mở: lấy tất cả cargo của NV trong ngày (từ 0h ngày mở ca)
+      const dayStart = new Date(shift.startTime);
+      dayStart.setHours(0, 0, 0, 0);
+      return c.id >= dayStart.getTime() || itemTs >= dayStart.getTime();
     });
   }
-
-  // Tính lại toàn bộ số liệu tiền thực tế của ca từ danh sách cargo thật
-  function computeShiftStats(shift, allCargos) {
+function computeShiftStats(shift, allCargos) {
     const items = getShiftCargoItems(shift, allCargos);
     const paidItems = items.filter((c) => c.paymentStatus === 'paid' || c.isPaid === true);
     const unpaidItems = items.filter((c) => c.paymentStatus !== 'paid' && !c.isPaid);
@@ -266,6 +263,15 @@
     const totalHandoverStat = document.getElementById('statTotalHandover');
 
     if (!tbody) return;
+    // Poll 2.5s/lần: chỉ ghi lại bảng khi HTML thật sự đổi, tránh dựng lại DOM liên tục gây giật.
+    if (!tbody.__guarded) {
+      const d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+      Object.defineProperty(tbody, 'innerHTML', {
+        get() { return d.get.call(this); },
+        set(v) { if (this.__h !== v) { this.__h = v; d.set.call(this, v); } }
+      });
+      tbody.__guarded = true;
+    }
 
     const allCargos = loadCargos();
 
@@ -304,6 +310,10 @@
       return matchStation && matchStatus && matchDate && matchSearch;
     });
 
+    console.log('[render] currentShifts:', currentShifts.length, 'filtered:', filtered.length, 'filterDate:', document.getElementById('filterDate')?.value);
+    if (filtered.length === 0 && currentShifts.length > 0) {
+      currentShifts.forEach(s => console.log('  shift:', s.staffCode, 'startTime:', new Date(s.startTime).toISOString(), 'station:', s.station));
+    }
     if (shiftsCountEl) shiftsCountEl.textContent = filtered.length;
 
     let totalSum = 0;

@@ -169,6 +169,7 @@
   //  role 'shuttle_driver': driversPool TX01..TX05 (shuttle.js)
   // Chuỗi "Lê Minh Tuấn (trùng lịch)" GIỮ NGUYÊN — checkDriverConflict() match bằng .includes('trùng lịch').
   var SEED_STAFF = [
+    { code: 'ADM01', name: 'Quản trị viên hệ thống', username: 'quantri01', role: 'admin', station: 'Sài Gòn', phone: '', license: '', active: true },
     { code: 'NV01', name: 'tuyetphuong.huenghia', username: 'tuyetphuong.huenghia', role: 'ticket', phone: '', license: '', active: true },
     { code: 'NV02', name: 'minh.tran', username: 'minh.tran', role: 'ticket', phone: '', license: '', active: true },
     { code: 'NV03', name: 'nguyen.long', username: 'nguyen.long', role: 'ticket', phone: '', license: '', active: true },
@@ -681,7 +682,7 @@
     { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', permissions: [], redirect: 'ticketstaff.html' },
     { key: 'dispatch_manager', label: 'Điều hành bến xe', permissions: [], redirect: 'dieuhanh.html' },
     { key: 'accountant', label: 'Kế toán / Thu ngân', permissions: [], redirect: 'ketoan.html' },
-    { key: 'cashier', label: 'Nhân viên thu ngân / Nhận hàng', permissions: [], redirect: '../huenghia (2)/html/cargo.html' }
+    { key: 'cashier', label: 'Nhân viên thu ngân / Nhận hàng', permissions: [], redirect: 'cargo/cargo.html' }
   ];
   function getStaffRoles() {
     var list = readJSON(HN_STAFF_ROLES_KEY, null);

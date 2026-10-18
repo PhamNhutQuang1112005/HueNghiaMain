@@ -163,6 +163,14 @@
   font-size: 13px;
   font-weight: 600;
   color: #334155;
+  max-width: 260px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.user-chip span:not(.avatar) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-chip .avatar {
@@ -668,4 +676,93 @@
     padding: 6px 10px !important;
     white-space: nowrap;
   }
+}
+
+/* Nút "Quản trị hệ thống" ở header (nằm ở responsive.css vì mọi trang đều nạp file này) — dựng bởi js/auth-bridge.js (mountHeaderRight), giống trang bán vé */
+.header-right { display: flex; align-items: center; gap: 10px; }
+.admin-link-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+  border: 1.5px solid var(--primary, #c20d08); border-radius: 999px; background: #fff;
+  color: var(--primary, #c20d08); font-size: 13.5px; font-weight: 700; white-space: nowrap;
+  text-decoration: none; transition: background .15s ease, color .15s ease;
+}
+.admin-link-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.admin-link-btn:hover { background: var(--primary, #c20d08); color: #fff; }
+
+/* Menu tài khoản ở header (dựng bởi auth-bridge.js) — cùng kiểu với trang bán vé */
+.hn-user-menu { position: relative; flex: 0 0 auto; }
+.hn-user-btn { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 999px; border: 1px solid transparent; background: transparent; font: inherit; font-size: 15px; font-weight: 600; color: inherit; cursor: pointer; }
+.hn-user-btn:hover, .hn-user-menu.open .hn-user-btn { border-color: #e2e8f0; background: #f8fafc; }
+.hn-user-btn:focus-visible { outline: 2px solid var(--primary, #c20d08); outline-offset: 1px; }
+.hn-avatar { width: 30px; height: 30px; border-radius: 50%; background: #0f172a; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+.hn-user-btn > svg { width: 12px; height: 12px; stroke: #64748b; transition: transform .18s; }
+.hn-user-menu.open .hn-user-btn > svg { transform: rotate(180deg); }
+.hn-user-dropdown { position: absolute; top: calc(100% + 8px); right: 0; min-width: 220px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.1); z-index: 200; padding: 6px; }
+.hn-user-dropdown[hidden] { display: none; }
+.hn-user-meta { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 4px; }
+.hn-user-meta b { font-size: 14.5px; font-weight: 700; color: #0f172a; }
+.hn-user-meta span { font-size: 13.5px; color: #64748b; }
+.hn-user-item { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: none; border-radius: 8px; background: transparent; color: #0f172a; font: inherit; font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer; text-align: left; box-sizing: border-box; }
+.hn-user-item svg { width: 15px; height: 15px; flex: 0 0 auto; stroke: #64748b; }
+.hn-user-item:hover { background: #f8fafc; }
+.hn-user-logout, .hn-user-logout svg { color: #c20d08; stroke: #c20d08; }
+.hn-user-logout:hover { background: #fef2f2; }
+
+/* Màn hình hẹp: cho breadcrumb co lại (có dấu …) thay vì đẩy header tràn */
+@media (max-width: 1100px) {
+  .app-shell .page-breadcrumb { flex: 0 1 auto; }
+}
+
+/* Điện thoại: brand thu còn logo, ẩn breadcrumb, nút Quản trị chỉ còn icon, menu tài khoản chỉ còn avatar */
+@media (max-width: 768px) {
+  .app-shell .brand { width: 56px; flex: 0 0 56px; padding: 0; justify-content: center; gap: 0; }
+  .app-shell .page-breadcrumb { display: none; }
+  .admin-link-btn { font-size: 0; gap: 0; padding: 0; width: 36px; justify-content: center; }
+  .admin-link-btn svg { width: 18px; height: 18px; }
+  .hn-user-btn { padding: 4px; }
+  .hn-user-btn span:not(.hn-avatar), .hn-user-btn > svg { display: none; }
+  .header-right { gap: 6px; }
+}
+
+/* Bộ lọc: cột co theo màn hình (trước đây min-width cố định 130+160+170+170px làm tràn ngang ở ~1024px và ≤414px) */
+@media (max-width: 1200px) {
+  .filter-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+@media (max-width: 560px) {
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Điện thoại hẹp: ô tìm kiếm co hết cỡ để header không đè lên nhau; nhóm nút trong toolbar tự xuống dòng */
+@media (max-width: 768px) {
+  .app-shell .header-left .search-shell { min-width: 60px; flex: 1 1 80px; max-width: none; }
+  .toolbar-head > div:last-child { flex-wrap: wrap; }
+}
+
+/* Điện thoại: khi mở thanh trượt thì logo + tên giãn đúng bằng bề rộng sidebar, nằm sát trên menu (liền 1 khối) */
+@media (max-width: 768px) {
+  .app-shell:has(.app-sidebar.mobile-open) .brand {
+    position: relative; z-index: 10000;
+    width: var(--sidebar-width, 255px); flex: 0 0 var(--sidebar-width, 255px);
+    margin-right: calc(56px - var(--sidebar-width, 255px));
+    padding: 0 14px; justify-content: flex-start; gap: 10px;
+  }
+  .app-shell:has(.app-sidebar.mobile-open) .brand .brand-text { display: block; }
+}
+@media (max-width: 768px) {
+  .app-shell:has(.app-sidebar.mobile-open) .page-header { z-index: 10000; }
+}
+
+/* Popup trên điện thoại: không tràn ngang — hàng nút/tab tự xuống dòng, bảng rộng cuộn ngang trong popup */
+@media (max-width: 560px) {
+  .modal-card, .modal-card-custom { max-width: 100%; overflow-x: auto; }
+  #cargoCategoryTabs { flex-wrap: wrap; }
+  #deliveryScanModal div[style*="display:flex"], #deliveryScanModal div[style*="display: flex"] { flex-wrap: wrap; }
+  .modal-header-custom { flex-wrap: wrap; gap: 8px; }
+  .modal-body-custom { overflow-x: auto; }
+}
+@media (max-width: 560px) {
+  #receiveScanModal .modal-card div[style*="display: flex"], #receiveScanModal .modal-card div[style*="display:flex"] { flex-wrap: wrap; }
+  #receiveScanModal .modal-card { overflow-x: auto !important; }
+}
+@media (max-width: 560px) {
+  #deliveryScanModal .modal-card { overflow-x: auto !important; }
 }

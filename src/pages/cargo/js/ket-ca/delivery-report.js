@@ -257,20 +257,29 @@
   function renderShiftsTable() {
     autoSyncShiftsFromCargos();
 
-    const tbody = document.getElementById('shiftsTbody');
-    const shiftsCountEl = document.getElementById('shiftsCount');
-    const totalCollectedStat = document.getElementById('statTotalCollected');
-    const totalShiftsStat = document.getElementById('statTotalShifts');
-    const totalHandoverStat = document.getElementById('statTotalHandover');
+    const tbody = document.getElementById('dlvShiftsTbody');
+    const shiftsCountEl = document.getElementById('dlvShiftsCount');
+    const totalCollectedStat = document.getElementById('dlvStatTotalCollected');
+    const totalShiftsStat = document.getElementById('dlvStatTotalShifts');
+    const totalHandoverStat = document.getElementById('dlvStatTotalHandover');
 
     if (!tbody) return;
+    // Poll 2.5s/lần: chỉ ghi lại bảng khi HTML thật sự đổi, tránh dựng lại DOM liên tục gây giật.
+    if (!tbody.__guarded) {
+      const d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+      Object.defineProperty(tbody, 'innerHTML', {
+        get() { return d.get.call(this); },
+        set(v) { if (this.__h !== v) { this.__h = v; d.set.call(this, v); } }
+      });
+      tbody.__guarded = true;
+    }
 
     const allCargos = loadCargos();
 
-    const stationFilter = document.getElementById('filterStation')?.value || 'all';
-    const statusFilter = document.getElementById('filterStatus')?.value || 'all';
-    const filterDateVal = document.getElementById('filterDate')?.value || '';
-    const searchQuery = (document.getElementById('shiftSearch')?.value || '').toLowerCase().trim();
+    const stationFilter = document.getElementById('dlvFilterStation')?.value || 'all';
+    const statusFilter = document.getElementById('dlvFilterStatus')?.value || 'all';
+    const filterDateVal = document.getElementById('dlvFilterDate')?.value || '';
+    const searchQuery = (document.getElementById('dlvShiftSearch')?.value || '').toLowerCase().trim();
 
     // Loại bỏ các ca trống không có đơn hàng nào
     const validShifts = currentShifts.filter((shift) => {
@@ -380,20 +389,20 @@
           </td>
           <td style="vertical-align: middle;"><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
           <td class="text-center" style="vertical-align: middle;">
-            <select class="status-select-box ${shift.isHandedOver ? 'handed' : 'unhanded'}" onchange="window.toggleShiftHandover(${shift.id})">
+            <select class="status-select-box ${shift.isHandedOver ? 'handed' : 'unhanded'}" onchange="window.dlv_toggleShiftHandover(${shift.id})">
               <option value="handed" ${shift.isHandedOver ? 'selected' : ''}>Đã giao</option>
               <option value="unhanded" ${!shift.isHandedOver ? 'selected' : ''}>Chưa giao</option>
             </select>
           </td>
           <td class="text-center" style="vertical-align: middle;">
             <div class="action-icons-row">
-              <button type="button" class="rowicon-btn ${shift.isChecked ? 'is-active' : ''}" onclick="window.toggleShiftCheck(${shift.id})" title="${shift.isChecked ? 'Bỏ kiểm tra' : 'Khóa / Kiểm tra ca'}">
+              <button type="button" class="rowicon-btn ${shift.isChecked ? 'is-active' : ''}" onclick="window.dlv_toggleShiftCheck(${shift.id})" title="${shift.isChecked ? 'Bỏ kiểm tra' : 'Khóa / Kiểm tra ca'}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </button>
-              <button type="button" class="rowicon-btn" onclick="window.openDetailReport(${shift.id})" title="Xem chi tiết / In báo cáo ca">
+              <button type="button" class="rowicon-btn" onclick="window.dlv_openDetailReport(${shift.id})" title="Xem chi tiết / In báo cáo ca">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
-              <button type="button" class="rowicon-btn rowicon-btn--danger" onclick="window.deleteShift(${shift.id})" title="Hủy ca / Xóa ca giao hàng">
+              <button type="button" class="rowicon-btn rowicon-btn--danger" onclick="window.dlv_deleteShift(${shift.id})" title="Hủy ca / Xóa ca giao hàng">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
@@ -408,7 +417,7 @@
     const allCargos = loadCargos();
     const stats = computeShiftStats(shift, allCargos);
 
-    const summaryTbody = document.getElementById('modalSummaryTbody');
+    const summaryTbody = document.getElementById('dlvModalSummaryTbody');
     if (summaryTbody) {
       summaryTbody.innerHTML = `
         <tr>
@@ -422,15 +431,15 @@
       `;
     }
 
-    const cargoCountStat = document.getElementById('modalCargoCountStat');
-    const paidSumStat = document.getElementById('modalPaidSumStat');
-    const unpaidSumStat = document.getElementById('modalUnpaidSumStat');
+    const cargoCountStat = document.getElementById('dlvModalCargoCountStat');
+    const paidSumStat = document.getElementById('dlvModalPaidSumStat');
+    const unpaidSumStat = document.getElementById('dlvModalUnpaidSumStat');
 
     if (cargoCountStat) cargoCountStat.textContent = stats.items.length + ' (Món)';
     if (paidSumStat) paidSumStat.textContent = formatCurrency(stats.totalCollected);
     if (unpaidSumStat) unpaidSumStat.textContent = formatCurrency(stats.unpaidAmount);
 
-    const cargoTbody = document.getElementById('modalCargoTbody');
+    const cargoTbody = document.getElementById('dlvModalCargoTbody');
     if (cargoTbody) {
       if (stats.items.length === 0) {
         cargoTbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding: 20px; color:#94a3b8;">Chưa có đơn hàng nào phân công/giao trong ca này.</td></tr>`;
@@ -486,31 +495,31 @@
     }
   }
 
-  window.openDetailReport = function (shiftId) {
+  window.dlv_openDetailReport = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
     if (!shift) return;
 
     selectedShiftId = shiftId;
-    const modal = document.getElementById('reportDetailModal');
+    const modal = document.getElementById('dlvReportDetailModal');
     if (!modal) return;
 
     const stats = computeShiftStats(shift);
 
-    document.getElementById('modalShiftTitle').textContent = `CHI TIẾT BÁO CÁO GIAO HÀNG`;
-    const statusPill = document.getElementById('modalShiftStatusPill');
+    document.getElementById('dlvModalShiftTitle').textContent = `CHI TIẾT BÁO CÁO GIAO HÀNG`;
+    const statusPill = document.getElementById('dlvModalShiftStatusPill');
     if (statusPill) {
       statusPill.className = `modal-status-tag ${shift.isHandedOver ? 'tag-success' : 'tag-warning'}`;
       statusPill.textContent = shift.isHandedOver ? 'CHÚ Ý: ĐÃ GIAO CA' : '( CHƯA GIAO CA )';
     }
 
-    const staffNameEl = document.getElementById('modalStaffName');
-    const timeFromEl = document.getElementById('modalTimeFrom');
-    const timeToEl = document.getElementById('modalTimeTo');
-    const totalCollectedEl = document.getElementById('modalTotalCollected');
-    const submittedAmountEl = document.getElementById('modalSubmittedAmount');
-    const diffAmountEl = document.getElementById('modalDiffAmount');
-    const paidCodesEl = document.getElementById('modalPaidCodes');
-    const noteTextEl = document.getElementById('modalNoteText');
+    const staffNameEl = document.getElementById('dlvModalStaffName');
+    const timeFromEl = document.getElementById('dlvModalTimeFrom');
+    const timeToEl = document.getElementById('dlvModalTimeTo');
+    const totalCollectedEl = document.getElementById('dlvModalTotalCollected');
+    const submittedAmountEl = document.getElementById('dlvModalSubmittedAmount');
+    const diffAmountEl = document.getElementById('dlvModalDiffAmount');
+    const paidCodesEl = document.getElementById('dlvModalPaidCodes');
+    const noteTextEl = document.getElementById('dlvModalNoteText');
 
     if (staffNameEl) staffNameEl.value = `${shift.staffName} (Mã NV: ${shift.staffCode || shift.staffId})`;
     if (timeFromEl) timeFromEl.value = formatDateTime(shift.startTime);
@@ -526,18 +535,18 @@
     modal.classList.add('show');
   };
 
-  window.closeDetailReportModal = function () {
-    const modal = document.getElementById('reportDetailModal');
+  window.dlv_closeDetailReportModal = function () {
+    const modal = document.getElementById('dlvReportDetailModal');
     if (modal) modal.classList.remove('show');
   };
 
-  window.saveShiftHandoverFromModal = function () {
+  window.dlv_saveShiftHandoverFromModal = function () {
     if (!selectedShiftId) return;
     const shift = currentShifts.find((s) => s.id === selectedShiftId);
     if (!shift) return;
 
-    const submittedVal = document.getElementById('modalSubmittedAmount')?.value || '0';
-    const noteVal = document.getElementById('modalNoteText')?.value || '';
+    const submittedVal = document.getElementById('dlvModalSubmittedAmount')?.value || '0';
+    const noteVal = document.getElementById('dlvModalNoteText')?.value || '';
 
     shift.submittedAmount = parseFloat(submittedVal.replace(/\./g, '').replace(/,/g, '')) || 0;
     shift.note = noteVal;
@@ -545,11 +554,11 @@
 
     saveShifts(currentShifts);
     renderShiftsTable();
-    window.closeDetailReportModal();
+    window.dlv_closeDetailReportModal();
     showToastNotification(`Đã lưu thông tin ca giao hàng [Mã ca ${shift.id}]!`);
   };
 
-  window.toggleShiftHandover = function (shiftId) {
+  window.dlv_toggleShiftHandover = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
     if (!shift) return;
     shift.isHandedOver = !shift.isHandedOver;
@@ -558,7 +567,7 @@
     showToastNotification(`Đã cập nhật trạng thái giao ca [Mã ${shift.id}]: ${shift.isHandedOver ? 'ĐÃ GIAO CA' : 'CHƯA GIAO CA'}`);
   };
 
-  window.toggleShiftCheck = function (shiftId) {
+  window.dlv_toggleShiftCheck = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
     if (!shift) return;
     shift.isChecked = !shift.isChecked;
@@ -568,7 +577,7 @@
   };
 
   function showToastNotification(message) {
-    let toast = document.getElementById('reportToast');
+    let toast = document.getElementById('dlvReportToast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'reportToast';
@@ -582,7 +591,7 @@
     }, 2800);
   }
 
-  window.clearAllRealShifts = function () {
+  window.dlv_clearAllRealShifts = function () {
     if (confirm('Bạn có chắc chắn muốn làm sạch dữ liệu ca giao hàng?')) {
       currentShifts = [];
       saveShifts(currentShifts);
@@ -593,14 +602,14 @@
 
   let pendingDeleteShiftId = null;
 
-  window.deleteShift = function (shiftId) {
+  window.dlv_deleteShift = function (shiftId) {
     const shift = currentShifts.find((s) => String(s.id) === String(shiftId));
     if (!shift) return;
 
     pendingDeleteShiftId = shiftId;
-    const staffNameEl = document.getElementById('deleteStaffName');
-    const shiftIdCodeEl = document.getElementById('deleteShiftIdCode');
-    const modal = document.getElementById('deleteConfirmModal');
+    const staffNameEl = document.getElementById('dlvDeleteStaffName');
+    const shiftIdCodeEl = document.getElementById('dlvDeleteShiftIdCode');
+    const modal = document.getElementById('dlvDeleteConfirmModal');
 
     if (staffNameEl) staffNameEl.textContent = shift.staffName;
     if (shiftIdCodeEl) shiftIdCodeEl.textContent = shift.id;
@@ -612,8 +621,8 @@
     }
   };
 
-  window.closeDeleteModal = function () {
-    const modal = document.getElementById('deleteConfirmModal');
+  window.dlv_closeDeleteModal = function () {
+    const modal = document.getElementById('dlvDeleteConfirmModal');
     if (modal) {
       modal.classList.remove('show');
       modal.style.display = 'none';
@@ -623,41 +632,41 @@
     pendingDeleteShiftId = null;
   };
 
-  window.confirmExecuteDeleteShift = function () {
+  window.dlv_confirmExecuteDeleteShift = function () {
     if (!pendingDeleteShiftId) return;
     const shiftId = pendingDeleteShiftId;
 
     currentShifts = currentShifts.filter((s) => String(s.id) !== String(shiftId));
     saveShifts(currentShifts);
     renderShiftsTable();
-    window.closeDeleteModal();
+    window.dlv_closeDeleteModal();
     showToastNotification(`Đã xóa thành công ca giao hàng [Mã ca ${shiftId}]!`);
   };
 
-  window.clearFilterDate = function () {
-    const dateFilter = document.getElementById('filterDate');
+  window.dlv_clearFilterDate = function () {
+    const dateFilter = document.getElementById('dlvFilterDate');
     if (dateFilter) {
       dateFilter.value = '';
     }
     renderShiftsTable();
   };
 
-  window.printCurrentReportModal = function () {
+  window.dlv_printCurrentReportModal = function () {
     window.print();
   };
 
   document.addEventListener('DOMContentLoaded', () => {
-    const dateFilter = document.getElementById('filterDate');
+    const dateFilter = document.getElementById('dlvFilterDate');
     if (dateFilter) {
       const today = new Date().toISOString().split('T')[0];
       dateFilter.value = today;
     }
 
-    const filterStation = document.getElementById('filterStation');
-    const filterStatus = document.getElementById('filterStatus');
-    const filterDateInput = document.getElementById('filterDate');
-    const shiftSearch = document.getElementById('shiftSearch');
-    const btnApplyFilter = document.getElementById('btnApplyFilter');
+    const filterStation = document.getElementById('dlvFilterStation');
+    const filterStatus = document.getElementById('dlvFilterStatus');
+    const filterDateInput = document.getElementById('dlvFilterDate');
+    const shiftSearch = document.getElementById('dlvShiftSearch');
+    const btnApplyFilter = document.getElementById('dlvBtnApplyFilter');
 
     if (filterStation) filterStation.addEventListener('change', renderShiftsTable);
     if (filterStatus) filterStatus.addEventListener('change', renderShiftsTable);

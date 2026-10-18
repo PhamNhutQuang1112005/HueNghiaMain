@@ -78,8 +78,8 @@ window.AUTH_ACCOUNTS = [
     role: 'cashier',
     roleLabel: 'Nhân viên thu ngân / Nhận hàng',
     // Module hàng hóa (cargo.html/receive-report.html...) nằm ở cây thư mục riêng
-    // (src/huenghia (2)/html/), không chung layout với pages/ — xem README của module đó.
-    redirect: '../huenghia (2)/html/cargo.html',
+    // (src/pages/cargo/) — xem README của module đó.
+    redirect: 'cargo/cargo.html',
     color: '#C20D08'
   }
 ];

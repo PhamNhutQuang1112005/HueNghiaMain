@@ -11,6 +11,7 @@
   --text-main: #111213;
   --text-muted: #6B6E70;
   --green: #16A34A;
+  --black: #111213;
 
   /* Màu trạng thái theo quy ước FR-04.1 (đồng bộ shuttle.css) */
   --status-waiting:#9CA3AF;
@@ -44,32 +45,10 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
-
-a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font-family: inherit; font-size: inherit; }
 button { cursor: pointer; border: none; background: none; }
 
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
 /* Page Header */
-.page-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 20px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
 
 .header-left {
   display: flex;
@@ -77,103 +56,6 @@ button { cursor: pointer; border: none; background: none; }
   gap: 14px;
   flex: 1;
   max-width: 750px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-}
-
-.brand-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--brand-red);
-  color: white;
-  flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25);
-}
-.brand-badge svg { width: 20px; height: 20px; }
-
-.brand-text strong {
-  display: block;
-  font-size: 15.5px;
-  font-weight: 800;
-  color: var(--text-main);
-  line-height: 1.2;
-}
-.brand-text span {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.search-shell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 380px;
-  margin-left: 8px;
-  padding: 7px 14px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  transition: all 0.15s ease;
-}
-.search-shell:focus-within {
-  background: white;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(194, 13, 8, 0.1);
-}
-.search-shell svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
-.search-shell input {
-  border: none;
-  outline: none;
-  background: transparent;
-  width: 100%;
-  font-size: 14.5px;
-  color: var(--text-main);
-}
-
-.main-nav-switcher {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-}
-.nav-switch-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  color: var(--text-muted);
-  font-size: 13.5px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-.nav-switch-item:hover {
-  color: var(--text-main);
-  background: rgba(255,255,255,0.6);
-}
-.nav-switch-item.active {
-  background: var(--surface, #ffffff);
-  color: var(--primary, #C20D08);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-.nav-switch-item svg {
-  flex-shrink: 0;
 }
 
 .status-slider {
@@ -208,41 +90,10 @@ button { cursor: pointer; border: none; background: none; }
   color: white;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-}
-
-.primary-btn {
-  background: var(--primary);
-  color: white;
-  padding: 8px 18px;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 700;
-  box-shadow: 0 3px 10px rgba(194, 13, 8, 0.25);
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
 .primary-btn:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(194, 13, 8, 0.32);
-}
-
-.ghost-btn {
-  background: white;
-  color: var(--text-main);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  font-size: 13.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: all 0.15s ease;
 }
 .ghost-btn:hover {
   background: var(--surface-2);
@@ -251,9 +102,9 @@ button { cursor: pointer; border: none; background: none; }
 }
 
 .secondary-btn {
-  background: var(--status-onboard-bg);
-  color: var(--status-onboard);
-  border: 1px solid var(--status-onboard-bg);
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border);
   padding: 8px 16px;
   border-radius: var(--radius-md);
   font-size: 13.5px;
@@ -262,90 +113,17 @@ button { cursor: pointer; border: none; background: none; }
   transition: all 0.15s ease;
 }
 .secondary-btn:hover {
-  background: #DCE7FB;
+  background: var(--surface-2);
   transform: translateY(-1px);
 }
 
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px 5px 5px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  background: white;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
-}
-
 /* Main Panel Layout */
-.main-panel {
-  flex: 1;
-  padding: 12px 20px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.toolbar {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 10px 14px;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.toolbar-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.eyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 2px;
-}
-.toolbar-head h1 {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text-main);
-}
 
 .filter-grid {
   display: grid;
   grid-template-columns: minmax(130px, 1fr) minmax(160px, 1.2fr) minmax(170px, 1.3fr) minmax(170px, 1.3fr) auto;
   gap: 12px;
   align-items: flex-end;
-}
-.filter-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-muted);
 }
 .filter-grid select, .filter-grid input {
   border: 1px solid var(--border);
@@ -357,21 +135,6 @@ button { cursor: pointer; border: none; background: none; }
   font-weight: 500;
   outline: none;
   height: 38px;
-}
-.filter-grid input[type="date"] {
-  min-height: 38px;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-  background: white;
-  border: 1.5px solid var(--border-dark);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  cursor: pointer;
-}
-.filter-grid select:focus, .filter-grid input:focus {
-  background: white;
-  border-color: var(--primary);
 }
 .filter-submit-wrap {
   display: flex;
@@ -401,18 +164,6 @@ button { cursor: pointer; border: none; background: none; }
 }
 
 /* Bảng không cuộn ngang */
-.table-card {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
-}
 
 .table-scroll table {
   width: 100%;
@@ -462,24 +213,10 @@ button { cursor: pointer; border: none; background: none; }
   vertical-align: middle;
 }
 
-.table-scroll tr:hover td {
-  background: var(--surface-2);
-}
-
 .cargo-name {
   color: var(--text-main);
   font-weight: 700;
   font-size: 13px;
-}
-
-code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  background: var(--surface-2);
-  color: var(--text-muted);
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 /* Thẻ Biển số xe Slate Nhã Nhặn */
@@ -498,13 +235,6 @@ code {
 }
 
 /* Thẻ Tuyến đường tinh tế */
-.route-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 14.5px;
-  color: var(--text-main);
-}
 
 .route-badge {
   display: inline-flex;
@@ -518,18 +248,6 @@ code {
 }
 
 /* Thẻ Trạng thái */
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 13.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.status-pending { background: var(--status-waiting-bg); color: var(--status-waiting); }
-.status-in-transit { background: var(--status-onboard-bg); color: var(--status-onboard); }
-.status-delivered { background: #EAFBF1; color: var(--green); }
 
 /* Cụm nút hành động */
 .action-group {
@@ -538,40 +256,10 @@ code {
   gap: 6px;
   white-space: nowrap;
 }
-.action-group button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
 .action-group button svg {
   width: 16px;
   height: 16px;
   pointer-events: none;
-}
-
-.action-group .btn-detail {
-  background: var(--surface-2);
-  color: var(--text-main);
-  border-color: var(--border);
-}
-.action-group .btn-detail:hover {
-  background: var(--border);
-}
-
-.action-group .btn-receipt {
-  background: var(--status-onboard-bg);
-  color: var(--status-onboard);
-  border-color: var(--status-onboard-bg);
-}
-.action-group .btn-receipt:hover {
-  background: #DCE7FB;
 }
 
 .action-group .btn-transfer {
@@ -583,15 +271,6 @@ code {
   background: var(--border);
 }
 
-.action-group .btn-edit {
-  background: var(--status-onboard-bg);
-  color: var(--status-onboard);
-  border-color: var(--status-onboard-bg);
-}
-.action-group .btn-edit:hover {
-  background: #DCE7FB;
-}
-
 .action-group .btn-print {
   background: #EAFBF1;
   color: var(--green);
@@ -601,71 +280,7 @@ code {
   background: #D3F5E0;
 }
 
-.action-group .btn-delete {
-  background: var(--red-light);
-  color: var(--primary);
-  border-color: var(--red-light);
-}
-.action-group .btn-delete:hover {
-  background: #FBD9D8;
-}
-
 /* Modals */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 1000;
-  overflow-y: auto;
-}
-.modal-overlay.open { display: flex; }
-.modal-card {
-  width: min(980px, 100%);
-  max-height: min(90vh, 850px);
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-
-.modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-  background: white;
-  flex-shrink: 0;
-  z-index: 2;
-}
-
-.modal-head .icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-muted);
-  font-size: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.modal-head .icon-btn:hover {
-  background: var(--red-light);
-  color: var(--primary);
-  border-color: #F8C9C7;
-  transform: scale(1.05);
-}
 
 .modal-form {
   flex: 1;
@@ -881,8 +496,6 @@ code {
   border-color: var(--primary);
 }
 
-.full-width { grid-column: 1 / -1; }
-
 .modal-actions {
   display: flex;
   align-items: center;
@@ -1016,25 +629,6 @@ code {
 .minimal-val.bold {
   font-weight: 700;
 }
-
-.toast {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  background: var(--text-main);
-  color: white;
-  padding: 10px 18px;
-  font-size: 14.5px;
-  font-weight: 600;
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-md);
-  opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.2s ease;
-  pointer-events: none;
-  z-index: 120;
-}
-.toast.show { opacity: 1; transform: translateY(0); }
 
 /* Shipping Label Sticker Card */
 .cargo-sticker-card {
@@ -1296,7 +890,7 @@ input[type=number] {
   }
   /* Filter grid: 2-col trên tablet */
   .filter-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10px;
   }
 }
@@ -1353,7 +947,7 @@ input[type=number] {
 
   /* ── Filter grid stack dọc ── */
   .filter-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px;
   }
 
@@ -1405,124 +999,20 @@ input[type=number] {
    không nâng specificity ở đây).
    ========================================================= */
 
-.app-shell .app-sidebar {
-  background: #7E0B07;
-  border-right: none;
-  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.15);
-}
-
-.app-shell .app-sidebar .sidebar-content::-webkit-scrollbar { width: 0; }
-
-.app-shell .app-sidebar .sidebar-section-title {
-  color: rgba(255, 255, 255, 0.65);
-}
-
 /* Nav item cơ bản — chữ/icon trắng mờ trên nền đỏ đậm, sáng hẳn khi hover */
-.app-shell .app-sidebar .sidebar-nav-item {
-  color: rgba(255, 255, 255, 0.85);
-}
-.app-shell .app-sidebar .sidebar-nav-item svg.nav-icon {
-  width: 19px !important;
-  height: 19px !important;
-  color: rgba(255, 255, 255, 0.7);
-  stroke: currentColor;
-  fill: none;
-}
-.app-shell .app-sidebar .sidebar-nav-item:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
-}
-.app-shell .app-sidebar .sidebar-nav-item:hover svg.nav-icon {
-  color: #FFFFFF;
-}
 
 /* Item đang active — khối trắng nổi (floating white pill), chữ đỏ thương hiệu */
-.app-shell .app-sidebar .sidebar-nav-item.active {
-  background: #FFFFFF;
-  color: var(--primary);
-  font-weight: 800;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-}
-.app-shell .app-sidebar .sidebar-nav-item.active svg.nav-icon {
-  color: var(--primary);
-}
 
 /* Tiêu đề nhóm accordion ("Nhận hàng" / "Giao hàng") — bỏ nền xám, dùng kiểu nav item trên nền đỏ */
-.app-shell .app-sidebar .sidebar-nav-item.nav-group-header {
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0.85) !important;
-}
-.app-shell .app-sidebar .sidebar-nav-item.nav-group-header:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: #FFFFFF !important;
-}
-.app-shell .app-sidebar .submenu-chevron {
-  color: rgba(255, 255, 255, 0.6);
-}
-.app-shell .app-sidebar .sidebar-nav-group.open > .nav-group-header .submenu-chevron,
-.app-shell .app-sidebar .sidebar-subgroup.open > .sidebar-nav-item .submenu-chevron {
-  color: #FFFFFF;
-}
 
 /* Vạch dẫn thụt lề của nhóm/submenu — dùng viền trắng mờ thay vì hồng nhạt */
-.app-shell .app-sidebar .group-children,
-.app-shell .app-sidebar .sidebar-submenu {
-  border-left-color: rgba(255, 255, 255, 0.15);
-}
 
 /* Bộ lọc trạng thái (status slider) trong submenu — pill trong suốt trên nền đỏ, active thành pill trắng */
-.app-shell .app-sidebar .sidebar-status-slider .status-option {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.85);
-  border-color: transparent;
-}
-.app-shell .app-sidebar .sidebar-status-slider .status-option:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
-}
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active {
-  background: #FFFFFF;
-  color: var(--primary);
-  border-color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-}
 
 /* Icon bộ lọc trạng thái (status-dot-icon) — bỏ khung/nền tròn màu, chỉ giữ icon phẳng đơn sắc
    theo màu phân loại, đồng bộ kiểu "plain line icon" như nav-icon/admin. */
-.app-shell .app-sidebar .status-dot-icon {
-  width: 19px;
-  height: 19px;
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0;
-}
-.app-shell .app-sidebar .status-dot-icon svg {
-  width: 19px;
-  height: 19px;
-  stroke-width: 2;
-}
-.app-shell .app-sidebar .status-dot-icon.dot-all,
-.app-shell .app-sidebar .status-dot-icon.dot-goods,
-.app-shell .app-sidebar .status-dot-icon.dot-cash,
-.app-shell .app-sidebar .status-dot-icon.dot-hot,
-.app-shell .app-sidebar .status-dot-icon.dot-baga,
-.app-shell .app-sidebar .status-dot-icon.dot-returned {
-  color: rgba(255, 255, 255, 0.7);
-}
-.app-shell .app-sidebar .sidebar-status-slider .status-option:hover .status-dot-icon {
-  color: #FFFFFF;
-}
 
 /* Khi option active (nền pill trắng) — icon chuyển sang đỏ thương hiệu để tương phản, giống nav-icon active */
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-all,
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-goods,
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-cash,
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-hot,
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-baga,
-.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon.dot-returned {
-  background: transparent !important;
-  color: var(--primary);
-}
 
 /* =========================================================
    HEADER (TOPBAR) — Khối logo màu đỏ đậm full-height, cùng bề rộng
@@ -1530,100 +1020,11 @@ input[type=number] {
    kiểu dáng khối brand — giữ nguyên thanh tìm kiếm + user-chip hiện có.
    ========================================================= */
 
-.app-shell .page-header {
-  padding: 0 20px 0 0;
-}
-
-.app-shell .brand {
-  order: -1;
-  height: var(--header-height, 60px);
-  width: var(--sidebar-width, 255px);
-  flex: 0 0 var(--sidebar-width, 255px);
-  background: #6B0805;
-  margin: 0;
-  padding: 0 14px;
-  box-sizing: border-box;
-  position: relative;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.app-shell .brand::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: #7E0B07;
-}
-.app-shell .brand .brand-badge {
-  background: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-.app-shell .brand .brand-badge svg {
-  stroke: var(--primary);
-}
-.app-shell .brand .brand-text strong {
-  color: #FFFFFF;
-}
-.app-shell .brand .brand-text span {
-  color: rgba(255, 255, 255, 0.78);
-}
-
 /* Đồng bộ bề rộng khối logo với sidebar khi thu gọn (JS chỉ toggle .is-collapsed trên #appSidebar) */
-.app-shell:has(.app-sidebar.is-collapsed) .brand {
-  width: var(--sidebar-collapsed-width, 68px);
-  flex: 0 0 var(--sidebar-collapsed-width, 68px);
-  justify-content: center;
-  padding: 0;
-  gap: 0;
-}
-.app-shell:has(.app-sidebar.is-collapsed) .brand .brand-text {
-  display: none;
-}
 
 /* Cho header-left đủ chỗ chứa brand (255px) + breadcrumb + ô tìm kiếm */
-.app-shell .header-left {
-  max-width: none;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.app-shell .header-left .search-shell {
-  flex: 0 1 380px;
-  min-width: 160px;
-}
 
 /* Breadcrumb — kiểu giống hệt .admin-breadcrumb bên admin.css */
-.app-shell .page-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  flex: 0 1 auto;
-}
-.app-shell .page-breadcrumb .bc-home-ic {
-  width: 15px;
-  height: 15px;
-  flex: 0 0 auto;
-  stroke: currentColor;
-  fill: none;
-}
-.app-shell .page-breadcrumb .bc-sep {
-  flex: 0 0 auto;
-  color: #94A3B8;
-}
-.app-shell .page-breadcrumb .bc-seg {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.app-shell .page-breadcrumb .bc-current {
-  color: var(--text-main);
-  font-weight: 800;
-}
 
 @media (max-width: 992px) {
   .app-shell .page-breadcrumb {
