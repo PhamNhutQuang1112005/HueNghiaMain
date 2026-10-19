@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=111" />
   <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109" />
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
-  <link rel="stylesheet" href="admin/admin.css?v=177" />
+  <link rel="stylesheet" href="admin/admin.css?v=180" />
   <link rel="stylesheet" href="admin/admin-ts-modals.css?v=5" />
   <!-- CSS của CKEditor 5 (ô "Nội dung chi tiết" ở modal Thêm/Sửa bài tuyển dụng — admin-recruitment.js).
        File tĩnh TỰ LƯU trong repo (../shared/vendor/ckeditor5/), KHÔNG tải qua CDN — bản CDN ("cloud")
@@ -416,14 +416,15 @@
     <span id="toastText"></span>
   </div>
 
-  <script src="../shared/js/storage-keys.js?v=10"></script>
+  <script src="../shared/js/storage-keys.js?v=12"></script>
   <script src="../shared/js/format.js?v=9"></script>
   <script src="../shared/js/constants.js?v=5"></script>
   <script src="../shared/js/seat-bank.js?v=3"></script>
-  <script src="../auth/session.js?v=1"></script>
-  <script src="../auth/permissions.js?v=2"></script>
+  <script src="../auth/session.js?v=2"></script>
+  <script src="../auth/auth-log.js?v=1"></script>
+  <script src="../auth/permissions.js?v=6"></script>
   <script src="../auth/accounts.js?v=2"></script>
-  <script src="../shared/js/fleet-store.js?v=18"></script>
+  <script src="../shared/js/fleet-store.js?v=21"></script>
   <script src="../shared/js/agent-store.js?v=1"></script>
   <script src="../shared/js/recruitment-data.js?v=1"></script>
 
@@ -435,7 +436,7 @@
   <!-- admin.js (1333 dòng) đã tách theo banner mục 1–8 thành các mảnh liền mạch — NẠP ĐÚNG
        THỨ TỰ (= thứ tự dòng file gốc); admin-settings-boot.js chứa dòng BOOT ở cuối nên phải nạp
        SAU cùng. Biến/hàm vẫn là global top-level như cũ. -->
-  <script src="admin/admin.js?v=34"></script>
+  <script src="admin/admin.js?v=38"></script>
   <script src="admin/admin-dashboard.js?v=3"></script>
   <script src="admin/admin-station-directory.js?v=16"></script>
   <script src="admin/admin-placeholders.js?v=6"></script>
@@ -447,13 +448,15 @@
   <script src="admin/admin-ticket-office.js?v=5"></script>
   <script src="admin/admin-customers.js?v=7"></script>
   <script src="admin/admin-vehicles.js?v=3"></script>
-  <script src="admin/admin-staff.js?v=4"></script>
-  <script src="admin/admin-accounts.js?v=5"></script>
-  <script src="admin/admin-staff-config.js?v=4"></script>
-  <script src="admin/admin-staff-stats.js?v=7"></script>
+  <script src="admin/admin-hr-common.js?v=2"></script>
+  <script src="admin/admin-staff.js?v=7"></script>
+  <script src="admin/admin-accounts.js?v=7"></script>
+  <script src="admin/admin-staff-config.js?v=9"></script>
+  <script src="admin/admin-work-kinds.js?v=3"></script>
+  <script src="admin/admin-staff-stats.js?v=8"></script>
   <script src="admin/admin-recruitment.js?v=4"></script>
   <script src="admin/admin-agents.js?v=1"></script>
-  <script src="admin/admin-activity.js?v=1"></script>
+  <script src="admin/admin-activity.js?v=3"></script>
   <script src="admin/admin-seat-layouts.js?v=4"></script>
   <script src="admin/admin-vehicle-seats.js?v=2"></script>
   <script src="admin/admin-vehicle-categories.js?v=10"></script>

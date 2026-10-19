@@ -19,7 +19,7 @@
    shuttle) cố tình KHÔNG chặn, giữ nguyên hiện trạng hệ thống demo.
    --------------------------------------------------------- */
 (function adminGuard() {
-  if (!Auth.isAdmin()) {
+  if (!Auth.canEnterAdmin()) {
     location.replace('index.html');
   }
 })();

@@ -36,6 +36,8 @@
   }
 
   function clear() {
+    // Ghi giờ ra của phiên (user_sessions.revoked_at, revoke_reason = logout) nếu auth-log.js được nạp.
+    try { if (window.AuthLog) window.AuthLog.onLogout(); } catch (e) { /* ignore */ }
     sessionStorage.removeItem(KEY);
   }
 

@@ -48,6 +48,19 @@ const HN_STAFF_KEY = 'hn_staff_v1';
 const HN_STAFF_ROLES_KEY = 'hn_staff_roles_v1';
 const HN_AGENTS_KEY = 'hn_agents_v1'; // Danh sách Đại lý — xem shared/js/agent-store.js
 const HN_ADMIN_ACTIVITY_KEY ='hn_admin_activity_v1';
+// ===== Nhân sự v2.9: trạng thái làm việc, ca mẫu (lịch ca đăng nhập), ca làm thực tế =====
+const HN_WORK_KINDS_KEY = 'hn_work_kinds_v1';                  // work_kinds (nhóm công việc, bảng riêng)
+const HN_EMPLOYMENT_STATUSES_KEY = 'hn_employment_statuses_v1'; // employment_statuses
+const HN_SHIFT_TEMPLATES_KEY = 'hn_shift_templates_v1';         // shift_templates (ca mẫu — KHÔNG phải ca thực tế)
+const HN_SHIFTS_KEY = 'hn_shifts_v1';                           // shifts (ca thực tế do module kết ca ghi)
+// ===== Phiên, thiết bị, sự kiện đăng nhập, duyệt đăng nhập (auth/auth-log.js) =====
+const HN_AUTH_SESSIONS_KEY = 'hn_auth_sessions_v1';   // user_sessions
+const HN_AUTH_DEVICES_KEY = 'hn_auth_devices_v1';     // user_devices (sổ thiết bị)
+const HN_AUTH_EVENTS_KEY = 'hn_auth_events_v1';       // auth_events
+const HN_LOGIN_APPROVALS_KEY = 'hn_login_approvals_v1'; // login_approvals
+const HN_LOGIN_EXCEPTIONS_KEY = 'hn_login_exceptions_v1'; // login_exceptions
+const HN_DEVICE_TOKEN_KEY = 'hn_device_token_v1';     // mã thiết bị ngẫu nhiên của trình duyệt này
+const HN_APP_SETTINGS_HR_KEY = 'hn_hr_settings_v1';   // tham số M09: idle_timeout_minutes, log_retention_months...
 const HN_SEAT_LAYOUTS_KEY = 'hn_seat_layouts_v2';
 const HN_VEHICLE_CATEGORIES_KEY = 'hn_vehicle_categories_v1';
 const HN_VEHICLE_SEATS_KEY = 'hn_vehicle_seats_v1';
