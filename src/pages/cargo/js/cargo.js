@@ -77,6 +77,8 @@ function parseFeeInput(val, defaultVal = 150000) {
   return num;
 }
 
+const MONEY_CATS = ['cash', 'hot', 'partner_cash'];
+
 function isMoneyCargo(cargo) {
   if (!cargo) return false;
   const cat = cargo.cargoCategory;
@@ -162,11 +164,14 @@ function syncCargosWithManifests(cargos) {
       cargo.name = cargo.name.replace(/🧳/g, '').trim();
     }
     const name = (cargo.name || '').toLowerCase();
-    if (name.includes('nóng') || name.includes('50tr')) {
+    if (MONEY_CATS.includes(cargo.cargoCategory)) {
+      // đã phân loại đúng lúc tạo: không đoán lại theo tên
+    } else if (name.includes('nóng') || name.includes('50tr')) {
       cargo.cargoCategory = 'hot';
     } else if (name.includes('bạn hàng')) {
       cargo.cargoCategory = 'partner_cash';
-    } else if (name.includes('tiền')) {
+    } else if (name.includes('tiền') || Number(cargo.moneyAmount) > 0) {
+      // đơn cũ lưu nhầm 'goods' nhưng có số tiền gửi => là tiền (không phân biệt được nóng/thường, coi là thường)
       cargo.cargoCategory = 'cash';
     } else if (cargo.status === 'returned') {
       cargo.cargoCategory = 'returned';
@@ -588,11 +593,13 @@ function getFilteredData() {
   return state.data.filter((row) => {
     const name = (row.name || '').toLowerCase();
     let itemCat = row.cargoCategory;
-    if (name.includes('nóng') || name.includes('50tr')) {
+    if (MONEY_CATS.includes(itemCat)) {
+      // giữ nguyên loại tiền đã lưu
+    } else if (name.includes('nóng') || name.includes('50tr')) {
       itemCat = 'hot';
     } else if (name.includes('bạn hàng')) {
       itemCat = 'partner_cash';
-    } else if (name.includes('tiền')) {
+    } else if (name.includes('tiền') || Number(row.moneyAmount) > 0) {
       itemCat = 'cash';
     } else if (name.includes('baga') || name.includes('xe máy') || name.includes('tay ga') || name.includes('xe số')) {
       itemCat = 'baga';

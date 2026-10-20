@@ -381,3 +381,30 @@
 .route-pill svg {
   color: #0f172a;
 }
+
+/* Tab + bố cục 3 cột "Cấn trừ giữa các trạm" */
+.cod-tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--border, #cbd5e1); }
+.cod-tab { padding: 8px 16px; font-weight: 700; font-size: 13.5px; color: #475569; background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer; }
+.cod-tab.active { color: #0f172a; border-bottom-color: var(--primary, #C20D08); }
+.nt-grid { display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; gap: 14px; margin-bottom: 20px; align-items: start; }
+.nt-col { background: white; border: 1px solid var(--border, #cbd5e1); border-radius: 10px; padding: 14px; }
+.nt-col h3 { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+.nt-col select { width: 100%; margin-bottom: 8px; }
+.nt-sum { display: flex; flex-direction: column; font-size: 12.5px; color: #475569; margin-top: 10px; }
+.nt-sum b { font-family: 'Roboto Mono', monospace; font-size: 18px; color: #0f172a; }
+.nt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nt-table th, .nt-table td { padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
+.nt-table .r { text-align: right; font-family: 'Roboto Mono', monospace; }
+.nt-table td:last-child { white-space: nowrap; }
+.nt-table td select { width: auto; margin: 0 4px; }
+.nt-chain { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; color: #334155; }
+.nt-chain small { color: #94a3b8; }
+.nt-empty { color: #94a3b8; font-size: 13px; padding: 12px 0; text-align: center; }
+@media (max-width: 1100px) { .nt-grid { grid-template-columns: 1fr; } }
+.nt-total td { font-weight: 800; background: #f8fafc; }
+.nt-adj { font-size: 12px; color: #64748b; margin-top: 6px; }
+.nt-net { margin-top: 10px; font-size: 14px; color: #0f172a; }
+.nt-actions { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.nt-actions select { width: auto; margin: 0; }
+.nt-sub { font-size: 12.5px; font-weight: 800; color: #0f172a; margin: 14px 0 8px; }
+.nt-col > .nt-table { margin-top: 8px; }

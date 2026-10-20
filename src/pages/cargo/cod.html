@@ -236,6 +236,12 @@
           </div>
         </div>
 
+        <div class="cod-tabs">
+          <button type="button" class="cod-tab active" data-cod-tab="tickets">Đối soát theo phiếu</button>
+          <button type="button" class="cod-tab" data-cod-tab="netting">Cấn trừ giữa các trạm</button>
+        </div>
+        <div id="nettingPanel" class="nt-grid" style="display:none;"></div>
+
         <!-- Metrics Summary Cards -->
         <div class="cod-metrics-grid">
           <div class="cod-metric-card">
@@ -579,5 +585,7 @@
   <script src="../../shared/js/fleet-store.js"></script>
   <script src="js/auth-bridge.js"></script>
   <script src="js/responsive.js"></script>
+  <script src="js/stations.js"></script>
+  <script src="js/netting.js?v=2"></script>
 </body>
 </html>
