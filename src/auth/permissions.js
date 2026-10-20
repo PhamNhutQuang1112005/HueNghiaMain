@@ -4,7 +4,7 @@
 
    Hệ thống demo hiện CHỈ có 2 gate, trước đây nằm rải:
      - admin.html: chặn vào nếu role !== 'admin' (adminGuard trong admin.js)
-     - ticketstaff tab "Trung chuyển": role === 'shuttle_dispatch' → chế độ điều
+     - ticketstaff tab "Trung chuyển": loại có quyền transship_assign → chế độ điều
        hành (chọn nhiều + "Cập nhật"); role khác → chế độ phòng vé ("Chỉ định")
        (pkIsShuttleDispatchRole trong ticketstaff-pickup.js)
 
@@ -47,7 +47,9 @@
     // Ở chế độ ĐIỀU HÀNH trung chuyển (thay vì phòng vé) tại tab "Trung chuyển" — admin luôn có đủ
     // quyền cao nhất nên cũng được tính là chế độ điều hành (vd bấm "Đón khách" từ sidebar Admin).
     isShuttleDispatch: function () {
-      return role() === 'shuttle_dispatch' || role() === 'admin';
+      if (role() === 'admin') return true;
+      var t = window.FleetStore && FleetStore.getStaffRoles().find(function (r) { return r.key === role(); });
+      return !!t && (t.permissions || []).indexOf('transship_assign') !== -1;   // theo quyền của loại, không so mã loại
     }
   };
 })();
@@ -81,8 +83,7 @@ window.PERMISSION_GROUPS = [
       { key: 'create_trip', label: 'Tạo phơi' },
       { key: 'print_trip', label: 'In phơi' },
       { key: 'edit_trip', label: 'Sửa phơi' },
-      { key: 'delete_trip', label: 'Xóa phơi' },
-      { key: 'close_shift_reconcile', label: 'Kết ca / đối soát' }
+      { key: 'delete_trip', label: 'Xóa phơi' }
     ]
   },
   {
@@ -110,21 +111,10 @@ window.PERMISSION_GROUPS = [
     ]
   },
   {
-    key: 'shift',
-    label: 'Ca làm việc',
-    items: [
-      { key: 'manage_shift_call_center', label: 'Mở / kết ca Tổng đài', fn: 'call_center' },
-      { key: 'manage_shift_ticket_office', label: 'Mở / kết ca Phòng vé', fn: 'ticket_office' },
-      { key: 'manage_shift_cargo_receive', label: 'Mở / kết ca Nhận hàng', fn: 'cargo_receive' },
-      { key: 'manage_shift_cargo_delivery', label: 'Mở / kết ca Giao hàng', fn: 'cargo_delivery' },
-      { key: 'manage_shift_shuttle_driver', label: 'Kết ca Tài xế trung chuyển', fn: 'shuttle_driver' }
-    ]
-  },
-  {
     key: 'hr_system',
     label: 'Nhân sự & hệ thống',
     items: [
-      { key: 'manage_hr', label: 'Quản lý nhân sự (hồ sơ, loại, trạng thái, lịch ca)', protects: true },
+      { key: 'manage_hr', label: 'Quản lý nhân sự (hồ sơ, loại, trạng thái)', protects: true },
       { key: 'manage_accounts', label: 'Quản lý tài khoản (tạo, đặt lại mật khẩu, khóa)', protects: true },
       { key: 'revoke_sessions', label: 'Thu hồi phiên đăng nhập' },
       { key: 'view_staff_stats', label: 'Xem thống kê nhân sự' },
@@ -135,35 +125,14 @@ window.PERMISSION_GROUPS = [
   }
 ];
 
-/* Danh mục CHỨC NĂNG (work_functions) — mỗi quyền ca mang 1 function_key; nhân viên "có chức năng" khi loại của
-   họ chứa ít nhất 1 quyền mang function_key đó. has_shift = phải mở ca khi thao tác; auto_open = API tự mở ca. */
-window.WORK_FUNCTIONS = [
-  { key: 'call_center', label: 'Tổng đài', hasShift: true, autoOpen: false },
-  { key: 'ticket_office', label: 'Phòng vé', hasShift: true, autoOpen: false },
-  { key: 'cargo_receive', label: 'Nhận hàng', hasShift: true, autoOpen: false },
-  { key: 'cargo_delivery', label: 'Giao hàng', hasShift: true, autoOpen: false },
-  { key: 'shuttle_driver', label: 'Tài xế trung chuyển', hasShift: true, autoOpen: true },
-  { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', hasShift: false, autoOpen: false }
-];
-
-/* Tra nhanh thông tin 1 quyền: { key, label, group, groupLabel, fn, protects } hoặc null. */
+/* Tra nhanh thông tin 1 quyền: { key, label, group, groupLabel, protects } hoặc null. */
 window.permInfo = function (key) {
   var gs = window.PERMISSION_GROUPS || [];
   for (var i = 0; i < gs.length; i++) {
     for (var j = 0; j < gs[i].items.length; j++) {
       var it = gs[i].items[j];
-      if (it.key === key) return { key: it.key, label: it.label, group: gs[i].key, groupLabel: gs[i].label, fn: it.fn || null, protects: !!it.protects };
+      if (it.key === key) return { key: it.key, label: it.label, group: gs[i].key, groupLabel: gs[i].label, protects: !!it.protects };
     }
   }
   return null;
-};
-/* Nhóm công việc (employee_types.work_kind) là BẢNG RIÊNG work_kinds, cấu hình ở Nhân sự > Cấu hình nhân sự > tab Nhóm công việc
-   (FleetStore.getWorkKinds, shared/js/fleet-store.js) — không khai báo cứng ở đây. Trả { key, label, self, license, active, ... } hoặc null. */
-window.workKindInfo = function (key) {
-  return (window.FleetStore && window.FleetStore.workKind) ? window.FleetStore.workKind(key) : null;
-};
-window.workFunctionLabel = function (key) {
-  var a = window.WORK_FUNCTIONS || [];
-  for (var i = 0; i < a.length; i++) if (a[i].key === key) return a[i].label;
-  return key || '';
 };

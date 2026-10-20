@@ -1,5 +1,5 @@
 /* =========================================================
-   6. QUẢN LÝ TÀI KHOẢN (HR v2.9) — bảng users + user_sessions + user_devices + login_approvals + login_exceptions
+   6. QUẢN LÝ TÀI KHOẢN (HR v3.1) — bảng users + user_sessions + user_devices + login_approvals
    Chuỗi quyền: tài khoản -> nhân viên -> loại nhân viên -> quyền của loại. Trang này CHỈ XEM quyền (đổi quyền = đổi loại ở trang
    Nhân viên; sửa quyền trong một loại ở Cấu hình nhân sự). Tài khoản chỉ tạo SAU khi có nhân viên (chọn nhân viên, không nhập họ tên/loại).
    Không xoá tài khoản: khóa kèm lý do. Admin gốc (role 'admin') chỉ đọc; chỉ admin gốc đổi username.
@@ -22,10 +22,12 @@ function acHasPerm(perm) {
   var st = FleetStore.getStaff().find(function (s) { return s.username === me.username; });
   return !!(st && hrRoleHas(st.role, perm));
 }
-// Quy tắc "AI SỬA AI" cho 1 tài khoản đích: không tự sửa mình; nhóm được bảo vệ chỉ admin gốc.
-function acCheckManage(acc, opt) {
+// Quy tắc "AI SỬA AI" cho 1 tài khoản đích: cần quyền perm (mặc định manage_accounts; null = không kiểm, cho hàm tự kiểm quyền riêng như revoke_sessions),
+// không tự sửa mình; nhóm được bảo vệ chỉ admin gốc.
+function acCheckManage(acc, perm) {
   var me = hrActor();
   if (me.isRoot) return { ok: true };
+  if (perm !== null && !acHasPerm(perm || 'manage_accounts')) return { ok: false, reason: 'Bạn không có quyền quản lý tài khoản.' };
   if (hrIsRootAccount(acc)) return { ok: false, reason: 'Chỉ admin gốc xử lý tài khoản admin gốc.' };
   if (acc.username === me.username) return { ok: false, reason: 'Không ai tự thao tác lên chính mình (trừ tự đổi mật khẩu).' };
   var st = hrStaffOfAccount(acc);
@@ -40,7 +42,7 @@ function acLoginState(acc) {
   var st = hrStaffOfAccount(acc);
   if (!root && st && hrStatusLocks(hrStaffStatus(st))) reasons.push({ code: 'employee_locked', label: 'Nhân viên ' + hrStatusName(hrStaffStatus(st)).toLowerCase(), tone: 'da-huy' });
   if (acc.active === false) reasons.push({ code: 'manual_locked', label: 'Đã khóa thủ công', tone: 'da-huy' });
-  if (!root && AuthLog.isFailedLoginLocked(acc.username)) reasons.push({ code: 'failed_login_locked', label: 'Khóa do nhập sai', tone: 'da-huy' });
+  if (AuthLog.isFailedLoginLocked(acc.username)) reasons.push({ code: 'failed_login_locked', label: 'Khóa do nhập sai', tone: 'da-huy' });
   if (acc.mustChangePassword) reasons.push({ code: 'must_change_password', label: 'Phải đổi mật khẩu', tone: 'da-chi-dinh' });
   if (!reasons.length) reasons.push({ code: 'ok', label: 'Hoạt động', tone: 'dang-ban' });
   return { main: reasons[0], reasons: reasons };
@@ -65,15 +67,12 @@ function acWarnings(acc) {
   var role = hrRole(st.role);
   var scope = hrScope(st);
   if (hrIsProtectedStaff(st) && !scope.viewAll) w.push('Nhóm HR chưa có quyền Xem dữ liệu mọi trạm (sửa loại ở Cấu hình nhân sự)');
-  if (hrShiftFunctionsOfRole(st.role).length && !scope.viewAll && !scope.self && !scope.names.length) w.push('Có chức năng phải mở ca nhưng chưa có trạm xem được');
+  if (!scope.viewAll && !scope.self && !scope.names.length) w.push('Chưa có trạm xem được (đăng nhập được nhưng không thấy dữ liệu trạm nào)');
   (st.regions || []).forEach(function (rk) { if (!hrStationsOfRegion(rk).length) w.push('Khu vực "' + hrRegionName(rk) + '" chưa có trạm active'); });
   if (role && !role.active) w.push('Loại nhân viên đã ngừng dùng');
+  if (role && !role.permissions.length) w.push('Loại nhân viên chưa có quyền nào');
   var status = hrStaffStatus(st);
   if (status === 'suspended' && !hrStatusLocks('suspended')) w.push('Đang tạm ngưng mà trạng thái này không khóa đăng nhập');
-  if (hrStatusLocks(status) || acc.active === false) {
-    var open = hrOpenShifts(acc.username).length;
-    if (open) w.push('Chủ ca đã nghỉ hoặc bị khóa mà còn ' + open + ' ca đang mở');
-  }
   var p = acPendingApprovals(acc.username).length;
   if (p) w.push(p + ' yêu cầu duyệt đăng nhập đang chờ');
   return w;
@@ -92,7 +91,7 @@ function acPermissionsFieldHtml(selected, opts) {
   }).filter(function (g) { return g.items.length; });
   var changeAttr = opts.onChange ? ' data-change-action="' + opts.onChange + '"' : '';
   return '<div class="fld">' +
-    '<label>' + esc(opts.label || 'Phân quyền theo chức năng') + '</label>' +
+    '<label>' + esc(opts.label || 'Phân quyền') + '</label>' +
     (opts.hint ? '<span class="hint-inline">' + esc(opts.hint) + '</span>' : '') +
     '<div class="acc-perm-groups">' +
       groups.map(function (g) {
@@ -105,7 +104,7 @@ function acPermissionsFieldHtml(selected, opts) {
           '<div class="acc-perm-group-items" data-scope="' + scope + '" data-perm-group="' + g.key + '">' +
             g.items.map(function (it) {
               if (opts.readonly) {
-                return selected.indexOf(it.key) !== -1 ? '<div class="acc-perm-check"><span>✓ ' + esc(it.label) + (it.fn ? ' <em>(' + esc(window.workFunctionLabel(it.fn)) + ')</em>' : '') + '</span></div>' : '';
+                return selected.indexOf(it.key) !== -1 ? '<div class="acc-perm-check"><span>✓ ' + esc(it.label) + '</span></div>' : '';
               }
               return '<label class="acc-perm-check">' +
                 '<input type="checkbox" value="' + esc(it.key) + '"' + (selected.indexOf(it.key) !== -1 ? ' checked' : '') + changeAttr + '>' +
@@ -351,10 +350,8 @@ function adminAccountRowMenu(btn, id) {
     html += item('adminOpenPassModal', 'Đặt lại mật khẩu');
     var locked = acc.active === false;
     html += item('acOpenLockModal', locked ? 'Mở khóa' : 'Khóa', !locked);
-    if (AuthLog.isFailedLoginLocked(acc.username)) html += item('acUnlockFailedLogin', 'Mở khóa nhập sai');
-    html += item('acOpenExceptionModal', 'Cấp ngoại lệ đăng nhập');
-    if (AuthLog.activeException(acc.username)) html += item('acRevokeException', 'Thu hồi ngoại lệ đăng nhập');
   }
+  if (!isSelf && AuthLog.isFailedLoginLocked(acc.username)) html += item('acUnlockFailedLogin', 'Mở khóa nhập sai');
   if (me.isRoot && !root) html += item('acOpenRenameModal', 'Đổi tên tài khoản');
   if (me.isRoot && root && !isSelf) html += item('acOpenRenameModal', 'Đổi tên tài khoản');
   if (AuthLog.liveSession(acc.username) && !isSelf) html += item('acRevokeSession', 'Thu hồi phiên', true);
@@ -377,33 +374,20 @@ function acStaffWithoutAccount(mode) {
 function acStaffSummaryHtml(s) {
   if (!s) return '<div class="hint-inline">Chọn nhân viên để xem họ tên, loại, trạm và khu vực.</div>';
   var scope = hrScope(s);
-  var fns = hrFunctionsOfRole(s.role).map(function (f) { return window.workFunctionLabel(f); });
   return '<div class="hr-summary">' +
     '<div><span>Họ tên</span><b>' + esc(s.name) + '</b></div>' +
     '<div><span>Mã NV</span><b>' + esc(s.code || '—') + '</b></div>' +
     '<div><span>Loại nhân viên</span><b>' + esc(hrRoleLabel(s.role)) + '</b></div>' +
     '<div><span>Trạm</span><b>' + (smStationSummary(s) || '—') + '</b></div>' +
     '<div><span>Khu vực</span><b>' + (hrIsSelfKind(s.role) ? 'Chỉ dữ liệu của mình' : (smRegionSummary(s) || '—')) + '</b></div>' +
-    '<div><span>Quyền / chức năng</span><b>' + hrRolePerms(s.role).length + ' quyền' + (fns.length ? ' · ' + esc(fns.join(', ')) : '') + '</b></div>' +
+    '<div><span>Quyền</span><b>' + (hrRolePerms(s.role).length ? hrRolePerms(s.role).length + ' quyền' : 'Chưa có quyền nào (loại 0 quyền)') + '</b></div>' +
     '<div><span>Xem được</span><b>' + (scope.viewAll ? 'mọi trạm' : scope.self ? 'dữ liệu của mình' : scope.names.length + ' trạm') + '</b></div>' +
   '</div>';
-}
-// Tick "Làm việc theo ca" -> hiện danh sách ca mẫu để chọn (bắt chọn ≥1 ca). Lưu vào hồ sơ nhân viên, dùng lưới của trang Nhân viên.
-function acScheduleHtml(s) {
-  if (!s) return '';
-  var on = (s.schedule || []).length > 0;
-  return '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="acByShift" data-change-action="acOnShiftToggle"' + (on ? ' checked' : '') + ' style="min-width:auto;height:auto;"> Làm việc theo ca</label>' +
-    '<div id="smSchedule" style="' + (on ? '' : 'display:none;') + '">' + smScheduleGridHtml(s.schedule) + '</div>' +
-    '<span class="hint-inline">Tick nếu nhân viên này làm theo ca (cùng loại vẫn có người ca sáng, người ca tối). Chọn ca mẫu và các ngày trong tuần.</span></div>';
-}
-function acOnShiftToggle() {
-  var cb = $('acByShift'), box = $('smSchedule'); if (cb && box) box.style.display = cb.checked ? '' : 'none';
 }
 function acOnStaffPick() {
   var sel = $('acStaff'), box = $('acStaffInfo'); if (!sel || !box) return;
   var s = FleetStore.getStaff().find(function (x) { return x.id === sel.value; });
   box.innerHTML = acStaffSummaryHtml(s);
-  $('acSchedBox').innerHTML = acScheduleHtml(s);
   var u = $('acUser');
   if (u && s && !u.value) {
     // gợi ý tên đăng nhập từ họ tên (bỏ dấu, ghép liền) — người tạo vẫn sửa được
@@ -431,7 +415,6 @@ function adminOpenAccountModal(id, staffId, mode) {
           cand.map(function (s) { return '<option value="' + esc(s.id) + '"' + (pick && pick.id === s.id ? ' selected' : '') + '>' + esc((s.code || '') + ' · ' + s.name + ' · ' + hrRoleLabel(s.role)) + '</option>'; }).join('') +
         '</select></div>' +
       '<div id="acStaffInfo">' + acStaffSummaryHtml(pick) + '</div>' +
-      '<div id="acSchedBox">' + acScheduleHtml(pick) + '</div>' +
       '<div class="fld-row">' +
         '<div class="fld"><label>Tên tài khoản (Username) <span class="req">*</span></label><input type="text" id="acUser" required placeholder="chữ thường, số, . _ - (3-32 ký tự)" autocomplete="off"></div>' +
         '<div class="fld"><label>Mật khẩu <span class="req">*</span></label><input type="password" id="acPass" required placeholder="Tối thiểu 8 ký tự" autocomplete="new-password"></div>' +
@@ -484,18 +467,8 @@ function adminSaveAccount(e, mode) {
   }
   var err = acUsernameError(username, '') || acPasswordError(password, username);
   if (err) { showToast(err); return; }
-  // Người có chức năng phải mở ca cần ít nhất một trạm xem được.
-  var scope = hrScope(staff);
-  if (hrShiftFunctionsOfRole(staff.role).length && !scope.viewAll && !scope.self && !scope.names.length) {
-    showToast('Nhân viên có chức năng phải mở ca nhưng chưa có trạm xem được. Gán trạm hoặc khu vực ở trang Quản lý nhân viên trước.'); return;
-  }
+  // v3.0: không bắt buộc trạm khi tạo tài khoản (chỉ cảnh báo ở cột Cảnh báo của danh sách).
   var role = hrRole(staff.role);
-  var sched = [];
-  if ($('acByShift').checked) {
-    sched = smReadSchedule();
-    if (!sched.length) { showToast('Đã tick làm việc theo ca: chọn ít nhất một ca.'); return; }
-    var ov = smScheduleOverlap(sched); if (ov) { showToast('Lịch ca chồng giờ: ' + ov); return; }
-  }
   var now = Date.now();
   var list = getAccountsList();
   var rec = {
@@ -510,11 +483,6 @@ function adminSaveAccount(e, mode) {
   var s2 = all.find(function (x) { return x.id === staff.id; });
   if (s2) {
     s2.username = username;
-    if (smScheduleText(s2.schedule || []) !== smScheduleText(sched)) {
-      (s2.history = s2.history || []).push({ ts: now, label: 'Lịch ca', from: smScheduleText(s2.schedule || []), to: smScheduleText(sched), reason: 'Tạo tài khoản', by: me.username });
-      hrLog('schedule_assign', 'employee_shift_schedules', staff.code || staff.id, 'Xếp lịch ca cho ' + staff.name + ' khi tạo tài khoản', { schedule: { old: smScheduleText(s2.schedule || []), new: smScheduleText(sched) } }, 'Tạo tài khoản');
-      s2.schedule = sched;
-    }
     FleetStore.setStaff(all);
   }
   hrLog('create', 'users', username, 'Tạo tài khoản ' + (mode === 'hr' ? 'HR ' : '') + username + ' cho nhân viên ' + staff.name, { employee: staff.code || staff.id, role: staff.role, must_change_password: true });
@@ -532,7 +500,6 @@ function adminOpenAccountDetail(id) {
   var perms = root ? [] : hrRolePerms(st ? st.role : acc.role);
   var live = AuthLog.liveSession(acc.username);
   var dev = live ? AuthLog.getDevices().find(function (d) { return d.id === live.deviceId; }) : null;
-  var exc = AuthLog.activeException(acc.username);
   var canManage = acCheckManage(acc).ok && !root;
   var locked = acc.active === false;
   var empLocked = state.reasons.some(function (r) { return r.code === 'employee_locked'; });
@@ -559,9 +526,8 @@ function adminOpenAccountDetail(id) {
       '</div></div>' +
       '<div class="fld-row">' +
         hrReadonlyField('Phiên đang sống', live ? esc((dev ? dev.label : 'Thiết bị không rõ') + ' · từ ' + fmtStamp(live.createdAt) + ' · hoạt động cuối ' + fmtStamp(live.lastSeenAt)) : 'Không có') +
-        hrReadonlyField('Ngoại lệ đăng nhập', exc ? esc('Đến ' + fmtStamp(exc.validUntil) + ' · ' + exc.reason) : 'Không có') +
       '</div>' +
-      (root ? '<div class="hr-note">Admin gốc có mọi quyền, miễn cổng lịch ca và miễn duyệt đăng nhập. Chỉ đọc; chỉ tự đổi mật khẩu.</div>' :
+      (root ? '<div class="hr-note">Admin gốc có mọi quyền và miễn duyệt đăng nhập. Chỉ đọc; chỉ tự đổi mật khẩu.</div>' :
         acPermissionsFieldHtml(perms, { scope: 'view', label: 'Quyền (' + perms.length + ', theo loại nhân viên — chỉ xem)', readonly: true,
           hint: 'Muốn đổi quyền, đổi loại nhân viên ở trang Quản lý nhân viên. Sửa quyền bên trong một loại chỉ admin gốc, ở Cấu hình nhân sự.' })) +
       '<div class="modal-actions">' +
@@ -587,8 +553,8 @@ function acOpenLockModal(id) {
   openAdminModal(
     '<h3>' + (lock ? 'Khóa' : 'Mở khóa') + ' tài khoản ' + esc(acc.username) + '</h3>' +
     '<form class="admin-form" data-submit-action="acApplyLock" data-args=\'["__event__","' + (lock ? 'lock' : 'unlock') + '","' + esc(acc.id) + '"]\'>' +
-      (lock ? '<div class="hr-note">Khóa sẽ thu hồi mọi phiên đang sống và hủy các yêu cầu duyệt đăng nhập đang chờ. Ca đang mở (nếu có) KHÔNG tự đóng — admin gốc đóng thay ở Thống kê nhân sự &gt; Ca đang mở.' +
-        (hrOpenShifts(acc.username).length ? ' <b>Tài khoản này còn ' + hrOpenShifts(acc.username).length + ' ca đang mở.</b>' : '') + '</div>' : '') +
+      (lock ? '<div class="hr-note">Khóa sẽ thu hồi mọi phiên đang sống và hủy các yêu cầu duyệt đăng nhập đang chờ.' +
+        '</div>' : '') +
       '<div class="fld"><label>Lý do <span class="req">*</span></label><textarea id="acLockReason" required rows="3" placeholder="' + (lock ? 'Vì sao khóa tài khoản này?' : 'Vì sao mở khóa?') + '"></textarea></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Hủy bỏ</button><button type="submit" class="btn ' + (lock ? 'btn-danger' : 'btn-primary') + '">' + (lock ? 'Khóa tài khoản' : 'Mở khóa') + '</button></div>' +
     '</form>'
@@ -689,6 +655,10 @@ function adminSavePassModal(e) {
   var list = getAccountsList(), acc = list.find(function (a) { return a.id === id; }); if (!acc) return;
   var err = acPasswordError(pass, acc.username); if (err) { showToast(err); return; }
   var me = hrActor(), isSelf = acc.username === me.username, now = Date.now();
+  if (!isSelf) {
+    var chk = acCheckManage(acc); if (!chk.ok) { showToast(chk.reason); return; }
+    if (hrIsRootAccount(acc)) { showToast('Mật khẩu admin gốc: chỉ chính admin gốc đổi.'); return; }
+  }
   acc.password = pass; acc.passwordChangedAt = now; acc.mustChangePassword = !isSelf;
   saveAccountsList(list);
   if (isSelf) {
@@ -733,59 +703,18 @@ function acApplyRename(e, id) {
   if (st) { st.username = next; FleetStore.setStaff(staff); }
   AuthLog.saveDevices(AuthLog.getDevices().map(function (d) { return d.username === old ? Object.assign({}, d, { username: next }) : d; }));
   AuthLog.saveApprovals(AuthLog.getApprovals().map(function (a) { return a.username === old ? Object.assign({}, a, { username: next }) : a; }));
-  AuthLog.saveExceptions(AuthLog.getExceptions().map(function (a) { return a.username === old ? Object.assign({}, a, { username: next }) : a; }));
   AuthLog.event('username_changed', { username: next, detail: { old: old, new: next, by: me, revoked: n } });
   hrLog('username_change', 'users', next, 'Đổi tên tài khoản ' + old + ' → ' + next, { username: { old: old, new: next } });
   closeAdminModal(); showToast('Đã đổi tên tài khoản ' + old + ' → ' + next + '.'); acRender();
 }
 
 /* =====================================================================
-   NGOẠI LỆ ĐĂNG NHẬP (chỉ bỏ qua LỊCH CA) + THU HỒI PHIÊN
+   THU HỒI PHIÊN
    ===================================================================== */
-function acOpenExceptionModal(id) {
-  var acc = getAccountsList().find(function (a) { return a.id === id; }); if (!acc) return;
-  var chk = acCheckManage(acc); if (!chk.ok) { showToast(chk.reason); return; }
-  if (!acHasPerm('manage_accounts')) { showToast('Bạn không có quyền quản lý tài khoản.'); return; }
-  openAdminModal(
-    '<h3>Cấp ngoại lệ đăng nhập cho ' + esc(acc.username) + '</h3>' +
-    '<form class="admin-form" data-submit-action="acApplyException" data-args=\'["__event__","' + esc(acc.id) + '"]\'>' +
-      '<div class="hr-note">Ngoại lệ chỉ bỏ qua <b>lịch ca</b> (tăng ca, bù ca, sự cố). Không bỏ qua khóa tài khoản hay duyệt đăng nhập.</div>' +
-      '<div class="fld-row">' +
-        '<div class="fld"><label>Hiệu lực trong (giờ) <span class="req">*</span></label><input type="number" id="exHours" min="1" max="24" value="4" required><span class="hint-inline">Tối đa 24 giờ kể từ bây giờ.</span></div>' +
-      '</div>' +
-      '<div class="fld"><label>Lý do <span class="req">*</span></label><input id="exReason" required placeholder="VD: tăng ca, bù ca, sự cố"></div>' +
-      '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Hủy bỏ</button><button type="submit" class="btn btn-primary">Cấp ngoại lệ</button></div>' +
-    '</form>'
-  );
-}
-function acApplyException(e, id) {
-  e.preventDefault();
-  var acc = getAccountsList().find(function (a) { return a.id === id; }); if (!acc) return;
-  var chk = acCheckManage(acc); if (!chk.ok) { showToast(chk.reason); return; }
-  var hours = parseFloat(($('exHours') || {}).value), reason = ($('exReason') || {}).value.trim();
-  if (!reason) { showToast('Nhập lý do.'); return; }
-  if (!(hours > 0) || hours > 24) { showToast('Thời hạn từ 1 đến 24 giờ.'); return; }
-  var now = Date.now(), me = hrActor().username;
-  var list = AuthLog.getExceptions();
-  list.push({ id: AuthLog.newId('exc_'), username: acc.username, validFrom: now, validUntil: now + hours * 3600000, reason: reason, grantedBy: me, grantedAt: now, revokedAt: 0, revokedBy: '' });
-  AuthLog.saveExceptions(list);
-  hrLog('login_override', 'login_exceptions', acc.username, 'Cấp ngoại lệ đăng nhập ' + hours + ' giờ cho ' + acc.username, { valid_until: new Date(now + hours * 3600000).toISOString() }, reason);
-  closeAdminModal(); showToast('Đã cấp ngoại lệ đăng nhập.'); acRender();
-}
-function acRevokeException(id) {
-  var acc = getAccountsList().find(function (a) { return a.id === id; }); if (!acc) return;
-  var chk = acCheckManage(acc); if (!chk.ok) { showToast(chk.reason); return; }
-  var ex = AuthLog.activeException(acc.username); if (!ex) return;
-  var list = AuthLog.getExceptions(), t = list.find(function (x) { return x.id === ex.id; });
-  t.revokedAt = Date.now(); t.revokedBy = hrActor().username;
-  AuthLog.saveExceptions(list);
-  hrLog('revoke', 'login_exceptions', acc.username, 'Thu hồi ngoại lệ đăng nhập của ' + acc.username, { revoked_at: { old: null, new: t.revokedAt } });
-  showToast('Đã thu hồi ngoại lệ.'); acRender();
-}
 function acRevokeSession(id) {
   var acc = getAccountsList().find(function (a) { return a.id === id; }); if (!acc) return;
   if (!acHasPerm('revoke_sessions')) { showToast('Bạn không có quyền thu hồi phiên.'); return; }
-  var chk = acCheckManage(acc); if (!chk.ok) { showToast(chk.reason); return; }
+  var chk = acCheckManage(acc, null); if (!chk.ok) { showToast(chk.reason); return; }
   var live = AuthLog.liveSession(acc.username); if (!live) { showToast('Tài khoản không có phiên đang sống.'); return; }
   if (!confirm('Thu hồi phiên đang sống của ' + acc.username + '? Người dùng sẽ bị đăng xuất.')) return;
   AuthLog.revokeSession(live.id, 'admin_revoke', hrActor().username);

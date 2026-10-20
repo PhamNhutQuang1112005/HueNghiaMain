@@ -1,21 +1,20 @@
 /* =========================================================
-   5. QUẢN LÝ NHÂN VIÊN (HR v2.9) — bảng employees + employee_stations + employee_scope_regions +
-      employee_shift_schedules + employee_type_history + employee_status_history (lịch sử nằm trong staff.history).
+   5. QUẢN LÝ NHÂN VIÊN (HR v3.1) — bảng employees + employee_stations + employee_scope_regions +
+      employee_type_history + employee_status_history (lịch sử nằm trong staff.history). Không còn lịch ca (v3.0).
    Hồ sơ lưu ở FleetStore.getStaff() (localStorage). Trường: id, code (NV00001...), name, phone, email, address, role (= mã loại),
-   license + licenseExpiry, hiredDate, leftDate, statusCode, stations[] + station (trạm chính), regions[], schedule[], note, history[].
+   license + licenseExpiry, hiredDate, leftDate, statusCode, stations[] + station (trạm chính), regions[], note, history[].
    Phạm vi xem dữ liệu = trạm gán lẻ HỢP trạm của khu vực được gán (hrScope, admin-hr-common.js); KHÔNG phụ thuộc loại nhân viên.
    Không xoá nhân viên (dùng trạng thái Nghỉ việc); không còn ô nhập Mã NV hay Tài khoản (tài khoản tạo ở trang Tài khoản).
    ========================================================= */
 var STAFF_FILTERS = { search: '', role: '', status: '', station: '', region: '' };
-var DOW_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
 // Tên cũ, vẫn còn nơi khác trong admin gọi: nhãn loại + danh sách loại.
 function getStaffRoleList() { return FleetStore.getStaffRoles(); }
 function roleLabel(r) { return hrRoleLabel(r); }
 function roleBadge(r) {
   if (r === 'admin') return hrChip('Quản trị gốc', 'red');
-  var k = hrWorkKind(r);
-  var tone = (k === 'driver' || k === 'shuttle_driver') ? 'red' : (k === 'ticket_office' || k === 'call_center') ? 'blue' : 'green';
+  var c = hrCrewRole(r);
+  var tone = (c === 'route_driver' || c === 'shuttle_driver') ? 'red' : c === 'helper' ? 'green' : 'blue';
   return hrChip(hrRoleLabel(r), tone);
 }
 
@@ -182,58 +181,6 @@ function adminResetStaffFilters() {
    ===================================================================== */
 var SM_EDIT_ID = '';   // id nhân viên đang sửa ('' = thêm mới)
 
-function smScheduleGridHtml(schedule) {
-  var tpls = FleetStore.getShiftTemplates().filter(function (t) { return t.active !== false || (schedule || []).some(function (x) { return x.template === t.code; }); });
-  if (!tpls.length) return '<div class="hint-inline">Chưa có ca mẫu nào. Admin gốc tạo ở Cấu hình nhân sự &gt; Ca mẫu.</div>';
-  var head = '<tr><th>Ca mẫu</th>' + DOW_LABELS.map(function (d) { return '<th style="text-align:center;">' + d + '</th>'; }).join('') + '</tr>';
-  var body = tpls.map(function (t) {
-    var cur = (schedule || []).find(function (x) { return x.template === t.code; });
-    var days = (cur && cur.days) || [];
-    return '<tr><td><b>' + esc(t.name) + '</b><div class="hint-inline">' + esc(t.startTime) + '–' + esc(t.endTime) + (t.crossesMidnight ? ' (qua đêm)' : '') + '</div></td>' +
-      DOW_LABELS.map(function (_, di) {
-        return '<td style="text-align:center;"><input type="checkbox" class="sm-sch" data-tpl="' + esc(t.code) + '" data-dow="' + (di + 1) + '"' + (days.indexOf(di + 1) !== -1 ? ' checked' : '') + ' style="min-width:auto;height:auto;"></td>';
-      }).join('') + '</tr>';
-  }).join('');
-  return '<div class="sd-table-wrap"><table class="admin-table hr-mini-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
-}
-function smReadSchedule() {
-  var map = {};
-  Array.prototype.forEach.call(document.querySelectorAll('#smSchedule .sm-sch:checked'), function (c) {
-    var t = c.getAttribute('data-tpl');
-    (map[t] = map[t] || []).push(parseInt(c.getAttribute('data-dow'), 10));
-  });
-  return Object.keys(map).map(function (t) { return { template: t, days: map[t].sort() }; });
-}
-function smScheduleText(sch) {
-  if (!sch || !sch.length) return 'Chưa có lịch';
-  var tpls = FleetStore.getShiftTemplates();
-  return sch.map(function (x) {
-    var t = tpls.find(function (y) { return y.code === x.template; });
-    return (t ? t.name : x.template) + ': ' + x.days.map(function (d) { return DOW_LABELS[d - 1]; }).join(', ');
-  }).join(' · ');
-}
-// Hai ca mẫu của cùng một người chồng giờ nhau cùng một ngày (ca qua đêm tính tới giờ kết ngày sau) -> trả mô tả lỗi.
-function smScheduleOverlap(sch) {
-  var tpls = FleetStore.getShiftTemplates();
-  var toMin = function (hhmm) { var p = String(hhmm).split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); };
-  var items = [];
-  sch.forEach(function (x) {
-    var t = tpls.find(function (y) { return y.code === x.template; });
-    if (!t) return;
-    x.days.forEach(function (d) {
-      var s = (d - 1) * 1440 + toMin(t.startTime), e = (d - 1) * 1440 + toMin(t.endTime) + (t.crossesMidnight ? 1440 : 0);
-      items.push({ s: s, e: e, name: t.name, day: d });
-    });
-  });
-  for (var i = 0; i < items.length; i++) for (var j = i + 1; j < items.length; j++) {
-    var a = items[i], b = items[j];
-    // so cả vòng tuần (ca đêm Chủ nhật tràn sang thứ hai)
-    var ov = function (x, y, shift) { return x.s < y.e + shift && y.s + shift < x.e; };
-    if (ov(a, b, 0) || ov(a, b, 7 * 1440) || ov(a, b, -7 * 1440)) return '"' + a.name + '" (' + DOW_LABELS[a.day - 1] + ') chồng giờ với "' + b.name + '" (' + DOW_LABELS[b.day - 1] + ').';
-  }
-  return '';
-}
-
 function smStationChecklistHtml(selected) {
   var byRegion = {};
   hrActiveStations().forEach(function (st) { (byRegion[st.region || ''] = byRegion[st.region || ''] || []).push(st); });
@@ -264,7 +211,7 @@ function adminOpenStaffModal(id) {
   var all = FleetStore.getStaff();
   var s = id ? all.find(function (x) { return x.id === id; }) : null;
   if (id && !s) return;
-  if (s) { var chk = hrCanEditStaff(s); if (!chk.ok) { showToast(chk.reason); return; } }
+  var chk = hrCanEditStaff(s); if (!chk.ok) { showToast(chk.reason); return; }
   SM_EDIT_ID = s ? s.id : '';
   var roles = getStaffRoleList().filter(function (r) { return r.active || (s && s.role === r.key); });
   var curRole = s ? s.role : (roles[0] ? roles[0].key : '');
@@ -297,20 +244,15 @@ function adminOpenStaffModal(id) {
         '<div class="fld-row">' +
           '<div class="fld"><label>Hạng bằng lái <span class="req" id="smLicReq">*</span></label><input id="smLicense" value="' + (s ? esc(s.license || '') : '') + '" placeholder="VD: D, E, FC"></div>' +
           '<div class="fld"><label>Hạn bằng lái <span class="req" id="smLicExpReq">*</span></label><input type="date" id="smLicenseExpiry" value="' + (s ? esc(s.licenseExpiry || '') : '') + '"></div>' +
-        '</div>', 'Bắt buộc với tài xế') + '</div>' +
+        '</div>', 'Bắt buộc với loại có cờ Bắt buộc bằng lái') + '</div>' +
 
       hrSectionHtml('Trạm và phạm vi xem dữ liệu',
         '<div class="hr-note" id="smSelfNote" style="display:none;">Loại này chỉ xem dữ liệu của <b>chính mình</b> (app tự lọc). Trạm bên dưới chỉ để lọc danh sách khi xếp xe, phơi; không có ô Khu vực.</div>' +
         '<div class="fld"><label>Trạm làm việc (chọn nhiều)</label><div id="smStationBox">' + smStationChecklistHtml(s ? (s.stations || []) : []) + '</div></div>' +
-        '<div class="fld"><label>Trạm chính (trạm mặc định khi mở ca)</label><select id="smPrimary"></select></div>' +
+        '<div class="fld"><label>Trạm chính</label><select id="smPrimary"></select></div>' +
         '<div class="fld" id="smRegionFld"><label>Khu vực được xem</label>' + smRegionChecklistHtml(s ? (s.regions || []) : []) +
           '<span class="hint-inline">Xem dữ liệu mọi trạm active của khu vực; khu vực có trạm mới thì tự thấy. Dùng cùng lúc với ô Trạm được.</span></div>' +
         '<div class="hr-note" id="smScopeSummary"></div>') +
-
-      '<div id="smScheduleBox">' + hrSectionHtml('Lịch ca đăng nhập',
-        '<div id="smSchedule">' + smScheduleGridHtml(s ? s.schedule : []) + '</div>' +
-        '<span class="hint-inline">Chỉ kiểm lúc BẮT ĐẦU đăng nhập. Đăng nhập sớm tối đa ' + AuthLog.settings().earlyLoginMinutes + ' phút trước giờ ca. Ca qua đêm tính theo thứ của ngày bắt đầu.</span>',
-        'Bỏ trống nếu không làm theo ca; thường chọn lúc tạo tài khoản') + '</div>' +
 
       hrSectionHtml('Trạng thái làm việc',
         '<div class="fld-row">' +
@@ -322,7 +264,7 @@ function adminOpenStaffModal(id) {
 
       hrSectionHtml('Lý do & ghi chú',
         '<div class="fld"><label>Lý do thay đổi <span class="req" id="smReasonReq" style="display:none;">*</span></label><input id="smReason" placeholder="Một ô duy nhất, áp cho mọi thay đổi trong lần lưu này">' +
-          '<span class="hint-inline">Bắt buộc khi đổi loại, trạm, khu vực, lịch ca hoặc đổi sang trạng thái khác Đang làm việc.</span></div>' +
+          '<span class="hint-inline">Bắt buộc khi đổi loại, trạm, khu vực hoặc đổi sang trạng thái khác Đang làm việc.</span></div>' +
         '<div class="fld"><label>Ghi chú</label><input id="smNote" value="' + (s ? esc(s.note || '') : '') + '"></div>') +
 
       hrSectionHtml('Tài khoản đăng nhập',
@@ -343,7 +285,7 @@ function adminOpenStaffModal(id) {
   smRefreshScope();
 }
 
-// Đổi loại: cập nhật ô bằng lái (bắt buộc?), ô khu vực (ẩn với nhóm tự xem), gợi ý chức năng.
+// Đổi loại: cập nhật ô bằng lái (bắt buộc?), ô khu vực (ẩn với loại is_self), gợi ý vai trò trên xe và quyền.
 function smOnRoleChange() {
   var sel = $('smRole'); if (!sel) return;
   var key = sel.value, role = hrRole(key);
@@ -351,10 +293,9 @@ function smOnRoleChange() {
   var q = function (id, show) { var el = $(id); if (el) el.style.display = show ? '' : 'none'; };
   q('smLicReq', needLic); q('smLicExpReq', needLic);
   q('smRegionFld', !self); q('smSelfNote', self);
-  var fns = hrFunctionsOfRole(key).map(function (fn) { return window.workFunctionLabel(fn); });
   var hint = $('smRoleHint');
-  if (hint) hint.innerHTML = 'Nhóm công việc: <b>' + esc(hrWorkKindLabel(hrWorkKind(key))) + '</b> · ' + hrRolePerms(key).length + ' quyền' +
-    (fns.length ? ' · Chức năng: ' + esc(fns.join(', ')) : '') + (hrRoleHas(key, 'view_all_stations') ? ' · Xem mọi trạm' : '');
+  if (hint) hint.innerHTML = (hrCrewRole(key) ? 'Vai trò trên xe: <b>' + esc(hrCrewRoleLabel(hrCrewRole(key))) + '</b> · ' : '') +
+    (hrRolePerms(key).length ? hrRolePerms(key).length + ' quyền' : '<b>Chưa gán quyền</b> (loại 0 quyền)') + (hrRoleHas(key, 'view_all_stations') ? ' · Xem mọi trạm' : '');
   smRefreshScope();
 }
 function smOnStatusChange() {
@@ -384,9 +325,10 @@ function smRefreshScope() {
   if (self) html = 'Chỉ xem dữ liệu của <b>chính mình</b>. Trạm lẻ gán: <b>' + stations.length + '</b>.';
   else if (viewAll) html = 'Loại này có quyền <b>Xem dữ liệu mọi trạm</b> nên xem tất cả trạm active, không cần gán trạm hay khu vực.';
   else html = 'Trạm xem được: <b>' + names.length + ' trạm</b> (' + stations.length + ' trạm lẻ' + (regions.length ? ' + ' + regions.length + ' khu vực' : '') + ')';
-  var needShift = hrShiftFunctionsOfRole(key);
   var warn = [];
-  if (!self && !viewAll && !names.length && needShift.length) warn.push('Loại này có chức năng phải mở ca (' + needShift.map(function (f) { return window.workFunctionLabel(f); }).join(', ') + ') nhưng chưa có trạm xem được, sẽ không mở ca được.');
+  // v3.0: không bắt buộc trạm; chỉ cảnh báo khi người có tài khoản mà không xem được trạm nào.
+  var accOfEdit = SM_EDIT_ID ? hrAccountOfStaff(FleetStore.getStaff().find(function (x) { return x.id === SM_EDIT_ID; })) : null;
+  if (accOfEdit && !self && !viewAll && !names.length) warn.push('Người này có tài khoản nhưng chưa có trạm xem được: đăng nhập được nhưng không thấy dữ liệu trạm nào.');
   regions.forEach(function (rk) { if (!hrStationsOfRegion(rk).length) warn.push('Khu vực "' + hrRegionName(rk) + '" chưa có trạm active, chọn khu vực này chưa xem được gì.'); });
   box.innerHTML = html + warn.map(function (w) { return '<div class="hr-warn">⚠ ' + esc(w) + '</div>'; }).join('');
 }
@@ -396,7 +338,7 @@ function adminSaveStaff(e) {
   var all = FleetStore.getStaff();
   var s = SM_EDIT_ID ? all.find(function (x) { return x.id === SM_EDIT_ID; }) : null;
   var actor = hrActor().username;
-  if (s) { var chk = hrCanEditStaff(s); if (!chk.ok) { showToast(chk.reason); return; } }
+  var chk = hrCanEditStaff(s); if (!chk.ok) { showToast(chk.reason); return; }
 
   var name = $('smName').value.trim();
   if (!name) { showToast('Nhập họ tên.'); return; }
@@ -408,7 +350,7 @@ function adminSaveStaff(e) {
   var hired = $('smHired').value, left = status === 'left' ? $('smLeftDate').value : '';
   var reason = $('smReason').value.trim();
 
-  if (hrNeedsLicense(roleKey) && (!license || !licExp)) { showToast('Nhóm công việc này bắt buộc nhập hạng và hạn bằng lái.'); return; }
+  if (hrNeedsLicense(roleKey) && (!license || !licExp)) { showToast('Loại nhân viên này bắt buộc nhập hạng và hạn bằng lái.'); return; }
   if (status === 'left' && !left) { showToast('Nhập ngày nghỉ việc.'); return; }
   if (left && hired && left < hired) { showToast('Ngày nghỉ việc phải sau hoặc bằng ngày vào làm.'); return; }
 
@@ -416,8 +358,6 @@ function adminSaveStaff(e) {
   var primary = stations.length ? ($('smPrimary').value || stations[0]) : '';
   if (stations.length && stations.indexOf(primary) === -1) primary = stations[0];
   var regions = self ? [] : smReadRegions();
-  var schedule = smReadSchedule();
-  var ov = smScheduleOverlap(schedule); if (ov) { showToast('Lịch ca chồng giờ: ' + ov); return; }
 
   // ---- Quy tắc g: trạm/khu vực gán cho người khác phải nằm trong phạm vi xem của người thao tác ----
   var me = hrActor();
@@ -437,20 +377,9 @@ function adminSaveStaff(e) {
   var stationsChanged = !!s && JSON.stringify((s.stations || []).slice().sort()) !== JSON.stringify(stations.slice().sort());
   var primaryChanged = !!s && (s.station || '') !== primary;
   var regionsChanged = !!s && JSON.stringify((s.regions || []).slice().sort()) !== JSON.stringify(regions.slice().sort());
-  var scheduleChanged = !!s && smScheduleText(s.schedule || []) !== smScheduleText(schedule);
   var statusChanged = !!s && oldStatus !== status;
 
-  // ---- Quy tắc j: có ca đang mở thì không đổi loại, chuyển/gỡ trạm, gỡ khu vực ----
-  if (s && s.username) {
-    var removedSt = (s.stations || []).filter(function (n) { return stations.indexOf(n) === -1; });
-    var removedRg = (s.regions || []).filter(function (rk) { return regions.indexOf(rk) === -1; });
-    var open = hrOpenShifts(s.username);
-    if (open.length && (typeChanged || removedSt.length || removedRg.length || (primaryChanged && stations.length && (s.stations || []).length))) {
-      showToast('Còn ' + open.length + ' ca đang mở (' + open.map(function (x) { return window.workFunctionLabel(x.functionKey); }).join(', ') + '). Chủ ca kết ca hoặc admin gốc đóng thay rồi mới đổi loại/trạm/khu vực.');
-      return;
-    }
-    if (open.length && locks && !hrStatusLocks(oldStatus)) showToast('Lưu ý: người này còn ' + open.length + ' ca đang mở, admin gốc đóng thay ở Thống kê nhân sự > Ca đang mở.');
-  }
+  // ---- (v3.0) Đổi loại, gỡ trạm, gỡ khu vực KHÔNG còn bị chặn vì ca đang mở (hết khái niệm ca). Khóa theo trạng thái thu hồi phiên ở bước đồng bộ tài khoản bên dưới. ----
 
   // ---- Quy tắc e: trần ủy quyền khi đổi loại ----
   if (typeChanged || !s) {
@@ -459,16 +388,8 @@ function adminSaveStaff(e) {
   }
 
   // ---- Bắt buộc lý do ----
-  var needReason = s && (typeChanged || stationsChanged || primaryChanged || regionsChanged || scheduleChanged || (statusChanged && status !== 'working'));
-  if (needReason && !reason) { showToast('Nhập Lý do thay đổi (đổi loại/trạm/khu vực/lịch ca/trạng thái).'); $('smReason').focus(); return; }
-
-  // ---- Người có chức năng phải mở ca và đã có tài khoản: cần ít nhất một trạm xem được ----
-  var acc = s ? hrAccountOfStaff(s) : null;
-  if (acc && !self && !hrRoleHas(roleKey, 'view_all_stations') && hrShiftFunctionsOfRole(roleKey).length) {
-    var cnt = stations.slice();
-    regions.forEach(function (rk) { hrStationsOfRegion(rk).forEach(function (st) { if (cnt.indexOf(st.name) === -1) cnt.push(st.name); }); });
-    if (!cnt.length) { showToast('Người có chức năng phải mở ca và có tài khoản cần ít nhất một trạm xem được. Gán trạm hoặc khu vực.'); return; }
-  }
+  var needReason = s && (typeChanged || stationsChanged || primaryChanged || regionsChanged || (statusChanged && status !== 'working'));
+  if (needReason && !reason) { showToast('Nhập Lý do thay đổi (đổi loại/trạm/khu vực/trạng thái).'); $('smReason').focus(); return; }
 
   // SĐT trùng chỉ cảnh báo
   var phone = $('smPhone').value.trim();
@@ -483,7 +404,7 @@ function adminSaveStaff(e) {
   rec.name = name; rec.role = roleKey; rec.phone = phone; rec.email = $('smEmail').value.trim(); rec.address = $('smAddress').value.trim();
   rec.license = license; rec.licenseExpiry = licExp; rec.hiredDate = hired; rec.leftDate = left;
   rec.statusCode = status; rec.active = status === 'working';
-  rec.stations = stations; rec.station = primary; rec.regions = regions; rec.schedule = schedule;
+  rec.stations = stations; rec.station = primary; rec.regions = regions; delete rec.schedule;
   rec.note = $('smNote').value.trim(); rec.updatedAt = now; rec.updatedBy = actor;
   rec.history = (rec.history || []).slice();
 
@@ -495,14 +416,7 @@ function adminSaveStaff(e) {
     if (statusChanged) hist('Trạng thái', hrStatusName(oldStatus), hrStatusName(status));
     if (stationsChanged || primaryChanged) hist('Trạm', (s.stations || []).join(', ') + ((s.stations || []).length ? ' (chính: ' + s.station + ')' : ''), stations.join(', ') + (stations.length ? ' (chính: ' + primary + ')' : ''));
     if (regionsChanged) hist('Khu vực được xem', (s.regions || []).map(hrRegionName).join(', '), regions.map(hrRegionName).join(', '));
-    if (scheduleChanged) hist('Lịch ca', smScheduleText(s.schedule || []), smScheduleText(schedule));
   }
-  // Nghỉ việc: đóng lịch ca đang áp dụng cùng giao dịch (vào làm lại thì HR xếp lịch mới).
-  if (status === 'left' && oldStatus !== 'left' && (rec.schedule || []).length) {
-    hist('Lịch ca', smScheduleText(rec.schedule), 'Đã đóng khi nghỉ việc');
-    rec.schedule = [];
-  }
-
   if (s) all[all.indexOf(s)] = rec; else all.push(rec);
   FleetStore.setStaff(all);
 
@@ -531,7 +445,6 @@ function adminSaveStaff(e) {
     if (statusChanged) hrLog('status_change', 'employees', id, 'Đổi trạng thái ' + name + ': ' + hrStatusName(oldStatus) + ' → ' + hrStatusName(status), { status: { old: oldStatus, new: status } }, withReason);
     if (stationsChanged || primaryChanged) hrLog('station_change', 'employee_stations', id, 'Đổi trạm của ' + name, { stations: { old: s.stations || [], new: stations }, primary: { old: s.station || '', new: primary } }, withReason);
     if (regionsChanged) hrLog('scope_change', 'employee_scope_regions', id, 'Đổi khu vực được xem của ' + name, { regions: { old: s.regions || [], new: regions } }, withReason);
-    if (scheduleChanged) hrLog('schedule_assign', 'employee_shift_schedules', id, 'Xếp lịch ca cho ' + name, { schedule: { old: smScheduleText(s.schedule || []), new: smScheduleText(schedule) } }, withReason);
   }
 
   closeAdminModal();

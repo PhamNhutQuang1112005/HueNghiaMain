@@ -1,14 +1,14 @@
 /* =========================================================
-   7. NHẬT KÝ HOẠT ĐỘNG (Hệ thống > Nhật ký hoạt động) — HR v2.9. Xem cần quyền view_activity_logs.
+   7. NHẬT KÝ HOẠT ĐỘNG (Hệ thống > Nhật ký hoạt động) — HR v3.1. Xem cần quyền view_activity_logs.
    Ba tab, hai nguồn, không trộn:
      1. Đăng nhập (phiên)   — user_sessions nối user_devices: mỗi dòng một phiên, có giờ vào, giờ ra, thiết bị, lý do kết thúc, thời lượng.
      2. Sự kiện đăng nhập   — auth_events: kể cả đăng nhập sai và bị chặn (tên gõ vào, thiết bị, detail.reason). Dùng để điều tra.
-     3. Thao tác            — activity_logs: ai làm gì, ở chức năng nào, trên phiên nào, thay đổi cũ -> mới (changes).
+     3. Thao tác            — activity_logs: ai làm gì, trên phiên nào, thay đổi cũ -> mới (changes).
    Giữ tối thiểu log_retention_months (mặc định 12). Chỉ GHI THÊM; "Dọn nhật ký quá hạn" bỏ các dòng quá hạn trừ các action
    giữ vĩnh viễn (login_approve, login_reject, device_block, device_unblock). Phiên, thiết bị, yêu cầu duyệt không dọn theo thời gian.
    ========================================================= */
 var ACT_TAB = 'actions';   // 'sessions' | 'events' | 'actions'
-var ACT_FILTER = { search: '', entity: '', action: '', fn: '', dateFrom: '', dateTo: '' };
+var ACT_FILTER = { search: '', entity: '', action: '', dateFrom: '', dateTo: '' };
 var ACT_SES_FILTER = { search: '', device: '', reason: '', dateFrom: '', dateTo: '' };
 var ACT_EV_FILTER = { search: '', type: '', dateFrom: '', dateTo: '' };
 
@@ -16,14 +16,14 @@ var ACT_PERMANENT = ['login_approve', 'login_reject', 'device_block', 'device_un
 var ACT_ACTION_LABEL = {
   create: 'Tạo mới', update: 'Cập nhật', delete: 'Xóa', grant: 'Cấp quyền', revoke: 'Thu hồi', assign: 'Gán', status_change: 'Đổi trạng thái',
   type_change: 'Đổi loại nhân viên', station_change: 'Đổi trạm', scope_change: 'Đổi khu vực', account_lock: 'Khóa tài khoản', account_unlock: 'Mở khóa tài khoản',
-  password_reset: 'Đặt lại mật khẩu', username_change: 'Đổi tên tài khoản', open_shift: 'Mở ca', close_shift: 'Kết ca', force_close_shift: 'Admin đóng thay ca',
-  reopen_shift: 'Mở lại ca', revoke_session: 'Thu hồi phiên', login_unlock: 'Mở khóa nhập sai', login_approve: 'Duyệt đăng nhập', login_reject: 'Từ chối đăng nhập',
-  device_block: 'Chặn thiết bị', device_unblock: 'Mở chặn thiết bị', schedule_assign: 'Xếp lịch ca', login_override: 'Ngoại lệ đăng nhập'
+  password_reset: 'Đặt lại mật khẩu', username_change: 'Đổi tên tài khoản',
+  revoke_session: 'Thu hồi phiên', login_unlock: 'Mở khóa nhập sai', login_approve: 'Duyệt đăng nhập', login_reject: 'Từ chối đăng nhập',
+  device_block: 'Chặn thiết bị', device_unblock: 'Mở chặn thiết bị'
 };
 var ACT_REVOKE_LABEL = {
   logout: 'Đăng xuất', logout_all: 'Đăng xuất mọi nơi', admin_revoke: 'Admin thu hồi', employee_status: 'Trạng thái nhân viên', password_changed: 'Đổi/đặt lại mật khẩu',
   account_locked: 'Tài khoản bị khóa', username_changed: 'Đổi tên tài khoản', expired: 'Hết hạn 12 giờ', idle_timeout: 'Không hoạt động', device_replaced: 'Đăng nhập thiết bị khác',
-  device_blocked: 'Thiết bị bị chặn', shift_ended: 'Đã kết ca'
+  device_blocked: 'Thiết bị bị chặn'
 };
 var ACT_EVENT_LABEL = {
   login_ok: 'Đăng nhập thành công', login_failed: 'Đăng nhập sai', login_blocked: 'Đăng nhập bị chặn', logout: 'Đăng xuất', logout_all: 'Đăng xuất mọi nơi',
@@ -32,7 +32,7 @@ var ACT_EVENT_LABEL = {
   approval_approved: 'Duyệt đăng nhập', approval_rejected: 'Từ chối đăng nhập', device_blocked: 'Chặn thiết bị', device_unblocked: 'Mở chặn thiết bị'
 };
 var ACT_BLOCK_REASON = {
-  employee_locked: 'Nhân viên nghỉ việc/tạm ngưng', manual_locked: 'Tài khoản bị khóa', failed_login_locked: 'Khóa do nhập sai', outside_shift: 'Ngoài khung giờ ca',
+  employee_locked: 'Nhân viên nghỉ việc/tạm ngưng', manual_locked: 'Tài khoản bị khóa', failed_login_locked: 'Khóa do nhập sai',
   device_blocked: 'Thiết bị bị chặn', approval_pending: 'Đang chờ duyệt', approval_rejected: 'Vừa bị từ chối duyệt', approval_limit: 'Quá số yêu cầu chờ duyệt'
 };
 
@@ -82,8 +82,8 @@ function renderActivityView() {
    ===================================================================== */
 function actActionClass(action) {
   var a = String(action || '').toLowerCase();
-  if (/^(create|grant|assign|open_shift|login_approve|device_unblock|account_unlock|login_unlock|reopen_shift)/.test(a) || a.indexOf('create') !== -1 || a.indexOf('tạo') !== -1 || a.indexOf('bulk') !== -1) return 'dang-ban';
-  if (/^(delete|revoke|account_lock|device_block|login_reject|force_close_shift|revoke_session)/.test(a) || a.indexOf('delete') !== -1 || a.indexOf('xóa') !== -1 || a.indexOf('cancel') !== -1 || a.indexOf('hủy') !== -1) return 'da-huy';
+  if (/^(create|grant|assign|login_approve|device_unblock|account_unlock|login_unlock)/.test(a) || a.indexOf('create') !== -1 || a.indexOf('tạo') !== -1 || a.indexOf('bulk') !== -1) return 'dang-ban';
+  if (/^(delete|revoke|account_lock|device_block|login_reject|revoke_session)/.test(a) || a.indexOf('delete') !== -1 || a.indexOf('xóa') !== -1 || a.indexOf('cancel') !== -1 || a.indexOf('hủy') !== -1) return 'da-huy';
   return 'chua-chi-dinh';
 }
 function actRenderActionsTab() {
@@ -97,14 +97,12 @@ function actRenderActionsTab() {
 
   var entities = uniq(items.map(function (it) { return it.x.entity; }).filter(Boolean));
   var actions = uniq(items.map(function (it) { return it.x.action; }).filter(Boolean));
-  var fns = (window.WORK_FUNCTIONS || []).map(function (f) { return f.key; });
   var f = ACT_FILTER;
 
   var filtered = items.filter(function (it) {
     var x = it.x; if (!x) return false;
     if (f.entity && x.entity !== f.entity) return false;
     if (f.action && x.action !== f.action) return false;
-    if (f.fn === '__none__' ? x.functionKey : (f.fn && x.functionKey !== f.fn)) return false;
     if (!actDateOk(x.ts, f.dateFrom, f.dateTo)) return false;
     if (f.search) {
       var hay = (fmtStamp(x.ts) + ' ' + (x.user || '') + ' ' + (x.action || '') + ' ' + (ACT_ACTION_LABEL[x.action] || '') + ' ' + (x.entity || '') + ' ' + (x.entityId || '') + ' ' + (x.summary || '')).toLowerCase();
@@ -123,7 +121,6 @@ function actRenderActionsTab() {
       '<td><div style="display:flex; align-items:center; gap:8px;">' +
         '<div style="width:28px; height:28px; border-radius:50%; background:#64748B; color:#fff; font-weight:800; display:grid; place-items:center; font-size:12px;">' + esc(initial) + '</div>' +
         '<span style="font-weight:700; color:var(--black);">' + esc(user) + '</span></div></td>' +
-      '<td>' + (x.functionKey ? hrChip(window.workFunctionLabel(x.functionKey), 'blue') : '<span class="hint-inline">Quản trị / hệ thống</span>') + '</td>' +
       '<td>' + hrBadge(ACT_ACTION_LABEL[x.action] || x.action || 'Hoạt động', actActionClass(x.action)) + '</td>' +
       '<td><span style="font-weight:700; color:var(--text-main);">' + esc(x.entity || '—') + '</span>' +
         (x.entityId ? ' <span class="mono" style="color:var(--text-sub); font-size:11.5px;">#' + esc(x.entityId) + '</span>' : '') + '</td>' +
@@ -131,20 +128,19 @@ function actRenderActionsTab() {
         (hasChanges ? ' <span class="hr-link" role="button" tabindex="0" data-action="actShowChanges" data-args=\'[' + it.i + ']\'>Xem thay đổi</span>' : '') + '</td>' +
       '<td>' + (ds ? '<div style="font-size:12.5px;font-weight:600;">' + esc(ds.device ? ds.device.label : 'Thiết bị không rõ') + '</div><div class="hint-inline">phiên từ ' + esc(fmtStamp(ds.session.createdAt)) + '</div>' : '<span class="hint-inline">' + (x.sessionId ? 'Phiên đã dọn' : 'Hệ thống / chưa gắn phiên') + '</span>') + '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-sub);">Chưa có hoạt động nào được ghi nhận.</td></tr>';
+  }).join('') : '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-sub);">Chưa có hoạt động nào được ghi nhận.</td></tr>';
 
   var cur = ACT_FILTER;
   return '<div class="dir-stats-grid">' +
       '<div class="ref-card dir-stat-card"><div class="dir-stat-label">Tổng nhật ký thao tác</div><div class="dir-stat-val">' + totalCount + ' <span class="ref-unit">bản ghi</span></div><div class="dir-stat-sub">Lịch sử tác vụ quản trị</div></div>' +
       '<div class="ref-card dir-stat-card"><div class="dir-stat-label">Tạo mới, cấp, duyệt</div><div class="dir-stat-val" style="color:#059669;">' + createCount + ' <span class="ref-unit">tác vụ</span></div><div class="dir-stat-sub">Thêm nhân sự, cấp quyền, duyệt đăng nhập</div></div>' +
-      '<div class="ref-card dir-stat-card"><div class="dir-stat-label">Cập nhật &amp; thay đổi</div><div class="dir-stat-val" style="color:var(--black);">' + updateCount + ' <span class="ref-unit">tác vụ</span></div><div class="dir-stat-sub">Đổi thông tin, loại, trạm, lịch ca</div></div>' +
+      '<div class="ref-card dir-stat-card"><div class="dir-stat-label">Cập nhật &amp; thay đổi</div><div class="dir-stat-val" style="color:var(--black);">' + updateCount + ' <span class="ref-unit">tác vụ</span></div><div class="dir-stat-sub">Đổi thông tin, loại, trạm, khu vực</div></div>' +
       '<div class="ref-card dir-stat-card ref-card-featured" style="min-height:auto;"><div class="ref-featured-head">Xóa, thu hồi, khóa</div><div class="dir-stat-val" style="font-size:26px;color:#fff;">' + deleteCount + ' <span class="ref-unit" style="color:#fff;">tác vụ</span></div><div class="ref-featured-sub">Khóa tài khoản, thu hồi phiên, chặn thiết bị</div></div>' +
     '</div>' +
     '<div class="filter-toolbar" style="margin-bottom:20px;">' +
       '<div class="filter-field"><label>Tìm kiếm nhật ký</label><input type="text" id="actSearch" value="' + esc(cur.search) + '" placeholder="Người thực hiện, hành động, đối tượng..." data-input-action="adminActFilterInput" data-args=\'["search","__this_value__"]\'></div>' +
       '<div class="filter-field"><label>Đối tượng</label><select data-change-action="adminActFilterInput" data-args=\'["entity","__this_value__"]\'>' + actOpt(entities, cur.entity) + '</select></div>' +
       '<div class="filter-field"><label>Hành động</label><select data-change-action="adminActFilterInput" data-args=\'["action","__this_value__"]\'>' + actOpt(actions, cur.action, ACT_ACTION_LABEL) + '</select></div>' +
-      '<div class="filter-field"><label>Chức năng</label><select data-change-action="adminActFilterInput" data-args=\'["fn","__this_value__"]\'>' + actOpt(fns, cur.fn, (function () { var m = {}; (window.WORK_FUNCTIONS || []).forEach(function (x) { m[x.key] = x.label; }); return m; })()).replace('</option>', '</option><option value="__none__"' + (cur.fn === '__none__' ? ' selected' : '') + '>Quản trị / hệ thống</option>') + '</select></div>' +
       '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(cur.dateFrom) + '" data-change-action="adminActFilterInput" data-args=\'["dateFrom","__this_value__"]\'></div>' +
       '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(cur.dateTo) + '" data-change-action="adminActFilterInput" data-args=\'["dateTo","__this_value__"]\'></div>' +
       '<button type="button" class="btn" data-action="adminResetActFilters">Đặt lại</button>' +
@@ -157,7 +153,7 @@ function actRenderActionsTab() {
         '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub);">Hiển thị ' + filtered.length + ' / ' + totalCount + ' bản ghi</div>' +
       '</div>' +
       '<div class="table-wrap" style="border:0; border-radius:0; box-shadow:none;"><table class="admin-table" style="min-width:1340px;"><thead><tr>' +
-        '<th style="width:50px; text-align:center;">STT</th><th style="width:150px;">Thời gian</th><th style="width:160px;">Người thực hiện</th><th style="width:150px;">Chức năng</th>' +
+        '<th style="width:50px; text-align:center;">STT</th><th style="width:150px;">Thời gian</th><th style="width:160px;">Người thực hiện</th>' +
         '<th style="width:170px;">Hành động</th><th style="width:190px;">Đối tượng (bảng)</th><th style="min-width:300px;">Tóm tắt chi tiết</th><th style="width:190px;">Phiên / thiết bị</th>' +
       '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
     '</div>';
@@ -184,7 +180,6 @@ function actShowChanges(rawIdx) {
       '<div class="hr-summary">' +
         '<div><span>Thời gian</span><b>' + esc(fmtStamp(x.ts)) + '</b></div><div><span>Người thực hiện</span><b>' + esc(x.user || '—') + '</b></div>' +
         '<div><span>Hành động</span><b>' + esc(ACT_ACTION_LABEL[x.action] || x.action) + '</b></div><div><span>Đối tượng</span><b>' + esc(x.entity || '—') + (x.entityId ? ' #' + esc(x.entityId) : '') + '</b></div>' +
-        '<div><span>Chức năng</span><b>' + (x.functionKey ? esc(window.workFunctionLabel(x.functionKey)) : 'Quản trị / hệ thống') + '</b></div>' +
       '</div>' +
       '<div class="fld" style="margin-top:12px;"><label>' + esc(x.summary || '') + '</label></div>' +
       '<div class="sd-table-wrap"><table class="admin-table hr-mini-table"><thead><tr><th>Trường</th><th>Giá trị cũ</th><th>Giá trị mới</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
@@ -200,7 +195,7 @@ function adminActFilterInput(field, val) {
   adminKeepFocus(renderActivityView);
 }
 function adminResetActFilters() {
-  ACT_FILTER = { search: '', entity: '', action: '', fn: '', dateFrom: '', dateTo: '' };
+  ACT_FILTER = { search: '', entity: '', action: '', dateFrom: '', dateTo: '' };
   renderActivityView();
 }
 
@@ -276,9 +271,6 @@ function actResetSesFilter() { ACT_SES_FILTER = { search: '', device: '', reason
 function actEventDetailText(e) {
   var d = e.detail || {}, parts = [];
   if (d.reason) parts.push(ACT_BLOCK_REASON[d.reason] || ACT_REVOKE_LABEL[d.reason] || d.reason);
-  if (d.sub) parts.push(d.sub === 'shift_closed' ? 'đã kết ca trong khung' : 'ngoài khung giờ');
-  if (d.window_start) parts.push('khung ' + d.window_start + ' – ' + d.window_end);
-  if (d.via) parts.push('qua ' + (d.via === 'exception' ? 'ngoại lệ' : 'ca đang mở'));
   if (d.old) parts.push(d.old + ' → ' + d.new);
   if (d.by) parts.push('bởi ' + d.by);
   if (d.note) parts.push('"' + d.note + '"');

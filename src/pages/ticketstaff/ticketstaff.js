@@ -3254,7 +3254,7 @@ function hydrateAssignModalFromStore() {
 function hydrateCrewDropdown(panelId, containerId, role) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
-  const people = FleetStore.getStaff({ role }).filter(s => s.active !== false).map(s => s.name);
+  const people = FleetStore.getStaff({ crewRole: role === 'driver' ? 'route_driver' : role }).filter(s => s.active !== false).map(s => s.name);
   panel.innerHTML = people.map(name => {
     const a = escapeHtml(name);
     return `<div class="dropdown-item" data-value="${a}" data-action="selectSearchDropdownItem" ` +

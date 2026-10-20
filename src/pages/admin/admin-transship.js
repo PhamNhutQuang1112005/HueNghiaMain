@@ -33,7 +33,7 @@ function adminTsWriteDriverVehMap(m) {
 
 function adminTsDriverPool() {
   try {
-    var list = FleetStore.getStaff({ role: 'shuttle_driver' })
+    var list = FleetStore.getStaff({ crewRole: 'shuttle_driver' })
       .filter(function (s) { return s.active !== false; })
       .map(function (s) { return { id: s.code || s.name, driverName: s.name, driverPhone: s.phone || '', license: s.license || '' }; });
     if (list.length) return list;

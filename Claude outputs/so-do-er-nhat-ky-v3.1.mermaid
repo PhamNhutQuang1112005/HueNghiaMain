@@ -1,0 +1,103 @@
+erDiagram
+    %% ===== FILE 2 / 2: NHẬT KÝ HOẠT ĐỘNG, PHIÊN ĐĂNG NHẬP VÀ SỰ KIỆN ĐĂNG NHẬP (M09) — BẢN v3.1, 20/10/2026 =====
+    %% TÁCH TỪ v3.0 (nội dung không đổi, chỉ chia file). File này sở hữu 3 bảng: activity_logs (nhật ký thao tác), auth_events (sự kiện đăng nhập), user_sessions (phiên đăng nhập).
+    %% Mọi thứ còn lại (nhân viên, loại, quyền, tài khoản, thiết bị, duyệt đăng nhập, tham số) ở file so-do-er-nhan-su-v3.1.mermaid. Hai bảng users và user_devices ở đây chỉ là KHUNG.
+    %% Phạm vi dùng chung: log_retention_months, session_hours, idle_timeout_minutes là dòng app_settings nằm ở file nhân sự.
+    %% ----------
+    %% AI ĐƯỢC THAO TÁC:
+    %%   auth_events, activity_logs ............................. chỉ ghi thêm (API, trigger, script); xem cần view_activity_logs; chỉ admin gốc dọn nhật ký quá hạn
+    %%   user_sessions .......................................... mọi tài khoản tự đăng nhập, đăng xuất; thu hồi cần revoke_sessions (phiên của nhóm được bảo vệ và admin gốc chỉ admin gốc thu hồi; xem quy tắc m ở file nhân sự)
+    %% ----------
+    %% NHẬT KÝ ĐĂNG NHẬP VÀ NHẬT KÝ THAO TÁC (trang Admin > Hệ thống > Nhật ký hoạt động; xem cần view_activity_logs; ba tab, hai nguồn):
+    %%     Tab THAO TÁC (activity_logs, mặc định): thời gian, người thực hiện, hành động, đối tượng (tên bảng) và mã, tóm tắt kèm Xem thay đổi (changes cũ mới),
+    %%       phiên và thiết bị (session_id). Bộ lọc: tìm kiếm, đối tượng, hành động, từ ngày, đến ngày. (v3.0 bỏ cột và bộ lọc Chức năng.)
+    %%     Tab ĐĂNG NHẬP (phiên): mỗi dòng một phiên (user_sessions nối user_devices): Tài khoản, Họ tên, Thiết bị, IP, Giờ đăng nhập, Giờ kết thúc (trống = đang hoạt động),
+    %%       Lý do kết thúc, Thời lượng, Hoạt động cuối, nút Chuỗi sự kiện của phiên. Lọc: tài khoản, thiết bị, lý do kết thúc (có Đang hoạt động), ngày.
+    %%     Tab SỰ KIỆN ĐĂNG NHẬP (auth_events): kể cả đăng nhập sai và bị chặn (tên đã gõ, thiết bị, detail.reason). Dùng để điều tra.
+    %%   activity_logs.session_id: nối thao tác với phiên và thiết bị. NULL với thao tác do hệ thống, trigger, script.
+    %%   THỜI GIAN GIỮ: auth_events và activity_logs giữ tối thiểu log_retention_months. auth_events tăng nhanh nên chia partition theo tháng (PARTITION BY RANGE (occurred_at),
+    %%     khóa chính (id, occurred_at)); dọn bằng cách bỏ partition cũ. Nút Dọn nhật ký quá hạn (chỉ admin gốc) bỏ nhật ký quá hạn trừ các action login_approve, login_reject,
+    %%     device_block, device_unblock. Bảng user_devices, user_sessions và login_approvals không dọn theo thời gian.
+    %% ----------
+    %% PHIÊN ĐĂNG NHẬP (user_sessions; luồng đăng nhập đầy đủ, thiết bị và duyệt ở file nhân sự):
+    %%   Cấp phiên: tạo dòng user_sessions có device_id, expires_at = created_at + session_hours (12 giờ). Cấp phiên mới thì thu hồi phiên còn sống của user_id với revoke_reason = device_replaced.
+    %%   MỘT PHIÊN MỘT THIẾT BỊ: chỉ mục duy nhất user_sessions (user_id) WHERE revoked_at IS NULL. Chỉ đúng khi phiên quá hạn hoặc không hoạt động đã được đánh dấu: lúc đăng nhập kế tiếp và job định kỳ mỗi 5 phút.
+    %%   Job đặt revoked_at = expires_at (revoke_reason = expired) hoặc revoked_at = last_seen_at (revoke_reason = idle_timeout, khi không hoạt động quá idle_timeout_minutes), KHÔNG phải lúc chạy job; mỗi lần đánh dấu ghi auth_events session_expired.
+    %%   MỖI LẦN DÙNG PHIÊN kiểm lại: chưa revoked, chưa quá expires_at, chưa quá idle_timeout_minutes, users.is_active, employment_statuses.locks_account = false, thiết bị không bị blocked.
+    %%   last_seen_at cập nhật tối đa một lần mỗi phút. Không còn lịch ca nên HẾT GIỜ LÀM KHÔNG TỰ ĐĂNG XUẤT.
+    %%   Bản demo (auth-log.js, hàm touch): gọi khi nạp trang, click, gõ phím (tối đa 1 lần/phút); thấy phiên của mình đã revoked thì xóa phiên trình duyệt và về trang đăng nhập. Chưa kiểm lại is_active, locks_account, thiết bị blocked lúc dùng phiên (chờ backend).
+    %%   Lý do thu hồi (revoke_reason): logout, logout_all, admin_revoke, employee_status, password_changed, account_locked, username_changed, expired, idle_timeout, device_replaced, device_blocked.
+    %% ----------
+    %% AI GHI GÌ VÀO NHẬT KÝ (nguồn ghi nằm ở file nhân sự):
+    %%   auth_events: login_ok, login_failed, login_blocked (detail.reason), logout, logout_all, session_expired, session_revoked, password_changed, password_reset, account_locked, account_unlocked, username_changed,
+    %%     approval_requested, approval_approved, approval_rejected, device_blocked, device_unblocked.
+    %%   activity_logs: mọi thay đổi cấu hình và hồ sơ (create, update, grant, revoke, status_change, type_change, station_change, scope_change), khóa/mở khóa (account_lock, account_unlock, login_unlock), password_reset,
+    %%     username_change, revoke_session, duyệt và thiết bị (login_approve, login_reject, device_block, device_unblock). Bốn action duyệt/thiết bị giữ vĩnh viễn.
+    %%   Một lần lưu hồ sơ nhân viên tách thành nhiều dòng activity_logs, mỗi loại thay đổi một dòng với đúng action và entity_type; lý do của lần lưu nằm trong changes.
+    %%   entity_type luôn là tên bảng bị tác động. Nghiệp vụ ngoài module nhân sự (vé, hàng, phơi...) ghi nhật ký riêng của module đó, không dùng activity_logs.
+    %% INDEX NÊN CÓ: auth_events (username, occurred_at); auth_events (user_id, occurred_at); auth_events (device_id, occurred_at);
+    %%   auth_events chia PARTITION BY RANGE (occurred_at) theo tháng, PRIMARY KEY (id, occurred_at);
+    %%   user_sessions (user_id) UNIQUE WHERE revoked_at IS NULL (một phiên một thiết bị); user_sessions (device_id); user_sessions (user_id, created_at) cho Tab Đăng nhập;
+    %%   activity_logs (entity_type, entity_id, occurred_at) và (user_id, occurred_at) và (session_id).
+
+    user_sessions {
+        uuid id PK
+        uuid user_id FK "UNIQUE (user_id) WHERE revoked_at IS NULL: mỗi tài khoản một phiên đang sống"
+        uuid device_id FK "NOT NULL; thiết bị lúc cấp phiên (không bị blocked, và đã qua duyệt nếu thuộc trường hợp cần duyệt)"
+        bytea token_hash UK "SHA-256 của token ngẫu nhiên 32 byte"
+        timestamptz created_at "giờ đăng nhập"
+        timestamptz last_seen_at "cập nhật tối đa một lần mỗi phút; dùng để tính không hoạt động (idle_timeout_minutes) và hiện cột Hoạt động cuối"
+        timestamptz expires_at "hết hạn tuyệt đối = created_at + session_hours (mặc định 12 giờ, app_settings)"
+        timestamptz revoked_at "giờ kết thúc phiên; phiên quá hạn thì job hoặc lần đăng nhập kế tiếp đặt = expires_at; phiên không hoạt động thì đặt = last_seen_at"
+        text revoke_reason "CHECK: logout, logout_all, admin_revoke, employee_status, password_changed, account_locked, username_changed, expired, idle_timeout, device_replaced, device_blocked (v3.0 bỏ shift_ended)"
+        inet ip
+        text user_agent
+    }
+
+    auth_events {
+        bigint id PK "chia PARTITION BY RANGE (occurred_at) theo tháng; khóa chính phải gồm cột chia partition: PRIMARY KEY (id, occurred_at)"
+        timestamptz occurred_at PK "cột chia partition; thuộc khóa chính"
+        citext username "tên đã nhập, kể cả sai hoặc không tồn tại"
+        text event_type "CHECK: login_ok, login_failed, login_blocked, logout, logout_all, session_expired, session_revoked, password_changed, password_reset, account_locked, account_unlocked, username_changed, approval_requested, approval_approved, approval_rejected, device_blocked, device_unblocked"
+        uuid user_id "không FK có chủ đích; null nếu tên không tồn tại"
+        uuid session_id FK
+        uuid device_id FK "nullable; thiết bị liên quan (null nếu tên không tồn tại hoặc chưa tới bước thiết bị)"
+        inet ip
+        text user_agent
+        jsonb detail "vd account_locked: reason = manual hoặc failed_login; password_reset: by = user_id người đặt hoặc db_script; username_changed: old, new, by; session_expired và session_revoked: reason = theo revoke_reason, by nếu admin thu hồi; login_blocked: reason = employee_locked, manual_locked, failed_login_locked, device_blocked, approval_pending, approval_rejected, approval_limit; login_ok: approval_id nếu nhờ duyệt"
+    }
+
+    activity_logs {
+        bigint id PK
+        timestamptz occurred_at
+        uuid user_id FK "người thao tác; NULL = hệ thống hoặc trigger"
+        uuid session_id FK "nullable; phiên đang dùng khi thao tác, để biết thao tác bằng thiết bị nào; NULL = hệ thống, trigger, script"
+        text action "CHECK: create, update, delete, grant, revoke, assign, status_change, type_change, station_change, scope_change, account_lock, account_unlock, password_reset, username_change, revoke_session, login_unlock, login_approve, login_reject, device_block, device_unblock; login_approve, login_reject, device_block, device_unblock giữ vĩnh viễn (không dọn)"
+        text entity_type "luôn là tên bảng bị tác động, vd employees, users, employee_types, employee_type_permissions, user_devices, login_approvals, employee_stations, employee_scope_regions, employment_statuses, app_settings (không dùng tên giao diện như account)"
+        text entity_id "dạng text vì khóa có nhiều kiểu"
+        text summary "câu tóm tắt hiển thị cho người xem"
+        jsonb changes "giá trị cũ và mới theo từng cột; kèm lý do của lần lưu"
+        inet ip
+    }
+
+    %% ===== QUAN HỆ =====
+    users ||--o{ user_sessions : opens
+    user_devices ||--o{ user_sessions : "phien tren thiet bi"
+    user_devices |o--o{ auth_events : "su kien thiet bi"
+    user_sessions |o--o{ auth_events : logs
+    user_sessions |o--o{ activity_logs : "thao tac trong phien"
+    users |o--o{ activity_logs : "nguoi thao tac"
+
+    %% ===== KHUNG BẢNG FILE NHÂN SỰ =====
+    users {
+        uuid user_id PK "KHUNG: bảng thật ở file nhân sự"
+        bigint employee_id FK "NULL khi là admin gốc"
+        citext username
+    }
+
+    user_devices {
+        uuid id PK "KHUNG: bảng thật ở file nhân sự (sổ thiết bị)"
+        uuid user_id FK
+        text label
+        text platform
+    }

@@ -259,7 +259,7 @@ function pkRowNameAndPhone(row) {
 function pkBuildDriversPool() {
   try {
     if (window.FleetStore && typeof FleetStore.getStaff === 'function') {
-      const list = FleetStore.getStaff({ role: 'shuttle_driver' })
+      const list = FleetStore.getStaff({ crewRole: 'shuttle_driver' })
         .filter((s) => s.active !== false)
         .map((s) => ({ id: s.code || s.name, driverName: s.name, driverPhone: s.phone || '', license: s.license || '' }));
       if (list.length) return list;

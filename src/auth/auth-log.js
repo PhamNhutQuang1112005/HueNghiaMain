@@ -6,12 +6,15 @@
      user_sessions ... mỗi lần đăng nhập thành công một phiên (giờ vào, giờ ra, lý do kết thúc, thiết bị)
      user_devices .... sổ thiết bị: mỗi trình duyệt có 1 mã thiết bị ngẫu nhiên (HN_DEVICE_TOKEN_KEY)
      auth_events ..... login_ok, login_failed, login_blocked, logout, session_expired, session_revoked, ...
-     login_approvals / login_exceptions ... chỉ ĐỌC/GHI từ trang Admin (demo chưa chặn đăng nhập theo duyệt/lịch ca)
+     login_approvals ... chỉ ĐỌC/GHI từ trang Admin (demo chưa chặn đăng nhập theo bước duyệt)
 
    Quy tắc đang chạy ở bản demo: MỘT PHIÊN MỘT THIẾT BỊ (đăng nhập mới đá phiên cũ: device_replaced), phiên hết hạn
    tuyệt đối 12 giờ, phiên không hoạt động quá idle_timeout_minutes bị đánh dấu idle_timeout, khóa nhập sai (5 lần
-   login_failed trong 15 phút kể từ lần account_unlocked gần nhất). CỔNG LỊCH CA và BƯỚC DUYỆT ĐĂNG NHẬP chưa chặn ở
-   bản demo (chờ backend) — dữ liệu và giao diện của chúng đã sẵn ở Admin.
+   login_failed trong 15 phút kể từ lần account_unlocked gần nhất). Không có cổng giờ đăng nhập (v3.0 bỏ lịch ca). BƯỚC DUYỆT
+   ĐĂNG NHẬP chưa chặn ở bản demo (chờ backend) — dữ liệu và giao diện đã sẵn ở Admin.
+
+   last_seen_at cập nhật khi nạp trang, click, gõ phím (tối đa 1 lần/phút, hàm touch); phiên đã bị thu hồi thì lần tương tác kế tiếp
+   đá người dùng về trang đăng nhập. Backend thay bằng kiểm ở mỗi request.
 
    Khi lên thật: toàn bộ file này thay bằng API server (mã thiết bị lưu cookie httpOnly, token phiên băm SHA-256...).
    Nạp bằng <script> thường SAU storage-keys.js. API: window.AuthLog
@@ -25,12 +28,9 @@
     failedLoginLimit: 5,
     failedLoginWindowMinutes: 15,
     logRetentionMonths: 12,        // log_retention_months
-    earlyLoginMinutes: 15,         // early_login_minutes
-    lateGraceMinutes: 0,           // late_grace_minutes
     approvalValidMinutes: 10,      // approval_valid_minutes
     approvalRejectCooldownMinutes: 5,
-    maxPendingApprovalsPerUser: 3,
-    scheduleTimezone: 'Asia/Ho_Chi_Minh'
+    maxPendingApprovalsPerUser: 3
   };
   var EVENT_CAP = 3000;
 
@@ -168,13 +168,21 @@
   function currentSid() {
     try { var u = JSON.parse(sessionStorage.getItem(HN_CURRENT_USER_KEY) || 'null'); return (u && u.sid) || ''; } catch (e) { return ''; }
   }
-  // Mỗi lần dùng phiên: cập nhật last_seen_at tối đa 1 lần/phút.
+  // Mỗi lần dùng phiên (nạp trang, click, gõ phím), tối đa 1 lần/phút: phiên đã bị thu hồi (admin thu hồi, bị đá, hết hạn,
+  // không hoạt động) thì xóa phiên trình duyệt và đưa về trang đăng nhập; còn sống thì cập nhật last_seen_at.
+  var lastTouchAt = 0;
   function touch() {
+    var now = Date.now();
+    if (now - lastTouchAt < 60000) return;
+    lastTouchAt = now;
     var sid = currentSid(); if (!sid) return;
     var list = getSessions(), s = list.find(function (x) { return x.id === sid; });
-    if (!s || s.revokedAt) return;
-    var now = Date.now();
-    if (now - (s.lastSeenAt || 0) < 60000) return;
+    if (!s) return;
+    if (s.revokedAt) {
+      try { sessionStorage.removeItem(HN_CURRENT_USER_KEY); } catch (e) { /* ignore */ }
+      if (!/index\.html$/.test(location.pathname)) location.replace('index.html');
+      return;
+    }
     s.lastSeenAt = now; saveSessions(list);
   }
   function onLogout() {
@@ -198,19 +206,12 @@
   }
   function isFailedLoginLocked(username) { return failedLoginCount(username) >= settings().failedLoginLimit; }
 
-  /* ---- Duyệt đăng nhập & ngoại lệ (đọc cho trang Admin) ---- */
+  /* ---- Duyệt đăng nhập (đọc cho trang Admin) ---- */
   function getApprovals() { return read(HN_LOGIN_APPROVALS_KEY, []); }
   function saveApprovals(a) { write(HN_LOGIN_APPROVALS_KEY, a); }
-  function getExceptions() { return read(HN_LOGIN_EXCEPTIONS_KEY, []); }
-  function saveExceptions(a) { write(HN_LOGIN_EXCEPTIONS_KEY, a); }
-  function activeException(username) {
-    var now = Date.now();
-    return getExceptions().find(function (x) {
-      return x.username === username && !x.revokedAt && x.validFrom <= now && now < x.validUntil;
-    }) || null;
-  }
 
-  try { sweep(); } catch (e) { /* ignore */ }
+  try { sweep(); touch(); } catch (e) { /* ignore */ }
+  ['click', 'keydown'].forEach(function (ev) { document.addEventListener(ev, touch, true); });
 
   window.AuthLog = {
     DEFAULTS: DEFAULTS,
@@ -222,7 +223,6 @@
     touch: touch, onLogout: onLogout, currentSessionRevoked: currentSessionRevoked,
     failedLoginCount: failedLoginCount, isFailedLoginLocked: isFailedLoginLocked,
     getApprovals: getApprovals, saveApprovals: saveApprovals,
-    getExceptions: getExceptions, saveExceptions: saveExceptions, activeException: activeException,
     newId: rid
   };
 })();

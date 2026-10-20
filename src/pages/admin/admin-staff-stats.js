@@ -1,17 +1,11 @@
 /* =========================================================
-   THỐNG KÊ NHÂN SỰ (Admin) — 7 tab con trong nhóm "Nhân sự" (HR v2.9):
+   THỐNG KÊ NHÂN SỰ (Admin) — 2 tab con trong nhóm "Nhân sự" (HR v3.1; đã bỏ các tab kết ca và Ca đang mở, thuộc module kết ca M05):
      1. Tài xế ........... xe tuyến (phơi đã KHỞI HÀNH THẬT) + lượt trung chuyển. Danh sách = người có chuyến trong khoảng lọc HỢP
-                           nhân viên đang làm việc có work_kind driver/shuttle_driver (người đã đổi loại vẫn hiện nếu có chuyến).
-     2. Lơ xe ............ chỉ xe tuyến, nhân viên work_kind = helper.
-     3. Kết ca — Tổng đài  4. Kết ca — Phòng vé  5. Kết ca — Hàng hóa (nhận + giao, có lọc)  6. Kết ca — Tài xế trung chuyển
-        Tab kết ca chia theo CHỨC NĂNG của bản chốt (shift_reports.function_key), không theo loại nhân viên. Bộ lọc: ngày kết ca,
-        Khu vực, Trạm (theo TRẠM LÀM CA). Bản chốt do admin gốc đóng thay mang nhãn "Admin đóng" (kiểm đếm thực tế để trống).
-        Doanh thu theo trạm KHÔNG lấy từ trạm làm ca mà từ trạm bán vé của từng khoản.
-     7. Ca đang mở ....... shifts.status = open; ca mở quá 24 giờ tô nổi; CHỈ admin gốc thấy nút Đóng ca (đóng thay).
-   Nguồn dữ liệu: manifest hn_ts_manifests_v1 (phơi), kết ca TicketStaff hn_ts_shift_closings_v1, kết ca hàng hóa
-   hueNghia_receive_shift_reports / hueNghia_delivery_shift_reports, ca thực tế FleetStore.getShifts().
-   Khớp tài xế/phụ xe/người kết ca bằng so TÊN (case-insensitive) vì manifest.driver/helper, staffId kết ca và ShuttleDriverService
-   chỉ lưu chuỗi tên/nhãn nhập tay, không lưu id cứng.
+                           nhân viên đang làm việc có loại crew_role = route_driver hoặc shuttle_driver (người đã đổi loại vẫn hiện nếu có chuyến).
+     2. Lơ xe ............ chỉ xe tuyến, nhân viên có loại crew_role = helper.
+   Nguồn dữ liệu: manifest hn_ts_manifests_v1 (phơi) và ShuttleDriverService (gán tài xế trung chuyển).
+   Khớp tài xế/phụ xe bằng so TÊN (case-insensitive) vì manifest.driver/helper và ShuttleDriverService
+   chỉ lưu chuỗi tên/nhãn nhập tay, không lưu id cứng (DB sẽ khớp bằng employees.id).
    ========================================================= */
 
 var STAFF_STATS_TAB = 'driver';
@@ -86,16 +80,16 @@ function ssRenderDriverTripsTab() {
   var f = SS_TRIP_FILTERS.driver;
   var kw = f.search.toLowerCase();
 
+  var byDate = !!(f.dateFrom || f.dateTo);   // dữ liệu gán trung chuyển của demo chưa có ngày nên không lọc ngày được
   var rows = FleetStore.getStaff()
-    .filter(function (s) { var k = hrWorkKind(s.role); return k === 'driver' || k === 'shuttle_driver'; })
     .filter(function (s) { return !kw || ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.phone || '')).toLowerCase().indexOf(kw) !== -1; })
     .map(function (s) {
       var lineTrips = ssCountLineTrips('driver', s.name, f.dateFrom, f.dateTo);
-      var shuttleLegs = ssCountShuttleLegs(s.name);
+      var shuttleLegs = byDate ? 0 : ssCountShuttleLegs(s.name);
       return { staff: s, lineTrips: lineTrips, shuttleLegs: shuttleLegs, total: lineTrips + shuttleLegs };
     })
-    // Đang làm việc, hoặc đã nghỉ/đổi loại nhưng vẫn có chuyến.
-    .filter(function (r) { return hrStaffStatus(r.staff) === 'working' || r.total > 0; })
+    // Đang làm việc có vai trò tài xế (crew_role), HOẶC có chuyến trong khoảng lọc (kể cả đã đổi loại hoặc nghỉ việc).
+    .filter(function (r) { var k = hrCrewRole(r.staff.role); return r.total > 0 || ((k === 'route_driver' || k === 'shuttle_driver') && hrStaffStatus(r.staff) === 'working'); })
     .sort(function (a, b) { return b.total - a.total; });
 
   var rowsHtml = rows.map(function (r, idx) {
@@ -105,7 +99,7 @@ function ssRenderDriverTripsTab() {
       '<td style="font-weight:700;">' + esc(r.staff.name || '—') + '</td>' +
       '<td class="mono">' + esc(r.staff.phone || '—') + '</td>' +
       '<td class="mono" style="text-align:center; font-weight:800;">' + r.lineTrips + '</td>' +
-      '<td class="mono" style="text-align:center; font-weight:800;">' + r.shuttleLegs + '</td>' +
+      '<td class="mono" style="text-align:center; font-weight:800;">' + (byDate ? '—' : r.shuttleLegs) + '</td>' +
       '<td class="mono" style="text-align:center; font-weight:800; color:var(--red);">' + r.total + '</td>' +
     '</tr>';
   }).join('');
@@ -116,6 +110,7 @@ function ssRenderDriverTripsTab() {
     (rowsHtml ? '' : '<div class="grid-empty"><p>Chưa có tài xế nào.</p></div>');
 
   return ssTripFilterToolbarHtml('driver', f, 'Mã NV, tên, SĐT...') +
+    (byDate ? '<div class="hint-inline" style="margin:-6px 0 10px;">Đang lọc theo ngày: lượt trung chuyển chưa có dữ liệu ngày nên không tính vào cột Số lượt trung chuyển và Tổng cộng.</div>' : '') +
     ssCardHtml('Thống kê chuyến của tài xế', rows.length + ' tài xế', table);
 }
 
@@ -124,10 +119,9 @@ function ssRenderHelperTripsTab() {
   var kw = f.search.toLowerCase();
 
   var rows = FleetStore.getStaff()
-    .filter(function (s) { return hrWorkKind(s.role) === 'helper'; })
     .filter(function (s) { return !kw || ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.phone || '')).toLowerCase().indexOf(kw) !== -1; })
     .map(function (s) { return { staff: s, lineTrips: ssCountLineTrips('helper', s.name, f.dateFrom, f.dateTo) }; })
-    .filter(function (r) { return hrStaffStatus(r.staff) === 'working' || r.lineTrips > 0; })
+    .filter(function (r) { return r.lineTrips > 0 || (hrCrewRole(r.staff.role) === 'helper' && hrStaffStatus(r.staff) === 'working'); })
     .sort(function (a, b) { return b.lineTrips - a.lineTrips; });
 
   var rowsHtml = rows.map(function (r, idx) {
@@ -149,570 +143,22 @@ function ssRenderHelperTripsTab() {
     ssCardHtml('Thống kê chuyến của phụ xe', rows.length + ' phụ xe', table);
 }
 
-/* =====================================================================
-   3. KẾT CA — đọc hn_ts_shift_closings_v1 (TicketStaff), tách theo vai trò TÀI KHOẢN của người kết ca.
-   ===================================================================== */
-var SS_SHIFT_CLOSING_KEY = 'hn_ts_shift_closings_v1';
-var SS_KETCA_FILTER = { dateFrom: '', dateTo: '', region: '', station: '' };
-
-function ssShiftClosingList() {
-  var list = lsRead(SS_SHIFT_CLOSING_KEY, []);
-  return Array.isArray(list) ? list : [];
-}
-
-// Danh sách "Trạm bán vé" (Lê Đại Hành/Xa Cảng/Kinh Dương Vương mặc định, TicketStaff cho tự thêm/sửa
-// qua HN_TS_STATIONS_KEY) — đọc thẳng key localStorage vì admin.html không nạp ticketstaff-manifest-
-// core.js (nơi định nghĩa getTicketStations()), tránh phải load cả bộ script TicketStaff chỉ để dùng 1
-// hàm đọc danh sách trạm.
-var SS_TICKET_STATIONS_KEY = 'hn_ts_ticket_stations_v1';
-function ssTicketStations() {
-  return lsRead(SS_TICKET_STATIONS_KEY, ['Lê Đại Hành', 'Xa Cảng', 'Kinh Dương Vương']);
-}
-
-/* ---- Bộ lọc "Khu vực" + "Trạm" (FleetStore.getStations()/region — CÙNG danh mục Khu vực/Trạm xe của
-   trang "Trạm xe", KHÁC với "Trạm bán vé" ở trên) ----
-   Bản ghi kết ca không tự lưu khu vực/trạm của mình — suy ngược qua tripIds đã kết ca: mỗi tripId tra
-   ra đúng 1 chuyến (getTrips(), admin.js) có fromStation (trạm khởi hành thật, cùng danh mục
-   FleetStore.getStations()); từ đó suy ra region của trạm đó. 1 lượt kết ca có thể gồm nhiều chuyến ở
-   nhiều trạm khác nhau nên khớp lọc kiểu "match nếu có ÍT NHẤT 1 chuyến thuộc khu vực/trạm đang lọc",
-   không tách nhỏ số tiền theo từng trạm (khác bảng "theo trạm bán vé" ở trên vốn đã có sẵn breakdown). */
-function ssStationRegion(stationName) {
-  var st = FleetStore.getStations().find(function (s) { return s.name === stationName; });
-  return st ? (st.region || '') : '';
-}
-function ssRecordTripStations(record) {
-  var trips = (typeof getTrips === 'function') ? getTrips() : [];
-  var byId = {};
-  trips.forEach(function (t) { if (t && t.id) byId[t.id] = t; });
-  var names = {};
-  (record.tripIds || []).forEach(function (id) {
-    var t = byId[id];
-    if (t && t.fromStation) names[t.fromStation] = true;
-  });
-  return Object.keys(names);
-}
-function ssRecordMatchesRegionStation(record, f) {
-  if (!f.region && !f.station) return true;
-  if (f.station === '__none__') return !ssRecordTripStations(record).length;
-  var names = ssRecordTripStations(record);
-  if (!names.length) return false;
-  return names.some(function (n) {
-    if (f.station) return n === f.station;
-    return ssStationRegion(n) === f.region;
-  });
-}
-function ssRegionOptions() {
-  return [{ key: '', label: 'Tất cả khu vực' }].concat(getRegionMeta().map(function (m) { return { key: m[0], label: m[1] }; }));
-}
-function ssRegionLabel(key) {
-  if (!key) return '';
-  var m = getRegionMeta().find(function (x) { return x[0] === key; });
-  return m ? m[1] : key;
-}
-function ssStationOptions(regionKey) {
-  var stations = FleetStore.getStations().filter(function (s) { return !regionKey || s.region === regionKey; });
-  return [{ key: '', label: 'Tất cả trạm' }].concat(stations.map(function (s) { return { key: s.name, label: s.name }; }));
-}
-// Bộ lọc kết ca: thêm mục "Không gắn trạm" (ca tài xế trung chuyển không có trạm làm ca).
-function ssKetcaStationOptions(regionKey) {
-  return ssStationOptions(regionKey).concat([{ key: '__none__', label: 'Không gắn trạm' }]);
-}
-
-// Combobox gõ-để-lọc dùng chung cho "Khu vực"/"Trạm" — cùng khung nhìn (.combo-input-wrap/.combo-input/
-// .dropdown-panel/.dropdown-item) đã nạp sẵn qua booking-ui/02-zone1.css cho trang Admin, KHÔNG nạp
-// nguyên file booking-combobox.js (gắn cứng vào nhiều id/luồng chỉ có ở TicketStaff). Chọn 1 dòng chỉ
-// đổi giá trị input + gọi onSelect (thường là set filter rồi renderStaffStatsView() render lại TOÀN BỘ
-// toolbar) — không cần giữ focus qua adminKeepFocus như ô "Tìm kiếm" gõ-tới-đâu-lọc-dữ-liệu-tới-đó, vì
-// việc gõ để LỌC DANH SÁCH GỢI Ý ở đây thuần phía client (chỉ render lại <div dropdown-panel>, không
-// render lại toolbar) — chỉ khi BẤM CHỌN 1 dòng mới thật sự đổi filter và render lại toolbar.
-// `options`/`selectedKey` NHẬN CẢ mảng/chuỗi TĨNH lẫn HÀM (đánh giá lại mỗi lần mở dropdown) — modal
-// Nhân viên (admin-staff.js, smAttachStationCombos) dùng dạng hàm vì modal KHÔNG render lại toàn bộ HTML
-// mỗi lần chọn 1 dòng (sẽ mất các ô khác đang gõ dở), nên chỉ set thẳng input.value rồi để nguyên listener
-// — danh sách "Trạm" vì vậy phải tự đọc LẠI khu vực đang chọn (biến ngoài) mỗi lần mở, không đóng băng
-// tại thời điểm gắn listener.
-function ssWireSearchCombo(inputId, dropdownId, optionsOrFn, selectedKeyOrFn, onSelect) {
-  var input = document.getElementById(inputId);
-  var dd = document.getElementById(dropdownId);
-  if (!input || !dd) return;
-
-  function renderList(filterText) {
-    var options = typeof optionsOrFn === 'function' ? optionsOrFn() : optionsOrFn;
-    var selectedKey = typeof selectedKeyOrFn === 'function' ? selectedKeyOrFn() : selectedKeyOrFn;
-    var q = (filterText || '').trim().toLowerCase();
-    var list = !q ? options : options.filter(function (o) { return o.label.toLowerCase().indexOf(q) !== -1; });
-    dd.innerHTML = list.length
-      ? list.map(function (o, i) {
-          return '<div class="dropdown-item' + (o.key === selectedKey ? ' active' : '') + '" data-idx="' + i + '">' +
-            '<span>' + esc(o.label) + '</span><span class="dropdown-item-check">✓</span></div>';
-        }).join('')
-      : '<div class="dropdown-empty">Không tìm thấy</div>';
-    dd.classList.add('open');
-    Array.prototype.forEach.call(dd.querySelectorAll('.dropdown-item'), function (el) {
-      el.addEventListener('mousedown', function (e) {
-        e.preventDefault();
-        var opt = list[parseInt(el.getAttribute('data-idx'), 10)];
-        if (opt) onSelect(opt.key, opt.label);
-      });
-    });
-  }
-
-  input.addEventListener('focus', function () { input.select(); renderList(''); });
-  input.addEventListener('click', function () { input.select(); renderList(''); });
-  input.addEventListener('input', function () { renderList(input.value); });
-  input.addEventListener('blur', function () { setTimeout(function () { dd.classList.remove('open'); }, 150); });
-}
-function ssKetcaSelectRegion(key) {
-  SS_KETCA_FILTER.region = key;
-  // Đổi khu vực mà trạm đang chọn không còn thuộc khu vực đó → bỏ chọn trạm, tránh lọc "khu vực A + trạm
-  // của khu vực B" không ra kết quả nào mà không rõ lý do.
-  if (SS_KETCA_FILTER.station && ssStationRegion(SS_KETCA_FILTER.station) !== key) SS_KETCA_FILTER.station = '';
-  renderStaffStatsView();
-}
-function ssKetcaSelectStation(key) {
-  SS_KETCA_FILTER.station = key;
-  if (key && key !== '__none__') SS_KETCA_FILTER.region = ssStationRegion(key); // chọn thẳng 1 trạm → tự khớp luôn khu vực của nó
-  renderStaffStatsView();
-}
-function ssKetcaAttachCombos() {
-  ssWireSearchCombo('ssKetcaRegionInput', 'ssKetcaRegionDropdown', ssRegionOptions(), SS_KETCA_FILTER.region, ssKetcaSelectRegion);
-  ssWireSearchCombo('ssKetcaStationInput', 'ssKetcaStationDropdown', ssKetcaStationOptions(SS_KETCA_FILTER.region), SS_KETCA_FILTER.station, ssKetcaSelectStation);
-}
-
-// Gộp stationBreakdown của TẤT CẢ lượt kết ca phòng vé (đã lọc theo ngày) thành 1 bảng TỔNG theo trạm —
-// mỗi lượt kết ca đã tự lưu sẵn stationBreakdown riêng của lượt đó (tsAggregateShiftClosing,
-// ticketstaff-manifest-core.js) nên chỉ cần cộng dồn theo key trạm qua mọi nhân viên/mọi lượt, không
-// cần đọc lại dữ liệu vé gốc.
-function ssAggregateKetcaStations(phongVeRows) {
-  var totals = {};
-  phongVeRows.forEach(function (x) {
-    var sb = (x.record && x.record.stationBreakdown) || {};
-    Object.keys(sb).forEach(function (st) {
-      if (!totals[st]) totals[st] = { tickets: 0, passengers: 0, amount: 0 };
-      totals[st].tickets += sb[st].tickets || 0;
-      totals[st].passengers += sb[st].passengers || 0;
-      totals[st].amount += sb[st].amount || 0;
-    });
-  });
-  return totals;
-}
-
-function ssRenderKetcaStationTableHtml(totals) {
-  var stations = ssTicketStations().slice();
-  Object.keys(totals).forEach(function (st) { if (stations.indexOf(st) === -1) stations.push(st); });
-  if (!stations.length) return '<div class="grid-empty"><p>Chưa có dữ liệu theo trạm.</p></div>';
-
-  var grand = { tickets: 0, amount: 0 };
-  var rowsHtml = stations.map(function (st) {
-    var v = totals[st] || { tickets: 0, amount: 0 };
-    grand.tickets += v.tickets || 0;
-    grand.amount += v.amount || 0;
-    return '<tr>' +
-      '<td style="font-weight:700;">' + esc(st) + '</td>' +
-      '<td class="mono" style="text-align:center; font-weight:800;">' + (v.tickets || 0) + '</td>' +
-      '<td style="text-align:right; font-weight:800;">' + fmtMoney(v.amount) + '</td>' +
-    '</tr>';
-  }).join('');
-  var totalRow = '<tr style="font-weight:800;">' +
-    '<td>TỔNG</td>' +
-    '<td class="mono" style="text-align:center;">' + grand.tickets + '</td>' +
-    '<td style="text-align:right;">' + fmtMoney(grand.amount) + '</td>' +
-  '</tr>';
-
-  return '<table class="admin-table">' +
-    '<thead><tr><th>Trạm</th><th style="text-align:center;">Số vé</th><th style="text-align:right;">Doanh thu</th></tr></thead>' +
-    '<tbody>' + rowsHtml + totalRow + '</tbody></table>';
-}
-
-/* staffId trong bản ghi kết ca là NHÃN hiển thị lúc đó (mã NV nếu tra được, không thì trả nguyên
-   username) — xem getCurrentStaffLabel() trong ticketstaff-manifest-core.js. Truy ngược: thử khớp mã
-   NV trong Nhân viên trước, lấy username của NV đó rồi tra role trong Tài khoản; nếu không khớp mã NV
-   nào thì coi thẳng staffId là username để tra Tài khoản. */
-function ssResolveCloserAccount(staffId) {
-  var staffRec = FleetStore.getStaff().find(function (s) { return s.code && s.code === staffId; });
-  var username = staffRec ? staffRec.username : staffId;
-  if (!username) return null;
-  var accounts = (typeof getAccountsList === 'function') ? getAccountsList() : [];
-  return accounts.find(function (a) { return a.username === username; }) || null;
-}
-
-function ssKetcaFilterInput(field, val) {
-  if (!(field in SS_KETCA_FILTER)) return;
-  SS_KETCA_FILTER[field] = val || '';
-  adminKeepFocus(renderStaffStatsView);
-}
-function ssResetKetcaFilter() { SS_KETCA_FILTER = { dateFrom: '', dateTo: '', region: '', station: '' }; renderStaffStatsView(); }
-
-function ssGetKetcaRows() {
-  var f = SS_KETCA_FILTER;
-  var all = ssShiftClosingList().filter(function (r) {
-    if (!r) return false;
-    var d = toLocalDateStr(r.time);
-    if (f.dateFrom && d < f.dateFrom) return false;
-    if (f.dateTo && d > f.dateTo) return false;
-    if (!ssRecordMatchesRegionStation(r, f)) return false;
-    return true;
-  }).sort(function (a, b) { return String(b.time || '').localeCompare(String(a.time || '')); });
-
-  // 'ticket' (Nhân viên vé — loại nhân viên GỐC, xem SEED_STAFF_ROLES fleet-store.js) và 'ticket_office'
-  // (Nhân viên phòng vé — role MỚI tách riêng cho phần thu tiền) đều là nhân viên PHÒNG VÉ, xếp chung 1
-  // rổ; chỉ 'call_center' (Nhân viên tổng đài — role chuyên biệt, không thu tiền) và các role còn lại
-  // (chưa xác định được/khác) mới rơi vào rổ tổng đài mặc định.
-  var PHONG_VE_ROLES = { ticket: true, ticket_office: true };
-  var tongDaiRows = [], phongVeRows = [];
-  all.forEach(function (r) {
-    var acc = ssResolveCloserAccount(r.staffId);
-    var role = acc ? acc.role : '';
-    var staffRec = acc ? hrStaffOfAccount(acc) : null;
-    var row = { record: r, closerName: (staffRec && staffRec.name) || (acc && (acc.fullName || acc.username)) || r.staffId };
-    // Bản chốt đã mang function_key (shift_reports) thì theo đó; bản chốt cũ chưa có thì suy từ loại của người kết ca.
-    var fn = r.functionKey || (PHONG_VE_ROLES[role] || hrWorkKind(role) === 'ticket_office' ? 'ticket_office' : 'call_center');
-    if (fn === 'ticket_office') phongVeRows.push(row);
-    else if (fn === 'call_center') tongDaiRows.push(row);
-    else tongDaiRows.push(row);
-  });
-  return { tongDaiRows: tongDaiRows, phongVeRows: phongVeRows };
-}
-
-function ssKetcaToolbarHtml() {
-  var f = SS_KETCA_FILTER;
-  return '<div class="sd-toolbar ss-ketca-toolbar">' +
-      '<div class="filter-field"><label>Từ ngày</label><input type="date" value="' + esc(f.dateFrom) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateFrom","__this_value__"]\'></div>' +
-      '<div class="filter-field"><label>Đến ngày</label><input type="date" value="' + esc(f.dateTo) + '" data-change-action="ssKetcaFilterInput" data-args=\'["dateTo","__this_value__"]\'></div>' +
-      '<div class="filter-field" style="position:relative;"><label>Khu vực</label>' +
-        '<div class="combo-input-wrap"><input type="text" id="ssKetcaRegionInput" class="combo-input" autocomplete="off" placeholder="Tất cả khu vực" value="' + esc(ssRegionLabel(f.region)) + '">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>' +
-        '<div class="dropdown-panel" id="ssKetcaRegionDropdown"></div>' +
-      '</div>' +
-      '<div class="filter-field" style="position:relative;"><label>Trạm</label>' +
-        '<div class="combo-input-wrap"><input type="text" id="ssKetcaStationInput" class="combo-input" autocomplete="off" placeholder="Tất cả trạm" value="' + esc(f.station === '__none__' ? 'Không gắn trạm' : f.station) + '">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>' +
-        '<div class="dropdown-panel" id="ssKetcaStationDropdown"></div>' +
-      '</div>' +
-      '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="ssResetKetcaFilter">Đặt lại</button></div>' +
-    '</div>';
-}
-
-function ssRenderKetcaTongDaiTab() {
-  var tongDaiRows = ssGetKetcaRows().tongDaiRows;
-
-  var tongDaiHtml = tongDaiRows.map(function (x, idx) {
-    var r = x.record;
-    return '<tr>' +
-      '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
-      '<td style="font-weight:700;">' + esc(x.closerName) + (r.isForced ? ' ' + hrChip('Admin đóng', 'amber') : '') + '</td>' +
-      '<td>' + esc(ssRecordTripStations(r).join(', ') || '—') + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(fmtStamp(r.time)) + '</td>' +
-      '<td class="mono" style="text-align:center; font-weight:800;">' + (r.tripCount || 0) + '</td>' +
-      '<td class="mono" style="text-align:center; font-weight:800; color:var(--red);">' + (r.ticketCount || 0) + '</td>' +
-      '<td class="mono" style="text-align:center; font-weight:800;">' + (r.passengerCount || 0) + '</td>' +
-    '</tr>';
-  }).join('');
-  var tongDaiTable = '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Nhân viên</th><th>Trạm</th><th>Thời gian kết ca</th><th>Số phơi</th><th>Tổng vé đã đặt/bán</th><th>Tổng khách</th></tr></thead>' +
-    '<tbody>' + tongDaiHtml + '</tbody></table>' +
-    (tongDaiHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt kết ca nào của nhân viên tổng đài.</p></div>');
-
-  return ssKetcaToolbarHtml() +
-    ssCardHtml('Kết ca — Nhân viên tổng đài', tongDaiRows.length + ' lượt', tongDaiTable);
-}
-
-// Gộp phẳng TOÀN BỘ dòng CHI (chiItems, nhân viên tự gõ tay lúc kết ca — xem tsCollectShiftChiItems,
-// ticketstaff-manifest-ui.js) của MỌI lượt kết ca phòng vé đang lọc thành 1 bảng — mỗi dòng vẫn giữ
-// NHÂN VIÊN + THỜI GIAN KẾT CA của đúng lượt sinh ra nó (không gộp mất nguồn) để còn tra ngược được lượt
-// kết ca nào phát sinh khoản chi nào.
-function ssAggregateKetcaChiRows(phongVeRows) {
-  var rows = [];
-  phongVeRows.forEach(function (x) {
-    var items = (x.record && x.record.chiItems) || [];
-    items.forEach(function (item) {
-      rows.push({ closerName: x.closerName, time: x.record.time, reason: item.reason, amount: item.amount, approver: item.approver });
-    });
-  });
-  return rows;
-}
-
-// 3 cột ĐÚNG như ticketstaff nhập (Lý do chi / Số tiền chi / Người duyệt) — không rút gọn/gộp chung
-// thành 1 cột "lý do" mập mờ, để khớp đúng ý nghĩa dữ liệu nhân viên đã gõ tay lúc kết ca.
-function ssRenderKetcaChiTableHtml(chiRows) {
-  if (!chiRows.length) return '<div class="grid-empty"><p>Chưa có khoản chi nào được ghi nhận.</p></div>';
-  var total = 0;
-  var rowsHtml = chiRows.map(function (r, idx) {
-    total += Number(r.amount) || 0;
-    return '<tr>' +
-      '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
-      '<td style="font-weight:700;">' + esc(r.closerName) + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(fmtStamp(r.time)) + '</td>' +
-      '<td>' + esc(r.reason || '—') + '</td>' +
-      '<td style="text-align:right; font-weight:800;">' + fmtMoney(r.amount) + '</td>' +
-      '<td>' + esc(r.approver || '—') + '</td>' +
-    '</tr>';
-  }).join('');
-  var totalRow = '<tr style="font-weight:800;"><td colspan="4" style="text-align:right;">TỔNG CHI</td>' +
-    '<td style="text-align:right;">' + fmtMoney(total) + '</td><td></td></tr>';
-  return '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Nhân viên</th><th>Thời gian kết ca</th><th>Lý do chi</th><th style="text-align:right;">Số tiền chi</th><th>Người duyệt</th></tr></thead>' +
-    '<tbody>' + rowsHtml + totalRow + '</tbody></table>';
-}
-
-function ssRenderKetcaPhongVeTab() {
-  var phongVeRows = ssGetKetcaRows().phongVeRows;
-
-  // Tổng theo trạm — gộp TOÀN BỘ lượt kết ca của MỌI nhân viên phòng vé trong khoảng ngày đang lọc,
-  // không tách riêng theo từng người, đúng yêu cầu "kết ca của tất cả nhân viên phòng vé theo trạm".
-  var stationTotals = ssAggregateKetcaStations(phongVeRows);
-  var stationCard = ssCardHtml('Kết ca — Phòng vé (theo trạm bán vé)', phongVeRows.length + ' lượt kết ca', ssRenderKetcaStationTableHtml(stationTotals));
-
-  var chiRows = ssAggregateKetcaChiRows(phongVeRows);
-  var chiCard = ssCardHtml('Kết ca — Phòng vé (khoản chi)', chiRows.length + ' khoản chi', ssRenderKetcaChiTableHtml(chiRows));
-
-  var phongVeHtml = phongVeRows.map(function (x, idx) {
-    var r = x.record;
-    return '<tr>' +
-      '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
-      '<td style="font-weight:700;">' + esc(x.closerName) + (r.isForced ? ' ' + hrChip('Admin đóng', 'amber') : '') + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(fmtStamp(r.time)) + '</td>' +
-      '<td style="text-align:right;">' + fmtMoney(r.totalAmount) + '</td>' +
-      '<td style="text-align:right;">' + fmtMoney(r.advanceAmount) + '</td>' +
-      '<td style="text-align:right;">' + fmtMoney(r.cashAmount) + ' / ' + fmtMoney(r.transferAmount) + '</td>' +
-      '<td style="text-align:right;">' + fmtMoney(r.actualCash) + ' / ' + fmtMoney(r.actualTransfer) + '</td>' +
-      '<td style="text-align:right; font-weight:800; color:' + (r.diffAmount ? 'var(--red)' : 'var(--text-sub)') + ';">' + fmtMoney(r.diffAmount) + '</td>' +
-    '</tr>';
-  }).join('');
-  var phongVeTable = '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Nhân viên</th><th>Thời gian kết ca</th><th>Doanh thu ca</th><th>Tiền ứng tài xế</th><th>Thu (Mặt/CK)</th><th>Kiểm đếm thực tế (Mặt/CK)</th><th>Chênh lệch</th></tr></thead>' +
-    '<tbody>' + phongVeHtml + '</tbody></table>' +
-    (phongVeHtml ? '' : '<div class="grid-empty"><p>Chưa có lượt kết ca nào của nhân viên phòng vé.</p></div>');
-
-  return ssKetcaToolbarHtml() +
-    stationCard +
-    chiCard +
-    ssCardHtml('Chi tiết từng lượt kết ca', phongVeRows.length + ' lượt', phongVeTable);
-}
-
-/* ---- Ca thực tế đã kết (FleetStore.getShifts, status = closed) lọc theo ngày kết + khu vực + trạm làm ca ---- */
-function ssShiftOwnerName(sh) {
-  var staff = sh.employeeId ? FleetStore.getStaff().find(function (x) { return x.id === sh.employeeId; }) : null;
-  if (staff) return staff.name;
-  var acc = getAccountsList().find(function (a) { return a.username === sh.username; });
-  return (acc && (acc.fullName || acc.username)) || sh.username || '—';
-}
-function ssShiftOwnerCode(sh) {
-  var staff = sh.employeeId ? FleetStore.getStaff().find(function (x) { return x.id === sh.employeeId; }) : null;
-  return staff ? (staff.code || '—') : (sh.employeeId ? '—' : 'Quản trị gốc');
-}
-function ssClosedShifts(fnKeys) {
-  var f = SS_KETCA_FILTER;
-  return FleetStore.getShifts().filter(function (sh) {
-    if (!sh || sh.status !== 'closed' || fnKeys.indexOf(sh.functionKey) === -1) return false;
-    var d = toLocalDateStr(sh.closedAt);
-    if (f.dateFrom && d < f.dateFrom) return false;
-    if (f.dateTo && d > f.dateTo) return false;
-    if (f.station === '__none__') return !sh.station;
-    if (f.station && sh.station !== f.station) return false;
-    if (f.region && ssStationRegion(sh.station) !== f.region) return false;
-    return true;
-  }).sort(function (a, b) { return (b.closedAt || 0) - (a.closedAt || 0); });
-}
-
-/* ---- 5. KẾT CA HÀNG HÓA (cargo_receive + cargo_delivery): đọc báo cáo ca của module Hàng hóa ---- */
-var SS_CARGO_FN = 'all'; // all | cargo_receive | cargo_delivery
-function ssCargoRows() {
-  var f = SS_KETCA_FILTER, out = [];
-  var read = function (key, fn, cashField) {
-    var list = lsRead(key, []);
-    (Array.isArray(list) ? list : []).forEach(function (r) {
-      if (!r) return;
-      out.push({ fn: fn, name: r.staffName || '—', code: r.staffCode || r.staffId || '—', station: r.station || '', start: r.startTime, end: r.endTime,
-                 cash: r[cashField] == null ? null : Number(r[cashField]), handed: !!r.isHandedOver, note: r.note || '', forced: !!r.isForced });
-    });
-  };
-  read('hueNghia_receive_shift_reports', 'cargo_receive', 'submittedCash');
-  read('hueNghia_delivery_shift_reports', 'cargo_delivery', 'submittedAmount');
-  return out.filter(function (r) {
-    if (SS_CARGO_FN !== 'all' && r.fn !== SS_CARGO_FN) return false;
-    var endMs = r.end ? (typeof r.end === 'number' ? r.end : new Date(r.end).getTime()) : null;
-    if (f.dateFrom || f.dateTo) {
-      if (!endMs) return false;
-      var d = toLocalDateStr(endMs);
-      if (f.dateFrom && d < f.dateFrom) return false;
-      if (f.dateTo && d > f.dateTo) return false;
-    }
-    if (f.station === '__none__') return !r.station;
-    if (f.station && r.station !== f.station) return false;
-    if (f.region && ssStationRegion(r.station) !== f.region) return false;
-    return true;
-  }).sort(function (a, b) { return (Number(b.end || b.start) || 0) - (Number(a.end || a.start) || 0); });
-}
-function ssSetCargoFn(v) { SS_CARGO_FN = v || 'all'; renderStaffStatsView(); }
-function ssRenderKetcaHangHoaTab() {
-  var rows = ssCargoRows();
-  var shiftRows = ssClosedShifts(['cargo_receive', 'cargo_delivery']).filter(function (sh) { return SS_CARGO_FN === 'all' || sh.functionKey === SS_CARGO_FN; });
-  var fnSel = '<div class="sd-toolbar" style="margin-bottom:12px;"><div class="filter-field sd-field-region"><label>Chức năng</label>' +
-    '<select data-change-action="ssSetCargoFn"><option value="all"' + (SS_CARGO_FN === 'all' ? ' selected' : '') + '>Nhận + Giao hàng</option>' +
-    '<option value="cargo_receive"' + (SS_CARGO_FN === 'cargo_receive' ? ' selected' : '') + '>Nhận hàng</option>' +
-    '<option value="cargo_delivery"' + (SS_CARGO_FN === 'cargo_delivery' ? ' selected' : '') + '>Giao hàng</option></select></div></div>';
-  var html = rows.map(function (r, i) {
-    return '<tr><td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (i + 1) + '</td>' +
-      '<td style="font-weight:700;">' + esc(r.name) + (r.forced ? ' ' + hrChip('Admin đóng', 'amber') : '') + '<div class="hint-inline">NV: ' + esc(r.code) + '</div></td>' +
-      '<td>' + hrChip(window.workFunctionLabel(r.fn), r.fn === 'cargo_receive' ? 'blue' : 'green') + '</td>' +
-      '<td>' + esc(r.station || '—') + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(r.start ? fmtStamp(r.start) : '—') + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(r.end ? fmtStamp(r.end) : 'Đang mở') + '</td>' +
-      '<td style="text-align:right;">' + (r.cash == null ? '—' : fmtMoney(r.cash)) + '</td>' +
-      '<td style="text-align:center;">' + (r.handed ? hrBadge('Đã giao ca', 'dang-ban') : hrBadge('Chưa giao ca', 'chua-chi-dinh')) + '</td></tr>';
-  }).join('');
-  var table = '<table class="admin-table"><thead><tr><th style="width:50px;">STT</th><th>Nhân viên</th><th>Chức năng</th><th>Trạm</th><th>Mở ca</th><th>Kết ca</th><th style="text-align:right;">Tiền nộp</th><th style="text-align:center;">Giao ca</th></tr></thead>' +
-    '<tbody>' + html + '</tbody></table>' + (html ? '' : '<div class="grid-empty"><p>Chưa có ca kết hàng hóa nào.</p></div>');
-  var extra = shiftRows.length ? ssCardHtml('Ca hàng hóa đã đóng (sổ ca thực tế)', shiftRows.length + ' ca', ssClosedShiftTable(shiftRows)) : '';
-  return ssKetcaToolbarHtml() + fnSel + ssCardHtml('Kết ca — Hàng hóa (thu theo ca, nộp, trạng thái giao ca)', rows.length + ' ca', table) + extra;
-}
-function ssClosedShiftTable(list) {
-  var rows = list.map(function (sh, i) {
-    return '<tr><td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (i + 1) + '</td>' +
-      '<td class="mono" style="font-weight:700;">' + esc(ssShiftOwnerCode(sh)) + '</td>' +
-      '<td style="font-weight:700;">' + esc(ssShiftOwnerName(sh)) + (sh.closeReason === 'admin' ? ' ' + hrChip('Admin đóng', 'amber') : '') + '</td>' +
-      '<td>' + hrChip(window.workFunctionLabel(sh.functionKey), 'blue') + '</td>' +
-      '<td>' + esc(sh.station || '—') + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(fmtStamp(sh.openedAt)) + '</td>' +
-      '<td class="mono" style="color:var(--text-sub);">' + esc(fmtStamp(sh.closedAt)) + '</td></tr>';
-  }).join('');
-  return '<table class="admin-table"><thead><tr><th style="width:50px;">STT</th><th>Mã NV</th><th>Nhân viên</th><th>Chức năng</th><th>Trạm làm ca</th><th>Mở ca</th><th>Kết ca</th></tr></thead><tbody>' + rows + '</tbody></table>';
-}
-
-/* ---- 6. KẾT CA TÀI XẾ TRUNG CHUYỂN: không tiền; ghi số lượt được chỉ định ---- */
-function ssRenderKetcaTrungChuyenTab() {
-  var shuttleStaff = FleetStore.getStaff().filter(function (s) { return hrWorkKind(s.role) === 'shuttle_driver'; })
-    .map(function (s) { return { staff: s, legs: ssCountShuttleLegs(s.name) }; })
-    .sort(function (a, b) { return b.legs - a.legs; });
-  var shuttleHtml = shuttleStaff.map(function (r, idx) {
-    return '<tr>' +
-      '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (idx + 1) + '</td>' +
-      '<td class="mono" style="font-weight:700;">' + esc(r.staff.code || '—') + '</td>' +
-      '<td style="font-weight:700;">' + esc(r.staff.name || '—') + '</td>' +
-      '<td>' + esc(r.staff.station || '—') + '</td>' +
-      '<td class="mono" style="text-align:center; font-weight:800; color:var(--red);">' + r.legs + '</td>' +
-    '</tr>';
-  }).join('');
-  var shuttleTable = '<table class="admin-table">' +
-    '<thead><tr><th style="width:50px;">STT</th><th>Mã NV</th><th>Tài xế trung chuyển</th><th>Trạm chính</th><th>Số lượt được chỉ định</th></tr></thead>' +
-    '<tbody>' + shuttleHtml + '</tbody></table>' +
-    (shuttleHtml ? '' : '<div class="grid-empty"><p>Chưa có tài xế trung chuyển nào.</p></div>');
-
-  var shifts = ssClosedShifts(['shuttle_driver']);
-  var shiftCard = ssCardHtml('Ca tài xế trung chuyển đã kết (lọc theo ngày kết ca)', shifts.length + ' ca',
-    shifts.length ? ssClosedShiftTable(shifts) : '<div class="grid-empty"><p>Chưa có ca trung chuyển nào được kết trong khoảng lọc. Ca tự mở ở thao tác đầu tiên của tài xế; tài xế kết ca hoặc admin gốc đóng thay.</p></div>');
-
-  return ssKetcaToolbarHtml() +
-    '<div class="ss-ketca-note">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
-      '<span>Kết ca trung chuyển không có tiền: chỉ ghi số lượt được chỉ định (kèm trạng thái khách) cho tới lúc kết ca. Bảng đếm lượt bên dưới là tổng từ trước tới nay, ' +
-      'không lọc theo ngày; bộ lọc Trạm có mục "Không gắn trạm" cho ca không có trạm.</span>' +
-    '</div>' +
-    shiftCard +
-    ssCardHtml('Trung chuyển — Số lượt được chỉ định theo tài xế', shuttleStaff.length + ' tài xế', shuttleTable);
-}
-
-/* ---- 7. CA ĐANG MỞ: shifts.status = open ---- */
-var SS_OPEN_FILTER = { fn: '', region: '', station: '' };
-function ssOpenFilterInput(field, val) { SS_OPEN_FILTER[field] = val || ''; if (field === 'region') SS_OPEN_FILTER.station = ''; renderStaffStatsView(); }
-function ssResetOpenFilter() { SS_OPEN_FILTER = { fn: '', region: '', station: '' }; renderStaffStatsView(); }
-function ssOpenShifts() {
-  var f = SS_OPEN_FILTER;
-  return FleetStore.getShifts().filter(function (sh) {
-    if (!sh || sh.status !== 'open') return false;
-    if (f.fn && sh.functionKey !== f.fn) return false;
-    if (f.station && sh.station !== f.station) return false;
-    if (f.region && ssStationRegion(sh.station) !== f.region) return false;
-    return true;
-  }).sort(function (a, b) { return a.openedAt - b.openedAt; });
-}
-function ssRenderOpenShiftsTab() {
-  var f = SS_OPEN_FILTER, list = ssOpenShifts(), root = hrActor().isRoot;
-  var rows = list.map(function (sh, i) {
-    var staff = sh.employeeId ? FleetStore.getStaff().find(function (x) { return x.id === sh.employeeId; }) : null;
-    var acc = getAccountsList().find(function (a) { return a.username === sh.username; });
-    var warn = [];
-    if (staff && hrStatusLocks(hrStaffStatus(staff))) warn.push('Chủ ca ' + hrStatusName(hrStaffStatus(staff)).toLowerCase());
-    if (acc && acc.active === false) warn.push('Tài khoản đã bị khóa');
-    var over = Date.now() - sh.openedAt > 24 * 3600000;
-    return '<tr' + (over ? ' style="background:#FEF2F2;"' : '') + '>' +
-      '<td style="text-align:center; font-weight:700; color:var(--text-sub);">' + (i + 1) + '</td>' +
-      '<td style="font-weight:700;">' + esc(ssShiftOwnerName(sh)) + '<div class="hint-inline">' + esc(ssShiftOwnerCode(sh)) + ' · @' + esc(sh.username || '') + '</div></td>' +
-      '<td>' + hrChip(window.workFunctionLabel(sh.functionKey), 'blue') + '</td>' +
-      '<td>' + esc(sh.station || '—') + '</td>' +
-      '<td class="mono">' + esc(fmtStamp(sh.openedAt)) + '</td>' +
-      '<td>' + esc(hrDurationText(sh.openedAt)) + (over ? ' ' + hrChip('Quá 24 giờ', 'red') : '') + '</td>' +
-      '<td>' + hrWarnHtml(warn) + '</td>' +
-      '<td class="row-actions">' + (root ? '<button type="button" class="btn btn-sm btn-danger" data-action="ssForceCloseShift" data-args=\'["' + esc(sh.id) + '"]\'>Đóng ca</button>' : '<span class="hint-inline">Chỉ admin gốc</span>') + '</td></tr>';
-  }).join('');
-  var table = '<table class="admin-table"><thead><tr><th style="width:50px;">STT</th><th>Nhân viên</th><th>Chức năng</th><th>Trạm làm ca</th><th>Mở lúc</th><th>Đã mở bao lâu</th><th>Cảnh báo</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-    (rows ? '' : '<div class="grid-empty"><p>Không có ca nào đang mở.</p></div>');
-  var stOpts = FleetStore.getStations().filter(function (s) { return !f.region || s.region === f.region; });
-  var toolbar = '<div class="sd-toolbar" style="margin-bottom:16px;">' +
-    '<div class="filter-field"><label>Chức năng</label><select data-change-action="ssOpenFilterInput" data-args=\'["fn","__this_value__"]\'><option value="">Tất cả chức năng</option>' +
-      (window.WORK_FUNCTIONS || []).filter(function (x) { return x.hasShift; }).map(function (x) { return '<option value="' + x.key + '"' + (f.fn === x.key ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select></div>' +
-    '<div class="filter-field"><label>Khu vực</label><select data-change-action="ssOpenFilterInput" data-args=\'["region","__this_value__"]\'><option value="">Tất cả khu vực</option>' +
-      getRegionMeta().map(function (m) { return '<option value="' + esc(m[0]) + '"' + (f.region === m[0] ? ' selected' : '') + '>' + esc(m[1]) + '</option>'; }).join('') + '</select></div>' +
-    '<div class="filter-field"><label>Trạm</label><select data-change-action="ssOpenFilterInput" data-args=\'["station","__this_value__"]\'><option value="">Tất cả trạm</option>' +
-      stOpts.map(function (s) { return '<option value="' + esc(s.name) + '"' + (f.station === s.name ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select></div>' +
-    '<div class="sd-toolbar-actions"><button type="button" class="btn sd-btn" data-action="ssResetOpenFilter">Đặt lại</button></div></div>';
-  return '<div class="ss-ketca-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
-    '<span>Ca mở quá 24 giờ được tô nổi (ca bị quên). Người đã nghỉ việc hoặc bị khóa không tự kết ca được: chỉ admin gốc đóng thay. Đóng thay sinh bản chốt với kiểm đếm thực tế để trống; muốn bổ sung kiểm đếm thì mở lại ca để chủ ca kết lại.</span></div>' +
-    toolbar + ssCardHtml('Ca đang mở', list.length + ' ca', table);
-}
-function ssForceCloseShift(id) {
-  if (!hrActor().isRoot) { showToast('Chỉ admin gốc đóng thay ca của người khác.'); return; }
-  var list = FleetStore.getShifts(), sh = list.find(function (x) { return String(x.id) === String(id); });
-  if (!sh || sh.status !== 'open') { showToast('Ca không còn ở trạng thái mở.'); return; }
-  if (!confirm('Đóng thay ca ' + window.workFunctionLabel(sh.functionKey) + ' của ' + ssShiftOwnerName(sh) + '? Bản chốt sẽ để trống phần kiểm đếm thực tế.')) return;
-  var me = hrActor().username, now = Date.now();
-  sh.status = 'closed'; sh.closedAt = now; sh.closedBy = me; sh.closeReason = me === sh.username ? 'self' : 'admin';
-  FleetStore.setShifts(list);
-  var revoked = 0;
-  // Chủ ca không còn ca mở nào và nhân viên làm theo ca (có lịch ca) -> thu hồi phiên (shift_ended).
-  var stillOpen = list.some(function (x) { return x.status === 'open' && x.username === sh.username; });
-  var staff = sh.employeeId ? FleetStore.getStaff().find(function (x) { return x.id === sh.employeeId; }) : null;
-  if (!stillOpen && staff && (staff.schedule || []).length) revoked = AuthLog.revokeAllOf(sh.username, 'shift_ended', me);
-  FleetStore.log({ action: 'force_close_shift', entity: 'shifts', entityId: sh.id, functionKey: sh.functionKey,
-    summary: 'Admin đóng thay ca ' + window.workFunctionLabel(sh.functionKey) + ' của ' + ssShiftOwnerName(sh) + (revoked ? ' (thu hồi ' + revoked + ' phiên)' : ''),
-    changes: { status: { old: 'open', new: 'closed' }, close_reason: 'admin', is_forced: true } });
-  showToast('Đã đóng thay ca.'); renderStaffStatsView();
-}
-
 /* ---------------------------------------------------------
    RENDER
    --------------------------------------------------------- */
 function renderStaffStatsView() {
   var tab = STAFF_STATS_TAB;
-  var openCount = FleetStore.getShifts().filter(function (sh) { return sh && sh.status === 'open'; }).length;
-  var tabBtn = function (key, label, badge) {
-    return '<button type="button" class="station-subtab' + (tab === key ? ' active' : '') + '" data-action="setStaffStatsTab" data-args=\'["' + key + '"]\'>' + esc(label) +
-      (badge ? ' <span class="hr-count-badge">' + badge + '</span>' : '') + '</button>';
+  var tabBtn = function (key, label) {
+    return '<button type="button" class="station-subtab' + (tab === key ? ' active' : '') + '" data-action="setStaffStatsTab" data-args=\'["' + key + '"]\'>' + esc(label) + '</button>';
   };
-
-  var body;
-  if (tab === 'helper') body = ssRenderHelperTripsTab();
-  else if (tab === 'ketca_tongdai') body = ssRenderKetcaTongDaiTab();
-  else if (tab === 'ketca_phongve') body = ssRenderKetcaPhongVeTab();
-  else if (tab === 'ketca_hanghoa') body = ssRenderKetcaHangHoaTab();
-  else if (tab === 'ketca_trungchuyen') body = ssRenderKetcaTrungChuyenTab();
-  else if (tab === 'ca_dang_mo') body = ssRenderOpenShiftsTab();
-  else body = ssRenderDriverTripsTab();
+  var body = tab === 'helper' ? ssRenderHelperTripsTab() : ssRenderDriverTripsTab();
 
   $('viewStaffStats').innerHTML =
     '<div class="station-subtabs">' +
       tabBtn('driver', 'Tài xế') +
       tabBtn('helper', 'Lơ xe') +
-      tabBtn('ketca_tongdai', 'Kết ca — Tổng đài') +
-      tabBtn('ketca_phongve', 'Kết ca — Phòng vé') +
-      tabBtn('ketca_hanghoa', 'Kết ca — Hàng hóa') +
-      tabBtn('ketca_trungchuyen', 'Kết ca — Trung chuyển') +
-      tabBtn('ca_dang_mo', 'Ca đang mở', openCount) +
     '</div>' +
     body;
-
-  // Gắn lại combobox "Khu vực"/"Trạm" (toolbar vừa bị thay mới nguyên khối qua innerHTML nên listener cũ mất theo DOM cũ).
-  if (tab === 'ketca_tongdai' || tab === 'ketca_phongve' || tab === 'ketca_hanghoa' || tab === 'ketca_trungchuyen') ssKetcaAttachCombos();
 }
 
 function setStaffStatsTab(tab) { STAFF_STATS_TAB = tab; renderStaffStatsView(); }

@@ -1,11 +1,11 @@
 /* =========================================================
-   NHÂN SỰ — HÀM DÙNG CHUNG (HR v2.9) cho Cấu hình nhân sự, Quản lý nhân viên, Tài khoản, Thống kê nhân sự, Nhật ký.
+   NHÂN SỰ — HÀM DÙNG CHUNG (HR v3.1) cho Cấu hình nhân sự, Quản lý nhân viên, Tài khoản, Thống kê nhân sự, Nhật ký.
    Nạp TRƯỚC admin-staff.js. Mọi hàm đặt tên hr*.
 
    Chuỗi quyền:   tài khoản -> nhân viên -> loại nhân viên -> quyền của loại. Quyền KHÔNG gán riêng từng người.
    Phạm vi xem:   TRẠM ĐƯỢC XEM = trạm gán lẻ (staff.stations) HỢP trạm active của khu vực được gán (staff.regions).
                   Admin gốc hoặc người có quyền view_all_stations: mọi trạm active. Nhóm tự xem (tài xế, tài xế trung chuyển,
-                  phụ xe — theo work_kind của loại, KHÔNG theo mã loại): chỉ dữ liệu của chính mình.
+                  phụ xe — theo cờ is_self của loại, KHÔNG theo mã loại): chỉ dữ liệu của chính mình.
    Trạm lưu bằng TÊN (khớp quy ước FleetStore.getStations()), khu vực lưu bằng KEY (getRegionMeta()).
    ========================================================= */
 
@@ -16,31 +16,16 @@ function hrActor() {
 }
 function hrIsRootAccount(acc) { return !!acc && acc.role === 'admin'; }
 
-/* ---- Loại nhân viên, quyền, chức năng ---- */
+/* ---- Loại nhân viên, quyền, ba cờ (is_self, requires_license, crew_role) ---- */
 function hrRole(key) { return FleetStore.getStaffRoles().find(function (r) { return r.key === key; }) || null; }
 function hrRoleLabel(key) { var r = hrRole(key); return r ? r.label : (key === 'admin' ? 'Quản trị gốc' : (key || '—')); }
-function hrWorkKind(roleKey) { var r = hrRole(roleKey); return r ? r.workKind : 'staff'; }
-function hrWorkKindLabel(k) { var i = window.workKindInfo(k); return i ? i.label : (k || '—'); }
-function hrIsSelfKind(roleKey) { var i = window.workKindInfo(hrWorkKind(roleKey)); return !!(i && i.self); }
-function hrNeedsLicense(roleKey) { var i = window.workKindInfo(hrWorkKind(roleKey)); return !!(i && i.license); }
+var HR_CREW_ROLES = [['', 'Không'], ['route_driver', 'Tài xế tuyến'], ['shuttle_driver', 'Tài xế trung chuyển'], ['helper', 'Phụ xe']];
+function hrCrewRole(roleKey) { var r = hrRole(roleKey); return r ? (r.crewRole || '') : ''; }
+function hrCrewRoleLabel(c) { var m = HR_CREW_ROLES.find(function (x) { return x[0] === (c || ''); }); return m ? m[1] : (c || '—'); }
+function hrIsSelfKind(roleKey) { var r = hrRole(roleKey); return !!(r && r.isSelf); }
+function hrNeedsLicense(roleKey) { var r = hrRole(roleKey); return !!(r && r.requiresLicense); }
 function hrRolePerms(roleKey) { var r = hrRole(roleKey); return r ? r.permissions : []; }
 function hrRoleHas(roleKey, perm) { return hrRolePerms(roleKey).indexOf(perm) !== -1; }
-// CHỨC NĂNG của một loại = tập function_key của các quyền thuộc loại (tính lúc dùng, không lưu).
-function hrFunctionsOfRole(roleKey) {
-  var out = [];
-  hrRolePerms(roleKey).forEach(function (p) {
-    var i = window.permInfo(p);
-    if (i && i.fn && out.indexOf(i.fn) === -1) out.push(i.fn);
-  });
-  return out;
-}
-// Chức năng phải mở ca để làm việc: has_shift = true, trừ shuttle_driver (tự mở ca, trạm tùy chọn).
-function hrShiftFunctionsOfRole(roleKey) {
-  return hrFunctionsOfRole(roleKey).filter(function (fn) {
-    var f = (window.WORK_FUNCTIONS || []).find(function (x) { return x.key === fn; });
-    return f && f.hasShift && fn !== 'shuttle_driver';
-  });
-}
 // NHÓM ĐƯỢC BẢO VỆ: loại chứa quyền protects_holder (manage_hr, manage_accounts). Bỏ qua trạng thái, tài khoản, must_change_password.
 function hrIsProtectedRole(roleKey) {
   return hrRolePerms(roleKey).some(function (p) { var i = window.permInfo(p); return i && i.protects; });
@@ -87,16 +72,12 @@ function hrAccountOfStaff(s) {
     list.find(function (a) { return s.username && a.username === s.username; }) || null;
 }
 
-/* ---- Ca đang mở của một tài khoản (shifts.status = open) ---- */
-function hrOpenShifts(username) {
-  return FleetStore.getShifts().filter(function (sh) { return sh && sh.status === 'open' && sh.username === username; });
-}
-
 /* ---- Quy tắc "AI SỬA AI" (b, c, e) ---- */
-// Trả { ok, reason }. target là bản ghi nhân viên.
+// Trả { ok, reason }. target là bản ghi nhân viên (null = nhân viên mới). Người không phải admin gốc cần quyền manage_hr.
 function hrCanEditStaff(target) {
   var actor = hrActor();
   if (actor.isRoot) return { ok: true, reason: '' };
+  if (!acHasPerm('manage_hr')) return { ok: false, reason: 'Bạn không có quyền Quản lý nhân sự.' };
   var actorStaff = FleetStore.getStaff().find(function (s) { return s.username === actor.username; });
   if (actorStaff && target && actorStaff.id === target.id) return { ok: false, reason: 'Không ai tự sửa chính mình (kể cả HR). Nhờ admin gốc hoặc người khác thực hiện.' };
   if (hrIsProtectedStaff(target)) return { ok: false, reason: 'Hồ sơ này thuộc nhóm được bảo vệ (HR/admin) — chỉ admin gốc sửa được.' };
@@ -160,7 +141,7 @@ function hrDiff(before, after, keys) {
   });
   return any ? out : null;
 }
-// Ghi activity_logs: entity = TÊN BẢNG bị tác động (employees, users, employee_types...), functionKey rỗng với thao tác quản trị.
+// Ghi activity_logs: entity = TÊN BẢNG bị tác động (employees, users, employee_types...).
 function hrLog(action, entity, entityId, summary, changes, reason) {
   var ch = changes || {};
   if (reason) ch = Object.assign({ reason: reason }, ch);

@@ -664,12 +664,19 @@
       if (!s.statusCode) { s.statusCode = s.active === false ? 'suspended' : 'working'; dirty = true; }
       if (!Array.isArray(s.stations)) { s.stations = s.station ? [s.station] : []; dirty = true; }
       if (!Array.isArray(s.regions)) { s.regions = []; dirty = true; }
-      if (!Array.isArray(s.schedule)) { s.schedule = []; dirty = true; }
+      if ('schedule' in s) { delete s.schedule; dirty = true; }   // v3.0: bỏ lịch ca đăng nhập
       if (!Array.isArray(s.history)) { s.history = []; dirty = true; }
     });
     if (dirty) setStaff(list);
 
     if (opts && opts.role) list = list.filter(function (s) { return s.role === opts.role; });
+    // crewRole = vai trò trên xe (employee_types.crew_role: route_driver, shuttle_driver, helper) của loại HIỆN TẠI,
+    // không so mã loại: loại mới tạo cùng vai trò vẫn được chọn.
+    if (opts && opts.crewRole) {
+      var crewOf = {};
+      getStaffRoles().forEach(function (r) { crewOf[r.key] = r.crewRole; });
+      list = list.filter(function (s) { return crewOf[s.role] === opts.crewRole; });
+    }
     return list;
   }
   function setStaff(a) { writeJSON(HN_STAFF_KEY, Array.isArray(a) ? a : []); }
@@ -686,33 +693,49 @@
   // shuttle_driver) để khớp đúng 7 "Vai trò hệ thống" cũ của Tài khoản (trừ 'admin' — không phải 1 loại
   // nhân viên, vẫn giữ cố định riêng ở acAllRoles()). KHÔNG xoá/đổi tên 'ticket' dù trùng ý nghĩa với
   // 'call_center' — staff cũ (NV01-04) đang tham chiếu key này, đổi sẽ mồ côi dữ liệu.
-  // Trường HR v2.9 của mỗi loại: workKind = mã nhóm công việc (bảng work_kinds, FleetStore.getWorkKinds()) — chia tab
-  // Tài xế/Lơ xe, kiểm bằng lái, xác định nhóm chỉ xem dữ liệu của chính mình; loginBySchedule = chỉ cho ĐĂNG NHẬP
-  // trong khung giờ lịch ca; active = false là ngừng dùng cho nhân viên mới (thay nút Xoá); grantable = quyền loại này
-  // được CẤP cho người khác khi gán/đổi loại (trần ủy quyền, không chứa quyền protects_holder); key = mã, không sửa.
+  // Trường HR v3.1 của mỗi loại (thay nhóm công việc work_kinds của v2.9; BA CỜ, không phải phòng ban, không quyết định quyền):
+  //   isSelf = chỉ xem dữ liệu của CHÍNH MÌNH (không có khu vực); requiresLicense = bắt buộc hạng + hạn bằng lái;
+  //   crewRole = route_driver | shuttle_driver | helper | null — được chọn làm tài xế tuyến / tài xế trung chuyển / phụ xe khi xếp xe, phơi,
+  //   và chia tab Tài xế, Lơ xe ở Thống kê nhân sự (chỉ đổi khi loại chưa có nhân viên nào).
+  // active = false là ngừng dùng cho nhân viên mới (thay nút Xoá); grantable = quyền loại này được CẤP cho người khác khi gán/đổi loại
+  // (trần ủy quyền, không chứa quyền protects_holder); key = mã, không sửa. Loại có thể để 0 quyền (permissions: []).
   var SEED_STAFF_ROLES = [
-    { key: 'ticket', label: 'Nhân viên vé', workKind: 'ticket_office', permissions: [], redirect: 'ticketstaff.html' },
-    { key: 'driver', label: 'Tài xế', workKind: 'driver', permissions: [], redirect: 'taixe.html' },
-    { key: 'helper', label: 'Phụ xe', workKind: 'helper', permissions: [], redirect: 'ticketstaff.html' },
-    { key: 'shuttle_driver', label: 'Tài xế trung chuyển', workKind: 'shuttle_driver', permissions: [], redirect: 'ticketstaff.html' },
-    { key: 'call_center', label: 'Nhân viên tổng đài', workKind: 'call_center', permissions: [], redirect: 'ticketstaff.html' },
-    { key: 'ticket_office', label: 'Nhân viên phòng vé', workKind: 'ticket_office', permissions: [], redirect: 'ticketstaff.html' },
-    { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', workKind: 'shuttle_dispatch', permissions: [], redirect: 'ticketstaff.html' },
-    { key: 'dispatch_manager', label: 'Điều hành bến xe', workKind: 'staff', permissions: [], redirect: 'dieuhanh.html' },
-    { key: 'accountant', label: 'Kế toán / Thu ngân', workKind: 'staff', permissions: [], redirect: 'ketoan.html' },
-    { key: 'cashier', label: 'Nhân viên thu ngân / Nhận hàng', workKind: 'cargo', permissions: [], redirect: 'cargo/cargo.html' }
+    { key: 'ticket', label: 'Nhân viên vé', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'driver', label: 'Tài xế', isSelf: true, requiresLicense: true, crewRole: 'route_driver', permissions: [], redirect: 'taixe.html' },
+    { key: 'helper', label: 'Phụ xe', isSelf: true, crewRole: 'helper', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'shuttle_driver', label: 'Tài xế trung chuyển', isSelf: true, requiresLicense: true, crewRole: 'shuttle_driver', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'call_center', label: 'Nhân viên tổng đài', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'ticket_office', label: 'Nhân viên phòng vé', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', permissions: [], redirect: 'ticketstaff.html' },
+    { key: 'dispatch_manager', label: 'Điều hành bến xe', permissions: [], redirect: 'dieuhanh.html' },
+    { key: 'accountant', label: 'Kế toán / Thu ngân', permissions: [], redirect: 'ketoan.html' },
+    { key: 'cashier', label: 'Nhân viên thu ngân / Nhận hàng', permissions: [], redirect: 'cargo/cargo.html' }
   ];
-  var ROLE_WORK_KIND_FALLBACK = {};
-  SEED_STAFF_ROLES.forEach(function (r) { ROLE_WORK_KIND_FALLBACK[r.key] = r.workKind; });
+  // Dữ liệu đã lưu từ bản v2.9 mang workKind (nhóm công việc): đổi sang 3 cờ mới 1 lần khi đọc, rồi bỏ workKind.
+  var LEGACY_KIND_FLAGS = {
+    driver: { isSelf: true, requiresLicense: true, crewRole: 'route_driver' },
+    shuttle_driver: { isSelf: true, requiresLicense: true, crewRole: 'shuttle_driver' },
+    helper: { isSelf: true, crewRole: 'helper' }
+  };
+  var CREW_ROLES = ['route_driver', 'shuttle_driver', 'helper'];
 
   // Chuẩn hoá 1 loại nhân viên: bổ sung trường mới cho dữ liệu đã lưu từ bản cũ (redirect mặc định
-  // ticketstaff.html thay vì để trống, workKind suy từ key cũ, các cờ mới có giá trị mặc định an toàn).
+  // ticketstaff.html thay vì để trống, các cờ mới có giá trị mặc định an toàn).
   function normalizeStaffRole(r) {
     if (!r) return r;
     var o = Object.assign({}, r);
     if (!o.redirect) o.redirect = 'ticketstaff.html';
-    if (!o.workKind) o.workKind = ROLE_WORK_KIND_FALLBACK[o.key] || 'staff';
-    if (typeof o.loginBySchedule !== 'boolean') o.loginBySchedule = false;
+    if (o.workKind !== undefined) {
+      var lg = LEGACY_KIND_FLAGS[o.workKind] || {};
+      if (typeof o.isSelf !== 'boolean') o.isSelf = !!lg.isSelf;
+      if (typeof o.requiresLicense !== 'boolean') o.requiresLicense = !!lg.requiresLicense;
+      if (o.crewRole === undefined) o.crewRole = lg.crewRole || null;
+      delete o.workKind;
+    }
+    delete o.loginBySchedule;
+    if (typeof o.isSelf !== 'boolean') o.isSelf = false;
+    if (typeof o.requiresLicense !== 'boolean') o.requiresLicense = false;
+    if (CREW_ROLES.indexOf(o.crewRole) === -1) o.crewRole = null;
     if (typeof o.active !== 'boolean') o.active = true;
     if (!Array.isArray(o.permissions)) o.permissions = [];
     if (!Array.isArray(o.grantable)) o.grantable = [];
@@ -725,7 +748,7 @@
     return list.map(normalizeStaffRole);
   }
   function setStaffRoles(a) { writeJSON(HN_STAFF_ROLES_KEY, Array.isArray(a) ? a : []); }
-  // fields: { key?, label, workKind, loginBySchedule, active, note, permissions, grantable, redirect }
+  // fields: { key?, label, isSelf, requiresLicense, crewRole, active, note, permissions, grantable, redirect }
   function addStaffRole(fields) {
     var label = String((fields && fields.label) || '').trim();
     if (!label) return { ok: false, reason: 'Tên loại nhân viên không được để trống.' };
@@ -738,8 +761,9 @@
     var item = normalizeStaffRole({
       key: key,
       label: label,
-      workKind: (fields && fields.workKind) || 'staff',
-      loginBySchedule: !!(fields && fields.loginBySchedule),
+      isSelf: !!(fields && fields.isSelf),
+      requiresLicense: !!(fields && fields.requiresLicense),
+      crewRole: (fields && fields.crewRole) || null,
       active: !(fields && fields.active === false),
       note: String((fields && fields.note) || ''),
       permissions: Array.isArray(fields && fields.permissions) ? fields.permissions : [],
@@ -751,7 +775,7 @@
     setStaffRoles(list);
     return { ok: true, item: item };
   }
-  // Mã (key) KHÔNG đổi sau khi tạo; workKind chỉ đổi khi loại chưa có nhân viên nào (kể cả đã nghỉ).
+  // Mã (key) KHÔNG đổi sau khi tạo; crewRole chỉ đổi khi loại chưa có nhân viên nào (kể cả đã nghỉ).
   function updateStaffRole(key, fields) {
     var list = getStaffRoles();
     var idx = list.findIndex(function (r) { return r && r.key === key; });
@@ -762,15 +786,16 @@
       return { ok: false, reason: 'Tên loại nhân viên đã tồn tại.' };
     }
     var cur = list[idx];
-    if (fields && fields.workKind && fields.workKind !== cur.workKind) {
+    if (fields && fields.crewRole !== undefined && (fields.crewRole || null) !== cur.crewRole) {
       var used = getStaff().filter(function (s) { return s && s.role === key; }).length;
-      if (used) return { ok: false, reason: 'Loại này đã có ' + used + ' nhân viên nên không đổi được nhóm công việc. Hãy tạo loại mới rồi chuyển người sang.' };
-      cur.workKind = fields.workKind;
+      if (used) return { ok: false, reason: 'Loại này đã có ' + used + ' nhân viên nên không đổi được vai trò trên xe. Hãy tạo loại mới rồi chuyển người sang.' };
+      cur.crewRole = fields.crewRole || null;
     }
     cur.label = label;
     cur.permissions = Array.isArray(fields && fields.permissions) ? fields.permissions : [];
     cur.grantable = Array.isArray(fields && fields.grantable) ? fields.grantable : [];
-    if (fields && typeof fields.loginBySchedule === 'boolean') cur.loginBySchedule = fields.loginBySchedule;
+    if (fields && typeof fields.isSelf === 'boolean') cur.isSelf = fields.isSelf;
+    if (fields && typeof fields.requiresLicense === 'boolean') cur.requiresLicense = fields.requiresLicense;
     if (fields && typeof fields.active === 'boolean') cur.active = fields.active;
     if (fields && fields.note != null) cur.note = String(fields.note);
     cur.redirect = String((fields && fields.redirect) || cur.redirect || 'ticketstaff.html');
@@ -1128,38 +1153,15 @@
       summary: e.summary || '',
       before: e.before != null ? e.before : undefined,
       after: e.after != null ? e.after : undefined,
-      // activity_logs (HR v2.9): chức năng đang làm, phiên đăng nhập, thay đổi cũ -> mới theo cột.
-      functionKey: e.functionKey || '',
+      // activity_logs (HR v3.1): phiên đăng nhập, thay đổi cũ -> mới theo cột (không còn function_key).
       sessionId: currentSessionId(),
       changes: e.changes != null ? e.changes : undefined
     });
   }
 
   /* ---------------------------------------------------------
-     NHÂN SỰ v2.9 — trạng thái làm việc, ca mẫu (lịch ca đăng nhập), ca làm thực tế
+     NHÂN SỰ v3.1 — trạng thái làm việc
      --------------------------------------------------------- */
-  // work_kinds (NHÓM CÔNG VIỆC) — bảng riêng, cấu hình ở Nhân sự > Cấu hình nhân sự > tab Nhóm công việc. Mỗi loại nhân viên trỏ tới 1 nhóm
-  // (employee_types.work_kind). Nhóm dùng để chia tab Tài xế/Lơ xe, kiểm bằng lái và xác định nhóm CHỈ XEM DỮ LIỆU CỦA CHÍNH MÌNH;
-  // KHÔNG dùng chia tab kết ca (kết ca chia theo chức năng). self = chỉ xem dữ liệu của mình (ẩn ô Khu vực); license = bắt buộc
-  // hạng + hạn bằng lái. isSystem = nhóm gốc mà logic thống kê tham chiếu theo mã: không xoá, không đổi mã.
-  var SEED_WORK_KINDS = [
-    { key: 'driver', label: 'Tài xế tuyến', self: true, license: true, active: true, isSystem: true, sortOrder: 1, note: 'Tab Tài xế ở Thống kê nhân sự; chọn làm tài xế xe tuyến.' },
-    { key: 'shuttle_driver', label: 'Tài xế trung chuyển', self: true, license: true, active: true, isSystem: true, sortOrder: 2, note: 'Chọn làm tài xế xe trung chuyển.' },
-    { key: 'helper', label: 'Phụ xe', self: true, license: false, active: true, isSystem: true, sortOrder: 3, note: 'Tab Lơ xe ở Thống kê nhân sự.' },
-    { key: 'call_center', label: 'Tổng đài', self: false, license: false, active: true, isSystem: true, sortOrder: 4, note: '' },
-    { key: 'ticket_office', label: 'Phòng vé', self: false, license: false, active: true, isSystem: true, sortOrder: 5, note: '' },
-    { key: 'cargo', label: 'Hàng hóa', self: false, license: false, active: true, isSystem: true, sortOrder: 6, note: '' },
-    { key: 'shuttle_dispatch', label: 'Điều hành trung chuyển', self: false, license: false, active: true, isSystem: true, sortOrder: 7, note: '' },
-    { key: 'staff', label: 'Khác (nhân sự, kế toán...)', self: false, license: false, active: true, isSystem: true, sortOrder: 8, note: '' }
-  ];
-  function getWorkKinds() {
-    var list = readJSON(HN_WORK_KINDS_KEY, null);
-    if (!Array.isArray(list) || !list.length) list = clone(SEED_WORK_KINDS);
-    return list.slice().sort(function (a, b) { return (a.sortOrder || 0) - (b.sortOrder || 0); });
-  }
-  function setWorkKinds(a) { writeJSON(HN_WORK_KINDS_KEY, Array.isArray(a) ? a : []); }
-  function workKind(key) { return getWorkKinds().find(function (k) { return k.key === key; }) || null; }
-
   // employment_statuses: working (locks=false, cố định), left (true, cố định), suspended (mặc định true).
   // Chỉ admin gốc thêm trạng thái hoặc đổi locksAccount. isSystem = không xoá, không đổi mã.
   var SEED_EMPLOYMENT_STATUSES = [
@@ -1176,21 +1178,6 @@
   function employmentStatus(code) {
     return getEmploymentStatuses().find(function (x) { return x.code === code; }) || null;
   }
-
-  // shift_templates: ca mẫu của LỊCH CA ĐĂNG NHẬP (không phải ca thực tế). Giờ theo múi giờ login_schedule_timezone.
-  // crossesMidnight = (endTime <= startTime), tính tự động. Mã (code) không sửa sau khi tạo.
-  function getShiftTemplates() {
-    var list = readJSON(HN_SHIFT_TEMPLATES_KEY, null);
-    return Array.isArray(list) ? list : [];
-  }
-  function setShiftTemplates(a) { writeJSON(HN_SHIFT_TEMPLATES_KEY, Array.isArray(a) ? a : []); }
-
-  // shifts: ca làm thực tế do chủ ca mở/đóng (module kết ca ghi). Trang Nhân sự chỉ đọc + cho admin gốc đóng thay.
-  function getShifts() {
-    var list = readJSON(HN_SHIFTS_KEY, null);
-    return Array.isArray(list) ? list : [];
-  }
-  function setShifts(a) { writeJSON(HN_SHIFTS_KEY, Array.isArray(a) ? a : []); }
 
   /* ---------------------------------------------------------
      SEED khi nạp + export
@@ -1247,16 +1234,9 @@
     addStaffRole: addStaffRole,
     updateStaffRole: updateStaffRole,
     removeStaffRole: removeStaffRole,
-    getWorkKinds: getWorkKinds,
-    setWorkKinds: setWorkKinds,
-    workKind: workKind,
     getEmploymentStatuses: getEmploymentStatuses,
     setEmploymentStatuses: setEmploymentStatuses,
     employmentStatus: employmentStatus,
-    getShiftTemplates: getShiftTemplates,
-    setShiftTemplates: setShiftTemplates,
-    getShifts: getShifts,
-    setShifts: setShifts,
     getActivity: getActivity,
     pushActivity: pushActivity,
     setActivity: function (a) { writeJSON(HN_ADMIN_ACTIVITY_KEY, Array.isArray(a) ? a : []); },

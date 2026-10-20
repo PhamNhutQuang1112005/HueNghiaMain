@@ -1,21 +1,19 @@
 /* =========================================================
-   NHÂN SỰ > CẤU HÌNH NHÂN SỰ (ca mẫu, trạng thái, tham số, tài khoản nhân sự: CHỈ ADMIN GỐC; loại nhân viên thường: admin gốc + HR)
-   6 tab:
+   NHÂN SỰ > CẤU HÌNH NHÂN SỰ (trạng thái, tham số, tài khoản nhân sự: CHỈ ADMIN GỐC; loại nhân viên thường: admin gốc + HR)
+   4 tab (v3.1; đã bỏ Nhóm công việc và Ca mẫu):
      1. Loại nhân viên ... employee_types + employee_type_permissions + employee_type_grantable_permissions
                            (FleetStore.getStaffRoles(), xem shared/js/fleet-store.js). Mỗi loại mang: mã (không sửa sau khi
-                           tạo), nhóm công việc work_kind (chọn từ bảng Nhóm công việc, khóa khi đã có nhân viên), đăng nhập theo lịch ca, ngừng dùng,
-                           cụm phân quyền (quyền hiệu lực của người thuộc loại) và QUYỀN ĐƯỢC PHÉP CẤP cho người khác (trần ủy quyền).
-     1b. Nhóm công việc ... work_kinds (bảng riêng, admin-work-kinds.js): danh mục nhóm mà Loại nhân viên chọn.
-     2. Ca mẫu ............ shift_templates — khung giờ của LỊCH CA ĐĂNG NHẬP (không phải ca thực tế).
-     3. Trạng thái ........ employment_statuses — Đang làm việc / Tạm ngưng / Nghỉ việc, cờ khóa đăng nhập.
-     4. Tham số đăng nhập . early_login_minutes, idle_timeout_minutes, ... (M09 app_settings, bản demo lưu localStorage).
-     5. Tài khoản nhân sự . tài khoản của nhóm HR (admin gốc tạo). Luồng: Nhóm công việc > Loại nhân viên HR > Quyền > Tài khoản.
+                           tạo), BA CỜ is_self / requires_license / crew_role (crew_role khóa khi đã có nhân viên), ngừng dùng,
+                           cụm phân quyền (có thể để trống = loại 0 quyền) và QUYỀN ĐƯỢC PHÉP CẤP cho người khác (trần ủy quyền).
+     2. Trạng thái ........ employment_statuses — Đang làm việc / Tạm ngưng / Nghỉ việc, cờ khóa đăng nhập.
+     3. Tham số đăng nhập . idle_timeout_minutes, session_hours, ... (M09 app_settings, bản demo lưu localStorage).
+     4. Tài khoản nhân sự . tài khoản của nhóm HR (admin gốc tạo). Luồng: Loại nhân viên HR > Quyền > Tài khoản.
                            Dùng lại khung tài khoản của admin-accounts.js (ACCOUNT_SCOPE = 'hr').
    Loại nhân viên: admin gốc và HR (quyền manage_hr) thêm/sửa loại cho nhân viên thường; loại chứa quyền bảo vệ (nhóm HR) chỉ admin gốc.
    Khung chọn quyền dùng chung với admin-accounts.js (acPermissionsFieldHtml/acReadSelectedPermissions).
    ========================================================= */
 var STAFF_CFG_TAB = 'types';
-var STAFF_ROLE_FILTERS = { search: '', permStatus: '', usage: '' };
+var STAFF_ROLE_FILTERS = { search: '', permStatus: '', usage: '', crew: '' };
 
 function setStaffConfigTab(tab) { STAFF_CFG_TAB = tab; renderStaffConfigView(); }
 function hrRequireRoot() {
@@ -42,30 +40,27 @@ function renderStaffConfigView() {
   var isRoot = hrActor().isRoot;
   if (STAFF_CFG_TAB === 'hraccounts' && !isRoot) STAFF_CFG_TAB = 'types';
   var body;
-  if (STAFF_CFG_TAB === 'workkinds') body = wkRenderTabHtml();
-  else if (STAFF_CFG_TAB === 'templates') body = scRenderTemplatesTab();
-  else if (STAFF_CFG_TAB === 'statuses') body = scRenderStatusesTab();
+  if (STAFF_CFG_TAB === 'statuses') body = scRenderStatusesTab();
   else if (STAFF_CFG_TAB === 'params') body = scRenderParamsTab();
   else if (STAFF_CFG_TAB === 'hraccounts') body = scRenderHrAccountsTab();
   else body = scRenderTypesTab();
   $('viewStaffConfig').innerHTML =
     '<div class="station-subtabs">' +
-      tabBtn('types', 'Loại nhân viên') + tabBtn('workkinds', 'Nhóm công việc') + tabBtn('templates', 'Ca mẫu') + tabBtn('statuses', 'Trạng thái làm việc') + tabBtn('params', 'Tham số đăng nhập') +
+      tabBtn('types', 'Loại nhân viên') + tabBtn('statuses', 'Trạng thái làm việc') + tabBtn('params', 'Tham số đăng nhập') +
       (isRoot ? tabBtn('hraccounts', 'Tài khoản nhân sự') : '') +
     '</div>' + body;
   if (STAFF_CFG_TAB === 'hraccounts') adminAccountSyncBar();
 }
 
 /* =====================================================================
-   TAB 5 — TÀI KHOẢN NHÂN SỰ (nhóm HR; chỉ admin gốc)
-   Luồng: Nhóm công việc > Loại nhân viên HR > Quyền > Tài khoản. Loại HR = loại có quyền bảo vệ (Quản lý nhân sự / Quản lý tài khoản)
+   TAB 4 — TÀI KHOẢN NHÂN SỰ (nhóm HR; chỉ admin gốc)
+   Luồng: Loại nhân viên HR > Quyền > Tài khoản. Loại HR = loại có quyền bảo vệ (Quản lý nhân sự / Quản lý tài khoản)
    và luôn kèm quyền Xem dữ liệu mọi trạm (adminSaveStaffRole tự thêm). Danh sách + thao tác tài khoản dùng lại acRenderListTab().
    ===================================================================== */
 function scRenderHrAccountsTab() {
   ACCOUNT_SCOPE = 'hr';
   acSweepApprovals();
   AuthLog.sweep();
-  var kinds = FleetStore.getWorkKinds().filter(function (k) { return k.active; }).length;
   var hrTypes = FleetStore.getStaffRoles().filter(function (r) { return r.active && hrIsProtectedRole(r.key); });
   var pending = acStaffWithoutAccount('hr').length;
   var step = function (n, title, done, desc, tab, btn) {
@@ -75,12 +70,11 @@ function scRenderHrAccountsTab() {
       (tab ? '<button type="button" class="btn btn-sm" data-action="setStaffConfigTab" data-args=\'["' + tab + '"]\'>' + esc(btn) + '</button>' : '') +
     '</div>';
   };
-  return '<div class="hr-note">Tài khoản nhân sự (HR) có quyền <b>xem mọi trạm</b>. Làm lần lượt: nhóm công việc, loại nhân viên HR, quyền của loại, rồi tạo tài khoản.</div>' +
+  return '<div class="hr-note">Tài khoản nhân sự (HR) có quyền <b>xem mọi trạm</b>. Làm lần lượt: loại nhân viên HR, quyền của loại, rồi tạo tài khoản.</div>' +
     '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">' +
-      step(1, 'Nhóm công việc', kinds > 0, kinds + ' nhóm đang dùng', 'workkinds', 'Mở Nhóm công việc') +
-      step(2, 'Loại nhân viên HR', hrTypes.length > 0, hrTypes.length + ' loại (bảng bên dưới, tick quyền Quản lý nhân sự / tài khoản)', '', '') +
-      step(3, 'Quyền cho nhân sự', hrTypes.some(function (r) { return r.permissions.length > 1; }), 'Gán quyền trong modal của loại HR; tự kèm Xem mọi trạm', '', '') +
-      step(4, 'Tài khoản nhân sự', pending === 0 && hrTypes.length > 0, pending + ' nhân viên HR chưa có tài khoản (tạo hồ sơ ở Quản lý nhân viên)', '', '') +
+      step(1, 'Loại nhân viên HR', hrTypes.length > 0, hrTypes.length + ' loại (bảng bên dưới, tick quyền Quản lý nhân sự / tài khoản)', '', '') +
+      step(2, 'Quyền cho nhân sự', hrTypes.some(function (r) { return r.permissions.length > 1; }), 'Gán quyền trong modal của loại HR; tự kèm Xem mọi trạm', '', '') +
+      step(3, 'Tài khoản nhân sự', pending === 0 && hrTypes.length > 0, pending + ' nhân viên HR chưa có tài khoản (tạo hồ sơ ở Quản lý nhân viên)', '', '') +
     '</div>' +
     '<div class="sd-blocks"><div class="sd-section-block">' +
       '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
@@ -97,15 +91,15 @@ function scRenderHrAccountsTab() {
 /* Bảng loại nhân viên (dùng cho tab Loại nhân viên và khối loại HR ở tab Tài khoản nhân sự). */
 function scRoleTableHtml(filtered) {
   var rows = filtered.length ? filtered.map(function (r, i) {
-    var fns = hrFunctionsOfRole(r.key);
     return '<tr class="' + (r.active ? '' : 'sch-row-deleted') + '">' +
       '<td class="num">' + (i + 1) + '</td>' +
       '<td><b>' + esc(r.label) + '</b>' + (hrIsProtectedRole(r.key) ? ' ' + hrChip('Nhóm HR', 'red') : '') + (r.note ? '<div class="hint-inline">' + esc(r.note) + '</div>' : '') + '</td>' +
       '<td class="mono">' + esc(r.key) + '</td>' +
-      '<td>' + esc(hrWorkKindLabel(r.workKind)) + '</td>' +
+      '<td>' + esc(hrCrewRoleLabel(r.crewRole)) + '</td>' +
+      '<td>' + (r.isSelf ? hrChip('Của mình', 'blue') : hrChip('Theo trạm', 'gray')) + '</td>' +
+      '<td style="text-align:center;">' + (r.requiresLicense ? hrChip('Bắt buộc', 'amber') : '<span class="hint-inline">—</span>') + '</td>' +
       '<td style="text-align:center;">' + hrCountStaffOfRole(r.key) + '</td>' +
       '<td>' + (r.permissions.length ? r.permissions.length + ' quyền đã gán' : '<span class="hint-inline">Chưa gán quyền</span>') +
-        (fns.length ? '<div class="hr-chips">' + fns.map(function (fn) { return hrChip(window.workFunctionLabel(fn), 'blue'); }).join('') + '</div>' : '') +
         (hrRoleHas(r.key, 'view_all_stations') ? '<div class="hr-chips">' + hrChip('Xem mọi trạm', 'amber') + '</div>' : '') +
       '</td>' +
       '<td class="col-status" style="text-align:center;">' + (r.active ? hrBadge('Đang dùng', 'dang-ban') : hrBadge('Ngừng dùng', 'da-huy')) + '</td>' +
@@ -114,12 +108,12 @@ function scRoleTableHtml(filtered) {
         hrChip('Chỉ admin gốc', 'gray')) +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="8" class="empty-state">Chưa có loại nhân viên nào phù hợp.</td></tr>';
+  }).join('') : '<tr><td colspan="10" class="empty-state">Chưa có loại nhân viên nào phù hợp.</td></tr>';
 
   return '<div class="sd-table-wrap">' +
         '<table class="admin-table">' +
           '<thead><tr>' +
-            '<th class="num">STT</th><th>Tên loại</th><th>Mã</th><th>Nhóm công việc</th>' +
+            '<th class="num">STT</th><th>Tên loại</th><th>Mã</th><th>Vai trò trên xe</th><th>Phạm vi xem</th><th style="text-align:center;">Bằng lái</th>' +
             '<th style="text-align:center;">Số nhân viên</th><th>Cụm phân quyền</th>' +
             '<th class="col-status" style="text-align:center;">Trạng thái</th><th class="th-actions">Thao tác</th>' +
           '</tr></thead>' +
@@ -140,6 +134,7 @@ function scRenderTypesTab() {
     if (f.permStatus === 'assigned' && !permCount) return false;
     if (f.usage === 'active' && !r.active) return false;
     if (f.usage === 'inactive' && r.active) return false;
+    if (f.crew && (r.crewRole || '') !== (f.crew === '__none__' ? '' : f.crew)) return false;
     if (kw && (r.label + ' ' + r.key).toLowerCase().indexOf(kw) === -1) return false;
     return true;
   });
@@ -163,6 +158,13 @@ function scRenderTypesTab() {
           '<option value="">Tất cả</option>' +
           '<option value="active"' + (f.usage === 'active' ? ' selected' : '') + '>Đang dùng</option>' +
           '<option value="inactive"' + (f.usage === 'inactive' ? ' selected' : '') + '>Ngừng dùng</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="filter-field sd-field-region">' +
+        '<label>Vai trò trên xe</label>' +
+        '<select data-change-action="adminStaffRoleFilterInput" data-args=\'["crew","__this_value__"]\'>' +
+          '<option value="">Tất cả</option>' +
+          HR_CREW_ROLES.map(function (c) { var v = c[0] || '__none__'; return '<option value="' + v + '"' + (f.crew === v ? ' selected' : '') + '>' + esc(c[1]) + '</option>'; }).join('') +
         '</select>' +
       '</div>' +
       '<div class="sd-toolbar-actions">' +
@@ -192,7 +194,7 @@ function adminStaffRoleSearchClick() {
   renderStaffConfigView();
 }
 function adminResetStaffRoleFilters() {
-  STAFF_ROLE_FILTERS = { search: '', permStatus: '', usage: '' };
+  STAFF_ROLE_FILTERS = { search: '', permStatus: '', usage: '', crew: '' };
   renderStaffConfigView();
 }
 
@@ -203,7 +205,8 @@ function adminStaffRoleRowMenu(btn, key) {
     '<button type="button" class="admin-row-menu-item danger" data-action="adminToggleStaffRoleActive" data-args=\'["' + esc(key) + '"]\'>' + (r && r.active ? 'Ngừng dùng' : 'Mở lại') + '</button>');
 }
 
-var ROLE_DEFAULT_REDIRECT = { driver: 'taixe.html', shuttle_driver: 'ticketstaff.html', helper: 'ticketstaff.html', call_center: 'ticketstaff.html', ticket_office: 'ticketstaff.html', cargo: 'cargo/cargo.html', shuttle_dispatch: 'ticketstaff.html', staff: 'ticketstaff.html' };
+// Trang vào mặc định theo vai trò trên xe (crew_role); không có thì ticketstaff.html.
+var ROLE_DEFAULT_REDIRECT = { route_driver: 'taixe.html' };
 
 // mode 'hr' = thêm loại nhóm HR (chỉ từ tab "Tài khoản nhân sự", admin gốc); sửa loại có sẵn thì tự suy từ loại.
 function srIsHrMode(r, mode) { return mode === 'hr' || !!(r && hrIsProtectedRole(r.key)); }
@@ -214,28 +217,29 @@ function adminOpenStaffRoleModal(key, mode) {
   var hr = srIsHrMode(r, mode);
   if (hr && !isRoot) { showToast('Chỉ admin gốc thêm/sửa loại nhân viên HR.'); return; }
   var used = r ? hrCountStaffOfRole(r.key) : 0;
-  // Nhóm công việc lấy từ bảng riêng (tab Nhóm công việc); nhóm đã ngừng dùng chỉ còn hiện nếu loại này đang dùng.
-  var kinds = FleetStore.getWorkKinds().filter(function (k) { return k.active || (r && r.workKind === k.key); });
   openAdminModal(
     '<h3>' + (r ? 'Sửa loại nhân viên' : 'Thêm loại nhân viên') + (hr ? ' HR' : '') + '</h3>' +
     '<form class="admin-form" data-submit-action="adminSaveStaffRole" data-args=\'["__event__","' + (r ? esc(r.key) : '') + '","' + (hr ? 'hr' : '') + '"]\'>' +
       '<div class="fld-row">' +
         '<div class="fld"><label>Tên loại nhân viên <span class="req">*</span></label><input id="srLabel" required value="' + (r ? esc(r.label) : '') + '" placeholder="VD: Nhân viên kho, Nhân viên vệ sinh..."></div>' +
         '<div class="fld"><label>Mã <span class="req">*</span></label><input id="srCode" required ' + (r ? 'readonly disabled' : '') + ' value="' + (r ? esc(r.key) : '') + '" placeholder="chữ thường, VD: kho_vanchuyen">' +
-          '<span class="hint-inline">' + (r ? 'Mã không sửa sau khi tạo.' : 'Bắt đầu bằng mã Nhóm công việc đã chọn (VD: driver_xe_lon). Chữ thường, số, gạch dưới; 2-32 ký tự. Không sửa được sau khi tạo.') + '</span></div>' +
+          '<span class="hint-inline">' + (r ? 'Mã không sửa sau khi tạo.' : 'Chữ thường, số, gạch dưới; 2-32 ký tự, bắt đầu bằng chữ. Không sửa được sau khi tạo.') + '</span></div>' +
       '</div>' +
-      '<div class="fld"><label>Nhóm công việc <span class="req">*</span></label>' +
-        '<select id="srWorkKind" ' + (used ? 'disabled' : '') + ' data-change-action="srOnKindChange">' +
-          kinds.map(function (k) { return '<option value="' + k.key + '"' + ((r ? r.workKind : 'staff') === k.key ? ' selected' : '') + '>' + esc(k.label) + ' (' + esc(k.key) + ')</option>'; }).join('') +
+      '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="srIsSelf" ' + (r && r.isSelf ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Chỉ xem dữ liệu của chính mình</label>' +
+        '<span class="hint-inline">Dành cho tài xế, phụ xe: không có khu vực được xem (nếu đổi người sang loại này, khu vực đang gán bị đóng).</span></div>' +
+      '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="srNeedLicense" ' + (r && r.requiresLicense ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Bắt buộc bằng lái (hạng và hạn)</label></div>' +
+      '<div class="fld"><label>Vai trò trên xe</label>' +
+        '<select id="srCrewRole" ' + (used ? 'disabled' : '') + '>' +
+          HR_CREW_ROLES.map(function (c) { return '<option value="' + c[0] + '"' + ((r ? (r.crewRole || '') : '') === c[0] ? ' selected' : '') + '>' + esc(c[1]) + '</option>'; }).join('') +
         '</select>' +
-        '<span class="hint-inline">' + (used ? 'Khóa vì loại đã có ' + used + ' nhân viên. Muốn đổi hướng công việc, tạo loại mới rồi chuyển người sang.' :
-          'Chọn từ danh mục Nhóm công việc (tab "Nhóm công việc" ngay bên cạnh). Nhóm quyết định chia tab Tài xế/Lơ xe, kiểm bằng lái và nhóm chỉ xem dữ liệu của chính mình.') + '</span>' +
+        '<span class="hint-inline">' + (used ? 'Khóa vì loại đã có ' + used + ' nhân viên. Muốn đổi vai trò, tạo loại mới rồi chuyển người sang.' :
+          'Loại được chọn làm tài xế tuyến, tài xế trung chuyển hay phụ xe khi xếp xe, phơi; cũng là cột chia tab Tài xế, Lơ xe ở Thống kê nhân sự. Không quyết định quyền.') + '</span>' +
       '</div>' +
       '<div class="fld"><label>Ghi chú</label><input id="srNote" value="' + (r ? esc(r.note || '') : '') + '" placeholder="Mô tả ngắn về loại nhân viên"></div>' +
       '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="srInactive" ' + (r && !r.active ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Ngừng dùng</label>' +
         '<span class="hint-inline">Thay nút Xóa: không chọn được cho nhân viên mới, nhân viên và lịch sử cũ vẫn giữ.</span></div>' +
-      (used ? '<div class="hr-note">⚠ Loại này đang có <b>' + used + '</b> nhân viên. Sửa quyền bên dưới đổi NGAY quyền của tất cả những người đó (quyền tính lúc dùng, không chụp bản sao).</div>' : '') +
-      acPermissionsFieldHtml(r ? r.permissions : (hr ? ['manage_hr'] : []), { scope: 'perm', label: 'Phân quyền theo chức năng', onChange: 'hrRefreshFnPreview', excludeProtected: !hr,
+      (used ? '<div class="hr-note">⚠ Loại này đang có <b>' + used + '</b> nhân viên. Sửa quyền hoặc hai cờ Chỉ xem của mình / Bắt buộc bằng lái bên dưới có hiệu lực NGAY cho tất cả những người đó (tính lúc dùng, không chụp bản sao).</div>' : '') +
+      acPermissionsFieldHtml(r ? r.permissions : (hr ? ['manage_hr'] : []), { scope: 'perm', label: 'Phân quyền (có thể để trống = loại chưa gán quyền)', onChange: 'hrRefreshFnPreview', excludeProtected: !hr,
         hint: hr ? 'Loại HR phải có ít nhất 1 quyền Quản lý nhân sự / Quản lý tài khoản; tự kèm quyền Xem dữ liệu mọi trạm.'
           : (isRoot ? 'Loại nhân viên thường — không có quyền bảo vệ. Loại HR thêm ở tab "Tài khoản nhân sự".'
             : 'Bạn chỉ thêm được quyền nằm trong danh sách quyền loại của bạn được phép cấp; không có quyền bảo vệ (loại HR do admin gốc tạo).') }) +
@@ -251,32 +255,15 @@ function adminOpenStaffRoleModal(key, mode) {
     true
   );
   hrRefreshFnPreview();
-  if (!r) srOnKindChange();
 }
 
-// Thêm loại mới: ô Mã tự điền tiền tố = mã Nhóm công việc đã chọn (đổi nhóm thì đổi tiền tố, phần người dùng gõ thêm giữ nguyên).
-function srOnKindChange() {
-  var kind = $('srWorkKind'), code = $('srCode');
-  if (!kind || !code || code.disabled) return;
-  var prev = code.getAttribute('data-prefix') || '', next = kind.value + '_';
-  var rest = prev && code.value.indexOf(prev) === 0 ? code.value.slice(prev.length) : code.value;
-  code.value = next + rest;
-  code.setAttribute('data-prefix', next);
-}
-
-// Xem trước CHỨC NĂNG suy ra từ các quyền đang tick (quyền mang function_key).
+// Xem trước theo các quyền đang tick: số quyền, Xem mọi trạm, nhóm HR.
 function hrRefreshFnPreview() {
   var box = $('hrFnPreview'); if (!box) return;
-  var fns = [];
-  acReadSelectedPermissions('perm').forEach(function (p) {
-    var i = window.permInfo(p);
-    if (i && i.fn && fns.indexOf(i.fn) === -1) fns.push(i.fn);
-  });
   var perms = acReadSelectedPermissions('perm');
   var isHr = perms.some(function (p) { var i = window.permInfo(p); return i && i.protects; });
   var viewAll = isHr || perms.indexOf('view_all_stations') !== -1;
-  box.innerHTML = 'Chức năng làm việc suy từ quyền: ' +
-    (fns.length ? fns.map(function (fn) { return '<b>' + esc(window.workFunctionLabel(fn)) + '</b>'; }).join(', ') : '<i>chưa có (chưa tick quyền ca nào)</i>') +
+  box.innerHTML = (perms.length ? '<b>' + perms.length + '</b> quyền đang chọn' : '<i>Chưa gán quyền nào (hợp lệ: loại 0 quyền)</i>') +
     (viewAll ? ' · <b>Xem dữ liệu mọi trạm</b>' : '') + (isHr ? ' · <b>Nhóm HR</b> (tự kèm Xem mọi trạm)' : '');
 }
 
@@ -289,16 +276,17 @@ function adminSaveStaffRole(e, key, mode) {
   var fields = {
     label: $('srLabel').value.trim(),
     key: key ? key : $('srCode').value.trim(),
-    workKind: $('srWorkKind').value,
+    isSelf: $('srIsSelf').checked,
+    requiresLicense: $('srNeedLicense').checked,
+    crewRole: $('srCrewRole').value || null,
     note: $('srNote').value.trim(),
     active: !$('srInactive').checked,
     permissions: acReadSelectedPermissions('perm'),
     grantable: acReadSelectedPermissions('grant'),
-    redirect: $('srRedirect').value || ROLE_DEFAULT_REDIRECT[$('srWorkKind').value] || 'ticketstaff.html'
+    redirect: $('srRedirect').value || ROLE_DEFAULT_REDIRECT[$('srCrewRole').value] || 'ticketstaff.html'
   };
   if (!fields.label) { showToast('Nhập tên loại nhân viên.'); return; }
   if (!key && !/^[a-z][a-z0-9_]{1,31}$/.test(fields.key)) { showToast('Mã chỉ gồm chữ thường, số, gạch dưới (2-32 ký tự, bắt đầu bằng chữ).'); return; }
-  if (!key && fields.key !== fields.workKind && fields.key.indexOf(fields.workKind + '_') !== 0) { showToast('Mã loại phải bắt đầu bằng mã Nhóm công việc: "' + fields.workKind + '_..."'); return; }
   // Khối "được phép cấp" chỉ có ở loại HR (người gán/đổi loại cho người khác); loại thường giữ nguyên giá trị cũ.
   if (!hr) fields.grantable = before ? before.grantable : [];
   // Admin gốc không được đưa quyền protects_holder vào danh sách cấp của HR.
@@ -322,6 +310,8 @@ function adminSaveStaffRole(e, key, mode) {
   }
 
   var used = key ? hrCountStaffOfRole(key) : 0;
+  if (key && used && (fields.isSelf !== before.isSelf || fields.requiresLicense !== before.requiresLicense) &&
+      !confirm('Loại này đang có ' + used + ' nhân viên. Đổi cờ Chỉ xem của mình / Bắt buộc bằng lái có hiệu lực ngay cho tất cả. Tiếp tục?')) return;
   if (key && used) {
     var oldP = before.permissions;
     var added = fields.permissions.filter(function (p) { return oldP.indexOf(p) === -1; });
@@ -333,8 +323,8 @@ function adminSaveStaffRole(e, key, mode) {
   if (!res.ok) { showToast(res.reason); return; }
   var id = (res.item && res.item.key) || key;
 
-  var cmpKeys = ['label', 'workKind', 'note', 'active'];
-  var changes = key ? hrDiff(before, res.item, cmpKeys) : { created: { label: fields.label, workKind: fields.workKind } };
+  var cmpKeys = ['label', 'isSelf', 'requiresLicense', 'crewRole', 'note', 'active'];
+  var changes = key ? hrDiff(before, res.item, cmpKeys) : { created: { label: fields.label, isSelf: fields.isSelf, requiresLicense: fields.requiresLicense, crewRole: fields.crewRole } };
   hrLog(key ? 'update' : 'create', 'employee_types', id, (key ? 'Sửa' : 'Thêm') + ' loại nhân viên "' + fields.label + '"', changes);
 
   var oldPerm = before ? before.permissions : [], oldGrant = before ? before.grantable : [];
@@ -356,7 +346,7 @@ function adminToggleStaffRoleActive(key) {
   var used = hrCountStaffOfRole(key);
   var next = !r.active;
   if (!next && !confirm('Ngừng dùng loại "' + r.label + '"? Loại sẽ không chọn được cho nhân viên mới' + (used ? ' (' + used + ' nhân viên hiện tại vẫn giữ nguyên).' : '.'))) return;
-  var res = FleetStore.updateStaffRole(key, { label: r.label, permissions: r.permissions, grantable: r.grantable, active: next, note: r.note, redirect: r.redirect });
+  var res = FleetStore.updateStaffRole(key, { label: r.label, permissions: r.permissions, grantable: r.grantable, active: next, note: r.note, redirect: r.redirect, isSelf: r.isSelf, requiresLicense: r.requiresLicense, crewRole: r.crewRole });
   if (!res.ok) { showToast(res.reason); return; }
   hrLog('update', 'employee_types', key, (next ? 'Mở lại' : 'Ngừng dùng') + ' loại nhân viên "' + r.label + '"', { active: { old: r.active, new: next } });
   showToast(next ? 'Đã mở lại loại nhân viên.' : 'Đã ngừng dùng loại nhân viên.');
@@ -364,111 +354,7 @@ function adminToggleStaffRoleActive(key) {
 }
 
 /* =====================================================================
-   TAB 2 — CA MẪU (shift_templates)
-   ===================================================================== */
-function scTemplateUsers(code) {
-  return FleetStore.getStaff().filter(function (s) { return (s.schedule || []).some(function (x) { return x.template === code; }); });
-}
-function scRenderTemplatesTab() {
-  var list = FleetStore.getShiftTemplates();
-  var rows = list.length ? list.map(function (t, i) {
-    var n = scTemplateUsers(t.code).length;
-    return '<tr class="' + (t.active === false ? 'sch-row-deleted' : '') + '">' +
-      '<td class="num">' + (i + 1) + '</td>' +
-      '<td class="mono">' + esc(t.code) + '</td>' +
-      '<td><b>' + esc(t.name) + '</b>' + (t.note ? '<div class="hint-inline">' + esc(t.note) + '</div>' : '') + '</td>' +
-      '<td class="mono">' + esc(t.startTime) + ' – ' + esc(t.endTime) + '</td>' +
-      '<td style="text-align:center;">' + (t.crossesMidnight ? hrChip('Qua đêm', 'amber') : hrChip('Trong ngày', 'gray')) + '</td>' +
-      '<td style="text-align:center;">' + n + '</td>' +
-      '<td class="col-status" style="text-align:center;">' + (t.active === false ? hrBadge('Ngừng dùng', 'da-huy') : hrBadge('Đang dùng', 'dang-ban')) + '</td>' +
-      '<td class="row-actions"><button type="button" class="btn btn-sm row-menu-btn" data-action="scTemplateRowMenu" data-args=\'["__this__","' + esc(t.code) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button></td>' +
-    '</tr>';
-  }).join('') : '<tr><td colspan="8" class="empty-state">Chưa có ca mẫu nào. Bấm "Thêm ca mẫu" để tạo (VD: Ca sáng 06:00 – 14:00).</td></tr>';
-  return '<div class="hr-note">Ca mẫu là khung giờ của <b>lịch ca đăng nhập</b> (quyết định nhân viên ĐƯỢC ĐĂNG NHẬP hay không), không phải ca làm thực tế. Ca thực tế do chủ ca tự mở/đóng sau khi đăng nhập. Giờ tính theo múi giờ ' + esc(AuthLog.settings().scheduleTimezone) + '.</div>' +
-    '<div class="sd-toolbar"><div class="sd-toolbar-actions" style="margin-left:auto;">' +
-      '<button type="button" class="btn btn-primary sd-btn" data-action="scOpenTemplateModal" data-args=\'[""]\'>Thêm ca mẫu</button>' +
-    '</div></div>' +
-    '<div class="sd-blocks"><div class="sd-section-block">' +
-      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;"><span>Ca mẫu</span><span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + list.length + ' ca mẫu</span></div>' +
-      '<div class="sd-table-wrap"><table class="admin-table"><thead><tr>' +
-        '<th class="num">STT</th><th>Mã</th><th>Tên ca</th><th>Giờ</th><th style="text-align:center;">Qua đêm</th><th style="text-align:center;">Số nhân viên đang dùng</th>' +
-        '<th class="col-status" style="text-align:center;">Trạng thái</th><th class="th-actions">Thao tác</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
-    '</div></div>';
-}
-function scTemplateRowMenu(btn, code) {
-  var t = FleetStore.getShiftTemplates().find(function (x) { return x.code === code; });
-  adminOpenRowMenu(btn, 'shift-tpl:' + code,
-    '<button type="button" class="admin-row-menu-item" data-action="scOpenTemplateModal" data-args=\'["' + esc(code) + '"]\'>Sửa</button>' +
-    '<button type="button" class="admin-row-menu-item danger" data-action="scToggleTemplateActive" data-args=\'["' + esc(code) + '"]\'>' + (t && t.active === false ? 'Mở lại' : 'Ngừng dùng') + '</button>');
-}
-function scOpenTemplateModal(code) {
-  var t = code ? FleetStore.getShiftTemplates().find(function (x) { return x.code === code; }) : null;
-  var n = t ? scTemplateUsers(t.code).length : 0;
-  openAdminModal(
-    '<h3>' + (t ? 'Sửa ca mẫu' : 'Thêm ca mẫu') + '</h3>' +
-    '<form class="admin-form" data-submit-action="scSaveTemplate" data-args=\'["__event__"' + (t ? ',"' + esc(t.code) + '"' : '') + ']\'>' +
-      '<div class="fld-row">' +
-        '<div class="fld"><label>Mã <span class="req">*</span></label><input id="stCode" required ' + (t ? 'readonly disabled' : '') + ' value="' + (t ? esc(t.code) : '') + '" placeholder="VD: ca_sang">' +
-          '<span class="hint-inline">Không sửa sau khi tạo.</span></div>' +
-        '<div class="fld"><label>Tên ca <span class="req">*</span></label><input id="stName" required value="' + (t ? esc(t.name) : '') + '" placeholder="Ca sáng, Ca chiều, Ca đêm"></div>' +
-      '</div>' +
-      '<div class="fld-row">' +
-        '<div class="fld"><label>Giờ bắt đầu <span class="req">*</span></label><input type="time" id="stStart" required value="' + (t ? esc(t.startTime) : '06:00') + '" data-change-action="scRefreshTemplateHint"></div>' +
-        '<div class="fld"><label>Giờ kết thúc <span class="req">*</span></label><input type="time" id="stEnd" required value="' + (t ? esc(t.endTime) : '14:00') + '" data-change-action="scRefreshTemplateHint"></div>' +
-      '</div>' +
-      '<div class="hr-note" id="stHint"></div>' +
-      (n ? '<div class="hr-note">⚠ Ca mẫu này đang được <b>' + n + '</b> nhân viên dùng. Đổi giờ sẽ đổi ngay khung đăng nhập của tất cả những người đó.</div>' : '') +
-      '<div class="fld"><label>Ghi chú</label><input id="stNote" value="' + (t ? esc(t.note || '') : '') + '"></div>' +
-      '<div class="fld"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="stInactive" ' + (t && t.active === false ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Ngừng dùng</label></div>' +
-      '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
-    '</form>'
-  );
-  scRefreshTemplateHint();
-}
-function scRefreshTemplateHint() {
-  var a = $('stStart'), b = $('stEnd'), h = $('stHint'); if (!a || !b || !h) return;
-  var cross = b.value && a.value && b.value <= a.value;
-  var early = AuthLog.settings().earlyLoginMinutes;
-  h.innerHTML = cross ? 'Giờ kết thúc không lớn hơn giờ bắt đầu: <b>ca qua đêm</b>, tính theo ngày BẮT ĐẦU ca.' : 'Ca trong ngày.';
-  h.innerHTML += ' Cho đăng nhập sớm tối đa <b>' + early + ' phút</b> trước giờ bắt đầu.';
-}
-function scSaveTemplate(e, code) {
-  e.preventDefault();
-  if (!hrRequireRoot()) return;
-  var list = FleetStore.getShiftTemplates();
-  var name = $('stName').value.trim(), start = $('stStart').value, end = $('stEnd').value;
-  var rec = { code: code || $('stCode').value.trim(), name: name, startTime: start, endTime: end,
-              crossesMidnight: end <= start, active: !$('stInactive').checked, note: $('stNote').value.trim() };
-  if (!code && !/^[a-z][a-z0-9_]{1,31}$/.test(rec.code)) { showToast('Mã chỉ gồm chữ thường, số, gạch dưới (2-32 ký tự, bắt đầu bằng chữ).'); return; }
-  if (!name || !start || !end) { showToast('Nhập đủ tên ca và giờ bắt đầu/kết thúc.'); return; }
-  if (list.some(function (x) { return x.code !== code && (x.code === rec.code || x.name.toLowerCase() === name.toLowerCase()); })) { showToast('Mã hoặc tên ca đã tồn tại.'); return; }
-  var actor = hrActor().username, now = Date.now();
-  if (code) {
-    var idx = list.findIndex(function (x) { return x.code === code; });
-    var before = list[idx];
-    rec.createdAt = before.createdAt; rec.createdBy = before.createdBy; rec.updatedAt = now; rec.updatedBy = actor;
-    list[idx] = rec;
-    var n = scTemplateUsers(code).length;
-    hrLog('update', 'shift_templates', code, 'Sửa ca mẫu "' + name + '"' + (n ? ' (ảnh hưởng ' + n + ' nhân viên)' : ''), hrDiff(before, rec, ['name', 'startTime', 'endTime', 'crossesMidnight', 'active', 'note']));
-  } else {
-    rec.createdAt = now; rec.createdBy = actor; list.push(rec);
-    hrLog('create', 'shift_templates', rec.code, 'Thêm ca mẫu "' + name + '" ' + start + '–' + end, { created: rec });
-  }
-  FleetStore.setShiftTemplates(list);
-  closeAdminModal(); showToast('Đã lưu ca mẫu.'); renderStaffConfigView();
-}
-function scToggleTemplateActive(code) {
-  if (!hrRequireRoot()) return;
-  var list = FleetStore.getShiftTemplates(), t = list.find(function (x) { return x.code === code; }); if (!t) return;
-  t.active = t.active === false; t.updatedAt = Date.now(); t.updatedBy = hrActor().username;
-  FleetStore.setShiftTemplates(list);
-  hrLog('update', 'shift_templates', code, (t.active ? 'Mở lại' : 'Ngừng dùng') + ' ca mẫu "' + t.name + '"', { active: { old: !t.active, new: t.active } });
-  renderStaffConfigView();
-}
-
-/* =====================================================================
-   TAB 3 — TRẠNG THÁI LÀM VIỆC (employment_statuses)
+   TAB 2 — TRẠNG THÁI LÀM VIỆC (employment_statuses)
    ===================================================================== */
 function scRenderStatusesTab() {
   var list = FleetStore.getEmploymentStatuses();
@@ -541,11 +427,9 @@ function scSaveStatus(e, code) {
 }
 
 /* =====================================================================
-   TAB 4 — THAM SỐ ĐĂNG NHẬP (M09 app_settings, bản demo)
+   TAB 3 — THAM SỐ ĐĂNG NHẬP (M09 app_settings, bản demo)
    ===================================================================== */
 var SC_PARAM_FIELDS = [
-  ['earlyLoginMinutes', 'early_login_minutes', 'Cho đăng nhập sớm (phút)', 'Trước giờ bắt đầu ca. Chốt: 15.'],
-  ['lateGraceMinutes', 'late_grace_minutes', 'Dung sai sau giờ kết ca (phút)', 'Chốt: 0.'],
   ['idleTimeoutMinutes', 'idle_timeout_minutes', 'Phiên không hoạt động tối đa (phút)', 'Quá hạn thì phiên bị đánh dấu idle_timeout. Mặc định 60.'],
   ['sessionHours', 'session_hours', 'Hết hạn tuyệt đối của phiên (giờ)', 'Mặc định 12.'],
   ['logRetentionMonths', 'log_retention_months', 'Giữ nhật ký tối thiểu (tháng)', 'Đề xuất 12. Áp cho nhật ký thao tác và sự kiện đăng nhập.'],
@@ -559,7 +443,7 @@ function scRenderParamsTab() {
     return '<div class="fld"><label>' + esc(f[2]) + ' <span class="mono" style="font-weight:600;color:var(--text-sub);">' + f[1] + '</span></label>' +
       '<input type="number" min="0" id="sp_' + f[0] + '" value="' + st[f[0]] + '">' + (f[3] ? '<span class="hint-inline">' + esc(f[3]) + '</span>' : '') + '</div>';
   }).join('');
-  return '<div class="hr-note">Tham số của module Cài đặt hệ thống (M09). Bản demo lưu ở trình duyệt; khi có backend sẽ chuyển sang bảng cài đặt. Múi giờ lịch ca: <b>' + esc(st.scheduleTimezone) + '</b>. Khóa nhập sai: <b>' + st.failedLoginLimit + ' lần sai trong ' + st.failedLoginWindowMinutes + ' phút</b>.</div>' +
+  return '<div class="hr-note">Tham số của module Cài đặt hệ thống (M09). Bản demo lưu ở trình duyệt; khi có backend sẽ chuyển sang bảng cài đặt. Khóa nhập sai: <b>' + st.failedLoginLimit + ' lần sai trong ' + st.failedLoginWindowMinutes + ' phút</b>.</div>' +
     '<div class="sd-blocks"><div class="sd-section-block"><div class="sd-section-head">Tham số đăng nhập &amp; nhật ký</div>' +
     '<form class="admin-form" data-submit-action="scSaveParams" data-args=\'["__event__"]\'>' +
       '<div class="hr-grid-2">' + fields + '</div>' +

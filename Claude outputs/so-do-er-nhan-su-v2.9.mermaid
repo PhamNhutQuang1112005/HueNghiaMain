@@ -1,0 +1,961 @@
+erDiagram
+    %% ===== MODULE: Nhân sự, tài khoản, phân quyền, phiên đăng nhập, duyệt đăng nhập, lịch ca (M08, M09) — BẢN v2.9, 20/10/2026 =====
+    %% BẢN NÀY KHỚP VỚI CODE trang Admin > Nhân sự (admin-staff-config.js, admin-work-kinds.js, admin-staff.js, admin-accounts.js, admin-staff-stats.js,
+    %%   admin-activity.js, admin-hr-common.js) và auth/*.js, shared/js/fleet-store.js. Phần code CHƯA chạy ở bản demo (cổng lịch ca, bước duyệt đăng nhập,
+    %%   bắt đổi mật khẩu lần đầu, mở và kết ca thực tế) vẫn giữ thiết kế v2.8 vì dữ liệu và giao diện của chúng đã có sẵn ở Admin, chờ backend.
+    %% THAY ĐỔI SO VỚI v2.8 (code đã đi theo hướng khác, sơ đồ sửa lại cho khớp code):
+    %%   (1) PHẠM VI DỮ LIỆU: BỎ employee_types.data_scope (self, own_station, by_direction, all), BỎ bảng employee_scope_directions và bảng direction của
+    %%       module này, BỎ trigger T8. Thay bằng: TRẠM XEM ĐƯỢC của một nhân viên = trạm gán lẻ (employee_stations) HỢP trạm active của các KHU VỰC được
+    %%       gán (employee_scope_regions, bảng mới thay employee_scope_directions). Ai có quyền view_all_stations (quyền mới) hoặc là admin gốc: xem mọi
+    %%       trạm active. Nhóm công việc có is_self = true (tài xế, tài xế trung chuyển, phụ xe): chỉ xem dữ liệu của chính mình, trạm gán lẻ chỉ để lọc danh sách.
+    %%   (2) NHÓM CÔNG VIỆC thành BẢNG RIÊNG work_kinds (tab Cấu hình nhân sự > Nhóm công việc, chỉ admin gốc sửa). employee_types.work_kind là FK tới bảng này,
+    %%       hết CHECK danh sách cứng. Hai cờ của nhóm: is_self (chỉ xem dữ liệu của mình) và requires_license (bắt buộc hạng và hạn bằng lái). Nhóm gốc
+    %%       (is_system) không xóa, không đổi mã. Không xóa nhóm: ngừng dùng (is_active). Trigger T1 kiểm bằng lái đọc requires_license của nhóm.
+    %%   (3) HR (quyền manage_hr) THÊM, SỬA, NGỪNG DÙNG được LOẠI NHÂN VIÊN THƯỜNG và quyền của loại đó, trong trần ủy quyền (quyền được thêm phải nằm trong
+    %%       employee_type_grantable_permissions của loại người thao tác, không chứa quyền protects_holder). LOẠI NHÓM HR (loại chứa quyền protects_holder) chỉ
+    %%       admin gốc tạo, sửa, và loại HR tự kèm view_all_stations; loại thường không được chứa quyền protects_holder (xem quy tắc n). Danh sách quyền
+    %%       được phép cấp (employee_type_grantable_permissions) CHỈ admin gốc sửa và chỉ có ở loại HR. Tài khoản của nhân viên HR tạo và quản ở tab
+    %%       Cấu hình nhân sự > Tài khoản nhân sự (CHỈ admin gốc); trang Tài khoản chỉ liệt kê tài khoản nhân viên thường.
+    %%   (4) CỔNG LỊCH CA THEO HỒ SƠ NHÂN VIÊN, không theo loại: BỎ employee_types.login_by_schedule. Nhân viên nào CÓ lịch ca đang áp dụng
+    %%       (employee_shift_schedules, valid_to IS NULL) thì bị cổng lịch ca; không có dòng nào thì đăng nhập không bị kiểm giờ. Form nhân viên luôn hiện
+    %%       ô Lịch ca, form tạo tài khoản có ô tick Làm việc theo ca (bắt chọn ít nhất một ca). Kết ca xong mà người đó không còn ca mở và đang có lịch ca
+    %%       thì thu hồi phiên (shift_ended).
+    %%   (5) QUYỀN: thêm quyền view_all_stations (nhóm hr_system, function_key NULL, protects_holder = false). Danh mục quyền trong auth/permissions.js hiện đã
+    %%       khai báo 36 key (xem mục DANH MỤC QUYỀN). employee_types thêm cột redirect_page (trang vào sau khi đăng nhập, mặc định suy từ nhóm công việc).
+    %%       Mã loại mới phải BẮT ĐẦU bằng mã nhóm công việc đã chọn (vd driver_xe_lon).
+    %%   (6) BẢNG VÀ CỘT MỚI: work_kinds, employee_scope_regions, region (khung), app_settings (khung tối thiểu cho tab Tham số đăng nhập),
+    %%       login_approvals.ip, tham số session_hours, failed_login_limit, failed_login_window_minutes. Thêm entity_type của activity_logs: work_kinds,
+    %%       employee_scope_regions, employment_statuses, app_settings.
+    %%   (7) QUY TẮC THEO CODE: một người có tài khoản, có chức năng phải mở ca (trừ shuttle_driver), không phải nhóm self, không có view_all_stations
+    %%       thì BẮT BUỘC có ít nhất một trạm xem được (trạm gán lẻ hoặc trạm của khu vực gán). Hết quy tắc cũ bắt buộc trạm chính và hướng theo data_scope.
+    %%       Quy tắc j (ca đang mở) chặn: đổi loại, gỡ trạm, gỡ khu vực, đổi trạm chính khi đã có trạm. Gán THÊM trạm không bị chặn.
+    %%       Cột Cảnh báo viết lại theo code (xem mục TRẠM VÀ KHU VỰC).
+    %%   Còn hiệu lực từ v2.8 (các quyết định ngày 19/10/2026):
+    %%     CỔNG LỊCH CA: bước tìm khung giờ xét hôm qua, hôm nay, ngày mai; cho vào nếu có ÍT NHẤT MỘT khung hợp lệ. Đăng nhập sớm 15 phút, trễ 0 phút.
+    %%       HẾT GIỜ CA KHÔNG TỰ ĐĂNG XUẤT: phiên chạy đến khi đăng xuất, kết ca (nếu có lịch ca và hết ca mở), bị thu hồi, quá 12 giờ hoặc không hoạt động
+    %%       quá idle_timeout_minutes.
+    %%     DUYỆT ĐĂNG NHẬP (login_approvals): chỉ phải duyệt (a) LẦN ĐĂNG NHẬP ĐẦU TIÊN của tài khoản (first_login), (b) đăng nhập khi đang có phiên sống ở
+    %%       THIẾT BỊ KHÁC (concurrent_session). Duyệt xong chỉ dùng cho đúng lần đăng nhập đó, không nhớ thiết bị. MỘT PHIÊN MỘT THIẾT BỊ.
+    %%       user_devices là SỔ THIẾT BỊ (status active hoặc blocked).
+    %%     PHIÊN KHÔNG HOẠT ĐỘNG: quá idle_timeout_minutes (mặc định 60) thì đánh dấu idle_timeout. Tab Đăng nhập có cột Hoạt động cuối.
+    %%     shift_reports.closed_at, auth_events khóa chính (id, occurred_at) vì chia partition, trigger T7 không sửa shift_templates.code, một ô Lý do
+    %%       cho mỗi lần lưu hồ sơ, CHECK left_date >= hired_date, phiên của HR chỉ admin gốc thu hồi, login_approvals và các action login_approve,
+    %%       login_reject, device_block, device_unblock giữ vĩnh viễn.
+    %%     shifts.station_id bắt buộc với MỌI chức năng trừ shuttle_driver (tổng đài cũng chọn trạm làm ca).
+    %%     NHẬT KÝ ĐĂNG NHẬP ghi giờ vào, giờ ra, thiết bị; MỘT PHIÊN MỘT THIẾT BỊ (UNIQUE user_sessions (user_id) WHERE revoked_at IS NULL); đăng nhập mới
+    %%       được duyệt thì ĐÁ phiên cũ (device_replaced).
+    %%     CA THUỘC VỀ TÀI KHOẢN: shifts.user_id NOT NULL; shifts.employee_id NULL khi chủ ca là admin gốc. Admin gốc LÀM ĐƯỢC chức năng của nhân viên, vẫn phải mở
+    %%       ca riêng cho chức năng có ca. UNIQUE (user_id, function_key) WHERE status = open. ADMIN GỐC ĐÓNG CA CỦA BẤT KỲ AI (closed_by, close_reason,
+    %%       shift_reports.closed_by, is_forced). Tab 7 Ca đang mở ở Thống kê nhân sự.
+    %%     USERNAME: chỉ admin gốc đổi được, lúc nào cũng được (trigger T3). employee_types.code không sửa sau khi tạo (trigger T6).
+    %%     TIỀN ứng tài xế (nhập tay lúc Khởi hành) KHÁC tiền rước đường (lấy từ vé rước đường). Thống kê Điều hành trung chuyển lấy từ bảng gán trung chuyển
+    %%       của M06, KHÔNG đếm activity_logs. station_id trong 4 cột ghi nhận = TRẠM NƠI PHÁT SINH THAO TÁC; trạm làm ca chỉ nằm ở shifts.station_id.
+    %%     BỎ bảng user_permission_overrides: quyền chỉ đến từ LOẠI nhân viên (mỗi người đúng một loại). Trang Tài khoản chỉ XEM quyền. Nhóm được bảo vệ tính
+    %%       theo quyền của loại. Đổi trạm giữ nguyên loại nên giữ nguyên quyền. Không xóa tài khoản (T4), khóa kèm lý do. Admin gốc nhận diện bằng is_root.
+    %% ----------
+    %% AI ĐƯỢC THAO TÁC:
+    %%   permission_groups, permissions ......................... admin gốc (dữ liệu khởi tạo)
+    %%   work_functions ......................................... admin gốc (dữ liệu khởi tạo)
+    %%   work_kinds (nhóm công việc) ............................ CHỈ admin gốc (HR chỉ đọc để chọn nhóm khi tạo loại)
+    %%   employee_types, employee_type_permissions .............. admin gốc làm được mọi loại. HR (manage_hr) thêm, sửa, ngừng dùng LOẠI THƯỜNG trong trần
+    %%                                                            ủy quyền (quy tắc n); loại nhóm HR chỉ admin gốc
+    %%   employee_type_grantable_permissions .................... CHỈ admin gốc (chỉ loại nhóm HR có danh sách này)
+    %%   employment_statuses .................................... CHỈ admin gốc (HR chỉ đọc để chọn trạng thái)
+    %%   shift_templates (ca mẫu), app_settings (tham số) ....... CHỈ admin gốc (HR chỉ đọc ca mẫu để xếp lịch)
+    %%   employees, employee_stations, employee_scope_regions ... HR (manage_hr), admin gốc
+    %%   employee_shift_schedules ............................... HR (manage_hr), admin gốc; chỉ ghi thêm theo mẫu lịch sử; cũng ghi lúc tạo tài khoản
+    %%   employee_type_history, employee_status_history ......... chỉ trigger ghi thêm, không ai sửa hoặc xóa; xem cần manage_hr
+    %%   users .................................................. HR được ủy quyền (manage_accounts) với nhân viên thường; tài khoản nhóm HR chỉ admin gốc;
+    %%                                                            đổi username CHỈ admin gốc
+    %%   user_sessions .......................................... mọi tài khoản tự đăng nhập, đăng xuất; thu hồi cần revoke_sessions
+    %%                                                            (phiên của nhóm được bảo vệ chỉ admin gốc thu hồi)
+    %%   user_devices ........................................... dòng do API tự sinh khi đăng nhập từ thiết bị mới; chặn và mở chặn cần approve_devices
+    %%                                                            (admin gốc không cần); không xóa
+    %%   login_approvals ........................................ dòng pending do API tự sinh; duyệt, từ chối cần approve_devices (admin gốc không cần);
+    %%                                                            không xóa, không dọn
+    %%   login_exceptions ....................................... HR được ủy quyền (manage_accounts), admin gốc; không xóa, thu hồi bằng revoked_at
+    %%   shifts ................................................. chủ ca (nhân viên hoặc admin gốc) tự mở và đóng ca của mình qua API (cần quyền
+    %%                                                            manage_shift_* của chức năng đó; admin gốc không cần quyền); ADMIN GỐC đóng được ca của
+    %%                                                            bất kỳ ai; không xóa; xem theo phạm vi dữ liệu
+    %%   auth_events, activity_logs ............................. chỉ ghi thêm; xem cần view_activity_logs; chỉ admin gốc dọn nhật ký quá hạn
+    %% ----------
+    %% AI SỬA AI (kiểm trong MỘT hàm API duy nhất, mọi thay đổi ghi activity_logs; thao tác hàng loạt cũng đi qua hàm này và trả kết quả từng dòng:
+    %%   thành công hoặc bị bỏ qua kèm lý do). Code: hrCanEditStaff, acCheckManage, hrCheckGrantCeiling, hrCanEditRole (admin-hr-common.js).
+    %%   Mọi hàm này tự kiểm QUYỀN trước: hrCanEditStaff cần manage_hr, acCheckManage cần manage_accounts (trừ thu hồi phiên: revoke_sessions), hrCanEditRole cần manage_hr;
+    %%   admin gốc không cần. Không chỉ ẩn nút ở giao diện: đặt lại mật khẩu và lưu nhân viên cũng kiểm ở hàm lưu.
+    %%   a. Admin gốc không bị giới hạn.
+    %%   b. KHÔNG AI TỰ SỬA CHÍNH MÌNH (kể cả HR): hồ sơ, trạm, khu vực, loại, trạng thái, lịch ca, users.is_active. Chỉ admin gốc sửa hồ sơ và tài khoản
+    %%      của HR. Ngoại lệ duy nhất: tự đổi mật khẩu. Admin gốc cũng không tự khóa mình (xem trigger T5).
+    %%   c. NHÓM ĐƯỢC BẢO VỆ = admin gốc + nhân viên có LOẠI chứa quyền mang permissions.protects_holder = true (manage_hr, manage_accounts). BỎ QUA:
+    %%      must_change_password, users.is_active, trạng thái nhân viên (kể cả left, suspended) và việc nhân viên có tài khoản hay chưa. Hàm
+    %%      is_protected(employee_id) dùng chung cho mọi kiểm tra (code: hrIsProtectedStaff).
+    %%   d. HR sửa được: hồ sơ, trạm, khu vực, loại, trạng thái, lịch ca (cần manage_hr); tạo tài khoản, đặt lại mật khẩu, khóa hoặc mở khóa, mở khóa nhập
+    %%      sai (cần manage_accounts). "Đổi quyền" của một nhân viên = đổi loại. Không có quyền riêng từng người. Sửa quyền BÊN TRONG một loại: admin gốc không
+    %%      giới hạn; HR chỉ với loại thường và quyền được THÊM phải nằm trong trần (quy tắc n); bỏ bớt quyền thì tự do. Giao diện báo trước số nhân viên bị
+    %%      ảnh hưởng và hỏi xác nhận. ĐỔI USERNAME và ĐÓNG THAY CA của người khác: CHỈ admin gốc. XẾP LỊCH CA: manage_hr. CẤP NGOẠI LỆ ĐĂNG NHẬP:
+    %%      manage_accounts. DUYỆT, TỪ CHỐI ĐĂNG NHẬP và CHẶN, MỞ CHẶN THIẾT BỊ: approve_devices. THU HỒI PHIÊN: revoke_sessions (trừ nhóm được bảo vệ).
+    %%      TẠO, SỬA NHÓM CÔNG VIỆC, CA MẪU, TRẠNG THÁI LÀM VIỆC, tham số app_settings: CHỈ admin gốc.
+    %%   e. TRẦN ỦY QUYỀN: khi HR gán hoặc đổi loại cho người khác, phần quyền được THÊM = quyền của loại mới trừ quyền của loại cũ (gán loại lần đầu: toàn
+    %%      bộ quyền của loại) phải nằm trong employee_type_grantable_permissions của loại người thao tác. KHÔNG cần người thao tác tự có quyền đó. Chuyển
+    %%      sang loại ít quyền hơn không bị giới hạn. Admin gốc không được đưa quyền protects_holder vào danh sách này (kiểm khi lưu), để HR không tạo ra HR khác.
+    %%      Vì view_all_stations cũng là một quyền, muốn HR gán được loại xem mọi trạm thì phải đưa nó vào danh sách này.
+    %%   f. Quyền cấp tách khỏi quyền xem: HR cấp view_accounting cho kế toán nhưng HR không có quyền đó thì HR KHÔNG xem được sổ kế toán. HR vẫn xem được
+    %%      hồ sơ và danh sách quyền của loại của kế toán, vì cần để quản lý.
+    %%   g. Phạm vi dữ liệu (v2.9): trạm và khu vực gán cho người khác phải nằm trong tập trạm xem được của người thao tác (người có view_all_stations hoặc
+    %%      admin gốc: mọi trạm). Với khu vực: mọi trạm active của khu vực đó phải nằm trong tập trạm xem được. Hết quy tắc cũ về data_scope = all.
+    %%   h. Muốn chặn cả khi sửa trực tiếp DB: truyền SET LOCAL app.acting_user và kiểm trong trigger (tùy chọn, khuyến nghị cho employee_type_history;
+    %%      BẮT BUỘC cho trigger T3 khi đổi username).
+    %%   i. (v2.9) Quyền manage_employee_types KHÔNG cần: HR có manage_hr đã thêm, sửa loại thường được qua quy tắc d và n.
+    %%   j. (CHỐT v2.6, sửa v2.9) Người còn ca đang mở (shifts.status = open): API CHẶN đổi LOẠI, gỡ trạm, gỡ khu vực, đổi trạm chính (khi đã có trạm) và báo ca
+    %%      nào còn mở; admin gốc đóng thay ca đó xong mới đổi được (hoặc chủ ca tự kết ca). Gán thêm trạm hoặc khu vực không bị chặn. Chuyển sang trạng
+    %%      thái khóa (left, suspended) và khóa thủ công KHÔNG bị chặn: API chỉ cảnh báo còn ca mở, ca vẫn hiện ở Tab 7 cho admin gốc đóng thay.
+    %%   k. (v2.6) Chủ ca không đăng nhập được nữa (nghỉ việc, khóa) thì ca của họ chỉ còn đường duy nhất là admin gốc đóng thay.
+    %%   l. (v2.7, sửa v2.8) Áp quy tắc b cho các việc sau: không ai tự duyệt đăng nhập của mình, không tự xếp lịch ca cho mình, không tự cấp ngoại lệ đăng
+    %%      nhập cho mình, không tự chặn hoặc mở chặn thiết bị của mình, không tự tạo tài khoản cho mình. Yêu cầu duyệt, thiết bị, lịch ca, ngoại lệ của
+    %%      người thuộc nhóm được bảo vệ (quy tắc c) chỉ admin gốc xử lý.
+    %%   m. (v2.8) THU HỒI PHIÊN: người có revoke_sessions thu hồi được phiên của người khác, TRỪ phiên của nhóm được bảo vệ (HR) và admin gốc (chỉ admin
+    %%      gốc thu hồi phiên của HR), và trừ phiên của chính mình (tự thoát bằng đăng xuất).
+    %%   n. (MỚI v2.9) LOẠI NHÓM HR VÀ LOẠI THƯỜNG: loại có quyền protects_holder là loại nhóm HR, chỉ admin gốc tạo hoặc sửa; loại nhóm HR BẮT BUỘC có ít nhất một
+    %%      quyền protects_holder và API tự thêm view_all_stations vào quyền của loại. Loại thường KHÔNG được chứa quyền protects_holder. Khi HR sửa loại thường:
+    %%      quyền được thêm phải nằm trong grantable của loại HR người thao tác, không chứa quyền protects_holder, không đụng danh sách grantable của loại.
+    %%   o. (MỚI v2.9) MÃ LOẠI NHÂN VIÊN phải bắt đầu bằng mã nhóm công việc đã chọn (bằng đúng mã nhóm hoặc nhóm cộng dấu gạch dưới, vd driver_xe_lon). Tên loại không
+    %%      trùng tên loại khác (không phân biệt hoa thường).
+    %%   p. (MỚI v2.9) TẠO TÀI KHOẢN: chỉ cho nhân viên đang working (status không khóa), chưa có tài khoản; người tạo có manage_accounts (admin gốc không cần);
+    %%      nhân viên thuộc nhóm HR chỉ admin gốc tạo, ở tab Tài khoản nhân sự; người tạo không tự tạo cho mình; nhân viên có chức năng phải mở ca phải
+    %%      có ít nhất một trạm xem được (quy tắc đã nêu ở đầu file mục (7)).
+    %% ----------
+    %% DANH MỤC QUYỀN TRONG DỮ LIỆU KHỞI TẠO (auth/permissions.js, 36 key; function_key hiện chỉ gắn cho các quyền ca):
+    %%   Nhóm ticket_seat "Vé & ghế": book_ticket, sell_ticket, change_price, assign_depart_reopen, transship_pickup, transship_assign, print_transship_ticket.
+    %%   Nhóm trip_management "Chuyến / phơi xe": create_trip, print_trip, edit_trip, delete_trip, close_shift_reconcile.
+    %%   Nhóm catalog_admin "Quản lý danh mục (Admin)": manage_stations, manage_routes, manage_prices, manage_schedule, manage_vehicles, manage_vehicle_types,
+    %%     manage_seat_layouts, manage_vehicle_seats.
+    %%   Nhóm accounting "Kế toán": view_revenue_overview, manage_thu_ledger, manage_chi_ledger, view_ledgers.
+    %%   Nhóm shift "Ca làm việc" (mỗi quyền mang function_key, dùng để MỞ và KẾT ca của chức năng đó): manage_shift_call_center, manage_shift_ticket_office,
+    %%     manage_shift_cargo_receive, manage_shift_cargo_delivery, manage_shift_shuttle_driver. KHÔNG có manage_shift_shuttle_dispatch vì điều hành trung
+    %%     chuyển không có ca.
+    %%   Nhóm hr_system "Nhân sự & hệ thống": manage_hr (protects_holder = true), manage_accounts (protects_holder = true), revoke_sessions, view_staff_stats,
+    %%     view_activity_logs, approve_devices (nhãn Duyệt đăng nhập và chặn thiết bị; giữ key cũ), view_all_stations (MỚI v2.9, nhãn Xem dữ liệu mọi trạm).
+    %%   Không có quyền sửa quyền của loại và không có quyền đóng ca của người khác vì cả hai chỉ admin gốc làm (trừ trường hợp HR sửa loại thường, quy tắc n).
+    %%   Quy ước khi thêm: mỗi quyền gắn ĐÚNG MỘT function_key hoặc NULL; quyền gộp hành động của hai chức năng phải tách. Hai quyền cần tách khi code tới:
+    %%   assign_depart_reopen (chỉ định xe, khởi hành xe, re-open của phòng vé, nhưng chỉ định xe rước thuộc shuttle_dispatch) và transship_assign.
+    %%   ĐIỂM CẦN CHỦ XÁC NHẬN: close_shift_reconcile (Kết ca / đối soát) nằm ở nhóm trip_management và trùng ý với các quyền manage_shift_*; khi làm module
+    %%   kết ca nên gộp hoặc bỏ. Mọi loại nhân viên có chức năng làm việc phải có ít nhất một quyền mang function_key của chức năng đó (điều kiện b của acting_context).
+    %% ----------
+    %% CHUỖI QUYỀN: users -> employees -> employee_types -> employee_type_permissions -> permissions -> permission_groups
+    %%   Quyền hiệu lực = (admin gốc: mọi quyền) | (quyền của loại NV hiện tại). Không có cấp thêm hoặc chặn bớt theo từng người. Tính lúc dùng, KHÔNG chụp bản
+    %%   sao: sửa quyền của loại là đổi ngay cho mọi nhân viên thuộc loại đó. must_change_password = true thì chưa DÙNG được quyền nào (chỉ đổi mật khẩu);
+    %%   quy tắc này CHỈ áp lúc dùng quyền; mọi kiểm tra về nhóm bảo vệ và trần ủy quyền dùng quyền CẤU HÌNH của loại.
+    %%   Vào trang Admin: hiện tại chỉ admin gốc và nhóm được bảo vệ (Auth.canEnterAdmin); chưa chặn theo từng quyền ở từng trang (thuộc tầng app, làm sau).
+    %%   Kiêm nhiệm: người làm nhiều việc thuộc MỘT loại được cấp đủ quyền cho các việc đó (tạo loại riêng nếu cần).
+    %%   CHỨC NĂNG của một người = tập các permissions.function_key khác NULL trong quyền của loại (tính lúc dùng, không lưu). Form loại nhân viên có dòng xem
+    %%   trước chức năng suy từ các quyền đang tick.
+    %%   Chuyển dữ liệu demo cũ: dữ liệu demo hiện có 10 loại gốc (ticket, driver, helper, shuttle_driver, call_center, ticket_office, shuttle_dispatch,
+    %%   dispatch_manager, accountant, cashier) với danh sách quyền rỗng; admin gán quyền cho từng loại. Tài khoản demo cũ có danh sách quyền riêng: gom các
+    %%   tài khoản cùng bộ quyền thành một loại, quyết định thủ công từng trường hợp.
+    %% ----------
+    %% CHỨC NĂNG VÀ GHI NHẬN THAO TÁC (v2.5, sửa ở v2.6, v2.8, v2.9):
+    %%   MỤC TIÊU: một người có nhiều quyền vẫn ghi nhận được từng thao tác theo ĐÚNG chức năng đang làm, để nối với payments, kết ca và thống kê.
+    %%   1. work_functions: danh mục chức năng. Dữ liệu khởi tạo: call_center (Tổng đài, has_shift), ticket_office (Phòng vé, has_shift), cargo_receive (Nhận
+    %%        hàng, has_shift), cargo_delivery (Giao hàng, has_shift), shuttle_driver (Tài xế trung chuyển, has_shift, auto_open: ca không có tiền, ghi số
+    %%        lượt được chỉ định), shuttle_dispatch (Điều hành trung chuyển, has_shift = false: không nhận tiền, không đối soát, không kết ca).
+    %%      work_kind của loại (nhóm công việc, bảng work_kinds) và function_key của quyền (thao tác) là HAI khái niệm khác nhau: nhóm công việc chia tab Tài xế,
+    %%      Lơ xe, kiểm bằng lái và quyết định nhóm chỉ xem dữ liệu của mình; function_key quyết định ca, kết ca và tab kết ca.
+    %%   2. permissions.function_key: quyền thuộc chức năng nào; NULL = quyền chung.
+    %%   3. activity_logs.function_key: thao tác làm dưới chức năng nào; NULL với thao tác quản trị (HR, admin).
+    %%   4. shifts: ca làm của một TÀI KHOẢN (nhân viên hoặc admin gốc), có trạng thái (open, closed); shift_reports là bản chốt bất biến.
+    %%      UNIQUE (user_id, function_key) WHERE status = open: một người mở được nhiều ca cùng lúc nhưng mỗi chức năng một ca.
+    %%      CHECK (function_key = shuttle_driver OR station_id IS NOT NULL). Trạm làm ca CHỌN lúc mở ca trong các trạm XEM ĐƯỢC của người đó (trạm gán lẻ hoặc
+    %%      trạm của khu vực gán); người có view_all_stations và admin gốc chọn trong mọi trạm active. shuttle_driver (auto_open) tự chụp TRẠM CHÍNH của tài
+    %%      xế nếu có, không có thì NULL (chỉ người xem mọi trạm thấy ca đó). auto_open: API tự mở ca ở thao tác đầu tiên của tài xế; ca này KHÔNG tự đóng.
+    %%      shifts.employee_id NULL khi chủ ca là admin gốc (trigger: employee_id IS NULL khi và chỉ khi users.is_root của user_id).
+    %%      CHECK (status = open) = (closed_at IS NULL AND closed_by IS NULL AND close_reason IS NULL).
+    %%      CHECK (close_reason = self) = (closed_by = user_id). Admin gốc đóng ca của chính mình thì close_reason = self.
+    %%      Ca gắn với TÀI KHOẢN, không gắn với phiên hay thiết bị. Lịch ca (shift_templates) KHÔNG chặn việc mở ca và không nối khóa ngoại với shifts.
+    %%      Code demo: chưa có nơi nào ghi shifts (module kết ca ghi), trang nhân sự chỉ đọc và cho admin gốc đóng thay; trong code, chủ ca lưu bằng username.
+    %%   5. HÀM acting_context(user_id, function_key, station_id) trả về (user_id, employee_id, function_key, station_id, shift_id) hoặc từ chối.
+    %%      employee_id = NULL khi user là admin gốc. Điều kiện:
+    %%        a. Tài khoản đăng nhập được và không còn must_change_password.
+    %%        b. Admin gốc luôn đạt. Người khác phải có ít nhất một quyền mang permissions.function_key = function_key.
+    %%        c. station_id: admin gốc và người có view_all_stations chọn bất kỳ trạm active. Người khác: nằm trong tập trạm xem được (trạm gán lẻ hoặc trạm của
+    %%           khu vực gán). Với nhóm self (tài xế): station_id không bắt buộc, nếu có thì phải thuộc trạm gán lẻ. Tổng đài đặt vé cho nhiều trạm:
+    %%           station_id là TRẠM BÁN VÉ của từng vé.
+    %%        d. Nếu has_shift = true: phải có ca đang mở của user_id đúng function_key (admin gốc cũng phải mở ca); chưa có thì từ chối (Chưa mở ca), trừ
+    %%           khi auto_open = true thì API tự mở ca rồi mới ghi.
+    %%      Mọi bảng nghiệp vụ ghi nhận người thao tác lưu 4 cột lấy từ kết quả trên: created_by hoặc collected_by (users.user_id), function_key, station_id,
+    %%      shift_id. station_id ở 4 cột = TRẠM NƠI PHÁT SINH THAO TÁC, không phải trạm làm ca. Quyền cho từng hành động vẫn kiểm bằng has_permission.
+    %%      Chưa sửa bảng vé, payments, hàng hóa ở đợt này: chỉ chốt hợp đồng 4 cột.
+    %%   6. KẾT CA CỦA NGƯỜI NHIỀU QUYỀN: mỗi chức năng một ca, một lần kết ca riêng, một dòng shift_reports riêng. Kết ca chỉ gom những thao tác mang đúng
+    %%      shift_id của ca đó, KHÔNG phụ thuộc trạng thái phơi. Mỗi khoản tiền hoặc dòng hàng gán shift_id một lần duy nhất. Riêng phòng vé: tiền tính theo
+    %%      thao tác khởi hành hoặc re-open của chính nhân viên đó (chi tiết thuộc payments và M05).
+    %%      Chủ ca tự đóng ca của mình. ADMIN GỐC đóng thay ca của bất kỳ ai: shifts.closed_by = admin, close_reason = admin; sinh shift_reports với
+    %%      is_forced = true, phần kiểm đếm thực tế để NULL. Muốn bổ sung kiểm đếm: mở lại ca (chủ ca chưa có ca mở cùng chức năng), chủ ca kết lại, sinh
+    %%      version mới; bản cũ giữ nguyên. Mở lại ca: shifts.status = open, xóa closed_at, closed_by, close_reason; ghi activity_logs action reopen_shift.
+    %%      Giờ kết của từng version nằm ở shift_reports.closed_at. Sau khi đóng ca (chủ ca kết hoặc admin gốc đóng thay): nếu chủ ca không còn ca mở nào VÀ
+    %%      đang có lịch ca (employee_shift_schedules đang áp dụng) thì thu hồi phiên đang sống của họ (revoke_reason = shift_ended). Còn ca mở khác thì phiên
+    %%      giữ nguyên. Người không có lịch ca thì đóng ca KHÔNG thu hồi phiên. (Code: ssForceCloseShift.)
+    %%   7. ĐIỀU HÀNH TRUNG CHUYỂN: không nhận tiền, không đối soát, KHÔNG có ca. Thao tác ghi function_key = shuttle_dispatch, shift_id = NULL. Nhân viên
+    %%      phòng vé có thêm quyền trung chuyển chỉ có ca phòng vé. Hai quyền Chỉ định xe rước và Cập nhật tài xế trung chuyển đều thuộc
+    %%      function_key = shuttle_dispatch (GIẢ ĐỊNH, chờ chủ xác nhận). Thống kê công việc điều hành: đếm từ bảng gán trung chuyển của M06.
+    %%   8. TÀI XẾ TRUNG CHUYỂN KẾT CA (không tiền): ghi số LƯỢT ĐƯỢC CHỈ ĐỊNH. Lượt chỉ định không mang shift_id của tài xế lúc ghi; khi ca đóng, M06 gom mọi
+    %%      lượt được chỉ định cho tài xế đó mà driver_shift_id còn NULL, gán driver_shift_id = ca đó MỘT lần duy nhất; bản chốt ghi tổng số lượt kèm số
+    %%      lượt theo trạng thái khách của M06. Cột driver_shift_id và định nghĩa mốc chỉ định, trạng thái khách do M06 chốt.
+    %% ----------
+    %% PHẠM VI DỮ LIỆU (ai xem được dữ liệu của trạm nào), tách khỏi quyền hành động (VIẾT LẠI v2.9, khớp hrScope trong admin-hr-common.js):
+    %%   Không còn cột data_scope. Phạm vi xem của một nhân viên tính lúc dùng, theo thứ tự:
+    %%     1. Admin gốc, hoặc loại có quyền view_all_stations (mọi loại nhóm HR đều có): xem MỌI trạm active.
+    %%     2. Nhóm công việc của loại có work_kinds.is_self = true (tài xế, tài xế trung chuyển, phụ xe): chỉ dữ liệu của CHÍNH MÌNH (app lọc theo họ). Trạm gán lẻ
+    %%        chỉ dùng để lọc danh sách tài xế khi xếp xe, phơi. Không có khu vực (API lưu danh sách khu vực rỗng, đóng dòng employee_scope_regions nếu có).
+    %%     3. Còn lại: TRẠM XEM ĐƯỢC = trạm gán lẻ đang áp dụng (employee_stations, valid_to IS NULL) HỢP trạm active của các khu vực đang gán
+    %%        (employee_scope_regions, valid_to IS NULL). Khu vực có trạm mới thì tự thấy. Chưa gán trạm hay khu vực nào thì không thấy gì; giao diện cảnh báo HR.
+    %%   Hàm API trả danh sách station_id được xem (hoặc cờ xem tất cả, hoặc cờ chỉ của mình). Mọi bảng nghiệp vụ lọc theo hàm này.
+    %%   HÀNG HÓA (M14): người có phạm vi theo trạm (loại 3) chỉ thấy hàng có trạm ĐI HOẶC trạm ĐẾN thuộc trạm xem được:
+    %%     origin_station_id = ANY(ids) OR dest_station_id = ANY(ids). Hàng chỉ đi ngang qua thì không thấy. Bảng hàng hóa phải có đủ origin_station_id và dest_station_id.
+    %%   VÉ: lọc theo trạm bán vé hoặc trạm đi thuộc trạm xem được (M04 chốt cột cụ thể). Hết cách nối vé qua hướng của v2.8.
+    %%   PHẠM VI XEM CA: ca có shifts.station_id nằm trong trạm xem được; người xem mọi trạm thấy tất cả (kể cả ca station_id NULL của tài xế trung chuyển
+    %%     không có trạm); nhóm self chỉ thấy ca của chính mình.
+    %%   Quy tắc trạm theo người (v2.9):
+    %%     Có dòng employee_stations thì đúng 1 dòng is_primary đang áp dụng (constraint trigger hoãn cuối giao dịch). Form luôn buộc chọn một trạm chính khi đã chọn trạm.
+    %%     Người có tài khoản, có chức năng phải mở ca (hrShiftFunctionsOfRole: mọi chức năng has_shift trừ shuttle_driver), không phải nhóm self, không có
+    %%     view_all_stations: BẮT BUỘC có ít nhất một trạm xem được. Kiểm khi lưu hồ sơ và khi tạo tài khoản. Người không có chức năng ca (kế toán, nhân sự,
+    %%     điều hành, tài xế, phụ xe) không bắt buộc trạm.
+    %%   Trigger T8 (v2.8) ĐÃ BỎ cùng với data_scope. Đổi giữa các loại không còn bị chặn vì phạm vi.
+    %% ----------
+    %% ĐỔI TRẠM VÀ KHU VỰC (quyết định 19/10/2026, giữ nguyên, thêm khu vực ở v2.9):
+    %%   Đổi trạm KHÔNG đổi loại nên người đó giữ nguyên quyền. Không thu hồi phiên, không xóa gì.
+    %%   API làm trong một giao dịch: so danh sách trạm mới với danh sách đang áp dụng; dòng employee_stations bị bỏ thì đóng (valid_to = now()), trạm mới thì mở
+    %%   dòng mới (valid_from = now(), reason, changed_by điền qua app.change_reason và app.acting_user); đổi trạm chính thì đổi is_primary cùng giao dịch.
+    %%   Khu vực làm cùng cách với employee_scope_regions. Một lần lưu hồ sơ chỉ nhập MỘT ô Lý do, ghi vào mọi bảng lịch sử có thay đổi.
+    %%   Người còn ca đang mở bị chặn khi gỡ trạm, gỡ khu vực, đổi trạm chính, đổi loại (quy tắc j).
+    %%   Dữ liệu đã ghi ở trạm cũ ở lại trạm cũ; dữ liệu ghi từ lúc đổi thuộc trạm mới. Làm được vì mọi bảng nghiệp vụ CHỤP station_id (và loại NV nếu cần) tại lúc
+    %%   ghi, không suy từ trạm hiện tại của nhân viên: shifts.station_id và shift_reports.station_id, vé và phơi lưu trạm của chính nó.
+    %%   Phạm vi XEM tính theo trạm ĐANG áp dụng lúc xem. Người chuyển không còn xem dữ liệu trạm cũ, trừ khi vẫn còn gán trạm đó.
+    %%   (ĐIỂM CẦN CHỦ XÁC NHẬN: nếu muốn người chuyển vẫn xem lại dữ liệu do chính mình tạo ở trạm cũ thì thêm quy tắc riêng.)
+    %%   Tra tại thời điểm T: station_ids_at(employee_id, T), region_ids_at(employee_id, T), employee_type_at(employee_id, T), schedule_at(employee_id, T).
+    %% ----------
+    %% TRẠM VÀ KHU VỰC (v2.9, thay mục TRẠM VÀ HƯỚNG):
+    %%   Danh mục thật là region -> station -> stop_station. Khu vực (region) có mã (region_key, giao diện lưu mã này) và tên hiển thị; mỗi trạm thuộc một khu vực.
+    %%   Bản demo lưu TÊN TRẠM và MÃ KHU VỰC dạng chữ; DB lưu station_id và region_id (khi chuyển dữ liệu ánh xạ tên sang id, dòng không khớp thì liệt kê xử lý tay).
+    %%   employee_stations.station_id trỏ tới station (trạm xe thật). DB KHÔNG phân trạm chính hay phụ. Chữ trạm chính chỉ là cờ is_primary của NHÂN VIÊN.
+    %%   Giao diện chọn trạm lấy danh sách từ station đang active, nhóm theo khu vực; chọn nhiều trạm, một trạm chính. Khu vực chọn nhiều bằng danh sách tick
+    %%   (kèm số trạm của khu vực). Hướng không còn trong module nhân sự.
+    %%   Trên trang Tài khoản và Quản lý nhân viên: hiện trạm chính cộng N nếu có thêm trạm khác; dòng Khu vực hiện khu vực đầu cộng N; nhóm self hiện
+    %%   Chỉ dữ liệu của mình; người xem mọi trạm hiện Mọi trạm.
+    %%   Bộ lọc Trạm: khớp BẤT KỲ dòng employee_stations đang áp dụng. Bộ lọc Khu vực: khớp bất kỳ khu vực đang gán. Có mục Tất cả và mục Chưa gán trạm hoặc khu vực
+    %%   (nhân viên không có dòng trạm lẫn khu vực nào đang áp dụng; chọn mục này ở một ô thì ô kia về Tất cả).
+    %%   Cột CẢNH BÁO của trang Tài khoản (tính lúc xem, không lưu, code acWarnings):
+    %%     Chưa gắn với hồ sơ nhân viên; Nhóm HR chưa có quyền Xem dữ liệu mọi trạm; Có chức năng phải mở ca nhưng chưa có trạm xem được;
+    %%     Khu vực được gán chưa có trạm active; Loại nhân viên đã ngừng dùng; Đang tạm ngưng mà trạng thái này không khóa đăng nhập;
+    %%     Chủ ca đã nghỉ hoặc bị khóa mà còn N ca đang mở; N yêu cầu duyệt đăng nhập đang chờ.
+    %%   (v2.9 bỏ các cảnh báo thiếu trạm chính, chưa gán hướng, trạm lệch hướng, loại bị gate chưa có lịch ca.)
+    %% ----------
+    %% ADMIN GỐC: users.is_root = true, tạo bằng seed/code ban đầu, employee_id = NULL, created_by = NULL.
+    %%   CHECK ((is_root AND employee_id IS NULL AND display_name IS NOT NULL) OR (NOT is_root AND employee_id IS NOT NULL)).
+    %%   Bản demo có một dòng nhân viên role admin (mã ADM01) chỉ để hiển thị trong danh sách, chỉ đọc; DB KHÔNG có hồ sơ nhân viên cho admin gốc.
+    %%   Admin gốc LÀM ĐƯỢC chức năng của nhân viên: với chức năng có ca thì mở ca riêng (shifts.user_id = admin, employee_id = NULL), chọn trạm làm ca trong
+    %%   mọi trạm active; kết ca và thống kê hiện tên bằng COALESCE(employees.full_name, users.display_name).
+    %%   Giao diện: dòng admin gốc có huy hiệu Quản trị gốc, chỉ đọc, không nút sửa, khóa hay đặt lại mật khẩu; chỉ tự đổi mật khẩu (ngoại lệ: menu có Mở khóa nhập sai khi tài khoản đó đang bị khóa nhập sai và người thao tác là admin gốc khác).
+    %%   Không có lựa chọn Quản trị viên hệ thống ở ô vai trò; muốn nhiều người quyền cao thì tạo LOẠI NV nhóm xem mọi trạm (loại có view_all_stations).
+    %%   Trigger T3 trên users: BEFORE UPDATE OF username, is_root, employee_id. is_root và employee_id luôn từ chối. username chỉ cho đổi khi
+    %%     current_setting(app.acting_user) là một users.is_root = true; ngược lại từ chối.
+    %%   Trigger T5 trên users: BEFORE UPDATE OF is_active hoặc DELETE khi OLD.is_root -> từ chối nếu sau đó không còn admin gốc nào is_active = true.
+    %%   Admin gốc MIỄN cổng lịch ca và MIỄN duyệt đăng nhập, nhưng thiết bị của admin gốc VẪN ghi vào user_devices (status active) và VẪN chịu quy tắc một phiên
+    %%   một thiết bị: đăng nhập mới đá phiên cũ (device_replaced) mà không cần duyệt.
+    %%   (ĐIỂM CẦN CHỦ XÁC NHẬN: nếu muốn admin gốc dùng hai thiết bị song song thì miễn chỉ mục duy nhất phiên cho is_root.)
+    %%   Quên mật khẩu admin gốc: khôi phục bằng script chạy trực tiếp trên DB, script ghi auth_events (password_reset, detail.by = db_script) và đặt
+    %%   must_change_password = true. Không có đường khôi phục qua giao diện. Admin gốc không bị đặt lại mật khẩu qua giao diện của người khác.
+    %% ----------
+    %% ĐỔI USERNAME (v2.6): CHỈ admin gốc, lúc nào cũng được (kể cả đã đăng nhập, kể cả admin gốc đổi tên admin gốc khác). Sửa tên gõ sai cũng dùng chức năng này.
+    %%   API trong một giao dịch: SET LOCAL app.acting_user, UPDATE users.username; thu hồi mọi phiên của tài khoản đó (revoke_reason = username_changed); ghi
+    %%   auth_events event_type = username_changed (detail = old, new, by); ghi activity_logs action = username_change. Username mới phải đúng CHECK
+    %%   ^[a-z0-9._-]{3,32}$ và không trùng username đang dùng. API từ chối username mới trùng một username CŨ từng thuộc tài khoản khác (tra users và
+    %%   auth_events username_changed). Sổ thiết bị, yêu cầu duyệt, ngoại lệ giữ nguyên khi đổi username (DB nối bằng user_id; bản demo phải sửa tay vì lưu username).
+    %% ----------
+    %% TẠO NHÂN VIÊN RỒI MỚI TẠO TÀI KHOẢN: users.employee_id NOT NULL (trừ admin gốc) nên tài khoản chỉ tạo được sau khi có nhân viên. Form nhân viên KHÔNG có ô
+    %%   nhập username: ô Tài khoản đăng nhập chỉ đọc, kèm hướng dẫn tạo ở trang Tài khoản; menu Thao tác của danh sách nhân viên có Tạo tài khoản (mở modal tài khoản
+    %%   đã chọn sẵn nhân viên; nhân viên nhóm HR thì mở ở chế độ HR, chỉ admin gốc).
+    %% ----------
+    %% FORM TÀI KHOẢN (trang Admin > Nhân sự > Tài khoản, 2 tab: Danh sách tài khoản, Duyệt đăng nhập (kèm huy hiệu số yêu cầu chờ)):
+    %%   Modal Thêm tài khoản: Chọn nhân viên * (liệt kê nhân viên working chưa có tài khoản, đúng nhóm: thường hoặc HR; chọn xong hiện Họ tên, Mã NV, Loại, Trạm,
+    %%       Khu vực, Quyền và chức năng, Xem được bao nhiêu trạm), Làm việc theo ca (ô tick; tick thì hiện lưới Ca mẫu nhân Thứ trong tuần, bắt chọn ít nhất một ca,
+    %%       kiểm chồng giờ; lưu vào employee_shift_schedules), Tên tài khoản * (chữ thường, số, . _ -, 3 đến 32 ký tự), Mật khẩu * (tối thiểu 8 ký tự, không
+    %%       trùng username). Tạo xong must_change_password = true. Lần đăng nhập đầu tiên cần duyệt (first_login).
+    %%   Modal Chi tiết tài khoản (chỉ đọc): Tên tài khoản (admin gốc có nút Đổi tên tài khoản), Họ tên, Loại, Trạm, Khu vực, Đăng nhập cuối, Trạng thái đăng nhập (kèm
+    %%       nguyên nhân khóa), Phiên đang sống, Ngoại lệ đăng nhập, Quyền của loại nhóm theo permission_groups. Muốn đổi quyền thì đổi loại ở trang Nhân viên.
+    %%   Cột danh sách: STT, Tài khoản & Người dùng, Loại nhân viên, Quyền (số quyền, bấm xem chi tiết), Trạm (chính +N, hoặc Mọi trạm, kèm KV: khu vực),
+    %%       Thiết bị (thiết bị của phiên đang sống, kèm huy hiệu số yêu cầu chờ duyệt; bấm mở tab Duyệt đăng nhập đã lọc theo tài khoản), Đăng nhập cuối (kèm
+    %%       huy hiệu Phải đổi mật khẩu), Trạng thái (nguyên nhân), Cảnh báo, Thao tác, ô tick chọn nhiều.
+    %%   Thao tác (menu): Xem chi tiết, Đổi mật khẩu của tôi (chỉ dòng của chính mình), Đặt lại mật khẩu, Khóa hoặc Mở khóa (bắt buộc Lý do), Mở khóa nhập sai (chỉ khi
+    %%       bị khóa do nhập sai), Cấp ngoại lệ đăng nhập (manage_accounts; 1 đến 24 giờ, bắt buộc Lý do), Thu hồi ngoại lệ đăng nhập (khi còn ngoại lệ hiệu lực),
+    %%       Đổi tên tài khoản (chỉ admin gốc), Thu hồi phiên (revoke_sessions; hiện khi có phiên sống và không phải phiên của chính mình; revoke_reason = admin_revoke).
+    %%   Hàng loạt: chọn nhiều dòng rồi Khóa hoặc Mở khóa, báo từng dòng bị bỏ qua và vì sao (admin gốc, nhóm được bảo vệ, đang khóa theo nhân viên, đã ở đúng trạng thái).
+    %%   Bộ lọc: tìm kiếm (username, họ tên, tên loại), Loại nhân viên (có mục Quản trị gốc), Trạng thái (Hoạt động, Đang bị khóa, Phải đổi mật khẩu), Trạm, Khu vực.
+    %%   Hai khung dùng chung một bộ code: trang Tài khoản (nhân viên thường) và tab Tài khoản nhân sự của Cấu hình nhân sự (nhóm HR, chỉ admin gốc tạo và
+    %%   quản). Tab Duyệt đăng nhập ở trang Tài khoản gồm yêu cầu của cả hai nhóm (yêu cầu của nhóm HR chỉ admin gốc duyệt).
+    %%   Bỏ: cột Mật khẩu, nút Xóa, lựa chọn Quản trị viên hệ thống, ô Trạm xe nhập tay, khung tick quyền trên từng tài khoản, ô nhập họ tên và loại lúc tạo tài khoản.
+    %% ----------
+    %% FORM CẤU HÌNH NHÂN SỰ (trang Admin > Nhân sự > Cấu hình nhân sự; 6 tab; VIẾT LẠI v2.9):
+    %%   Tab 1 LOẠI NHÂN VIÊN (loại thường; admin gốc và HR có manage_hr): Tên loại *, Mã * (nhập lúc tạo, bắt đầu bằng mã nhóm công việc, tự điền tiền tố khi chọn
+    %%       nhóm, không sửa sau đó), Nhóm công việc * (chọn từ work_kinds đang dùng; khóa khi loại đã có nhân viên), Ghi chú, Ngừng dùng (is_active, thay nút Xóa),
+    %%       Phân quyền theo chức năng (tick theo nhóm quyền, ẩn quyền protects_holder; có dòng xem trước chức năng làm việc), trang đích redirect_page (ô ẩn,
+    %%       mặc định theo nhóm). Cột danh sách: STT, Tên loại (kèm chip Nhóm HR nếu có), Mã, Nhóm công việc, Số nhân viên (tính), Cụm phân quyền (số quyền, chip chức
+    %%       năng, chip Xem mọi trạm), Trạng thái, Thao tác (HR không sửa được loại nhóm HR: hiện Chỉ admin gốc). Bộ lọc: tìm theo tên và mã, trạng thái
+    %%       phân quyền (Chưa hoặc Đã gán quyền), trạng thái sử dụng (Đang dùng, Ngừng dùng). Loại nhóm HR không hiện ở tab này.
+    %%   Tab 2 NHÓM CÔNG VIỆC (chỉ admin gốc): Tên nhóm *, Mã * (chữ thường, không sửa sau khi tạo), Chỉ xem dữ liệu của chính mình (is_self), Bắt buộc bằng lái
+    %%       (requires_license), Thứ tự, Ghi chú, Ngừng dùng. Cột: STT, Mã, Tên nhóm (chip Nhóm gốc), Phạm vi xem dữ liệu, Bằng lái, Số loại nhân viên, Số nhân viên,
+    %%       Trạng thái. Đổi hai cờ của nhóm đang có loại dùng thì xác nhận và áp ngay cho mọi loại và nhân viên của nhóm.
+    %%   Tab 3 CA MẪU (chỉ admin gốc): xem mục FORM CA MẪU. Tab 4 TRẠNG THÁI LÀM VIỆC (chỉ admin gốc): Mã, Tên, Khóa tài khoản (working luôn không khóa, left luôn
+    %%       khóa), Thứ tự, Ghi chú; không có nút xóa. Tab 5 THAM SỐ ĐĂNG NHẬP (chỉ admin gốc): xem mục THAM SỐ.
+    %%   Tab 6 TÀI KHOẢN NHÂN SỰ (chỉ admin gốc): các bước Nhóm công việc, Loại nhân viên HR, Quyền cho nhân sự, Tài khoản nhân sự; bảng loại HR (thêm loại HR:
+    %%       tick quyền, ô Quyền được phép cấp cho người khác, loại HR tự kèm Xem dữ liệu mọi trạm), rồi danh sách tài khoản HR.
+    %%   (Cột Đăng nhập theo lịch ca của loại đã BỎ, xem thay đổi (4).)
+    %% ----------
+    %% THAM SỐ ĐĂNG NHẬP VÀ NHẬT KÝ (app_settings, M09; tab Tham số đăng nhập, chỉ admin gốc sửa; sửa ghi activity_logs entity app_settings, entity_id login_params):
+    %%   early_login_minutes (15), late_grace_minutes (0), idle_timeout_minutes (60), session_hours (12, MỚI v2.9: hết hạn tuyệt đối của phiên),
+    %%   log_retention_months (12), approval_valid_minutes (10), approval_reject_cooldown_minutes (5), max_pending_approvals_per_user (3).
+    %%   Ba tham số chưa có ô sửa trên giao diện nhưng có trong code: login_schedule_timezone (Asia/Ho_Chi_Minh), failed_login_limit (5), failed_login_window_minutes (15).
+    %%   Giá trị khởi tạo là các số trong ngoặc. Bản demo lưu một khóa localStorage; DB lưu mỗi tham số một dòng app_settings (key, value).
+    %% ----------
+    %% KHÔNG XÓA TÀI KHOẢN: trigger T4 BEFORE DELETE trên users từ chối mọi lệnh xóa. Các FK từ activity_logs, created_by, changed_by cũng chặn. Thay bằng khóa
+    %%   (is_active = false, bắt buộc lock_reason). Mỗi nhân viên một tài khoản (employee_id UNIQUE). Username cũ không giải phóng cho người khác.
+    %% ----------
+    %% TRẠNG THÁI ĐĂNG NHẬP (hàm account_login_state(user_id), code acLoginState; chỉ xét cấp TÀI KHOẢN, không xét giờ, thiết bị, duyệt):
+    %%   1. employee_locked ....... employment_statuses.locks_account = true. Nút Khóa và Mở khóa bị vô hiệu, ghi chú đổi trạng thái ở trang Nhân viên. Không áp cho admin gốc (admin gốc cũng không bị bậc 2).
+    %%   2. manual_locked ......... users.is_active = false. Hiện lock_reason, locked_at, người khóa. Nút Mở khóa dùng được.
+    %%   3. failed_login_locked ... từ failed_login_limit lần login_failed trong failed_login_window_minutes (5 lần trong 15 phút), tính từ auth_events sau lần
+    %%                              account_unlocked gần nhất. Nút Mở khóa nhập sai gọi unlock_login: ghi auth_events account_unlocked (detail.reason = failed_login)
+    %%                              và activity_logs login_unlock. ÁP CẢ CHO ADMIN GỐC (chống dò mật khẩu): cửa sổ trượt nên tự hết sau 15 phút, hoặc admin gốc KHÁC bấm
+    %%                              Mở khóa nhập sai ở dòng tài khoản đó (không có nút ở dòng của chính mình). Code login.js kiểm theo đúng thứ tự bậc 1, 2, 3.
+    %%   4. must_change_password .. đăng nhập được nhưng chỉ đổi được mật khẩu.
+    %%   5. ok .................... dùng bình thường.
+    %%   Nếu cùng lúc có nhiều lý do thì hiện lý do ưu tiên cao nhất và liệt kê các lý do còn lại.
+    %%   Khóa thủ công: is_active = false, locked_at = now(), locked_by, lock_reason; thu hồi mọi phiên (revoke_reason = account_locked); các login_approvals pending
+    %%   hoặc approved của tài khoản chuyển expired; ghi auth_events account_locked (detail.reason = manual, by, note) và activity_logs (account_lock).
+    %%   Mở khóa: is_active = true, xóa locked_at, locked_by, lock_reason; ghi auth_events account_unlocked và activity_logs (account_unlock).
+    %% ----------
+    %% LỊCH CA VÀ CỔNG ĐĂNG NHẬP (v2.7, sửa v2.8, sửa v2.9 theo hồ sơ nhân viên):
+    %%   PHÂN BIỆT HAI THỨ: LỊCH CA (shift_templates, employee_shift_schedules) là khung giờ HR xếp cho nhân viên, chỉ để quyết định ĐƯỢC ĐĂNG NHẬP HAY KHÔNG.
+    %%   CA THỰC TẾ (shifts) vẫn do chủ ca mở và đóng sau khi đăng nhập. Hai thứ không nối khóa ngoại với nhau.
+    %%   NGUYÊN TẮC (19/10/2026): chỉ kiểm lúc BẮT ĐẦU đăng nhập. Phiên đang sống KHÔNG bị cắt khi hết giờ ca và hết giờ ca KHÔNG tự đăng xuất. Ví dụ ca 06:00 đến
+    %%     16:00: đăng nhập 06:05 và dùng liên tục tới 17:00 thì vẫn bình thường. Đăng xuất 15:50 rồi đăng nhập lại 16:10 thì BỊ CHẶN. Đăng xuất 10:00 rồi đăng nhập lại
+    %%     10:30 trong cùng khung giờ vẫn được, miễn là chưa kết ca nào trong khung đó.
+    %%   ÁP DỤNG (v2.9): cho nhân viên CÓ lịch ca đang áp dụng. Admin gốc và nhân viên không có dòng lịch ca nào không bị kiểm. HR bỏ trống lịch ca nếu người đó
+    %%     không làm theo ca (cùng một loại vẫn có người ca sáng, người ca tối, người không theo ca).
+    %%   Lịch ca của nhân viên = các dòng employee_shift_schedules đang áp dụng (valid_to IS NULL): mỗi dòng là (ca mẫu, thứ trong tuần). Một nhân viên có thể có nhiều ca
+    %%     mẫu trong cùng một thứ (ca gãy), nhưng API từ chối hai ca mẫu chồng giờ nhau (so cả vòng tuần: ca đêm chủ nhật tràn sang thứ hai; code smScheduleOverlap).
+    %%     Ca qua đêm (crosses_midnight): thứ trong tuần là thứ của NGÀY BẮT ĐẦU ca. Khung giờ tính theo múi giờ login_schedule_timezone, không theo múi giờ thiết bị.
+    %%   KHUNG GIỜ của một lần xếp lịch với ngày bắt đầu D:
+    %%     window_start = D + start_time trừ early_login_minutes (15 phút)
+    %%     window_end   = D + end_time (cộng 1 ngày nếu crosses_midnight) cộng late_grace_minutes (0 phút)
+    %%   HÀM login_gate_schedule(user_id, at) trả (ok hoặc outside_shift, sub). Thứ tự kiểm, dừng ở bước đầu tiên khớp:
+    %%     0. Admin gốc, hoặc nhân viên không có lịch ca đang áp dụng: ok.
+    %%     1. Có login_exceptions đang hiệu lực (revoked_at IS NULL, valid_from <= at < valid_until): ok (detail.via = exception).
+    %%     2. Còn ca đang mở của user_id (shifts.status = open): ok (detail.via = open_shift). Ca treo quá 24 giờ hiện nổi ở Tab 7 cho admin gốc đóng thay.
+    %%     3. Tìm MỌI khung giờ chứa at, với ngày bắt đầu D thuộc hôm qua, hôm nay, NGÀY MAI (giờ địa phương) mà thứ của D khớp lịch ca đang áp dụng. Không có khung
+    %%        nào: outside_shift, sub = outside_window.
+    %%     4. Cho vào (ok) nếu có ÍT NHẤT MỘT khung chứa at mà chưa có ca đã đóng trong chính khung đó. Chỉ khi MỌI khung chứa at đều đã có ca đóng
+    %%        (shifts.user_id = người đó, opened_at >= window_start VÀ closed_at >= window_start) thì outside_shift, sub = shift_closed.
+    %%   MỞ CA không bị lịch ca chặn. Lịch ca chỉ là cổng đăng nhập.
+    %%   NGOẠI LỆ ĐĂNG NHẬP (login_exceptions): cấp cho một tài khoản (tăng ca, bù ca, sự cố), bắt buộc lý do, thời hạn tối đa 24 giờ (kiểm ở API), có thể thu hồi
+    %%     sớm. Chỉ bỏ qua LỊCH CA; không bỏ qua khóa tài khoản, không bỏ qua duyệt đăng nhập. Mọi lần cấp ghi activity_logs action login_override; thu hồi ghi action revoke.
+    %%   LỊCH SỬ: employee_shift_schedules theo mẫu chung (đóng dòng cũ bằng valid_to, mở dòng mới). Nhân viên nghỉ việc: lịch đang áp dụng đóng cùng giao dịch
+    %%     (valid_to = now()), vào làm lại thì HR xếp lịch mới. Đổi loại KHÔNG đổi lịch ca (lịch theo người, không theo loại).
+    %%   Sửa giờ của ca mẫu đang dùng đổi ngay cho mọi người dùng ca mẫu đó (giao diện báo số nhân viên bị ảnh hưởng); thay đổi ghi activity_logs.changes. Vì vậy khi chặn
+    %%     đăng nhập, auth_events.detail ghi luôn window_start, window_end, sub của lần quyết định đó.
+    %%   TRẠNG THÁI DEMO: auth/auth-log.js và login.js CHƯA chặn theo cổng lịch ca và bước duyệt (chờ backend); dữ liệu và giao diện quản lý đã có.
+    %% ----------
+    %% THIẾT BỊ, DUYỆT ĐĂNG NHẬP VÀ MỘT PHIÊN MỘT THIẾT BỊ (giữ v2.8; code: auth/auth-log.js, admin-accounts.js):
+    %%   NHẬN DIỆN THIẾT BỊ: không dùng user_agent. Mỗi app hoặc trình duyệt giữ một MÃ THIẾT BỊ ngẫu nhiên: web lưu ở cookie httpOnly, Secure, SameSite thời hạn dài; app
+    %%     di động lưu ở secure storage. Server chỉ lưu SHA-256 (user_devices.device_token_hash). Mã thiết bị tách khỏi token phiên. Bản demo lưu mã ở localStorage. Đây là cơ
+    %%     chế gây khó, không phải ràng buộc phần cứng; web xóa cookie thì thành thiết bị mới nên việc CHẶN thiết bị trên web chỉ có tác dụng yếu.
+    %%   user_devices (SỔ THIẾT BỊ): mỗi thiết bị đã từng thử đăng nhập một dòng, status = active (mặc định) hoặc blocked (bắt buộc block_note). Thiết bị blocked bị chặn đăng
+    %%     nhập (login_blocked, detail.reason = device_blocked); chặn thì thu hồi luôn phiên đang sống của thiết bị đó (revoke_reason = device_blocked). Mở chặn:
+    %%     status = active, xóa blocked_by, blocked_at, block_note. Thiết bị active KHÔNG có nghĩa là đã được duyệt đăng nhập.
+    %%   login_approvals (YÊU CẦU DUYỆT): mỗi lần phải xin duyệt là một dòng, gắn đúng (user, thiết bị) và IP lúc xin (hiện ở bảng chờ duyệt). Hai loại:
+    %%     first_login .......... LẦN ĐĂNG NHẬP ĐẦU TIÊN của tài khoản (chưa có dòng user_sessions nào). Người có approve_devices duyệt.
+    %%     concurrent_session ... đăng nhập khi đang có phiên sống ở THIẾT BỊ KHÁC. blocking_session_id = phiên đang sống. Duyệt xong thì phiên cũ bị đá ra (device_replaced).
+    %%     Từ lần thứ hai trở đi, nếu không có phiên sống ở thiết bị khác thì đăng nhập bằng thiết bị nào cũng được, không cần duyệt. Duyệt KHÔNG nhớ thiết bị.
+    %%   TRẠNG THÁI login_approvals.status: pending, approved (còn hạn approval_valid_minutes kể từ decided_at), rejected (bắt buộc decision_note; trong
+    %%     approval_reject_cooldown_minutes không tạo yêu cầu mới), consumed (đã dùng, ghi consumed_session_id), expired (quá hạn, hoặc không còn cần: phiên chặn đã kết thúc,
+    %%     tài khoản bị khóa hoặc nghỉ việc).
+    %%   LUỒNG ĐĂNG NHẬP (một giao dịch, khóa dòng users bằng SELECT FOR UPDATE ngay sau khi mật khẩu đúng):
+    %%     1. Sai tên hoặc sai mật khẩu: auth_events login_failed, tính vào bộ đếm khóa nhập sai. Chưa lộ tài khoản có tồn tại hay không.
+    %%     2. Mật khẩu đúng: kiểm account_login_state bậc 1 đến 3. Bị chặn thì login_blocked (detail.reason = employee_locked, manual_locked, failed_login_locked).
+    %%     3. Kiểm login_gate_schedule (bỏ qua với admin gốc). Bị chặn thì login_blocked (detail.reason = outside_shift, kèm sub, window_start, window_end).
+    %%     4. Thiết bị và duyệt:
+    %%          a. Tìm hoặc tạo dòng user_devices cho mã thiết bị (tạo status = active). status = blocked: login_blocked (device_blocked).
+    %%          b. Đánh dấu phiên quá expires_at là expired (revoked_at = expires_at); phiên không hoạt động quá idle_timeout_minutes tính từ last_seen_at là
+    %%             idle_timeout (revoked_at = last_seen_at); mỗi lần đánh dấu ghi auth_events session_expired.
+    %%          c. Admin gốc: bỏ qua c đến f. LẦN ĐẦU: tài khoản chưa từng có phiên nào -> cần duyệt kind = first_login cho đúng thiết bị này.
+    %%          d. ĐĂNG NHẬP THỨ HAI: đang có phiên sống ở thiết bị KHÁC -> cần duyệt kind = concurrent_session. Phiên sống ở chính thiết bị này thì không cần duyệt.
+    %%          e. Không rơi vào c, d: đi tiếp, không cần duyệt.
+    %%          f. Cần duyệt: có login_approvals approved còn hạn của (user, device, kind) thì đi tiếp (concurrent_session còn hiệu lực chỉ khi blocking_session_id vẫn
+    %%             là phiên sống duy nhất). Có pending: login_blocked (approval_pending). Vừa bị rejected trong thời gian chờ: login_blocked (approval_rejected). Chưa có: nếu
+    %%             số pending của user >= max_pending_approvals_per_user thì login_blocked (approval_limit); ngược lại tạo pending, auth_events approval_requested,
+    %%             login_blocked (approval_pending). Pending concurrent_session mà phiên chặn đã kết thúc thì đánh dấu expired và tiếp tục như e.
+    %%     5. Cấp phiên: thu hồi mọi phiên còn sống của user_id với revoke_reason = device_replaced; tạo user_sessions mới có device_id (hết hạn sau session_hours);
+    %%        đánh dấu yêu cầu duyệt đã dùng là consumed; cập nhật users.last_login_at, user_devices.last_seen_at, last_ip; ghi auth_events login_ok.
+    %%     6. Nếu must_change_password = true thì phiên vẫn cấp nhưng chỉ đổi được mật khẩu (bản demo chưa chặn).
+    %%     Thứ tự: mật khẩu, account_login_state, lịch ca, thiết bị và duyệt, must_change_password.
+    %%     Chỉ mục duy nhất user_sessions (user_id) WHERE revoked_at IS NULL chặn hai thiết bị đăng nhập cùng lúc; chỉ đúng khi phiên quá hạn hoặc không hoạt động đã được
+    %%     đánh dấu (bước 4b và job định kỳ mỗi 5 phút). Job đặt revoked_at = expires_at hoặc last_seen_at, KHÔNG phải lúc chạy job. Job cũng chuyển login_approvals quá hạn sang expired.
+    %%   MỖI LẦN DÙNG PHIÊN kiểm lại: phiên chưa revoked, chưa quá expires_at, chưa quá idle_timeout_minutes, users.is_active, employment_statuses.locks_account = false,
+    %%     thiết bị không bị blocked. user_sessions.last_seen_at cập nhật tối đa một lần mỗi phút. Lịch ca KHÔNG kiểm lại lúc dùng phiên.
+    %%     Bản demo (auth-log.js, hàm touch): gọi khi nạp trang, click, gõ phím (tối đa 1 lần/phút); thấy phiên của mình đã revoked thì xóa phiên trình duyệt và về trang đăng nhập;
+    %%     nhờ đó idle_timeout và thu hồi phiên có tác dụng. Chưa kiểm lại is_active, locks_account, thiết bị blocked lúc dùng phiên (chờ backend).
+    %%   (ĐIỂM CẦN CHỦ XÁC NHẬN: cổng lịch ca chạy TRƯỚC bước duyệt nên nhân viên mới xin duyệt lần đầu phải làm trong khung giờ ca của mình; HR không duyệt trước được.
+    %%   Muốn duyệt trước thì cho login_exceptions bỏ qua cổng, hoặc đổi thứ tự bước 3 và 4.)
+    %%   Người duyệt cần approve_devices, không tự duyệt yêu cầu của chính mình, yêu cầu của nhóm được bảo vệ (HR) chỉ admin gốc duyệt (quy tắc l).
+    %%   LƯU Ý VẬN HÀNH: ban đêm không ai duyệt thì người đổi máy khi máy cũ còn phiên sống không vào được (chờ máy cũ hết 60 phút không hoạt động hoặc đăng xuất);
+    %%   cần có ít nhất một người trực có approve_devices hoặc admin gốc liên lạc được.
+    %%   Đặt lại mật khẩu, khóa, mở khóa, đổi username KHÔNG xóa sổ thiết bị; chỉ thu hồi phiên như cũ.
+    %% ----------
+    %% TAB DUYỆT ĐĂNG NHẬP (Admin > Nhân sự > Tài khoản > Duyệt đăng nhập; cần approve_devices; ba tab con):
+    %%   Tab CHỜ DUYỆT: loại yêu cầu, nhân viên, thiết bị xin (label, platform, IP, user_agent), thiết bị đang sống sẽ bị đá (concurrent_session), giờ yêu cầu, hạn. Nút Duyệt,
+    %%     Từ chối (bắt buộc ghi chú). Tab THIẾT BỊ: sổ user_devices, nút Chặn (bắt buộc ghi chú) và Mở chặn. Tab LỊCH SỬ DUYỆT: mọi login_approvals (lọc theo tài khoản,
+    %%     trạng thái, ngày).
+    %%   Duyệt, từ chối ghi auth_events (approval_approved, approval_rejected) và activity_logs (login_approve, login_reject); chặn, mở chặn ghi auth_events
+    %%   (device_blocked, device_unblocked) và activity_logs (device_block, device_unblock).
+    %% ----------
+    %% THU HỒI PHIÊN (quyền revoke_sessions): API đặt user_sessions.revoked_at = now(), revoke_reason = admin_revoke; ghi auth_events session_revoked (detail.reason = admin_revoke, by)
+    %%   và activity_logs action revoke_session (entity_type user_sessions). Phiên của nhóm được bảo vệ (HR) và của admin gốc CHỈ admin gốc thu hồi.
+    %% ----------
+    %% NHẬT KÝ ĐĂNG NHẬP VÀ NHẬT KÝ THAO TÁC (trang Admin > Hệ thống > Nhật ký hoạt động; xem cần view_activity_logs; ba tab, hai nguồn):
+    %%     Tab THAO TÁC (activity_logs, mặc định): thời gian, người thực hiện, chức năng (function_key), hành động, đối tượng (tên bảng) và mã, tóm tắt kèm Xem thay đổi (changes cũ mới),
+    %%       phiên và thiết bị (session_id). Bộ lọc: tìm kiếm, đối tượng, hành động, chức năng (có mục Quản trị hoặc hệ thống), từ ngày, đến ngày.
+    %%     Tab ĐĂNG NHẬP (phiên): mỗi dòng một phiên (user_sessions nối user_devices): Tài khoản, Họ tên, Thiết bị, IP, Giờ đăng nhập, Giờ kết thúc (trống = đang hoạt động),
+    %%       Lý do kết thúc, Thời lượng, Hoạt động cuối, nút Chuỗi sự kiện của phiên. Lọc: tài khoản, thiết bị, lý do kết thúc (có Đang hoạt động), ngày.
+    %%     Tab SỰ KIỆN ĐĂNG NHẬP (auth_events): kể cả đăng nhập sai và bị chặn (tên đã gõ, thiết bị, detail.reason). Dùng để điều tra.
+    %%   activity_logs.session_id: nối thao tác với phiên và thiết bị. NULL với thao tác do hệ thống, trigger, script.
+    %%   THỜI GIAN GIỮ: auth_events và activity_logs giữ tối thiểu log_retention_months. auth_events tăng nhanh nên chia partition theo tháng (PARTITION BY RANGE (occurred_at),
+    %%     khóa chính (id, occurred_at)); dọn bằng cách bỏ partition cũ. Nút Dọn nhật ký quá hạn (chỉ admin gốc) bỏ nhật ký quá hạn trừ các action login_approve, login_reject,
+    %%     device_block, device_unblock. Bảng user_devices, user_sessions và login_approvals không dọn theo thời gian.
+    %% ----------
+    %% MẬT KHẨU:
+    %%   Chỉ lưu bcrypt (password_hash); KHÔNG hiển thị lại được cho ai, kể cả admin gốc (bản demo đang để mật khẩu thô trong localStorage: bỏ khi có backend).
+    %%   Tạo tài khoản và đặt lại mật khẩu bởi người khác: must_change_password = true. Người dùng tự đổi: false và cập nhật password_changed_at (ghi auth_events password_changed).
+    %%   Đặt lại mật khẩu: cập nhật password_hash, password_changed_at, must_change_password = true; thu hồi mọi phiên (revoke_reason = password_changed); ghi auth_events
+    %%   (password_reset, detail.by = người đặt) và activity_logs (password_reset). Chính sách ở API: tối thiểu 8 ký tự, không trùng username.
+    %% ----------
+    %% ĐĂNG NHẬP ĐƯỢC KHI: users.is_active = true VÀ employment_statuses.locks_account = false (admin gốc không xét trạng thái NV) VÀ không đang bị khóa nhập sai VÀ qua cổng lịch
+    %%   ca (nếu người đó có lịch ca) VÀ thiết bị không bị blocked VÀ có duyệt đăng nhập khi thuộc trường hợp cần duyệt (lần đầu, hoặc đang có phiên sống ở thiết bị khác; admin gốc miễn duyệt).
+    %%   Khóa, trạng thái nhân viên, thiết bị kiểm lúc đăng nhập và mỗi lần dùng phiên; lịch ca chỉ kiểm lúc đăng nhập.
+    %%   Khi NV chuyển sang trạng thái khóa: thu hồi mọi phiên (revoke_reason = employee_status); các login_approvals pending hoặc approved của tài khoản chuyển expired.
+    %%   Ca đang mở của người đó KHÔNG bị đóng tự động (quy tắc j, k).
+    %%   employment_statuses: working (locks_account = false, cố định), left (true, cố định), suspended (mặc định true). CHỈ admin gốc thêm trạng thái hoặc đổi locks_account.
+    %%   Khi admin đổi locks_account sang true, API đếm số nhân viên đang ở trạng thái đó, hỏi xác nhận, thu hồi phiên của họ và ghi activity_logs.
+    %%   CHECK employees: (status_code = 'left') = (left_date IS NOT NULL). CHECK employees: (left_date IS NULL OR hired_date IS NULL OR left_date >= hired_date).
+    %%   Không xóa nhân viên: dùng trạng thái left. Vào làm lại: mở lại CHÍNH hồ sơ cũ (status left -> working, left_date = NULL, hired_date = ngày vào lại), giữ mã NV và lịch sử.
+    %%   Nếu hồ sơ thuộc nhóm được bảo vệ thì chỉ admin gốc mở lại được. Khi nghỉ việc: lịch ca đang áp dụng đóng cùng giao dịch, sổ thiết bị giữ nguyên.
+    %% ----------
+    %% MÃ NHÂN VIÊN: employee_code = 'NV' + số thứ tự (tối thiểu 5 chữ số): NV00001, NV00002... Một dãy chung, KHÔNG theo loại. CHECK (employee_code ~ '^NV[0-9]{5,}$').
+    %%   CREATE SEQUENCE employee_code_seq START 1. Trigger BEFORE INSERT: nếu employee_code NULL thì gán 'NV' || CASE WHEN n < 100000 THEN lpad(n::text, 5, '0') ELSE n::text END
+    %%   với n = nextval('employee_code_seq'). Bản demo lấy số lớn nhất đang có cộng 1 (smNextEmployeeCode).
+    %%   Nhập dữ liệu cũ: mã dạng NV01 đổi thành NV00001 (lấy phần số, đệm 0); mã không dạng NV (TX01 đến TX05 của tài xế trung chuyển, mã 933 của nhân viên hàng hóa, ADM01
+    %%   của admin) cấp mã mới từ sequence; ghi bảng đối chiếu mã cũ - mã mới vào activity_logs (changes.legacy_code); xong chạy setval vượt số lớn nhất.
+    %%   Trigger BEFORE UPDATE: cấm sửa employee_code. Bảng khác nối bằng employees.id; mã chỉ để hiển thị và in.
+    %%   Dữ liệu cũ lưu tài xế, phụ xe, người kết ca bằng TÊN hoặc mã NV dạng chữ: khi chuyển phải ánh xạ sang employees.id (khớp mã NV cũ trước, rồi khớp tên, dòng không khớp được thì liệt kê xử lý tay).
+    %% ----------
+    %% MÃ LOẠI NHÂN VIÊN: employee_types.code, chữ thường, CHECK (code ~ '^[a-z][a-z0-9_]{1,31}$'), UNIQUE, NOT NULL. Phải bắt đầu bằng mã nhóm công việc (quy tắc o). Chỉ để hiển thị
+    %%   ở cột Mã và tìm kiếm; mọi logic dùng nhóm công việc (work_kinds) và function_key, KHÔNG rẽ nhánh theo code.
+    %%   Trigger T6 BEFORE UPDATE OF code: luôn từ chối. Dữ liệu cũ giữ key cũ làm code: ticket, driver, helper, shuttle_driver, call_center, ticket_office, cashier,
+    %%   shuttle_dispatch, accountant, dispatch_manager. Trigger T7 trên shift_templates: BEFORE UPDATE OF code: luôn từ chối.
+    %%   Mã nhóm công việc và mã trạng thái làm việc cũng chữ thường, không sửa sau khi tạo (CHECK cùng mẫu ^[a-z][a-z0-9_]{1,31}$).
+    %% ----------
+    %% NHÓM CÔNG VIỆC (bảng work_kinds, VIẾT LẠI v2.9; trước là CHECK cứng trên employee_types.work_kind):
+    %%   Dữ liệu khởi tạo (8 nhóm gốc, is_system = true): driver (Tài xế tuyến, is_self, requires_license), shuttle_driver (Tài xế trung chuyển, is_self, requires_license),
+    %%   helper (Phụ xe, is_self), call_center (Tổng đài), ticket_office (Phòng vé), cargo (Hàng hóa), shuttle_dispatch (Điều hành trung chuyển), staff (Khác: nhân sự, kế toán...).
+    %%   KHÔNG phải phòng ban. Admin gốc thêm nhóm mới được. Nhóm quyết định ba việc, KHÔNG quyết định quyền và KHÔNG dùng chia tab kết ca (kết ca chia theo chức năng):
+    %%     is_self ............ chỉ xem dữ liệu của chính mình (xem mục PHẠM VI DỮ LIỆU) và ẩn ô Khu vực ở form nhân viên.
+    %%     requires_license ... bắt buộc hạng và hạn bằng lái (T1).
+    %%     chia tab Tài xế, Lơ xe ở Thống kê nhân sự theo mã nhóm gốc: driver, shuttle_driver cho tab Tài xế; helper cho tab Lơ xe.
+    %%   Xe tuyến chọn nhân viên nhóm driver, xe trung chuyển chọn nhóm shuttle_driver, phụ xe chọn nhóm helper; chỉ chọn NV có status_code = working.
+    %%   Code demo: FleetStore.getStaff({ workKind }) lọc theo NHÓM CÔNG VIỆC của loại hiện tại (không so mã loại), nên loại mới tạo cùng nhóm vẫn được chọn;
+    %%   Auth.isShuttleDispatch cũng xét nhóm công việc của loại (admin gốc luôn được).
+    %%   Trigger chọn người đọc nhóm của loại HIỆN TẠI của nhân viên (employees không có cột kind).
+    %%   BẰNG LÁI: license (hạng) và license_expiry bắt buộc khi work_kinds.requires_license = true. Hai trigger:
+    %%     T1 trên employees: BEFORE INSERT OR UPDATE OF employee_type_id, license, license_expiry -> tra requires_license của nhóm của loại đích rồi kiểm.
+    %%     T2 trên employee_types: BEFORE UPDATE OF work_kind -> CHỈ cho đổi khi loại chưa có nhân viên nào (kể cả đã nghỉ). Muốn đổi hướng công việc thì tạo loại mới và chuyển người sang.
+    %%   Đổi hai cờ của một nhóm đang dùng có hiệu lực ngay cho mọi loại và nhân viên của nhóm (giao diện xác nhận). Nhóm gốc vẫn sửa được tên, cờ, ghi chú; không sửa mã, không xóa.
+    %%   Hạn bằng lái trong danh sách nhân viên: còn tối đa 30 ngày hiện chip cảnh báo, quá hạn hiện chip Hết hạn.
+    %%   license là text tự do, không CHECK danh sách hạng.
+    %% ----------
+    %% LỊCH SỬ — NGUYÊN TẮC: dữ liệu đã ghi KHÔNG đổi theo cấu hình mới; từ lúc đổi mới ghi theo cái mới.
+    %%   5 bảng lịch sử, chỉ ghi thêm (đóng dòng cũ bằng valid_to, không sửa nội dung, không xóa):
+    %%     employee_type_history ...... loại NV theo thời gian (employees giữ loại HIỆN TẠI)
+    %%     employee_status_history .... trạng thái theo thời gian (employees giữ trạng thái HIỆN TẠI)
+    %%     employee_stations .......... trạm làm việc theo thời gian (valid_to NULL = đang áp dụng)
+    %%     employee_scope_regions ..... khu vực được xem theo thời gian (như trên; thay employee_scope_directions)
+    %%     employee_shift_schedules ... lịch ca đăng nhập theo thời gian (như trên)
+    %%   Bản demo gộp lịch sử các loại này vào một mảng history của hồ sơ nhân viên (mỗi phần tử: thời điểm, nhãn thay đổi, từ, sang, lý do, người đổi) và hiện 8 dòng gần nhất
+    %%   trong modal Sửa nhân viên; DB thực hiện bằng 5 bảng trên.
+    %%   Mẫu chung: UNIQUE (...) WHERE valid_to IS NULL; EXCLUDE USING gist (employee_id WITH =, <khóa> WITH =, tstzrange(valid_from, valid_to) WITH &&) cần btree_gist;
+    %%   CHECK (valid_to IS NULL OR valid_to > valid_from).
+    %%   Trigger ghi lịch sử loại và trạng thái: AFTER INSERT ghi dòng đầu; AFTER UPDATE OF employee_type_id (hoặc status_code) đóng dòng đang mở rồi mở dòng mới trong cùng giao dịch.
+    %%   reason và changed_by lấy từ current_setting('app.change_reason', true) và current_setting('app.acting_user', true): API đặt bằng SET LOCAL trước khi UPDATE.
+    %%   LÝ DO: một lần lưu hồ sơ chỉ nhập MỘT ô Lý do; cùng lý do ghi vào reason của mọi bảng lịch sử có thay đổi trong giao dịch và vào activity_logs.changes. BẮT BUỘC khi sửa
+    %%   hồ sơ đã có mà đổi loại, trạm (kể cả trạm chính), khu vực, lịch ca, hoặc đổi sang trạng thái khác working.
+    %%   Đổi loại sang loại thuộc nhóm is_self: API lưu danh sách khu vực rỗng và đóng các dòng employee_scope_regions đang mở (valid_to = now()) cùng giao dịch; giao diện cảnh báo HR.
+    %%   Nhật ký thao tác của một lần lưu hồ sơ tách theo loại thay đổi, mỗi loại một dòng với đúng action và entity_type: update employees (họ tên, SĐT, email, địa chỉ, bằng lái,
+    %%   ngày vào làm, ngày nghỉ, ghi chú), type_change employees, status_change employees, station_change employee_stations, scope_change employee_scope_regions,
+    %%   schedule_assign employee_shift_schedules. Tạo hồ sơ: create employees. Tạo tài khoản: create users.
+    %%   Dữ liệu nghiệp vụ ghi sau này CHỤP giá trị lúc ghi, không suy từ trạm hay loại hiện tại của nhân viên: shift_reports chụp function_key, employee_type_id và station_id (trạm
+    %%   làm ca); phơi đóng băng driver_id, helper_id; vé lưu trạm của chính nó.
+    %%   Họ tên, SĐT, email, địa chỉ, bằng lái: không tách phiên bản; mọi lần sửa ghi vết ở activity_logs.changes (cũ -> mới). SĐT trùng với nhân viên khác chỉ cảnh báo, hỏi xác nhận.
+    %%   Quyền của loại (employee_type_permissions) KHÔNG có lịch sử theo thời gian: chỉ trạng thái hiện tại; mọi thay đổi ghi activity_logs (action grant hoặc revoke, entity_type
+    %%   employee_type_permissions hoặc employee_type_grantable_permissions, changes kèm số nhân viên bị ảnh hưởng). Nếu sau này cần truy vấn trực tiếp thì thêm valid_from, valid_to.
+    %% ----------
+    %% THỐNG KÊ NHÂN SỰ (trang Admin > Nhân sự > Thống kê nhân sự; 7 tab):
+    %%   Tab 1 TÀI XẾ = xe tuyến + xe trung chuyển; cột: STT, Mã NV, Tên, SĐT, Số chuyến tuyến, Số lượt trung chuyển, Tổng cộng.
+    %%   Tab 2 LƠ XE = chỉ xe tuyến; cột: STT, Mã NV, Tên, SĐT, Số chuyến tuyến.
+    %%     Quy tắc đếm xe tuyến: DISTINCT trips có ít nhất một trip_manifests và status khác cancelled; tài xế và lơ xe lấy từ VERSION MỚI NHẤT của phơi. Lọc ngày theo trips.depart_date.
+    %%     Xe trung chuyển đếm từ bảng gán tài xế ở M06. Danh sách = nhân viên working thuộc nhóm công việc phù hợp HỢP người có chuyến trong khoảng lọc (người đã đổi loại
+    %%     hoặc nghỉ việc vẫn hiện nếu có chuyến; tab Lơ xe làm giống). DB khớp bằng employees.id; bản demo khớp bằng so TÊN (không phân biệt hoa thường) vì manifest chỉ lưu chuỗi tên, nên khi chuyển dữ liệu
+    %%     phải ánh xạ sang id.
+    %%   Tab 3 KẾT CA TỔNG ĐÀI (function_key = call_center): Nhân viên, Trạm, Thời gian kết ca, Số phơi, Tổng vé đã đặt hoặc bán, Tổng khách.
+    %%   Tab 4 KẾT CA PHÒNG VÉ (ticket_office): bảng tổng theo trạm bán vé, bảng khoản chi (Lý do, Số tiền, Người duyệt, Tổng chi), bảng từng lượt (Nhân viên, Thời gian, Doanh thu
+    %%     ca, Tiền ứng tài xế, Thu mặt hoặc chuyển khoản, Kiểm đếm thực tế, Chênh lệch). Các cột tiền do payments và M05 quy định.
+    %%   Tab 5 KẾT CA HÀNG HÓA (cargo_receive và cargo_delivery, có bộ lọc chọn nhận hoặc giao): thu theo ca, nộp, trạng thái giao ca.
+    %%   Tab 6 KẾT CA TÀI XẾ TRUNG CHUYỂN (shuttle_driver): Mã NV, Tài xế, Thời gian mở và kết ca, Số lượt được chỉ định (kèm trạng thái khách). Không có tiền. Lọc ngày theo thời gian kết ca.
+    %%   Tab 7 CA ĐANG MỞ (shifts.status = open): Nhân viên, Chức năng, Trạm làm ca, Mở lúc, Đã mở bao lâu, Cảnh báo, nút Đóng ca. Ca mở quá 24 giờ được tô nổi và gắn chip Quá 24 giờ.
+    %%     Bộ lọc: Chức năng, Khu vực, Trạm. Xem cần view_staff_stats; nút Đóng ca CHỈ admin gốc thấy (đóng thay, ghi closed_by, close_reason = admin, is_forced = true ở bản chốt).
+    %%     Ca của người đã nghỉ việc hoặc bị khóa gắn nhãn cảnh báo.
+    %%   Tên người ở Tab 3 đến 7 lấy bằng COALESCE(employees.full_name, users.display_name) qua shifts.user_id. Tab kết ca lấy theo shift_reports.function_key, không theo loại của người bấm;
+    %%   người kiêm nhiệm xuất hiện ở mỗi tab với đúng phần của chức năng đó. Bản chốt do admin gốc đóng thay mang chip Admin đóng.
+    %%   Bộ lọc kết ca: ngày (theo shift_reports.closed_at), Khu vực, Trạm (theo trạm làm ca, shifts.station_id chụp trong shift_reports.station_id; có mục Không gắn trạm cho tài xế
+    %%   trung chuyển chưa có trạm). DOANH THU THEO TRẠM KHÔNG lấy từ shift_reports.station_id mà từ payments.station_id (trạm bán vé của từng khoản).
+    %%   GHI CHÚ BẢN DEMO: tab 3 và 4 lọc theo trạm khởi hành của các chuyến trong bản chốt; tab 6 đếm số lượt từ trước tới nay không lọc ngày. Bản demo lưu gán tài xế trung chuyển không có ngày nên khi tab Tài xế lọc theo ngày, cột Số lượt trung chuyển hiện — và không tính vào Tổng cộng (DB lọc được theo ngày). Cả hai đổi khi module kết ca ghi shifts và shift_reports.
+    %% ----------
+    %% TIỀN ỨNG VÀ TIỀN RƯỚC ĐƯỜNG (v2.6; phần tính tiền thuộc payments và M05):
+    %%   TIỀN ỨNG TÀI XẾ = số nhập tay lúc bấm Khởi hành, lưu ở trip_manifests.driver_advance_amount. Tiền ứng tài xế và tiền ứng giao ca là một số.
+    %%   TIỀN RƯỚC ĐƯỜNG = tiền lấy từ các vé rước đường, tính từ vé và payments. KHÁC tiền ứng, không lẫn hai khoản, không chung một cột.
+    %%   Ô Tiền rước đường dự kiến trên modal Khởi hành phải được xem xét lại khi làm M04: nếu là số nhập tay thì đặt tên cột riêng. deposit_amount (khách cọc) là số khác nữa.
+    %%   Bảng chứa tiền ứng phải có 4 cột ghi nhận (shift_id...) thì ca mới gom được.
+    %% ----------
+    %% FORM QUẢN LÝ NHÂN VIÊN (trang Admin > Nhân sự > Quản lý nhân viên; VIẾT LẠI v2.9):
+    %%   Danh sách: STT, Mã NV, Họ tên & Tài khoản (hoặc Chưa có tài khoản), Loại nhân viên, SĐT, Bằng lái (hạng và hạn, chip cảnh báo), Khu vực được xem, Trạm (chính +N, kèm Xem được
+    %%   mọi trạm hoặc N trạm), Trạng thái, Thao tác (Sửa hồ sơ, Tạo tài khoản khi chưa có). Bộ lọc: tìm kiếm (họ tên, mã, SĐT, email, tài khoản), Loại nhân viên, Trạng thái (Đang làm
+   %%   việc, Tạm ngưng, Nghỉ việc và trạng thái do admin thêm), Trạm, Khu vực.
+    %%   Modal Thêm hoặc Sửa nhân viên gồm các khối:
+    %%     Thông tin cơ bản: Họ tên *, Mã NV (chỉ đọc; trống lúc tạo, hệ thống cấp), Loại nhân viên * (loại đang dùng, kèm dòng gợi ý nhóm công việc, số quyền, chức năng, Xem mọi trạm),
+    %%       SĐT, Email, Địa chỉ, Ngày vào làm.
+    %%     Bằng lái xe: Hạng, Hạn (bắt buộc khi nhóm công việc có requires_license).
+    %%     Trạm và phạm vi xem dữ liệu: Trạm làm việc (chọn nhiều, nhóm theo khu vực), Trạm chính (chọn một trong các trạm đã tick), Khu vực được xem (tick nhiều, ẩn với nhóm is_self),
+    %%       dòng tóm tắt số trạm xem được và cảnh báo (chức năng ca mà chưa có trạm; khu vực chưa có trạm active).
+    %%     Lịch ca đăng nhập: lưới Ca mẫu nhân Thứ (T2 đến CN), luôn hiện; bỏ trống nếu không làm theo ca; kiểm chồng giờ.
+    %%     Trạng thái làm việc: Trạng thái (từ employment_statuses), Ngày nghỉ việc (khi chọn left).
+    %%     Lý do và ghi chú: Lý do (MỘT ô, bắt buộc theo điều kiện ở mục LỊCH SỬ), Ghi chú.
+    %%     Tài khoản đăng nhập (chỉ đọc), Lịch sử thay đổi gần đây.
+    %%   Bỏ: ô Mã NV nhập tay, ô Tài khoản nhập tay, checkbox Đang làm việc (suy từ trạng thái), nút Xóa và Xóa nhiều.
+    %% ----------
+    %% FORM CA MẪU (Cấu hình nhân sự > tab Ca mẫu; chỉ admin gốc): Mã * (không sửa sau khi tạo, trigger T7), Tên ca * (Ca sáng, Ca chiều, Ca đêm), Giờ bắt đầu *, Giờ kết thúc *
+    %%   (nếu giờ kết thúc không lớn hơn giờ bắt đầu thì ca qua đêm, tự đặt crosses_midnight), Ghi chú, Ngừng dùng (is_active, thay nút Xóa). Cột: STT, Mã, Tên ca, Giờ, Qua đêm, Số nhân viên
+    %%   đang dùng (tính), Trạng thái. Khi sửa giờ của ca mẫu đang có nhân viên áp dụng, giao diện báo số nhân viên bị ảnh hưởng. Tên ca không trùng nhau.
+    %% ----------
+    %% TRANG ĐÍCH SAU ĐĂNG NHẬP (v2.9, đổi so với v2.8 bỏ cột trang đích): code đang lưu trang vào theo LOẠI (employee_types.redirect_page): driver vào taixe.html, cargo vào
+    %%   cargo/cargo.html, các nhóm còn lại vào ticketstaff.html, dieuhanh.html cho điều hành bến xe, ketoan.html cho kế toán; admin gốc và nhóm được bảo vệ luôn vào admin.html. Tài khoản
+    %%   trong bản demo chép lại giá trị này (accounts.redirect); DB không chép, lấy từ loại. Trang chưa xây dựng thì báo đang xây dựng.
+    %%   (ĐIỂM CẦN CHỦ XÁC NHẬN: nếu muốn trang vào suy từ quyền hiệu lực ở tầng app thì bỏ cột redirect_page.)
+    %% LƯU Ý: Khách web KHÔNG dùng bảng users: dùng customers + customer_accounts ở module đặt vé.
+    %% GHI CHÚ CHO CODE (chỗ code còn lệch hoặc thừa so với sơ đồ, nên dọn khi làm backend):
+    %%   1. fleet-store.js còn trường loginBySchedule ở loại nhân viên (normalizeStaffRole, addStaffRole, updateStaffRole) nhưng không giao diện nào đặt và không nơi nào đọc: nên xóa.
+    %%   2. Bản demo lưu tài khoản bằng username chứ không bằng id (shifts.username, thiết bị, yêu cầu duyệt, ngoại lệ): DB nối bằng user_id.
+    %%   3. login.js chưa chặn theo cổng lịch ca, bước duyệt, thiết bị bị chặn và must_change_password; thứ tự kiểm khi có backend theo mục LUỒNG ĐĂNG NHẬP.
+    %%   4. Chưa có nơi nào ghi shifts và shift_reports của module nhân sự; thống kê tab 3 đến 6 đang đọc báo cáo kết ca cũ của từng module.
+    %% SỬA Ở MODULE KHÁC KHI GHÉP SƠ ĐỒ TỔNG HỢP: employees.kind (driver, helper, staff) không còn, dùng nhóm công việc của loại hiện tại (employee_types.work_kind -> work_kinds);
+    %%   trips.driver_id, trip_manifests.driver_id, vehicles.default_driver_id kiểm nhóm (driver cho xe tuyến, shuttle_driver cho xe trung chuyển), helper_id và default_helper_id kiểm nhóm helper;
+    %%   staff_accounts (sơ đồ phơi cũ) đổi thành users; shift_reports khung cũ: shift_kind đổi thành function_key.
+    %%   Trong so-do-er-tong-hop.mermaid còn các phần cũ phải bỏ hoặc thay: bảng roles, role_permissions, user_permission_overrides, cột users.role_id, employees.kind, employees.user_id;
+    %%   BỎ employee_scope_directions và cột employee_types.data_scope, employee_types.login_by_schedule (v2.9); thêm các bảng work_functions, work_kinds, shifts, employee_types,
+    %%   employee_type_permissions, employee_type_grantable_permissions, employment_statuses, 4 bảng lịch sử, employee_scope_regions, user_devices, login_approvals, shift_templates,
+    %%   employee_shift_schedules, login_exceptions, app_settings; thêm cột employee_types.redirect_page, user_sessions.device_id, auth_events.device_id, activity_logs.session_id,
+    %%   shift_reports.closed_at, login_approvals.ip.
+    %% INDEX NÊN CÓ: employees (employee_type_id), (status_code), (phone_number) không UNIQUE để cảnh báo trùng;
+    %%   employee_types (code) UNIQUE; employee_types (work_kind); work_kinds (key) khóa chính;
+    %%   employee_stations (station_id) WHERE valid_to IS NULL; employee_scope_regions (region_id) WHERE valid_to IS NULL;
+    %%   auth_events (username, occurred_at); auth_events (user_id, occurred_at); auth_events (device_id, occurred_at);
+    %%   auth_events chia PARTITION BY RANGE (occurred_at) theo tháng, PRIMARY KEY (id, occurred_at);
+    %%   user_sessions (user_id) UNIQUE WHERE revoked_at IS NULL (một phiên một thiết bị); user_sessions (device_id); user_sessions (user_id, created_at) cho Tab Đăng nhập;
+    %%   user_devices (user_id, device_token_hash) UNIQUE; user_devices (user_id, last_seen_at);
+    %%   login_approvals (user_id, device_id) UNIQUE WHERE status IN (pending, approved); login_approvals (status) WHERE status = pending (hàng chờ duyệt); login_approvals (user_id, requested_at);
+    %%   shift_templates (code) UNIQUE;
+    %%   employee_shift_schedules (employee_id) WHERE valid_to IS NULL; employee_shift_schedules (shift_template_id) WHERE valid_to IS NULL;
+    %%   login_exceptions (user_id, valid_until) WHERE revoked_at IS NULL;
+    %%   activity_logs (entity_type, entity_id, occurred_at) và (user_id, occurred_at) và (function_key, occurred_at) và (session_id);
+    %%   hai bảng history loại và trạng thái (employee_id, valid_from);
+    %%   users (is_active) WHERE is_active = false (danh sách tài khoản đang khóa);
+    %%   shifts: UNIQUE (user_id, function_key) WHERE status = open; (function_key, closed_at); (opened_at) WHERE status = open (Tab 7); (user_id, closed_at) cho cổng lịch ca;
+    %%     (station_id) cho lọc theo trạm;
+    %%   shift_reports (shift_id, version) UNIQUE; (function_key, closed_at); (station_id, closed_at);
+    %%   module phơi: trip_manifests (driver_id), trip_manifests (helper_id).
+
+    permission_groups {
+        text key PK "mã nhóm, vd ticket_seat, hr_system"
+        text label "tên nhóm hiện trên form phân quyền của loại, vd Vé & ghế"
+        int sort_order "thứ tự nhóm trên form"
+    }
+
+    work_functions {
+        text key PK "call_center, ticket_office, cargo_receive, cargo_delivery, shuttle_driver, shuttle_dispatch; admin gốc quản lý"
+        text label "Tổng đài, Phòng vé, Nhận hàng, Giao hàng, Tài xế trung chuyển, Điều hành trung chuyển"
+        boolean has_shift "true = phải có ca khi thao tác và kết ca; shuttle_dispatch luôn false (không nhận tiền, không kết ca)"
+        boolean auto_open "true = API tự mở ca ở thao tác đầu tiên (chỉ shuttle_driver); CHECK (has_shift OR NOT auto_open)"
+        int sort_order
+        boolean is_active "false = ngừng dùng, vẫn giữ lịch sử"
+    }
+
+    permissions {
+        text key PK "mã quyền, vd book_ticket, approve_devices; app và API kiểm bằng mã này; key ngoài danh mục khởi tạo thêm khi code tới; view_all_stations = xem dữ liệu mọi trạm (quyền phạm vi, mọi loại nhóm HR có)"
+        text group_key FK "NOT NULL; nhóm của quyền"
+        text function_key FK "null được; chức năng mà quyền này thuộc về (work_functions.key); null = quyền chung; mỗi quyền đúng MỘT chức năng hoặc NULL"
+        text label "nhãn trên ô tick, vd Đặt vé; approve_devices có nhãn Duyệt đăng nhập và chặn thiết bị"
+        text description "giải thích thêm, null được"
+        boolean protects_holder "true = người có quyền này thuộc nhóm được bảo vệ, chỉ admin gốc sửa (manage_hr, manage_accounts); mặc định false"
+        int sort_order "thứ tự trong nhóm"
+    }
+
+    work_kinds {
+        text key PK "mã nhóm công việc, chữ thường; CHECK ^[a-z][a-z0-9_]{1,31}$; không sửa sau khi tạo; seed 8 nhóm gốc: driver, shuttle_driver, helper, call_center, ticket_office, cargo, shuttle_dispatch, staff; admin gốc thêm nhóm mới (v2.9, thay CHECK cứng work_kind)"
+        text label UK "tên nhóm hiển thị, vd Tài xế tuyến, Khác"
+        boolean is_self "true = người thuộc nhóm chỉ xem dữ liệu của CHÍNH MÌNH, không có khu vực (driver, shuttle_driver, helper)"
+        boolean requires_license "true = bắt buộc hạng và hạn bằng lái (driver, shuttle_driver); trigger T1 đọc cột này"
+        boolean is_active "false = ngừng dùng cho loại mới, vẫn giữ lịch sử"
+        boolean is_system "true = nhóm gốc, không xóa, không đổi mã; vẫn sửa được tên, hai cờ, ghi chú"
+        int sort_order
+        text note
+        timestamptz created_at
+        uuid created_by FK "admin gốc"
+        timestamptz updated_at
+        uuid updated_by FK
+    }
+
+    employee_types {
+        smallint id PK
+        text code UK "mã hiển thị ở cột Mã; CHECK ^[a-z][a-z0-9_]{1,31}$; NOT NULL; bắt đầu bằng mã nhóm công việc (quy tắc o); không sửa sau khi tạo (trigger T6); không dùng để rẽ logic"
+        text name UK "tên loại hiển thị, vd Tài xế tuyến; mã nhân viên không phụ thuộc loại; đây cũng là nhãn vai trò trên trang Tài khoản"
+        text work_kind FK "NOT NULL; trỏ work_kinds.key; chỉ đổi khi loại chưa có NV (trigger T2); KHÔNG dùng để chia tab kết ca; v2.9 KHÔNG còn cột data_scope và login_by_schedule"
+        text redirect_page "trang vào sau đăng nhập, vd taixe.html, cargo/cargo.html, ticketstaff.html; mặc định theo nhóm công việc; nhóm HR luôn vào admin.html (ĐIỂM CẦN CHỦ XÁC NHẬN)"
+        boolean is_active "false = ngừng dùng cho NV mới, vẫn giữ lịch sử; thay nút Xóa"
+        text note
+        timestamptz created_at
+        uuid created_by FK "admin gốc hoặc HR có manage_hr (loại thường)"
+        timestamptz updated_at
+        uuid updated_by FK
+    }
+
+    employee_type_permissions {
+        smallint employee_type_id PK, FK
+        text permission_key PK, FK "có dòng = loại được cấp quyền; không dòng nào = chưa gán quyền; chỉ admin gốc sửa; NGUỒN DUY NHẤT của quyền người dùng"
+    }
+
+    employee_type_grantable_permissions {
+        smallint employee_type_id PK, FK "loại của NGƯỜI CẤP, vd Nhân sự"
+        text permission_key PK, FK "quyền mà người thuộc loại này được phép cấp cho người khác (qua việc gán hoặc đổi loại); không liên quan quyền bản thân có; không chứa quyền protects_holder; chỉ admin gốc sửa"
+    }
+
+    employment_statuses {
+        text code PK "working, suspended, left hoặc mã admin gốc thêm"
+        text name "tên hiển thị, vd Đang làm việc, Tạm ngưng, Nghỉ việc"
+        boolean locks_account "true = NV ở trạng thái này không đăng nhập được; working luôn false, left luôn true (CHECK); chỉ admin gốc đổi"
+        boolean is_system "true = trạng thái hệ thống, không xóa, không đổi mã"
+        int sort_order
+        text note
+    }
+
+    shift_templates {
+        smallint id PK "ca mẫu của LỊCH CA đăng nhập, không phải ca thực tế (shifts)"
+        text code UK "CHECK ^[a-z][a-z0-9_]{1,31}$; NOT NULL; không sửa sau khi tạo (trigger T7, v2.8); chỉ để hiển thị và tìm kiếm"
+        text name UK "vd Ca sáng, Ca chiều, Ca đêm"
+        time start_time "giờ bắt đầu theo múi giờ login_schedule_timezone"
+        time end_time "giờ kết thúc; không lớn hơn start_time nghĩa là qua đêm"
+        boolean crosses_midnight "CHECK (crosses_midnight = (end_time <= start_time)); ca qua đêm tính theo ngày BẮT ĐẦU"
+        boolean is_active "false = ngừng dùng cho lịch mới, lịch cũ vẫn giữ"
+        text note
+        timestamptz created_at
+        uuid created_by FK "admin gốc"
+        timestamptz updated_at
+        uuid updated_by FK
+    }
+
+    employees {
+        bigint id PK
+        smallint employee_type_id FK "NOT NULL; loại NV hiện tại, đổi được (quyền đổi theo, mã NV không đổi, ghi employee_type_history); đổi trạm thì KHÔNG đổi cột này nên quyền giữ nguyên; đổi loại bị chặn khi còn ca mở"
+        text employee_code UK "mã NV hiển thị; CHECK ^NV[0-9]{5,}$; trigger lấy từ employee_code_seq nếu NULL; KHÔNG sửa sau khi tạo; bảng khác nối bằng id"
+        text full_name "NOT NULL; họ tên hiển thị trên trang Tài khoản (chỉ đọc ở đó)"
+        text phone_number "SĐT liên hệ; không UNIQUE, có index để cảnh báo trùng"
+        citext email "null được"
+        text address "null được"
+        text license "hạng bằng lái, text tự do (hạng cũ hoặc mới); bắt buộc khi work_kinds.requires_license của nhóm loại hiện tại là true (trigger T1)"
+        date license_expiry "hạn bằng lái; bắt buộc cùng điều kiện với license; null = không theo dõi"
+        date hired_date "ngày vào làm gần nhất; vào làm lại thì cập nhật, lịch sử nằm ở employee_status_history; CHECK (left_date IS NULL OR hired_date IS NULL OR left_date >= hired_date)"
+        date left_date "có giá trị khi và chỉ khi status_code = left (CHECK)"
+        text status_code FK "NOT NULL, mặc định working; đổi thì ghi employee_status_history"
+        text note
+        timestamptz created_at
+        uuid created_by FK "NULL = nhập dữ liệu cũ"
+        timestamptz updated_at
+        uuid updated_by FK
+    }
+
+    employee_stations {
+        bigint id PK
+        bigint employee_id FK
+        bigint station_id FK "trạm xe thật trong bảng station (không có trạm phụ); nhiều trạm được; bắt buộc có ít nhất 1 trạm xem được khi người có tài khoản, có chức năng phải mở ca, không thuộc nhóm is_self và không có view_all_stations (kể cả trạm lấy từ khu vực)"
+        boolean is_primary "trạm làm việc chính của NHÂN VIÊN; mỗi NV tối đa 1 dòng đang áp dụng (UNIQUE WHERE valid_to IS NULL AND is_primary); có dòng thì phải có đúng 1 trạm chính"
+        timestamptz valid_from "mốc bắt đầu làm ở trạm này; dữ liệu nghiệp vụ ghi từ mốc này chụp station_id mới"
+        timestamptz valid_to "NULL = đang áp dụng; đổi trạm thì đóng dòng cũ ở đây, dữ liệu cũ vẫn thuộc trạm cũ; UNIQUE (employee_id, station_id) WHERE valid_to IS NULL"
+        text reason "lý do đổi trạm, null được"
+        uuid changed_by FK "NULL = nhập dữ liệu cũ"
+    }
+
+    employee_scope_regions {
+        bigint id PK "khu vực được xem của nhân viên (có lịch sử); thay employee_scope_directions của v2.8"
+        bigint employee_id FK
+        bigint region_id FK "NV xem được dữ liệu mọi trạm active của khu vực này; trạm mới thêm vào khu vực tự thấy; không áp cho nhóm is_self (API lưu rỗng)"
+        timestamptz valid_from
+        timestamptz valid_to "NULL = đang áp dụng; UNIQUE (employee_id, region_id) WHERE valid_to IS NULL; tự đóng khi đổi sang loại thuộc nhóm is_self"
+        text reason "null được"
+        uuid changed_by FK "NULL = nhập dữ liệu cũ"
+    }
+
+    employee_shift_schedules {
+        bigint id PK "lịch ca đăng nhập của nhân viên, mỗi dòng là một ca mẫu vào một thứ trong tuần"
+        bigint employee_id FK
+        smallint shift_template_id FK "ca mẫu áp dụng"
+        smallint day_of_week "1 = thứ hai đến 7 = chủ nhật (CHECK 1 đến 7); là thứ của NGÀY BẮT ĐẦU ca, ca qua đêm cũng tính theo ngày bắt đầu"
+        timestamptz valid_from
+        timestamptz valid_to "NULL = đang áp dụng; UNIQUE (employee_id, shift_template_id, day_of_week) WHERE valid_to IS NULL; đóng cùng giao dịch khi nghỉ việc; API từ chối hai ca mẫu chồng giờ, tính cả vòng tuần (ca đêm chủ nhật tràn sang thứ hai)"
+        text reason "null được"
+        uuid changed_by FK "NULL = nhập dữ liệu cũ"
+    }
+
+    employee_type_history {
+        bigint id PK
+        bigint employee_id FK
+        smallint employee_type_id FK "loại NV trong khoảng thời gian này"
+        timestamptz valid_from
+        timestamptz valid_to "NULL = đang áp dụng; mỗi NV đúng một dòng NULL"
+        text reason "lấy từ app.change_reason; API bắt buộc khi đổi loại"
+        uuid changed_by FK "lấy từ app.acting_user; NULL = tạo mới hoặc nhập dữ liệu cũ"
+    }
+
+    employee_status_history {
+        bigint id PK
+        bigint employee_id FK
+        text status_code FK "trạng thái trong khoảng thời gian này"
+        timestamptz valid_from
+        timestamptz valid_to "NULL = đang áp dụng"
+        text reason "lấy từ app.change_reason; API bắt buộc khi đổi sang trạng thái khác working"
+        uuid changed_by FK
+    }
+
+    users {
+        uuid user_id PK
+        bigint employee_id FK, UK "NULL chỉ khi is_root; ngược lại NOT NULL (CHECK); nối SAU khi tạo nhân viên; không bao giờ đổi (trigger T3)"
+        boolean is_root "admin gốc tạo bằng seed; mọi quyền; làm được chức năng nhân viên bằng ca riêng; miễn cổng lịch ca và miễn duyệt đăng nhập; không sửa qua giao diện, không đổi sau khi tạo (trigger T3); mặc định false"
+        text display_name "tên hiển thị của admin gốc (không có hồ sơ NV); NOT NULL khi is_root, tài khoản khác để NULL"
+        citext username UK "CHECK (username::text ~ ^[a-z0-9._-]{3,32}$) nên API đổi về chữ thường; CHỈ admin gốc đổi được (trigger T3 kiểm app.acting_user); đổi thì thu hồi phiên, ghi auth_events username_changed"
+        text password_hash "bcrypt cost 12; không bao giờ hiển thị lại"
+        boolean must_change_password "mặc định true; true sau khi tạo hoặc bị đặt lại bởi người khác; false khi tự đổi"
+        timestamptz password_changed_at "lần đổi hoặc đặt lại mật khẩu gần nhất; NULL = chưa đổi từ lúc tạo"
+        boolean is_active "khóa thủ công, độc lập với trạng thái nhân viên; không áp cho admin gốc qua giao diện"
+        timestamptz locked_at "lúc khóa thủ công; NULL khi is_active = true"
+        uuid locked_by FK "người khóa; NULL khi is_active = true"
+        text lock_reason "lý do khóa; NOT NULL khi is_active = false; CHECK (is_active OR (locked_at IS NOT NULL AND lock_reason IS NOT NULL))"
+        timestamptz last_login_at "lần đăng nhập thành công gần nhất (cập nhật ở bước 5 của luồng đăng nhập)"
+        uuid created_by FK "admin gốc hoặc HR tạo; NULL = tạo bằng seed"
+        timestamptz created_at
+    }
+
+    user_devices {
+        uuid id PK "SỔ THIẾT BỊ: một dòng là một thiết bị của một tài khoản; KHÔNG mang trạng thái duyệt (duyệt nằm ở login_approvals); không xóa"
+        uuid user_id FK "tài khoản sở hữu thiết bị; UNIQUE (user_id, device_token_hash)"
+        bytea device_token_hash "SHA-256 của mã thiết bị ngẫu nhiên 32 byte do app hoặc trình duyệt giữ (cookie httpOnly hoặc secure storage); tách khỏi token phiên"
+        text label "tên dễ nhận ra cho admin, vd Chrome trên Windows, iPhone của Lan; web suy từ user_agent, app gửi tên máy"
+        text platform "web, android, ios (CHECK)"
+        text user_agent "chuỗi gốc lúc thấy lần đầu, để điều tra; KHÔNG dùng để nhận diện"
+        inet first_ip
+        inet last_ip
+        timestamptz first_seen_at
+        timestamptz last_seen_at "cập nhật mỗi lần đăng nhập thành công"
+        text status "CHECK: active, blocked; mặc định active; blocked = thiết bị bị chặn đăng nhập"
+        uuid blocked_by FK "người chặn; NULL khi active"
+        timestamptz blocked_at "NULL khi active"
+        text block_note "bắt buộc khi blocked; CHECK (status = active OR (blocked_by IS NOT NULL AND blocked_at IS NOT NULL AND block_note IS NOT NULL)); mở chặn thì xóa ba cột, lịch sử ở auth_events và activity_logs"
+    }
+
+    login_approvals {
+        uuid id PK "yêu cầu duyệt đăng nhập, mỗi lần xin một dòng; không xóa, không dọn theo thời gian"
+        uuid user_id FK "tài khoản xin đăng nhập; không phải người duyệt (quy tắc l)"
+        uuid device_id FK "NOT NULL; duyệt chỉ có giá trị cho đúng thiết bị này, không nhớ thiết bị cho lần sau"
+        text kind "CHECK: first_login (lần đăng nhập đầu tiên của tài khoản), concurrent_session (đang có phiên sống ở thiết bị khác)"
+        uuid blocking_session_id FK "phiên đang sống ở thiết bị khác lúc xin; CHECK ((kind = concurrent_session) = (blocking_session_id IS NOT NULL))"
+        text status "CHECK: pending, approved, rejected, consumed, expired"
+        timestamptz requested_at
+        inet ip "IP lúc xin duyệt; hiện ở bảng chờ duyệt (MỚI v2.9)"
+        timestamptz expires_at "requested_at + approval_valid_minutes; sau khi approved tính lại từ decided_at"
+        uuid decided_by FK "người duyệt hoặc từ chối (approve_devices hoặc admin gốc); CHECK (status IN (pending, expired) OR decided_by IS NOT NULL)"
+        timestamptz decided_at "NULL khi pending hoặc expired mà chưa ai quyết định"
+        text decision_note "CHECK (status <> rejected OR decision_note IS NOT NULL)"
+        uuid consumed_session_id FK "phiên được cấp nhờ yêu cầu này; CHECK ((status = consumed) = (consumed_session_id IS NOT NULL))"
+    }
+
+    login_exceptions {
+        bigint id PK "ngoại lệ đăng nhập có thời hạn, CHỈ bỏ qua lịch ca (không bỏ khóa tài khoản, không bỏ duyệt đăng nhập); không xóa"
+        uuid user_id FK "tài khoản được ngoại lệ; không phải chính người cấp (quy tắc l)"
+        timestamptz valid_from "mặc định now()"
+        timestamptz valid_until "NOT NULL; CHECK (valid_until > valid_from); tối đa 24 giờ kể từ valid_from (kiểm ở API)"
+        text reason "NOT NULL; vd tăng ca, bù ca, sự cố"
+        uuid granted_by FK "người cấp (manage_accounts hoặc admin gốc)"
+        timestamptz granted_at
+        timestamptz revoked_at "NULL = còn hiệu lực đến valid_until; có giá trị = thu hồi sớm"
+        uuid revoked_by FK "NULL khi chưa thu hồi"
+    }
+
+    user_sessions {
+        uuid id PK
+        uuid user_id FK "UNIQUE (user_id) WHERE revoked_at IS NULL: mỗi tài khoản một phiên đang sống"
+        uuid device_id FK "NOT NULL; thiết bị lúc cấp phiên (không bị blocked, và đã qua duyệt nếu thuộc trường hợp cần duyệt)"
+        bytea token_hash UK "SHA-256 của token ngẫu nhiên 32 byte"
+        timestamptz created_at "giờ đăng nhập"
+        timestamptz last_seen_at "cập nhật tối đa một lần mỗi phút; dùng để tính không hoạt động (idle_timeout_minutes) và hiện cột Hoạt động cuối"
+        timestamptz expires_at "hết hạn tuyệt đối = created_at + session_hours (mặc định 12 giờ, app_settings)"
+        timestamptz revoked_at "giờ kết thúc phiên; phiên quá hạn thì job hoặc lần đăng nhập kế tiếp đặt = expires_at; phiên không hoạt động thì đặt = last_seen_at"
+        text revoke_reason "CHECK: logout, logout_all, admin_revoke, employee_status, password_changed, account_locked, username_changed, expired, idle_timeout, device_replaced, device_blocked, shift_ended"
+        inet ip
+        text user_agent
+    }
+
+    auth_events {
+        bigint id PK "chia PARTITION BY RANGE (occurred_at) theo tháng; khóa chính phải gồm cột chia partition: PRIMARY KEY (id, occurred_at)"
+        timestamptz occurred_at PK "cột chia partition; thuộc khóa chính"
+        citext username "tên đã nhập, kể cả sai hoặc không tồn tại"
+        text event_type "CHECK: login_ok, login_failed, login_blocked, logout, logout_all, session_expired, session_revoked, password_changed, password_reset, account_locked, account_unlocked, username_changed, approval_requested, approval_approved, approval_rejected, device_blocked, device_unblocked"
+        uuid user_id "không FK có chủ đích; null nếu tên không tồn tại"
+        uuid session_id FK
+        uuid device_id FK "nullable; thiết bị liên quan (null nếu tên không tồn tại hoặc chưa tới bước thiết bị)"
+        inet ip
+        text user_agent
+        jsonb detail "vd account_locked: reason = manual hoặc failed_login; password_reset: by = user_id người đặt hoặc db_script; username_changed: old, new, by; session_expired và session_revoked: reason = theo revoke_reason, by nếu admin thu hồi; login_blocked: reason = employee_locked, manual_locked, failed_login_locked, outside_shift (kèm sub = outside_window hoặc shift_closed, window_start, window_end), device_blocked, approval_pending, approval_rejected, approval_limit; login_ok: via = exception hoặc open_shift nếu qua cổng lịch ca bằng đường đó, approval_id nếu nhờ duyệt"
+    }
+
+    activity_logs {
+        bigint id PK
+        timestamptz occurred_at
+        uuid user_id FK "người thao tác; NULL = hệ thống hoặc trigger"
+        uuid session_id FK "nullable; phiên đang dùng khi thao tác, để biết thao tác bằng thiết bị nào; NULL = hệ thống, trigger, script"
+        text function_key FK "thao tác làm dưới chức năng nào (work_functions.key); NULL = thao tác quản trị hoặc hệ thống"
+        text action "CHECK: create, update, delete, grant, revoke, assign, status_change, type_change, station_change, scope_change, account_lock, account_unlock, password_reset, username_change, open_shift, close_shift, force_close_shift, reopen_shift, revoke_session, login_unlock, login_approve, login_reject, device_block, device_unblock, schedule_assign, login_override; login_approve, login_reject, device_block, device_unblock giữ vĩnh viễn (không dọn)"
+        text entity_type "luôn là tên bảng bị tác động, vd employees, users, employee_type_permissions, user_devices, login_approvals, employee_shift_schedules, login_exceptions (không dùng tên giao diện như account)"
+        text entity_id "dạng text vì khóa có nhiều kiểu"
+        text summary "câu tóm tắt hiển thị cho người xem"
+        jsonb changes "giá trị cũ và mới theo từng cột; kèm lý do của lần lưu"
+        inet ip
+    }
+
+    shifts {
+        bigint id PK "ca làm của một tài khoản, có trạng thái; bản chốt bất biến nằm ở shift_reports"
+        uuid user_id FK "NOT NULL; chủ ca (nhân viên hoặc admin gốc); UNIQUE (user_id, function_key) WHERE status = open"
+        bigint employee_id FK "NULL khi chủ ca là admin gốc (trigger: NULL khi và chỉ khi users.is_root); còn lại là hồ sơ NV của chủ ca"
+        text function_key FK "work_functions.key với has_shift = true; chủ ca phải đạt acting_context (nhân viên có quyền thuộc chức năng này; admin gốc luôn đạt)"
+        bigint station_id FK "trạm làm ca, chọn lúc mở trong các trạm đang gán (người xem mọi trạm và admin gốc: mọi trạm active); v2.8 bắt buộc với mọi chức năng trừ shuttle_driver (tổng đài cũng chọn, mặc định trạm chính); shuttle_driver chụp trạm chính nếu có, không có thì NULL; CHECK (function_key = shuttle_driver OR station_id IS NOT NULL)"
+        timestamptz opened_at "với shuttle_driver (auto_open) là lúc thao tác đầu tiên"
+        timestamptz closed_at "null = đang mở"
+        uuid closed_by FK "người đóng ca (chủ ca hoặc admin gốc); NULL khi đang mở"
+        text close_reason "self hoặc admin; NULL khi đang mở; CHECK ((close_reason = self) = (closed_by = user_id))"
+        text status "open, closed (CHECK); CHECK ((status = open) = (closed_at IS NULL AND closed_by IS NULL AND close_reason IS NULL))"
+        text note
+    }
+
+    app_settings {
+        text key PK "tham số hệ thống, mỗi tham số một dòng: early_login_minutes, late_grace_minutes, idle_timeout_minutes, session_hours, log_retention_months, approval_valid_minutes, approval_reject_cooldown_minutes, max_pending_approvals_per_user, login_schedule_timezone, failed_login_limit, failed_login_window_minutes (v2.9)"
+        jsonb value "NOT NULL; số hoặc chuỗi theo từng khóa; API kiểm kiểu và biên"
+        timestamptz updated_at
+        uuid updated_by FK "chỉ admin gốc sửa; mỗi lần sửa ghi activity_logs entity_type app_settings, entity_id login_params"
+    }
+
+    %% ===== QUAN HỆ =====
+    permission_groups ||--o{ permissions : "nhom quyen"
+    work_functions |o--o{ permissions : "quyen thuoc chuc nang"
+    employee_types ||--o{ employee_type_permissions : "cap quyen cho loai"
+    permissions ||--o{ employee_type_permissions : "duoc cap cho loai"
+    employee_types ||--o{ employee_type_grantable_permissions : "loai duoc cap quyen nay cho nguoi khac"
+    permissions ||--o{ employee_type_grantable_permissions : "quyen duoc phep cap"
+    employee_types ||--o{ employees : "phan loai hien tai"
+    employment_statuses ||--o{ employees : "trang thai hien tai"
+    employees |o--o| users : "tai khoan dang nhap (admin goc khong co NV)"
+    employees ||--o{ employee_stations : "tram lam viec (co lich su)"
+    station ||--o{ employee_stations : "tram duoc gan"
+    employees ||--o{ employee_scope_regions : "khu vuc duoc xem (co lich su)"
+    region ||--o{ employee_scope_regions : "khu vuc duoc xem"
+    region ||--o{ station : "tram thuoc khu vuc"
+    work_kinds ||--o{ employee_types : "nhom cong viec cua loai"
+    employees ||--o{ employee_shift_schedules : "lich ca dang nhap (co lich su)"
+    shift_templates ||--o{ employee_shift_schedules : "ca mau duoc xep"
+    employees ||--o{ employee_type_history : "lich su loai"
+    employee_types ||--o{ employee_type_history : "loai tai thoi diem"
+    employees ||--o{ employee_status_history : "lich su trang thai"
+    employment_statuses ||--o{ employee_status_history : "trang thai tai thoi diem"
+    users ||--o{ user_devices : "so thiet bi dang nhap"
+    users |o--o{ user_devices : "nguoi chan (blocked_by)"
+    user_devices ||--o{ user_sessions : "phien tren thiet bi"
+    user_devices |o--o{ auth_events : "su kien thiet bi"
+    users ||--o{ login_approvals : "yeu cau duyet cua tai khoan"
+    users |o--o{ login_approvals : "nguoi duyet (decided_by)"
+    user_devices ||--o{ login_approvals : "thiet bi xin duyet"
+    user_sessions |o--o{ login_approvals : "phien dang chan (blocking_session_id)"
+    user_sessions |o--o| login_approvals : "phien duoc cap nho duyet (consumed_session_id)"
+    users ||--o{ login_exceptions : "tai khoan duoc ngoai le"
+    users |o--o{ login_exceptions : "nguoi cap (granted_by)"
+    users |o--o{ login_exceptions : "nguoi thu hoi (revoked_by)"
+    users ||--o{ user_sessions : opens
+    user_sessions |o--o{ auth_events : logs
+    user_sessions |o--o{ activity_logs : "thao tac trong phien"
+    users |o--o{ users : "nguoi tao (created_by)"
+    users |o--o{ users : "nguoi khoa (locked_by)"
+    users |o--o{ employees : "nguoi tao va sua"
+    users |o--o{ employee_types : "nguoi tao va sua"
+    users |o--o{ shift_templates : "nguoi tao va sua"
+    users |o--o{ employee_stations : "nguoi doi (changed_by)"
+    users |o--o{ employee_scope_regions : "nguoi doi (changed_by)"
+    users |o--o{ work_kinds : "nguoi tao va sua"
+    users |o--o{ app_settings : "nguoi sua (updated_by)"
+    users |o--o{ employee_shift_schedules : "nguoi doi (changed_by)"
+    users |o--o{ employee_type_history : "nguoi doi (changed_by)"
+    users |o--o{ employee_status_history : "nguoi doi (changed_by)"
+    users |o--o{ activity_logs : "nguoi thao tac"
+    work_functions |o--o{ activity_logs : "thao tac duoi chuc nang"
+    work_functions ||--o{ shifts : "ca theo chuc nang"
+    users ||--o{ shifts : "chu ca"
+    users |o--o{ shifts : "nguoi dong ca (closed_by)"
+    employees |o--o{ shifts : "ho so NV cua chu ca"
+    station |o--o{ shifts : "tram lam ca"
+    shifts ||--o{ shift_reports : "ban chot (version)"
+    work_functions ||--o{ shift_reports : "chuc nang cua ban chot"
+    employees |o--o{ shift_reports : "ho so NV chu ca"
+    users |o--o{ shift_reports : "nguoi bam ket ca (closed_by)"
+    employee_types |o--o{ shift_reports : "chup loai NV luc ket ca"
+    station |o--o{ shift_reports : "chup tram lam ca luc ket ca"
+
+    %% ===== KHUNG BẢNG MODULE KHÁC (chỉ để vẽ quan hệ; khớp tên với sơ đồ danh mục trạm, khu vực) =====
+    station {
+        bigint station_id PK "bảng thật thuộc module danh mục vận tải: region -> station -> stop_station; không có trạm chính hoặc trạm phụ"
+        bigint region_id FK "NOT NULL; mỗi trạm thuộc một khu vực"
+    }
+
+    region {
+        bigint region_id PK "bảng thật; khu vực của danh mục vận tải"
+        text region_key UK "mã khu vực mà giao diện lưu và lọc (bản demo lưu mã dạng chữ)"
+    }
+
+    shift_reports {
+        bigint id PK "bảng thật thuộc module kết ca (M05); chỉ ghi các cột liên quan đến nhân sự"
+        bigint shift_id FK "ca được chốt; UNIQUE (shift_id, version)"
+        int version "bản chốt chỉ ghi thêm, không sửa; mở lại ca rồi kết lại thì sinh version mới"
+        text function_key FK "chụp từ shifts.function_key (call_center, ticket_office, cargo_receive, cargo_delivery, shuttle_driver); chia tab kết ca theo cột này"
+        bigint employee_id FK "NULL nếu chủ ca là admin gốc; còn lại chụp hồ sơ NV của chủ ca"
+        uuid closed_by FK "users.user_id người bấm kết ca; là admin gốc khi đóng thay"
+        timestamptz closed_at "MỚI v2.8; NOT NULL; giờ bấm kết của version này; Tab 3 đến 6 lọc ngày và hiện Thời gian kết ca theo cột này; mở lại ca xóa shifts.closed_at nhưng cột này giữ nguyên"
+        boolean is_forced "true = admin gốc đóng thay, các cột kiểm đếm thực tế (M05) để NULL; tab kết ca hiện nhãn Admin đóng"
+        smallint employee_type_id FK "CHỤP loại NV của chủ ca tại lúc bấm, NULL nếu chủ ca là admin gốc; đổi loại sau không làm đổi dòng cũ; KHÔNG dùng để chia tab"
+        bigint station_id FK "CHỤP trạm làm ca của shifts tại lúc bấm; NULL chỉ với shuttle_driver không có trạm; KHÔNG dùng để tính doanh thu theo trạm (lấy từ payments.station_id)"
+    } 

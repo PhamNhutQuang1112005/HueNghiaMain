@@ -61,13 +61,6 @@ loginForm.addEventListener("submit", (e) => {
     if (window.AuthLog) AuthLog.event(type, Object.assign({ username: username, detail: detail || {} }, extra || {}));
   };
 
-  // Đang bị khóa nhập sai (5 lần sai trong 15 phút) -> chặn kể cả khi lần này nhập đúng mật khẩu.
-  if (account && window.AuthLog && AuthLog.isFailedLoginLocked(username)){
-    log("login_blocked", { reason: "failed_login_locked" });
-    showError("Tài khoản tạm khóa do nhập sai nhiều lần. Vui lòng liên hệ quản trị viên để mở khóa.");
-    return;
-  }
-
   if (!account){
     log("login_failed");
     showError("Sai tài khoản hoặc mật khẩu. Vui lòng kiểm tra lại.");
@@ -81,6 +74,14 @@ loginForm.addEventListener("submit", (e) => {
   if (employeeLocked(account.username)){
     log("login_blocked", { reason: "employee_locked" });
     showError("Nhân viên đang ở trạng thái không được đăng nhập (tạm ngưng hoặc nghỉ việc).");
+    return;
+  }
+
+  // Bậc 3 của account_login_state (sau khóa theo nhân viên và khóa thủ công): 5 lần sai trong 15 phút -> chặn kể cả khi lần này nhập đúng mật khẩu.
+  // Áp cả cho admin gốc; cửa sổ trượt 15 phút nên tự hết, hoặc admin gốc khác bấm Mở khóa nhập sai.
+  if (window.AuthLog && AuthLog.isFailedLoginLocked(username)){
+    log("login_blocked", { reason: "failed_login_locked" });
+    showError("Tài khoản tạm khóa do nhập sai nhiều lần. Vui lòng thử lại sau 15 phút hoặc liên hệ quản trị viên để mở khóa.");
     return;
   }
 
