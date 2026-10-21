@@ -16,8 +16,9 @@ erDiagram
     route ||--o{ route_pickup_station : "trạm có thể nhận thêm khách"
     station ||--o{ route_pickup_station : ""
 
-    station ||--o{ station_price : "trạm đi"
-    station ||--o{ station_price : "trạm đến"
+    route ||--o{ route_price : "giá của tuyến"
+    route_from_station ||--o{ route_price : "trạm đi phải thuộc tuyến"
+    route_to_station ||--o{ route_price : "trạm đến phải thuộc tuyến"
 
     users ||--o{ user_permission : "được cấp quyền chức năng"
     users ||--o{ user_route_access : "được thao tác tuyến"
@@ -48,7 +49,7 @@ erDiagram
     direction_via_region {
         bigint direction_id PK, FK
         bigint region_id PK, FK "khác from_region/to_region của hướng"
-        int seq "NOT NULL, thứ tự đi qua từ tỉnh đi đến tỉnh đến (web lưu mảng viaRegions)"
+        int seq "NOT NULL, thứ tự đi qua từ tỉnh đi đến tỉnh đến"
     }
 
     station {
@@ -71,7 +72,6 @@ erDiagram
         bigint direction_id FK "NOT NULL"
         varchar label UK "tên tuyến chính, vd: Bình Dương - Tân Châu"
         varchar abbr "mã tuyến, vd: SG-LX"
-        varchar vehicle_type "nullable, loại xe (danh mục Loại xe, scope line)"
         bigint pickup_stop_id FK "NOT NULL, điểm dừng nhận chính (stop_station), thuộc tỉnh đến"
         boolean active
         int sort_order
@@ -96,9 +96,10 @@ erDiagram
         bigint station_id PK, FK "thuộc from_region, một tỉnh giữa (direction_via_region) HOẶC to_region của hướng"
     }
 
-    station_price {
-        bigint from_station_id PK, FK "trạm đi"
-        bigint to_station_id PK, FK "trạm đến, CHECK khác from_station_id"
+    route_price {
+        bigint route_id PK, FK
+        bigint from_station_id PK, FK "FK ghép (route_id, from_station_id) -> route_from_station"
+        bigint to_station_id PK, FK "FK ghép (route_id, to_station_id) -> route_to_station"
         int price "giá vé ghế đơn, 0 = không bán"
         int double_seat_price "giá vé ghế đôi, 0 = không bán; CHECK price > 0 OR double_seat_price > 0"
     }
@@ -109,7 +110,7 @@ erDiagram
 
     user_permission {
         bigint user_id PK, FK
-        varchar permission_key PK "manage_directions = sửa hướng (thêm/sửa/bật tắt/xoá, tỉnh giữa); manage_routes = sửa tuyến (thêm/sửa/xoá/sao chép, trạm đi/đến/nhận thêm); manage_prices = giá theo cặp trạm"
+        varchar permission_key PK "manage_directions = sửa hướng (thêm/sửa/bật tắt/xoá, tỉnh giữa); manage_routes = sửa tuyến (thêm/sửa/xoá/sao chép, trạm đi/đến/nhận thêm); manage_prices = giá theo cặp trạm trong tuyến"
         bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
         timestamptz granted_at "NOT NULL DEFAULT now()"
     }

@@ -427,6 +427,8 @@ function mutateRoute(id, fn) {
   var r = list.find(function (x) { return x.id === id; });
   if (!r) return;
   fn(r);
+  // route_price chỉ hợp lệ với cặp (trạm đi, trạm đến) còn nằm trong tuyến.
+  if (r.prices) r.prices = r.prices.filter(function (p) { return (r.fromStations || []).indexOf(p.from) !== -1 && (r.toStations || []).indexOf(p.to) !== -1; });
   FleetStore.setRoutes(list);
 }
 function adminRemoveRouteStation(routeId, kind, idx) {
@@ -501,21 +503,7 @@ function adminSaveStationPick(e) {
   }
 }
 
-/* "Loại xe" của 1 tuyến/mức giá — dùng lại đúng danh mục Loại xe (scope 'line') như modal "Tạo phơi xe"
-   (admin-trips.js) thay vì tự bịa danh sách riêng. Route đang sửa mà vehicleType không còn active/đã bị
-   xoá khỏi danh mục vẫn được giữ lại trong <select> (nối thêm) để không mất dữ liệu cũ khi sửa. */
-function routeVehicleTypeOptionsHtml(current) {
-  var vtypes = FleetStore.getVehicleTypes({ scope: 'line' }).filter(activeOf);
-  if (current && !vtypes.some(function (v) { return v.name === current; })) vtypes = vtypes.concat([{ name: current }]);
-  return vtypes.map(function (v) {
-    return '<option value="' + esc(v.name) + '"' + (v.name === current ? ' selected' : '') + '>' + esc(v.name) + '</option>';
-  }).join('');
-}
-
-// Mỗi tuyến có 2 ô giá độc lập: Ghế đơn và Ghế đôi (không còn phụ thuộc vào Loại xe như trước). Điền cả
-// 2 ô thì cột "Giá" ở bảng Quản lý giá hiện cả 2 mức (Đơn/Đôi, như xe 24 Phòng hiện nay); chỉ điền 1 ô thì
-// cột "Giá" chỉ hiện đúng 1 mức đó (như các xe còn lại). Logic quyết định hasDouble nằm ở buildSeatPriceMeta
-// (admin-placeholders.js), dựa trên chính 2 giá trị route.price/route.doubleSeatPrice.
+// Tuyến không có giá/loại xe: giá nhập theo cặp trạm đi - trạm đến (adminOpenRoutePrices), loại xe nằm ở phơi mẫu.
 function adminOpenRouteModal(id, directionId) {
   if (!adminRequire('manage_routes')) return;
   var routes = FleetStore.getRoutes();
@@ -531,10 +519,7 @@ function adminOpenRouteModal(id, directionId) {
       '</select></div>' +
       '<div class="fld"><label>Tên tuyến *</label>' +
         '<input id="rmLabel" required value="' + (r ? esc(r.label) : '') + '" placeholder="VD: Sài Gòn - An Giang"></div>' +
-      '<div class="fld-row">' +
-        '<div class="fld"><label>Mã tuyến</label><input id="rmAbbr" value="' + (r ? esc(r.abbr || '') : '') + '" placeholder="SG-LX"></div>' +
-        '<div class="fld"><label>Loại xe *</label><select id="rmVehicleType" required>' + routeVehicleTypeOptionsHtml(r ? r.vehicleType : '') + '</select></div>' +
-      '</div>' +
+      '<div class="fld"><label>Mã tuyến</label><input id="rmAbbr" value="' + (r ? esc(r.abbr || '') : '') + '" placeholder="SG-LX"></div>' +
       '<div class="fld"><label><input type="checkbox" id="rmActive" ' + (!r || activeOf(r) ? 'checked' : '') + '> Đang hoạt động</label></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
     '</form>'
@@ -551,19 +536,18 @@ function adminSaveRoute(e) {
   var list = FleetStore.getRoutes();
   if (list.some(function (x) { return x.label === label && x.id !== id0; })) { showToast('Tên tuyến đã tồn tại.'); return; }
   var abbr = $('rmAbbr').value.trim();
-  var vehicleType = ($('rmVehicleType') || {}).value || '';
   var active = $('rmActive').checked;
 
   if (id0) {
     var r = list.find(function (x) { return x.id === id0; });
     var before = JSON.parse(JSON.stringify(r));
-    r.label = label; r.directionId = dirId; r.abbr = abbr; r.vehicleType = vehicleType; r.active = active;
+    r.label = label; r.directionId = dirId; r.abbr = abbr; r.active = active;
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'update', entity: 'route', entityId: id0, summary: 'Sửa tuyến ' + label, before: before, after: r });
   } else {
     var newId = dirId + '-' + Date.now().toString(36);
     var maxOrder = list.filter(function (x) { return x.directionId === dirId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
-    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, price: 0, doubleSeatPrice: 0, vehicleType: vehicleType, active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
+    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, prices: [], active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
     list.push(nr);
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'create', entity: 'route', entityId: newId, summary: 'Thêm tuyến ' + label, after: nr });
@@ -598,7 +582,7 @@ function adminDuplicateRoute(id) {
   var maxOrder = list.filter(function (x) { return x.directionId === src.directionId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
   var copy = {
     id: newId, directionId: src.directionId, label: label, abbr: src.abbr || '',
-    price: src.price || 0, doubleSeatPrice: src.doubleSeatPrice, vehicleType: src.vehicleType || '',
+    prices: JSON.parse(JSON.stringify(src.prices || [])),
     active: true, order: maxOrder + 1,
     fromStations: (src.fromStations || []).slice(),
     toStations: (src.toStations || []).slice(),
