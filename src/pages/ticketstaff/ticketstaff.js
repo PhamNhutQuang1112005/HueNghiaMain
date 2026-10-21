@@ -3895,7 +3895,7 @@ function populateStationPickers() {
   if (!window.FleetStore) return;
   const seen = {};
   const names = [];
-  FleetStore.getStations().forEach(s => {
+  FleetStore.getActiveStations().forEach(s => {
     const n = s && s.name;
     if (n && !seen[n]) { seen[n] = true; names.push(n); }
   });
@@ -3915,7 +3915,7 @@ function populateStationPickers() {
 // điểm đến. Route rỗng / hướng lạ → trả cả danh mục.
 function stationsForRoute(route) {
   const dedupe = arr => { const seen = {}; return (arr || []).filter(n => n && !seen[n] && (seen[n] = true)); };
-  const allNames = () => dedupe((window.FleetStore ? FleetStore.getStations() : []).map(s => s && s.name));
+  const allNames = () => dedupe((window.FleetStore ? FleetStore.getActiveStations() : []).map(s => s && s.name));
   if (!route || !window.FleetStore) { const all = allNames(); return { from: all, to: all }; }
   let from = [], to = [];
   try {

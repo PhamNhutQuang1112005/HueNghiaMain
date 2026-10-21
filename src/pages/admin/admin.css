@@ -4809,3 +4809,10 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 .acc-table td, .staff-table td { vertical-align: top; }
 .hint-inline { font-size: 11.5px; font-weight: 500; color: var(--text-sub); line-height: 1.45; }
 .admin-form .fld > .hint-inline { display: block; }
+
+/* Modal Cập nhật tỉnh / hướng: mã tỉnh + 2 ô chọn tỉnh đi/đến nằm cùng hàng với tên */
+.regions-modal .rgm-main { flex-wrap: wrap; }
+.regions-modal .rgm-code { flex: 0 0 64px; min-width: 0 !important; text-transform: uppercase; }
+.regions-modal .dm-from, .regions-modal .dm-to { flex: 1 1 130px; min-width: 0; }
+.regions-modal .dm-add { flex-wrap: wrap; }
+.regions-modal .dm-add > select { flex: 1 1 130px; min-width: 0; }

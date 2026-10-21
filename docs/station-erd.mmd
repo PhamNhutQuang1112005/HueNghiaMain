@@ -1,0 +1,128 @@
+erDiagram
+    region ||--o{ station : "khu vực của trạm"
+    region ||--o{ direction : "tỉnh đi (from_region_id)"
+    region ||--o{ direction : "tỉnh đến (to_region_id)"
+    station ||--o{ stop_station : "có điểm dừng"
+
+    direction ||--o{ route : "có tuyến chính"
+    station ||--o{ route : "trạm nhận chính (pickup_station_id)"
+
+    route ||--o{ route_from_station : "trạm đi"
+    station ||--o{ route_from_station : ""
+    route ||--o{ route_to_station : "trạm đến"
+    station ||--o{ route_to_station : ""
+    route ||--o{ route_pickup_station : "trạm có thể nhận thêm khách"
+    station ||--o{ route_pickup_station : ""
+
+    users ||--o{ user_station_access : "được thao tác trạm"
+    station ||--o{ user_station_access : "trạm được cấp"
+    users ||--o{ user_route_access : "được thao tác tuyến"
+    route ||--o{ user_route_access : "tuyến được cấp"
+    station |o--o{ users : "trạm chính (main_station_id)"
+
+    region {
+        bigint region_id PK
+        varchar code UK "mã/slug tỉnh, hiện + sửa được ở modal Cập nhật danh mục"
+        varchar name UK "tên hiển thị, vd: An Giang"
+        boolean active "NOT NULL DEFAULT TRUE, thay cho xoá/ẩn/khôi phục"
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    station {
+        bigint station_id PK
+        varchar name UK
+        varchar code UK "nullable, UNIQUE khi có giá trị"
+        text address
+        bigint region_id FK "NOT NULL"
+        varchar hotline_cargo
+        varchar hotline_ticket
+        boolean active "NOT NULL DEFAULT TRUE, cột Trạng thái + bật/tắt"
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    stop_station {
+        bigint stop_station_id PK
+        bigint station_id FK "NOT NULL, ON DELETE CASCADE, UNIQUE cùng name"
+        varchar name "UNIQUE (station_id, name)"
+        varchar code UK "nullable, UNIQUE khi có giá trị"
+        text address
+        varchar hotline
+        boolean active "NOT NULL DEFAULT TRUE"
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    direction {
+        bigint direction_id PK
+        varchar code UK "mã hướng, vd: sg-ag (ô Mã trong modal Cập nhật hướng)"
+        bigint from_region_id FK "NOT NULL, UNIQUE cùng to_region_id"
+        bigint to_region_id FK "NOT NULL, CHECK khác from_region_id"
+        varchar label "tên hiển thị của hướng"
+        boolean active
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    route {
+        bigint route_id PK
+        bigint direction_id FK "NOT NULL"
+        varchar label UK "tên tuyến chính"
+        varchar abbr "mã tuyến, vd: SG-LX"
+        varchar vehicle_type "NOT NULL, loại xe (danh mục Loại xe, scope line)"
+        int price "giá vé ghế đơn, 0 = không bán"
+        int double_seat_price "giá vé ghế đôi, 0 = không bán; CHECK price > 0 OR double_seat_price > 0"
+        bigint pickup_station_id FK "NOT NULL, trạm nhận chính, thuộc tỉnh đến"
+        boolean active
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    route_from_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc from_region của hướng"
+    }
+
+    route_to_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc to_region của hướng"
+    }
+
+    route_pickup_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc to_region của hướng"
+    }
+
+    users {
+        bigint user_id PK "bảng đầy đủ ở sơ đồ đăng nhập"
+        boolean all_stations "NOT NULL DEFAULT FALSE, TRUE = mọi trạm, bỏ qua user_station_access"
+        bigint main_station_id FK "nullable, trạm chính"
+    }
+
+    user_station_access {
+        bigint user_id PK, FK
+        bigint station_id PK, FK
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }
+
+    user_route_access {
+        bigint user_id PK, FK
+        bigint route_id PK, FK
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }

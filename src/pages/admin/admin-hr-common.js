@@ -39,7 +39,7 @@ function hrStaffStatus(s) { return (s && s.statusCode) || (s && s.active === fal
 
 /* ---- Khu vực, trạm ---- */
 function hrRegionKeys() { return getRegionMeta().map(function (m) { return m[0]; }); }
-function hrRegionName(key) { var m = getRegionMeta().find(function (x) { return x[0] === key; }); return m ? m[1] : (key || ''); }
+function hrRegionName(key) { var m = getRegionMeta({ all: true }).find(function (x) { return x[0] === key; }); return m ? m[1] : (key || ''); }
 function hrActiveStations() { return FleetStore.getStations().filter(function (st) { return st && st.active !== false; }); }
 function hrStationsOfRegion(key) { return hrActiveStations().filter(function (st) { return st.region === key; }); }
 function hrStationRegionKey(name) { var st = FleetStore.getStations().find(function (x) { return x.name === name; }); return st ? (st.region || '') : ''; }

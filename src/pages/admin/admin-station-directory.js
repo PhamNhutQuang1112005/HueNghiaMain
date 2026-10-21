@@ -18,9 +18,7 @@ function adminSetStationSubTab(tab) {
 
 function renderStationsView() {
   var allStations = FleetStore.getStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
-  var regionMetaAll = getRegionMeta();
-  var provinceLabelMap = {};
-  regionMetaAll.forEach(function (rm) { provinceLabelMap[rm[0]] = rm[1].replace(/^Trạm\s+/i, ''); });
+  var regionMetaAll = getRegionMeta({ all: true });
   if (STATION_DIR_REGION && !regionMetaAll.some(function (rm) { return rm[0] === STATION_DIR_REGION; })) STATION_DIR_REGION = '';
 
   var q = STATION_DIR_FILTER.trim().toLowerCase();
@@ -30,13 +28,15 @@ function renderStationsView() {
   var filteredAll = allStations.filter(function (s) {
     if (STATION_DIR_REGION && s.region !== STATION_DIR_REGION) return false;
     if (!q) return true;
-    var hay = [s.name, s.code, s.address, s.province].filter(Boolean).join(' ').toLowerCase();
+    var hay = [s.name, s.code, s.address].filter(Boolean).join(' ').toLowerCase();
     return hay.indexOf(q) !== -1;
   });
 
+  var stationById = {};
+  allStations.forEach(function (s) { stationById[s.id] = s; });
   var stopList = FleetStore.getStopStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
   var filteredStop = stopList.filter(function (stop) {
-    var station = stationMap[stop.stationName] || null;
+    var station = stationById[stop.stationId] || null;
     if (STATION_DIR_REGION && (!station || station.region !== STATION_DIR_REGION)) return false;
     if (!q) return true;
     var hay = [stop.name, stop.code, stop.address, stop.hotline, station && station.name].filter(Boolean).join(' ').toLowerCase();
@@ -50,14 +50,15 @@ function renderStationsView() {
       '<td><b>' + esc(s.name) + '</b></td>' +
       '<td class="mono">' + esc(s.code || '—') + '</td>' +
       '<td>' + esc(s.address || '—') + '</td>' +
-      '<td>' + (regionLabel ? esc(regionLabel) : '<span class="hint-inline">Chưa gán</span>') + '</td>' +
+      '<td>' + (regionLabel ? esc(regionLabel) : '<span class="hint-inline">Chưa gán — cần sửa</span>') + '</td>' +
       '<td class="mono">' + esc(s.hotlineCargo || '—') + '</td>' +
       '<td class="mono">' + esc(s.hotlineTicket || '—') + '</td>' +
+      '<td class="col-status">' + activeTag(s.active !== false) + '</td>' +
       '<td class="row-actions">' +
-        '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStationRowMenu" data-args=\'["__this__","' + esc(s.name) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
+        '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStationRowMenu" data-args=\'["__this__","' + esc(s.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="8" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
+  }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
 
   var currentTab = STATION_SUBTAB || 'all';
   var tabContent = '';
@@ -65,28 +66,29 @@ function renderStationsView() {
   if (currentTab === 'all') {
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Khu vực</th><th>Hotline hàng</th><th>Hotline vé</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Tỉnh</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
       '</div>';
   } else {
     var stopStations = filteredStop.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
     var stopRows = stopStations.length ? stopStations.map(function (stop, i) {
-      var station = stationMap[stop.stationName] || null;
+      var station = stationById[stop.stationId] || null;
       return '<tr>' +
         '<td class="num">' + (i + 1) + '</td>' +
-        '<td><b>' + esc((station && station.name) || stop.stationName || '—') + '</b></td>' +
+        '<td><b>' + (station ? esc(station.name) : '<span class="hint-inline">Mồ côi' + (stop.stationName ? ' (' + esc(stop.stationName) + ')' : '') + ' — chọn lại trạm</span>') + '</b></td>' +
         '<td><b>' + esc(stop.name || '—') + '</b></td>' +
         '<td class="mono">' + esc(stop.code || '—') + '</td>' +
         '<td>' + esc(stop.address || '—') + '</td>' +
         '<td class="mono">' + esc(stop.hotline || '—') + '</td>' +
+        '<td class="col-status">' + activeTag(stop.active !== false) + '</td>' +
         '<td class="row-actions">' +
           '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStopStationRowMenu" data-args=\'["__this__","' + esc(stop.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
         '</td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="7" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
+    }).join('') : '<tr><td colspan="8" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
 
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
       '</div>';
   }
 
@@ -168,25 +170,31 @@ function adminOpenRowMenu(btn, key, itemsHtml) {
     window.addEventListener('resize', adminCloseRowMenu, true);
   }, 0);
 }
-function adminStationRowMenu(btn, name) {
-  adminOpenRowMenu(btn, 'station:' + name,
-    '<button type="button" class="admin-row-menu-item" data-action="adminOpenStationModal" data-args=\'["' + esc(name) + '"]\'>Sửa trạm</button>' +
-    '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteStationFull" data-args=\'["' + esc(name) + '"]\'>Xoá trạm</button>');
+// Trạm đang được tuyến dùng → không cho Xoá, chỉ Bật/Tắt (tuyến cũ vẫn giữ trạm tắt).
+function adminStationRowMenu(btn, id) {
+  var s = FleetStore.getStations().find(function (x) { return x.id === id; });
+  if (!s) return;
+  var used = FleetStore.stationUsage(s.name);
+  adminOpenRowMenu(btn, 'station:' + id,
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenStationModal" data-args=\'["' + esc(id) + '"]\'>Sửa trạm</button>' +
+    '<button type="button" class="admin-row-menu-item" data-action="adminToggleStation" data-args=\'["' + esc(id) + '"]\'>' + (s.active !== false ? 'Tắt trạm' : 'Bật trạm') + '</button>' +
+    (used ? '' : '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteStationFull" data-args=\'["' + esc(id) + '"]\'>Xoá trạm</button>'));
 }
 
-function adminOpenStationModal(name, defaultRegion) {
-  var s = name ? FleetStore.getStations().find(function (x) { return x.name === name; }) : null;
-  var regionMeta = getRegionMeta();
+function adminOpenStationModal(id, defaultRegion) {
+  var s = id ? FleetStore.getStations().find(function (x) { return x.id === id; }) : null;
   var curRegion = s ? (s.region || '') : (defaultRegion || '');
+  // Chỉ tỉnh đang bật; tỉnh hiện tại của trạm (nếu đã tắt) vẫn giữ trong danh sách.
+  var regionMeta = getRegionMeta({ all: true }).filter(function (rm) { return rm[3] || rm[0] === curRegion; });
   openAdminModal(
     '<h3>' + (s ? 'Sửa trạm' : 'Thêm trạm mới') + '</h3>' +
-    '<form class="admin-form" data-submit-action="adminSaveStationFull" data-args=\'["__event__"' + (s ? ',"' + esc(s.name) + '"' : '') + ']\'>' +
+    '<form class="admin-form" data-submit-action="adminSaveStationFull" data-args=\'["__event__"' + (s ? ',"' + esc(s.id) + '"' : '') + ']\'>' +
       '<div class="fld"><label>Tên trạm <span class="req">*</span></label><input id="sdName" required value="' + (s ? esc(s.name) : '') + '" placeholder="VD: 508 Kinh Dương Vương"></div>' +
       '<div class="fld-row">' +
         '<div class="fld"><label>Mã trạm</label><input id="sdCode" value="' + (s ? esc(s.code || '') : '') + '" placeholder="VD: SG01"></div>' +
-        '<div class="fld"><label>Khu vực (Tỉnh / Thành) <span class="req">*</span></label>' +
+        '<div class="fld"><label>Tỉnh <span class="req">*</span></label>' +
           '<select id="sdRegion" required>' +
-            '<option value="" disabled' + (curRegion ? '' : ' selected') + '>— Chọn khu vực —</option>' +
+            '<option value="" disabled' + (curRegion ? '' : ' selected') + '>— Chọn tỉnh —</option>' +
             regionMeta.map(function (rm) { return '<option value="' + esc(rm[0]) + '"' + (curRegion === rm[0] ? ' selected' : '') + '>' + esc(rm[1]) + '</option>'; }).join('') +
           '</select></div>' +
       '</div>' +
@@ -203,43 +211,43 @@ function adminOpenStationModal(name, defaultRegion) {
   );
 }
 
-function adminSaveStationFull(e, oldName) {
+function adminSaveStationFull(e, id) {
   e.preventDefault();
-  var region = $('sdRegion').value;
-  var regionLabel = (getRegionMeta().find(function (rm) { return rm[0] === region; }) || [])[1] || '';
   var fields = {
     name: $('sdName').value.trim(),
     code: $('sdCode').value.trim(),
     address: $('sdAddress').value.trim(),
-    // "Tỉnh / Thành" = khu vực; lưu kèm nhãn khu vực (bỏ tiền tố "Trạm ") để tìm kiếm theo tỉnh vẫn ra
-    province: regionLabel.replace(/^Trạm\s+/i, ''),
     hotlineCargo: $('sdHotlineCargo').value.trim(),
     hotlineTicket: $('sdHotlineTicket').value.trim(),
-    region: region
+    region: $('sdRegion').value
   };
-  if (!fields.name) { showToast('Nhập tên trạm.'); return; }
-  if (!fields.region) { showToast('Chọn khu vực (tỉnh / thành) cho trạm.'); return; }
-
-  if (oldName) {
-    var res = FleetStore.updateStation(oldName, fields);
-    if (!res.ok) { showToast(res.reason); return; }
-    FleetStore.log({ action: 'update', entity: 'station', entityId: fields.name, summary: 'Sửa trạm "' + fields.name + '"' });
-    showToast('Đã lưu trạm.');
-  } else {
-    if (!FleetStore.addStationFull(fields)) { showToast('Trạm "' + fields.name + '" đã tồn tại.'); return; }
-    FleetStore.log({ action: 'create', entity: 'station', entityId: fields.name, summary: 'Thêm trạm "' + fields.name + '"' });
-    showToast('Đã thêm trạm.');
-  }
+  var res = id ? FleetStore.updateStation(id, fields) : FleetStore.addStationFull(fields);
+  if (!res.ok) { showToast(res.reason); return; }
+  FleetStore.log({ action: id ? 'update' : 'create', entity: 'station', entityId: fields.name, summary: (id ? 'Sửa' : 'Thêm') + ' trạm "' + fields.name + '"' });
+  showToast(id ? 'Đã lưu trạm.' : 'Đã thêm trạm.');
   closeAdminModal();
   renderStationsView();
 }
 
-function adminDeleteStationFull(name) {
-  var used = FleetStore.stationUsage(name);
-  var msg = used ? 'Trạm "' + name + '" đang dùng ở ' + used + ' tuyến. Xoá trạm và gỡ khỏi các tuyến đó?' : 'Xoá trạm "' + name + '"?';
-  if (!confirm(msg)) return;
-  FleetStore.removeStation(name);
-  FleetStore.log({ action: 'delete', entity: 'station', entityId: name, summary: 'Xoá trạm "' + name + '"' + (used ? ' (gỡ khỏi ' + used + ' tuyến)' : '') });
+function adminToggleStation(id) {
+  var s = FleetStore.getStations().find(function (x) { return x.id === id; });
+  if (!s) return;
+  var on = s.active === false;
+  var res = FleetStore.setStationActive(id, on);
+  if (!res.ok) { showToast(res.reason); return; }
+  FleetStore.log({ action: 'toggle', entity: 'station', entityId: s.name, summary: (on ? 'Bật' : 'Tắt') + ' trạm "' + s.name + '"' });
+  showToast(on ? 'Đã bật trạm.' : 'Đã tắt trạm.');
+  renderStationsView();
+}
+
+function adminDeleteStationFull(id) {
+  var s = FleetStore.getStations().find(function (x) { return x.id === id; });
+  if (!s) return;
+  if (FleetStore.stationUsage(s.name)) { showToast('Trạm đang được tuyến dùng — chỉ có thể tắt.'); return; }
+  var nStops = FleetStore.getStopStations().filter(function (x) { return x.stationId === id; }).length;
+  if (!confirm('Xoá trạm "' + s.name + '"?' + (nStops ? '\nSẽ xoá luôn ' + nStops + ' điểm dừng của trạm.' : ''))) return;
+  FleetStore.removeStation(id);
+  FleetStore.log({ action: 'delete', entity: 'station', entityId: s.name, summary: 'Xoá trạm "' + s.name + '"' + (nStops ? ' (kèm ' + nStops + ' điểm dừng)' : '') });
   showToast('Đã xoá trạm.');
   renderStationsView();
 }
@@ -249,21 +257,27 @@ function renderSubStationsView() {
 }
 
 function adminStopStationRowMenu(btn, id) {
+  var stop = FleetStore.getStopStations().find(function (x) { return x.id === id; });
   adminOpenRowMenu(btn, 'stop-station:' + id,
     '<button type="button" class="admin-row-menu-item" data-action="adminOpenStopStationModal" data-args=\'["' + esc(id) + '"]\'>Sửa điểm dừng</button>' +
+    '<button type="button" class="admin-row-menu-item" data-action="adminToggleStopStation" data-args=\'["' + esc(id) + '"]\'>' + (stop && stop.active === false ? 'Bật điểm dừng' : 'Tắt điểm dừng') + '</button>' +
     '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteStopStation" data-args=\'["' + esc(id) + '"]\'>Xoá điểm dừng</button>');
 }
 
 function adminOpenStopStationModal(id) {
   var stop = id ? FleetStore.getStopStations().find(function (x) { return x.id === id; }) : null;
-  var stations = FleetStore.getStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
-  var curStationName = stop ? (stop.stationName || '') : (stations[0] ? stations[0].name : '');
-  var stationOptions = stations.map(function (s) { return '<option value="' + esc(s.name) + '"' + (curStationName === s.name ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') || '<option value="">Chưa có trạm xe</option>';
+  var curStationId = stop ? (stop.stationId || '') : '';
+  // Chỉ trạm đang bật; trạm hiện tại của điểm dừng (nếu đã tắt) vẫn giữ. Điểm dừng mồ côi bắt chọn lại.
+  var stations = FleetStore.getStations().filter(function (s) { return s.active !== false || s.id === curStationId; })
+    .sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
+  var stationOptions = (stop && !curStationId ? '<option value="" selected disabled>— Chọn lại trạm xe —</option>' : '') +
+    stations.map(function (s) { return '<option value="' + esc(s.id) + '"' + (curStationId === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('');
+  if (!stations.length) stationOptions = '<option value="">Chưa có trạm xe</option>';
   openAdminModal(
     '<h3>' + (stop ? 'Sửa điểm dừng' : 'Thêm điểm dừng') + '</h3>' +
     '<form class="admin-form" data-submit-action="adminSaveStopStation" data-args=\'["__event__"' + (stop ? ',"' + esc(stop.id) + '"' : '') + ']\'>' +
       '<div class="fld-row">' +
-        '<div class="fld"><label>Trạm xe <span class="req">*</span></label><select id="stopStationStationName" required>' + stationOptions + '</select></div>' +
+        '<div class="fld"><label>Trạm xe <span class="req">*</span></label><select id="stopStationStationId" required>' + stationOptions + '</select></div>' +
         '<div class="fld"><label>Tên điểm dừng <span class="req">*</span></label><input id="stopStationName" required value="' + (stop ? esc(stop.name) : '') + '" placeholder="Nhập tên điểm dừng"></div>' +
       '</div>' +
       '<div class="fld"><label>Mã điểm dừng</label><input id="stopStationCode" value="' + (stop ? esc(stop.code || '') : '') + '" placeholder="VD: D009"></div>' +
@@ -277,20 +291,29 @@ function adminOpenStopStationModal(id) {
 function adminSaveStopStation(e, id) {
   e.preventDefault();
   var payload = {
-    stationName: $('stopStationStationName').value,
+    stationId: $('stopStationStationId').value,
     name: $('stopStationName').value.trim(),
     code: $('stopStationCode').value.trim(),
     address: $('stopStationAddress').value.trim(),
     hotline: $('stopStationHotline').value.trim()
   };
-  if (!payload.stationName) { showToast('Chọn trạm xe cho điểm dừng.'); return; }
-  if (!payload.name) { showToast('Nhập tên điểm dừng.'); return; }
   var res = id ? FleetStore.updateStopStation(id, payload) : FleetStore.addStopStation(payload);
   if (!res.ok) { showToast(res.reason); return; }
   FleetStore.log({ action: id ? 'update' : 'create', entity: 'stop_station', entityId: (res.item && res.item.id) || id || payload.name, summary: (id ? 'Sửa' : 'Thêm') + ' điểm dừng "' + payload.name + '"' });
   closeAdminModal();
   renderSubStationsView();
   showToast(id ? 'Đã lưu điểm dừng.' : 'Đã thêm điểm dừng.');
+}
+
+function adminToggleStopStation(id) {
+  var stop = FleetStore.getStopStations().find(function (x) { return x.id === id; });
+  if (!stop) return;
+  var on = stop.active === false;
+  var res = FleetStore.setStopActive(id, on);
+  if (!res.ok) { showToast(res.reason); return; }
+  FleetStore.log({ action: 'toggle', entity: 'stop_station', entityId: id, summary: (on ? 'Bật' : 'Tắt') + ' điểm dừng "' + stop.name + '"' });
+  showToast(on ? 'Đã bật điểm dừng.' : 'Đã tắt điểm dừng.');
+  renderSubStationsView();
 }
 
 function adminDeleteStopStation(id) {

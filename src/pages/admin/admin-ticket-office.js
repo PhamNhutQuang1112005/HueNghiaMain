@@ -86,7 +86,7 @@ function toDirectionOptionsHtml(cur) {
   }).join('');
 }
 function toStationOptionsHtml(cur) {
-  var stations = (FleetStore && FleetStore.getStations ? FleetStore.getStations() : []).map(function (s) { return s.name; }).sort();
+  var stations = (FleetStore && FleetStore.getActiveStations ? FleetStore.getActiveStations() : []).map(function (s) { return s.name; }).sort();
   return '<option value="">Tất cả trạm đi</option>' + stations.map(function (s) {
     return '<option value="' + esc(s) + '"' + (cur === s ? ' selected' : '') + '>' + esc(s) + '</option>';
   }).join('');
