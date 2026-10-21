@@ -103,8 +103,10 @@ function renderRegionsManager() {
         '<span class="rgm-count" title="Tạo: ' + esc(rg.createdAt ? fmtStamp(rg.createdAt) + ' · ' + (rg.createdBy || '—') : '—') + '">Sửa: ' + esc(rg.updatedAt ? fmtStamp(rg.updatedAt) + ' · ' + (rg.updatedBy || '—') : '—') + '</span>' +
       '</div>' +
       '<div class="rgm-act">' +
-        '<button type="button" class="btn btn-sm btn-ghost" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",-1]\' aria-label="Lên">▲</button>' +
-        '<button type="button" class="btn btn-sm btn-ghost" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",1]\' aria-label="Xuống">▼</button>' +
+        '<span class="mv">' +
+          '<button type="button" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",-1]\' aria-label="Lên">▲</button>' +
+          '<button type="button" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",1]\' aria-label="Xuống">▼</button>' +
+        '</span>' +
         '<button type="button" class="btn btn-sm" data-action="adminRenameRegion" data-args=\'["' + esc(key) + '"]\'>Lưu</button>' +
         '<button type="button" class="btn btn-sm" data-action="adminToggleRegion" data-args=\'["' + esc(key) + '"]\'>' + (on ? 'Tắt' : 'Bật') + '</button>' +
         '<button type="button" class="btn btn-sm btn-danger" data-action="adminRemoveRegion" data-args=\'["' + esc(key) + '"]\'>Xoá</button>' +

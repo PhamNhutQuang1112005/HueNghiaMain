@@ -4817,8 +4817,14 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 .regions-modal .dm-add { flex-wrap: wrap; }
 .regions-modal .dm-add > select { flex: 1 1 130px; min-width: 0; }
 
-/* Cột Thứ tự (▲▼) và audit trong bảng Trạm xe / Điểm dừng */
-#viewStations .col-move { white-space: nowrap; width: 1%; }
-#viewStations .col-move .btn { padding: 2px 6px; min-width: 0; }
+/* Cột Thứ tự: số + ▲▼ nhỏ xếp dọc; hàng tiêu đề nhóm theo tỉnh; cột audit */
+#viewStations .col-order { white-space: nowrap; width: 1%; }
+#viewStations td.col-order { text-align: left; }
+.ord-no { display: inline-block; min-width: 18px; margin-right: 4px; color: var(--text-sub); font-size: 12px; }
+.mv { display: inline-flex; flex-direction: column; vertical-align: middle; }
+.mv button, #viewStations .mv button { width: 16px; height: 11px; padding: 0; margin: 0; border: 0; background: transparent; color: var(--text-sub); font-size: 8px; line-height: 11px; cursor: pointer; box-shadow: none; }
+.mv button:hover:not(:disabled) { color: var(--text); }
+.mv button:disabled { opacity: .3; cursor: not-allowed; }
+#viewStations tr.sd-group-row td { background: var(--surface-2); padding: 6px 12px; font-size: 13px; }
 #viewStations .audit-cell { font-size: 12px; white-space: nowrap; line-height: 1.35; }
-.regions-modal .rgm-act .btn-ghost { padding: 2px 6px; min-width: 0; }
+

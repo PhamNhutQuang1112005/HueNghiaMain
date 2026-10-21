@@ -44,15 +44,30 @@ function renderStationsView() {
     return hay.indexOf(q) !== -1;
   });
 
-  var allRows = filteredAll.length ? filteredAll.map(function (s, i) {
-    var regionLabel = s.region ? (regionMetaAll.find(function (rm) { return rm[0] === s.region; }) || [])[1] || s.region : '';
+  // Hiển thị theo tỉnh (đúng thứ tự trên quãng đường): tiêu đề tỉnh → các trạm trong tỉnh theo thứ tự ưu tiên.
+  var regionNameOf = {};
+  regionMetaAll.forEach(function (rm) { regionNameOf[rm[0]] = rm[1]; });
+  function groupByRegion(items, regionKeyOf, rowFn, colspan, unit) {
+    var out = '', last = null, n = 0, groups = [];
+    items.forEach(function (it) {
+      var k = regionKeyOf(it) || '';
+      if (k !== last) { groups.push({ key: k, items: [] }); last = k; }
+      groups[groups.length - 1].items.push(it);
+    });
+    groups.forEach(function (g) {
+      var title = g.key ? esc(regionNameOf[g.key] || g.key) : '<span class="hint-inline">Chưa gán tỉnh / mồ côi</span>';
+      out += '<tr class="sd-group-row"><td colspan="' + colspan + '"><b>' + title + '</b> <span class="hint-inline">' + g.items.length + ' ' + unit + '</span></td></tr>';
+      g.items.forEach(function (it, i) { out += rowFn(it, i + 1); });
+    });
+    return out;
+  }
+
+  var allRows = filteredAll.length ? groupByRegion(filteredAll, function (s) { return s.region; }, function (s, no) {
     return '<tr>' +
-      '<td class="num">' + (i + 1) + '</td>' +
-      adminMoveTd('adminMoveStation', s.id, !q) +
+      adminOrderTd('adminMoveStation', s.id, !q, no) +
       '<td><b>' + esc(s.name) + '</b></td>' +
       '<td class="mono">' + esc(s.code || '—') + '</td>' +
       '<td>' + esc(s.address || '—') + '</td>' +
-      '<td>' + (regionLabel ? esc(regionLabel) : '<span class="hint-inline">Chưa gán — cần sửa</span>') + '</td>' +
       '<td class="mono">' + esc(s.hotlineCargo || '—') + '</td>' +
       '<td class="mono">' + esc(s.hotlineTicket || '—') + '</td>' +
       '<td class="col-status">' + activeTag(s.active !== false) + '</td>' +
@@ -61,7 +76,7 @@ function renderStationsView() {
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStationRowMenu" data-args=\'["__this__","' + esc(s.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="12" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
+  }, 10, 'trạm') : '<tr><td colspan="10" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
 
   // Mỗi tab / nút chỉ hiện khi tài khoản có đúng quyền: trạm, điểm dừng, tỉnh (danh mục).
   var canSt = adminCan('manage_stations'), canStop = adminCan('manage_stop_stations'), canReg = adminCan('manage_regions');
@@ -75,15 +90,14 @@ function renderStationsView() {
   } else if (currentTab === 'all') {
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th class="col-move">Thứ tự</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Tỉnh</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="col-order">Thứ tự</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
       '</div>';
   } else {
     var stopStations = filteredStop;
-    var stopRows = stopStations.length ? stopStations.map(function (stop, i) {
+    var stopRows = stopStations.length ? groupByRegion(stopStations, function (stop) { var st = stationById[stop.stationId]; return st && st.region; }, function (stop, no) {
       var station = stationById[stop.stationId] || null;
       return '<tr>' +
-        '<td class="num">' + (i + 1) + '</td>' +
-        adminMoveTd('adminMoveStopStation', stop.id, !q) +
+        adminOrderTd('adminMoveStopStation', stop.id, !q, no) +
         '<td><b>' + (station ? esc(station.name) : '<span class="hint-inline">Mồ côi' + (stop.stationName ? ' (' + esc(stop.stationName) + ')' : '') + ' — chọn lại trạm</span>') + '</b></td>' +
         '<td><b>' + esc(stop.name || '—') + '</b></td>' +
         '<td class="mono">' + esc(stop.code || '—') + '</td>' +
@@ -95,11 +109,11 @@ function renderStationsView() {
           '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStopStationRowMenu" data-args=\'["__this__","' + esc(stop.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
         '</td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="11" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
+    }, 10, 'điểm dừng') : '<tr><td colspan="10" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
 
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th class="col-move">Thứ tự</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="col-order">Thứ tự</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
       '</div>';
   }
 
@@ -345,12 +359,14 @@ function adminDeleteStopStation(id) {
 }
 
 /* ---- Cột Thứ tự (sort_order theo quãng đường A → B) + cột audit dùng chung cho Trạm / Điểm dừng ---- */
-function adminMoveTd(action, id, enabled) {
-  var dis = enabled ? '' : ' disabled title="Bỏ ô tìm kiếm để sắp xếp"';
-  return '<td class="col-move">' +
-    '<button type="button" class="btn btn-sm btn-ghost"' + dis + ' data-action="' + action + '" data-args=\'["' + esc(id) + '",-1]\' aria-label="Lên">▲</button>' +
-    '<button type="button" class="btn btn-sm btn-ghost"' + dis + ' data-action="' + action + '" data-args=\'["' + esc(id) + '",1]\' aria-label="Xuống">▼</button>' +
-  '</td>';
+function adminOrderTd(action, id, enabled, no) {
+  var dis = enabled ? '' : ' disabled';
+  var args = function (d) { return ' data-action="' + action + '" data-args=\'["' + esc(id) + '",' + d + ']\''; };
+  return '<td class="col-order"><span class="ord-no">' + no + '</span>' +
+    '<span class="mv"' + (enabled ? '' : ' title="Bỏ ô tìm kiếm để sắp xếp"') + '>' +
+      '<button type="button"' + dis + args(-1) + ' aria-label="Lên">▲</button>' +
+      '<button type="button"' + dis + args(1) + ' aria-label="Xuống">▼</button>' +
+    '</span></td>';
 }
 function adminAuditTd(at, by) {
   return '<td class="audit-cell">' + (at ? esc(fmtStamp(at)) + '<br><span class="hint-inline">' + esc(by || '—') + '</span>' : '<span class="hint-inline">—</span>') + '</td>';
