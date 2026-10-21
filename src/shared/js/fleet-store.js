@@ -366,8 +366,15 @@
   function getRoutes() { return readJSON(HN_ROUTES_KEY, clone(SEED_ROUTES)); }
   function setRoutes(a) { writeJSON(HN_ROUTES_KEY, Array.isArray(a) ? a : []); }
 
+  // Trả trạm theo thứ tự trên quãng đường: tỉnh (order của tỉnh) rồi order của trạm trong tỉnh.
   function getStations(opts) {
     var list = readJSON(HN_STATIONS_KEY, clone(SEED_STATIONS));
+    var rank = {};
+    readJSON(HN_REGIONS_KEY, clone(SEED_REGIONS)).forEach(function (r, i) { rank[r.key] = (r.order == null ? i : r.order); });
+    list = list.map(function (s, i) { return { s: s, i: i }; }).sort(function (a, b) {
+      var ra = rank[a.s.region] == null ? 1e9 : rank[a.s.region], rb = rank[b.s.region] == null ? 1e9 : rank[b.s.region];
+      return (ra - rb) || ((a.s.order == null ? 1e9 : a.s.order) - (b.s.order == null ? 1e9 : b.s.order)) || (a.i - b.i);
+    }).map(function (o) { return o.s; });
     if (opts && opts.region) list = list.filter(function (s) { return s.region === opts.region; });
     return list;
   }
@@ -385,6 +392,30 @@
     return String(s || '').trim().toLowerCase().replace(/đ/g, 'd')
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+  // Audit: createdAt/createdBy/updatedAt/updatedBy (tên đăng nhập người thao tác).
+  function touch(o, isNew) {
+    var t = Date.now(), u = null;
+    try { u = (window.Session && Session.get() && Session.get().username) || null; } catch (e) { u = null; }
+    if (isNew) { o.createdAt = t; o.createdBy = u; }
+    o.updatedAt = t; o.updatedBy = u;
+  }
+  // Sắp theo order (hòa thì giữ thứ tự cũ).
+  function sortedByOrder(arr) {
+    return arr.map(function (x, i) { return { x: x, i: i }; }).sort(function (a, b) {
+      return ((a.x.order == null ? 1e9 : a.x.order) - (b.x.order == null ? 1e9 : b.x.order)) || (a.i - b.i);
+    }).map(function (o) { return o.x; });
+  }
+  function nextOrder(arr) {
+    return arr.reduce(function (m, x) { return Math.max(m, x.order == null ? -1 : x.order); }, -1) + 1;
+  }
+  // Đổi chỗ phần tử thoả pred với hàng xóm (delta -1 lên, +1 xuống) rồi đánh số lại order 0..n-1.
+  function swapOrder(siblings, pred, delta) {
+    var i = siblings.findIndex(pred), j = i + delta;
+    if (i < 0 || j < 0 || j >= siblings.length) return false;
+    var t = siblings[i]; siblings[i] = siblings[j]; siblings[j] = t;
+    siblings.forEach(function (x, k) { x.order = k; });
+    return true;
   }
   function stationByRef(ref) {
     return getStations().find(function (s) { return s && (s.id === ref || s.name === ref); }) || null;
@@ -441,7 +472,8 @@
     var code = genRegionCode(name, list);
     var base = slugify(name) || 'tinh', key = base, n = 2;
     while (list.some(function (r) { return r.key === key; })) key = base + '-' + (n++);
-    var item = { key: key, code: code, name: name, active: true, order: list.length };
+    var item = { key: key, code: code, name: name, active: true, order: nextOrder(list) };
+    touch(item, true);
     list.push(item);
     setRegions(list);
     return { ok: true, item: item };
@@ -454,6 +486,7 @@
     var why = checkRegionName(name, key);
     if (why) return { ok: false, reason: why };
     r.name = name; // mã tỉnh giữ nguyên
+    touch(r);
     setRegions(list);
     return { ok: true, item: r };
   }
@@ -466,7 +499,14 @@
       if (n) return { ok: false, reason: 'Tỉnh còn ' + n + ' trạm đang hoạt động — tắt các trạm trước.' };
     }
     r.active = !!on;
+    touch(r);
     setRegions(list);
+    return { ok: true };
+  }
+  function moveRegion(key, delta) {
+    var all = getRegions();
+    if (!swapOrder(sortedByOrder(all), function (x) { return x.key === key; }, delta)) return { ok: false };
+    setRegions(all);
     return { ok: true };
   }
   function removeRegion(key) {
@@ -493,13 +533,16 @@
 
   /* ---------------- ĐIỂM DỪNG (stop_station) — thuộc trạm bằng stationId ---------------- */
   // stationName chỉ là trường SUY RA khi đọc (để UI/đặt vé hiện tên), không lưu.
+  // Sắp theo thứ tự trạm trên quãng đường rồi order của điểm dừng trong trạm; mồ côi xếp cuối.
   function getStopStations() {
-    var byId = {};
-    getStations().forEach(function (s) { if (s && s.id) byId[s.id] = s; });
-    return readJSON(HN_STOP_STATIONS_KEY, []).map(function (s) {
+    var byId = {}, rank = {};
+    getStations().forEach(function (s, i) { if (s && s.id) { byId[s.id] = s; rank[s.id] = i; } });
+    return readJSON(HN_STOP_STATIONS_KEY, []).map(function (s, i) {
       var st = s && s.stationId ? byId[s.stationId] : null;
-      return Object.assign({}, s, { stationName: st ? st.name : (s.orphanStationName || '') });
-    });
+      return { o: Object.assign({}, s, { stationName: st ? st.name : (s.orphanStationName || '') }), r: st ? rank[st.id] : 1e9, i: i };
+    }).sort(function (a, b) {
+      return (a.r - b.r) || ((a.o.order == null ? 1e9 : a.o.order) - (b.o.order == null ? 1e9 : b.o.order)) || (a.i - b.i);
+    }).map(function (x) { return x.o; });
   }
   function setStopStations(a) {
     writeJSON(HN_STOP_STATIONS_KEY, (Array.isArray(a) ? a : []).map(function (s) {
@@ -529,6 +572,8 @@
       active: fields.active !== false
     };
     var raw = readJSON(HN_STOP_STATIONS_KEY, []);
+    item.order = nextOrder(raw.filter(function (x) { return x && x.stationId === item.stationId; }));
+    touch(item, true);
     raw.push(item);
     writeJSON(HN_STOP_STATIONS_KEY, raw);
     return { ok: true, item: item };
@@ -540,10 +585,12 @@
     if (!cur) return { ok: false, reason: 'Không tìm thấy điểm dừng.' };
     var c = checkStopFields(fields, id);
     if (c.reason) return { ok: false, reason: c.reason };
+    if (cur.stationId !== c.station.id) cur.order = nextOrder(raw.filter(function (x) { return x && x.stationId === c.station.id; }));
     cur.stationId = c.station.id; delete cur.orphanStationName;
     cur.name = c.name; if (!cur.code) cur.code = genStopCode(raw);
     cur.address = String(fields.address || '').trim(); cur.hotline = String(fields.hotline || '').trim();
     if (fields.active != null) cur.active = !!fields.active;
+    touch(cur);
     writeJSON(HN_STOP_STATIONS_KEY, raw);
     return { ok: true, item: cur };
   }
@@ -553,6 +600,16 @@
     if (!cur) return { ok: false, reason: 'Không tìm thấy điểm dừng.' };
     if (on && !cur.stationId) return { ok: false, reason: 'Điểm dừng chưa thuộc trạm nào — sửa và chọn trạm trước.' };
     cur.active = !!on;
+    touch(cur);
+    writeJSON(HN_STOP_STATIONS_KEY, raw);
+    return { ok: true };
+  }
+  function moveStopStation(id, delta) {
+    var raw = readJSON(HN_STOP_STATIONS_KEY, []);
+    var cur = raw.find(function (x) { return x && x.id === id; });
+    if (!cur) return { ok: false };
+    var sib = sortedByOrder(raw.filter(function (x) { return x && x.stationId === cur.stationId; }));
+    if (!swapOrder(sib, function (x) { return x.id === id; }, delta)) return { ok: false };
     writeJSON(HN_STOP_STATIONS_KEY, raw);
     return { ok: true };
   }
@@ -583,6 +640,8 @@
       active: true
     };
     var list = getStations();
+    item.order = nextOrder(list.filter(function (x) { return x.region === item.region; }));
+    touch(item, true);
     list.push(item);
     setStations(list);
     return { ok: true, item: item };
@@ -600,12 +659,23 @@
     var why = checkStationFields(fields, st.id);
     if (why) return { ok: false, reason: why };
     var oldName = st.name, newName = String(fields.name).trim();
+    if (st.region !== fields.region) st.order = nextOrder(list.filter(function (x) { return x.region === fields.region; }));
     st.name = newName; st.region = fields.region; if (!st.code) st.code = genStationCode(fields.region, list);
     st.address = String(fields.address || '').trim();
     st.hotlineCargo = String(fields.hotlineCargo || '').trim();
     st.hotlineTicket = String(fields.hotlineTicket || '').trim();
+    touch(st);
     setStations(list);
     if (newName !== oldName) renameStationInRoutes(oldName, newName);
+    return { ok: true };
+  }
+  function moveStation(ref, delta) {
+    var all = getStations();
+    var st = all.find(function (s) { return s.id === ref || s.name === ref; });
+    if (!st) return { ok: false };
+    var sib = sortedByOrder(all.filter(function (s) { return s.region === st.region; }));
+    if (!swapOrder(sib, function (s) { return s.id === st.id; }, delta)) return { ok: false };
+    setStations(all);
     return { ok: true };
   }
   function renameStationInRoutes(oldName, newName) {
@@ -629,6 +699,7 @@
       if (!r || r.active === false) return { ok: false, reason: 'Tỉnh của trạm đang tắt — bật tỉnh trước.' };
     }
     st.active = !!on;
+    touch(st);
     setStations(list);
     return { ok: true };
   }
@@ -704,6 +775,11 @@
       if (!s.code && s.region) { s.code = genStationCode(s.region, stations); stChanged = true; }
       else if (s.code === '' || s.code === undefined) { s.code = null; stChanged = true; }
     });
+    var maxByRegion = {};
+    stations.forEach(function (s) { if (s && s.order != null) maxByRegion[s.region] = Math.max(maxByRegion[s.region] == null ? -1 : maxByRegion[s.region], s.order); });
+    stations.forEach(function (s) {
+      if (s && s.order == null) { maxByRegion[s.region] = (maxByRegion[s.region] == null ? -1 : maxByRegion[s.region]) + 1; s.order = maxByRegion[s.region]; stChanged = true; }
+    });
     if (stChanged) setStations(stations);
     var unassigned = stations.filter(function (s) { return s && !s.region; }).length;
     if (unassigned) console.warn('[FleetStore] ' + unassigned + ' trạm chưa gán tỉnh — cần sửa trong Trạm xe.');
@@ -723,6 +799,11 @@
       if ('stationName' in sp) { delete sp.stationName; spChanged = true; }
       if (sp.active === undefined) { sp.active = true; spChanged = true; }
       if (!sp.code) { sp.code = genStopCode(stops); spChanged = true; }
+    });
+    var maxByStation = {};
+    stops.forEach(function (sp) { if (sp && sp.order != null) maxByStation[sp.stationId] = Math.max(maxByStation[sp.stationId] == null ? -1 : maxByStation[sp.stationId], sp.order); });
+    stops.forEach(function (sp) {
+      if (sp && sp.order == null) { maxByStation[sp.stationId] = (maxByStation[sp.stationId] == null ? -1 : maxByStation[sp.stationId]) + 1; sp.order = maxByStation[sp.stationId]; spChanged = true; }
     });
     if (spChanged) writeJSON(HN_STOP_STATIONS_KEY, stops);
 
@@ -1330,6 +1411,9 @@
     updateStopStation: updateStopStation,
     removeStopStation: removeStopStation,
     setStopActive: setStopActive,
+    moveRegion: moveRegion,
+    moveStation: moveStation,
+    moveStopStation: moveStopStation,
     getRegions: getRegions,
     addRegion: addRegion,
     updateRegion: updateRegion,

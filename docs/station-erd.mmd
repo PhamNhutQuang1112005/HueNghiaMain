@@ -27,7 +27,7 @@ erDiagram
         varchar code UK "TỰ SINH từ chữ cái đầu của tên (SG, CT), trùng thì thêm số; không cho nhập"
         varchar name UK "tên hiển thị, vd: An Giang"
         boolean active "NOT NULL DEFAULT TRUE; không tắt được khi còn trạm active"
-        int sort_order
+        int sort_order "thứ tự trên quãng đường A -> B (▲▼ ở modal Cập nhật danh mục)"
         timestamptz created_at
         timestamptz updated_at
         bigint created_by FK "nullable, users.user_id"
@@ -43,6 +43,7 @@ erDiagram
         varchar hotline_cargo
         varchar hotline_ticket
         boolean active "NOT NULL DEFAULT TRUE, cột Trạng thái + bật/tắt"
+        int sort_order "thứ tự trong tỉnh theo quãng đường A -> B (▲▼ ở bảng Trạm xe)"
         timestamptz created_at
         timestamptz updated_at
         bigint created_by FK "nullable, users.user_id"
@@ -57,6 +58,7 @@ erDiagram
         text address
         varchar hotline
         boolean active "NOT NULL DEFAULT TRUE"
+        int sort_order "thứ tự trong trạm (▲▼ ở bảng Điểm dừng)"
         timestamptz created_at
         timestamptz updated_at
         bigint created_by FK "nullable, users.user_id"

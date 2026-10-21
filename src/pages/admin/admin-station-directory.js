@@ -18,7 +18,7 @@ function adminSetStationSubTab(tab) {
 }
 
 function renderStationsView() {
-  var allStations = FleetStore.getStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
+  var allStations = FleetStore.getStations(); // đã sắp theo thứ tự trên quãng đường
   var regionMetaAll = getRegionMeta({ all: true });
   if (STATION_DIR_REGION && !regionMetaAll.some(function (rm) { return rm[0] === STATION_DIR_REGION; })) STATION_DIR_REGION = '';
 
@@ -35,7 +35,7 @@ function renderStationsView() {
 
   var stationById = {};
   allStations.forEach(function (s) { stationById[s.id] = s; });
-  var stopList = FleetStore.getStopStations().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
+  var stopList = FleetStore.getStopStations();
   var filteredStop = stopList.filter(function (stop) {
     var station = stationById[stop.stationId] || null;
     if (STATION_DIR_REGION && (!station || station.region !== STATION_DIR_REGION)) return false;
@@ -48,6 +48,7 @@ function renderStationsView() {
     var regionLabel = s.region ? (regionMetaAll.find(function (rm) { return rm[0] === s.region; }) || [])[1] || s.region : '';
     return '<tr>' +
       '<td class="num">' + (i + 1) + '</td>' +
+      adminMoveTd('adminMoveStation', s.id, !q) +
       '<td><b>' + esc(s.name) + '</b></td>' +
       '<td class="mono">' + esc(s.code || '—') + '</td>' +
       '<td>' + esc(s.address || '—') + '</td>' +
@@ -55,11 +56,12 @@ function renderStationsView() {
       '<td class="mono">' + esc(s.hotlineCargo || '—') + '</td>' +
       '<td class="mono">' + esc(s.hotlineTicket || '—') + '</td>' +
       '<td class="col-status">' + activeTag(s.active !== false) + '</td>' +
+      adminAuditTd(s.createdAt, s.createdBy) + adminAuditTd(s.updatedAt, s.updatedBy) +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStationRowMenu" data-args=\'["__this__","' + esc(s.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
+  }).join('') : '<tr><td colspan="12" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
 
   // Mỗi tab / nút chỉ hiện khi tài khoản có đúng quyền: trạm, điểm dừng, tỉnh (danh mục).
   var canSt = adminCan('manage_stations'), canStop = adminCan('manage_stop_stations'), canReg = adminCan('manage_regions');
@@ -73,29 +75,31 @@ function renderStationsView() {
   } else if (currentTab === 'all') {
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Tỉnh</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th class="col-move">Thứ tự</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Tỉnh</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
       '</div>';
   } else {
-    var stopStations = filteredStop.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
+    var stopStations = filteredStop;
     var stopRows = stopStations.length ? stopStations.map(function (stop, i) {
       var station = stationById[stop.stationId] || null;
       return '<tr>' +
         '<td class="num">' + (i + 1) + '</td>' +
+        adminMoveTd('adminMoveStopStation', stop.id, !q) +
         '<td><b>' + (station ? esc(station.name) : '<span class="hint-inline">Mồ côi' + (stop.stationName ? ' (' + esc(stop.stationName) + ')' : '') + ' — chọn lại trạm</span>') + '</b></td>' +
         '<td><b>' + esc(stop.name || '—') + '</b></td>' +
         '<td class="mono">' + esc(stop.code || '—') + '</td>' +
         '<td>' + esc(stop.address || '—') + '</td>' +
         '<td class="mono">' + esc(stop.hotline || '—') + '</td>' +
         '<td class="col-status">' + activeTag(stop.active !== false) + '</td>' +
+        adminAuditTd(stop.createdAt, stop.createdBy) + adminAuditTd(stop.updatedAt, stop.updatedBy) +
         '<td class="row-actions">' +
           '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStopStationRowMenu" data-args=\'["__this__","' + esc(stop.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
         '</td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="8" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
+    }).join('') : '<tr><td colspan="11" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
 
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th class="col-move">Thứ tự</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
       '</div>';
   }
 
@@ -283,8 +287,7 @@ function adminOpenStopStationModal(id) {
   var stop = id ? FleetStore.getStopStations().find(function (x) { return x.id === id; }) : null;
   var curStationId = stop ? (stop.stationId || '') : '';
   // Chỉ trạm đang bật; trạm hiện tại của điểm dừng (nếu đã tắt) vẫn giữ. Điểm dừng mồ côi bắt chọn lại.
-  var stations = FleetStore.getStations().filter(function (s) { return s.active !== false || s.id === curStationId; })
-    .sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'vi'); });
+  var stations = FleetStore.getStations().filter(function (s) { return s.active !== false || s.id === curStationId; });
   var stationOptions = (stop && !curStationId ? '<option value="" selected disabled>— Chọn lại trạm xe —</option>' : '') +
     stations.map(function (s) { return '<option value="' + esc(s.id) + '"' + (curStationId === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('');
   if (!stations.length) stationOptions = '<option value="">Chưa có trạm xe</option>';
@@ -339,4 +342,26 @@ function adminDeleteStopStation(id) {
   FleetStore.log({ action: 'delete', entity: 'stop_station', entityId: id, summary: 'Xoá điểm dừng' });
   showToast('Đã xoá điểm dừng.');
   renderSubStationsView();
+}
+
+/* ---- Cột Thứ tự (sort_order theo quãng đường A → B) + cột audit dùng chung cho Trạm / Điểm dừng ---- */
+function adminMoveTd(action, id, enabled) {
+  var dis = enabled ? '' : ' disabled title="Bỏ ô tìm kiếm để sắp xếp"';
+  return '<td class="col-move">' +
+    '<button type="button" class="btn btn-sm btn-ghost"' + dis + ' data-action="' + action + '" data-args=\'["' + esc(id) + '",-1]\' aria-label="Lên">▲</button>' +
+    '<button type="button" class="btn btn-sm btn-ghost"' + dis + ' data-action="' + action + '" data-args=\'["' + esc(id) + '",1]\' aria-label="Xuống">▼</button>' +
+  '</td>';
+}
+function adminAuditTd(at, by) {
+  return '<td class="audit-cell">' + (at ? esc(fmtStamp(at)) + '<br><span class="hint-inline">' + esc(by || '—') + '</span>' : '<span class="hint-inline">—</span>') + '</td>';
+}
+function adminMoveStation(id, delta) {
+  if (!adminRequire('manage_stations')) return;
+  FleetStore.moveStation(id, delta);
+  renderStationsView();
+}
+function adminMoveStopStation(id, delta) {
+  if (!adminRequire('manage_stop_stations')) return;
+  FleetStore.moveStopStation(id, delta);
+  renderStationsView();
 }

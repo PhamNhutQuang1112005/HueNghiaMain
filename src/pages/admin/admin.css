@@ -4816,3 +4816,9 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 .regions-modal .dm-from, .regions-modal .dm-to { flex: 1 1 130px; min-width: 0; }
 .regions-modal .dm-add { flex-wrap: wrap; }
 .regions-modal .dm-add > select { flex: 1 1 130px; min-width: 0; }
+
+/* Cột Thứ tự (▲▼) và audit trong bảng Trạm xe / Điểm dừng */
+#viewStations .col-move { white-space: nowrap; width: 1%; }
+#viewStations .col-move .btn { padding: 2px 6px; min-width: 0; }
+#viewStations .audit-cell { font-size: 12px; white-space: nowrap; line-height: 1.35; }
+.regions-modal .rgm-act .btn-ghost { padding: 2px 6px; min-width: 0; }

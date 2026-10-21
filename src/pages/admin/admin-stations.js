@@ -94,13 +94,17 @@ function adminRerenderRegionViews() {
 function renderRegionsManager() {
   var rows = getRegionMeta({ all: true }).map(function (rm) {
     var key = rm[0], on = rm[2];
+    var rg = FleetStore.getRegions().find(function (r) { return r.key === key; }) || {};
     return '<div class="rgm-row' + (on ? '' : ' rgm-row-hidden') + '">' +
       '<div class="rgm-main">' +
         '<input class="rgm-name" value="' + esc(rm[1]) + '" data-region-key="' + esc(key) + '" aria-label="Tên tỉnh">' +
         '<span class="rgm-count">Mã: ' + esc(FleetStore.getRegions().find(function (r) { return r.key === key; }).code) + '</span>' +
         '<span class="rgm-count">' + (on ? '' : 'Đã tắt') + '</span>' +
+        '<span class="rgm-count" title="Tạo: ' + esc(rg.createdAt ? fmtStamp(rg.createdAt) + ' · ' + (rg.createdBy || '—') : '—') + '">Sửa: ' + esc(rg.updatedAt ? fmtStamp(rg.updatedAt) + ' · ' + (rg.updatedBy || '—') : '—') + '</span>' +
       '</div>' +
       '<div class="rgm-act">' +
+        '<button type="button" class="btn btn-sm btn-ghost" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",-1]\' aria-label="Lên">▲</button>' +
+        '<button type="button" class="btn btn-sm btn-ghost" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",1]\' aria-label="Xuống">▼</button>' +
         '<button type="button" class="btn btn-sm" data-action="adminRenameRegion" data-args=\'["' + esc(key) + '"]\'>Lưu</button>' +
         '<button type="button" class="btn btn-sm" data-action="adminToggleRegion" data-args=\'["' + esc(key) + '"]\'>' + (on ? 'Tắt' : 'Bật') + '</button>' +
         '<button type="button" class="btn btn-sm btn-danger" data-action="adminRemoveRegion" data-args=\'["' + esc(key) + '"]\'>Xoá</button>' +
@@ -128,6 +132,13 @@ function adminOpenRegionsModal() {
 function adminRegionDone(msg, entityId, action, summary) {
   FleetStore.log({ action: action, entity: 'region', entityId: entityId, summary: summary });
   showToast(msg);
+  adminRerenderRegionViews();
+  adminOpenRegionsModal();
+}
+
+function adminMoveRegion(key, delta) {
+  if (!adminRequire('manage_regions')) return;
+  FleetStore.moveRegion(key, delta);
   adminRerenderRegionViews();
   adminOpenRegionsModal();
 }
