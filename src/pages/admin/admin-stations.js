@@ -10,55 +10,20 @@ var SELECTED_ROUTE_ID = null;
 var ROUTE_FILTER = ''; // ô tìm tuyến ở trang Tuyến xe (lọc theo tên / mã tuyến trong hướng đang chọn)
 var ROUTE_SEL = {}; // id tuyến đang tick chọn (bảng Tuyến) — dùng cho hành động "Xoá các tuyến đã chọn"
 var STATION_GROUPS = [['fromStations', 'Trạm điểm đi'], ['toStations', 'Trạm điểm đến'], ['pickupStations', 'Trạm có thể nhận thêm khách']];
-var REGION_META = [['saigon', 'Trạm Sài Gòn'], ['binhduong', 'Trạm Bình Dương'], ['angiang', 'Trạm An Giang']];
-// hn_admin_regions_v1: mảng { key, title?, custom?, hidden? }
-//   - custom  : địa điểm do admin thêm (ngoài 3 địa điểm gốc)
-//   - title   : tên hiển thị — với địa điểm gốc là "ghi đè" tên mặc định
-//   - hidden  : địa điểm đã bị xoá khỏi danh mục (gốc thì ẩn, tự thêm thì cũng đánh dấu ẩn)
-var HN_ADMIN_REGIONS_KEY = 'hn_admin_regions_v1';
-var REGION_FILTER = ''; // giữ lại cho adminRemoveRegion() reset; panel lọc theo địa điểm đã bỏ
 
-function regionStore() { return lsRead(HN_ADMIN_REGIONS_KEY, []); }
-function isBuiltinRegion(key) { return REGION_META.some(function (m) { return m[0] === key; }); }
-function regionRow(key) { return regionStore().find(function (r) { return r && r.key === key; }) || null; }
-function regionHidden(key) { var r = regionRow(key); return !!(r && r.hidden); }
-function regionTitleOf(key, fallback) { var r = regionRow(key); return (r && r.title) || fallback || key; }
-
-// Danh sách địa điểm hiển thị: 3 địa điểm gốc (trừ cái bị ẩn, có thể đổi tên) +
-// địa điểm tự thêm + địa điểm lạ còn dính trên trạm. Mỗi phần tử: [key, title, isCustom].
-function getRegionMeta() {
-  var store = regionStore();
-  var byKey = {};
-  store.forEach(function (r) { if (r && r.key) byKey[r.key] = r; });
-  var meta = [];
-  var seen = {};
-  REGION_META.forEach(function (m) {
-    seen[m[0]] = true;
-    var r = byKey[m[0]];
-    if (r && r.hidden) return;
-    meta.push([m[0], (r && r.title) || m[1], false]);
-  });
-  store.forEach(function (r) {
-    if (!r || !r.key || seen[r.key] || r.hidden || !r.custom) return;
-    meta.push([r.key, r.title || r.key, true]);
-    seen[r.key] = true;
-  });
-  FleetStore.getStations().forEach(function (s) {
-    if (s.region && !seen[s.region] && !(byKey[s.region] && byKey[s.region].hidden)) {
-      meta.push([s.region, 'Trạm ' + s.region, false]);
-      seen[s.region] = true;
-    }
-  });
-  return meta;
+// Danh sách tỉnh cho dropdown: [key, tên, active]. Mặc định chỉ tỉnh đang bật; { all: true } lấy cả tỉnh tắt.
+// Nguồn dữ liệu: FleetStore.getRegions() (không còn cơ chế ẩn/xoá/khôi phục — dùng cờ active).
+function getRegionMeta(opts) {
+  var all = !!(opts && opts.all);
+  return FleetStore.getRegions().slice().sort(byOrder)
+    .filter(function (r) { return all || r.active !== false; })
+    .map(function (r) { return [r.key, r.name, r.active !== false]; });
 }
-
-function slugifyRegion(s) {
-  var base = String(s || '').trim().toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return base || ('loc-' + Date.now().toString(36));
+function regionTitleOf(key) {
+  var m = getRegionMeta({ all: true }).find(function (x) { return x[0] === key; });
+  return m ? m[1] : (key || '');
 }
+var slugifyRegion = FleetStore.slugify;
 
 function renderDirectionsView() {
   var dirs = FleetStore.getDirections().slice().sort(byOrder);
@@ -120,47 +85,45 @@ function renderDirectionsView() {
 
 function adminRouteSearch(v) { ROUTE_FILTER = v || ''; adminKeepFocus(renderDirectionsView); }
 
-/* ---- Cập nhật danh mục địa điểm (thêm / sửa tên / xoá / khôi phục) — tất cả trong 1 modal.
+/* ---- Cập nhật danh mục tỉnh (thêm / sửa tên + mã / bật-tắt / xoá) — tất cả trong 1 modal.
    Mở từ trang Trạm Xe (nút "Cập nhật danh mục") — refresh đúng view đang hiển thị sau mỗi thay đổi. ---- */
 function adminRerenderRegionViews() {
   if (typeof VIEW_RENDERERS === 'object' && VIEW_RENDERERS[CURRENT_VIEW]) VIEW_RENDERERS[CURRENT_VIEW]();
   else if (typeof renderDirectionsView === 'function') renderDirectionsView();
 }
 function renderRegionsManager() {
-  var rows = getRegionMeta().map(function (rm) {
-    var key = rm[0], title = rm[1], isCustom = rm[2];
-    return '<div class="rgm-row">' +
+  var rows = getRegionMeta({ all: true }).map(function (rm) {
+    var key = rm[0], on = rm[2];
+    var rg = FleetStore.getRegions().find(function (r) { return r.key === key; }) || {};
+    return '<div class="rgm-row' + (on ? '' : ' rgm-row-hidden') + '">' +
       '<div class="rgm-main">' +
-        '<input class="rgm-name" value="' + esc(title) + '" data-region-key="' + esc(key) + '" aria-label="Tên địa điểm">' +
-        '<span class="rgm-count">' + (isCustom ? 'Tự thêm' : 'Mặc định') + '</span>' +
+        '<input class="rgm-name" value="' + esc(rm[1]) + '" data-region-key="' + esc(key) + '" aria-label="Tên tỉnh">' +
+        '<span class="rgm-count">Mã: ' + esc(FleetStore.getRegions().find(function (r) { return r.key === key; }).code) + '</span>' +
+        '<span class="rgm-count">' + (on ? '' : 'Đã tắt') + '</span>' +
+        '<span class="rgm-count" title="Tạo: ' + esc(rg.createdAt ? fmtStamp(rg.createdAt) + ' · ' + (rg.createdBy || '—') : '—') + '">Sửa: ' + esc(rg.updatedAt ? fmtStamp(rg.updatedAt) + ' · ' + (rg.updatedBy || '—') : '—') + '</span>' +
       '</div>' +
       '<div class="rgm-act">' +
-        '<button type="button" class="btn btn-sm" data-action="adminRenameRegion" data-args=\'["' + esc(key) + '"]\'>Lưu tên</button>' +
+        '<span class="mv">' +
+          '<button type="button" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",-1]\' aria-label="Lên">▲</button>' +
+          '<button type="button" data-action="adminMoveRegion" data-args=\'["' + esc(key) + '",1]\' aria-label="Xuống">▼</button>' +
+        '</span>' +
+        '<button type="button" class="btn btn-sm" data-action="adminRenameRegion" data-args=\'["' + esc(key) + '"]\'>Lưu</button>' +
+        '<button type="button" class="btn btn-sm" data-action="adminToggleRegion" data-args=\'["' + esc(key) + '"]\'>' + (on ? 'Tắt' : 'Bật') + '</button>' +
         '<button type="button" class="btn btn-sm btn-danger" data-action="adminRemoveRegion" data-args=\'["' + esc(key) + '"]\'>Xoá</button>' +
       '</div>' +
     '</div>';
   }).join('');
 
-  var hiddenB = REGION_META.filter(function (m) { return regionHidden(m[0]); });
-  var hiddenHtml = hiddenB.length
-    ? '<div class="rgm-hidden"><div class="grp-label">Địa điểm đã xoá</div>' +
-      hiddenB.map(function (m) {
-        return '<div class="rgm-row rgm-row-hidden">' +
-          '<span class="rgm-name-static">' + esc(regionTitleOf(m[0], m[1])) + '</span>' +
-          '<button type="button" class="btn btn-sm" data-action="adminRestoreRegion" data-args=\'["' + esc(m[0]) + '"]\'>Khôi phục</button>' +
-        '</div>';
-      }).join('') + '</div>'
-    : '';
-
-  return '<div class="rgm-list">' + rows + '</div>' + hiddenHtml +
+  return '<div class="rgm-list">' + rows + '</div>' +
     '<div class="rgm-add">' +
-      '<input id="rgmNew" placeholder="Tên địa điểm mới" aria-label="Tên địa điểm mới">' +
+      '<input id="rgmNew" placeholder="Tên tỉnh mới" aria-label="Tên tỉnh mới">' +
       '<button type="button" class="btn btn-primary" data-action="adminAddRegion">+ Thêm</button>' +
     '</div>';
 }
 function adminOpenRegionsModal() {
+  if (!adminRequire('manage_regions')) return;
   openAdminModal(
-    '<h3>Cập nhật danh mục địa điểm</h3>' +
+    '<h3>Cập nhật danh mục tỉnh</h3>' +
     '<div class="admin-form regions-modal">' +
       renderRegionsManager() +
       '<div class="modal-actions"><button type="button" class="btn btn-primary" data-action="closeAdminModal">Xong</button></div>' +
@@ -168,72 +131,52 @@ function adminOpenRegionsModal() {
     true
   );
 }
-
-function adminAddRegion() {
-  var el = $('rgmNew');
-  var name = ((el ? el.value : (prompt('Tên địa điểm mới:') || '')) || '').trim();
-  if (!name) return;
-  var key = slugifyRegion(name);
-  if (isBuiltinRegion(key) && regionHidden(key)) { adminRestoreRegion(key); return; }
-  if (getRegionMeta().some(function (rm) { return rm[0] === key; })) { showToast('Địa điểm này đã có.'); return; }
-  var title = /^trạm\s/i.test(name) ? name : 'Trạm ' + name;
-  var list = regionStore();
-  list.push({ key: key, title: title, custom: true });
-  lsWrite(HN_ADMIN_REGIONS_KEY, list);
-  FleetStore.log({ action: 'create', entity: 'region', entityId: key, summary: 'Thêm địa điểm "' + name + '"' });
-  showToast('Đã thêm địa điểm.');
+function adminRegionDone(msg, entityId, action, summary) {
+  FleetStore.log({ action: action, entity: 'region', entityId: entityId, summary: summary });
+  showToast(msg);
   adminRerenderRegionViews();
   adminOpenRegionsModal();
+}
+
+function adminMoveRegion(key, delta) {
+  if (!adminRequire('manage_regions')) return;
+  FleetStore.moveRegion(key, delta);
+  adminRerenderRegionViews();
+  adminOpenRegionsModal();
+}
+
+function adminAddRegion() {
+  if (!adminRequire('manage_regions')) return;
+  var name = (($('rgmNew') || {}).value || '').trim();
+  var res = FleetStore.addRegion({ name: name });
+  if (!res.ok) { showToast(res.reason); return; }
+  adminRegionDone('Đã thêm tỉnh.', res.item.key, 'create', 'Thêm tỉnh "' + res.item.name + '"');
 }
 
 function adminRenameRegion(key) {
-  var inp = document.querySelector('.rgm-name[data-region-key="' + key + '"]');
-  var title = (inp && inp.value || '').trim();
-  if (!title) { showToast('Nhập tên địa điểm.'); return; }
-  var list = regionStore();
-  var row = list.find(function (r) { return r && r.key === key; });
-  if (row) {
-    if (row.title === title) { showToast('Tên không đổi.'); return; }
-    row.title = title;
-  } else {
-    list.push({ key: key, title: title, custom: !isBuiltinRegion(key) });
-  }
-  lsWrite(HN_ADMIN_REGIONS_KEY, list);
-  FleetStore.log({ action: 'update', entity: 'region', entityId: key, summary: 'Sửa địa điểm "' + title + '"' });
-  showToast('Đã lưu tên địa điểm.');
-  adminRerenderRegionViews();
-  adminOpenRegionsModal();
+  if (!adminRequire('manage_regions')) return;
+  var nameEl = document.querySelector('.rgm-name[data-region-key="' + key + '"]');
+  var res = FleetStore.updateRegion(key, { name: nameEl && nameEl.value });
+  if (!res.ok) { showToast(res.reason); return; }
+  adminRegionDone('Đã lưu tỉnh.', key, 'update', 'Sửa tỉnh "' + res.item.name + '"');
+}
+
+function adminToggleRegion(key) {
+  if (!adminRequire('manage_regions')) return;
+  var cur = FleetStore.getRegions().find(function (r) { return r.key === key; });
+  if (!cur) return;
+  var on = cur.active === false;
+  var res = FleetStore.setRegionActive(key, on);
+  if (!res.ok) { showToast(res.reason); return; }
+  adminRegionDone(on ? 'Đã bật tỉnh.' : 'Đã tắt tỉnh.', key, 'toggle', (on ? 'Bật' : 'Tắt') + ' tỉnh "' + cur.name + '"');
 }
 
 function adminRemoveRegion(key) {
-  var cnt = FleetStore.getStations().filter(function (s) { return s.region === key; }).length;
-  if (cnt) { showToast('Địa điểm còn ' + cnt + ' trạm — xoá hết trạm trước.'); return; }
-  if (!confirm('Xoá địa điểm này khỏi danh mục?')) return;
-  var list = regionStore();
-  if (isBuiltinRegion(key)) {
-    var row = list.find(function (r) { return r && r.key === key; });
-    if (row) { row.hidden = true; delete row.custom; }
-    else list.push({ key: key, hidden: true });
-  } else {
-    list = list.filter(function (r) { return !r || r.key !== key; });
-  }
-  lsWrite(HN_ADMIN_REGIONS_KEY, list);
-  FleetStore.log({ action: 'delete', entity: 'region', entityId: key, summary: 'Xoá địa điểm "' + key + '"' });
-  if (REGION_FILTER === key) REGION_FILTER = '';
-  showToast('Đã xoá địa điểm.');
-  adminRerenderRegionViews();
-  adminOpenRegionsModal();
-}
-
-function adminRestoreRegion(key) {
-  var list = regionStore();
-  var row = list.find(function (r) { return r && r.key === key; });
-  if (row) delete row.hidden;
-  lsWrite(HN_ADMIN_REGIONS_KEY, list);
-  FleetStore.log({ action: 'update', entity: 'region', entityId: key, summary: 'Khôi phục địa điểm "' + key + '"' });
-  showToast('Đã khôi phục địa điểm.');
-  adminRerenderRegionViews();
-  adminOpenRegionsModal();
+  if (!adminRequire('manage_regions')) return;
+  if (!confirm('Xoá tỉnh này khỏi danh mục?')) return;
+  var res = FleetStore.removeRegion(key);
+  if (!res.ok) { showToast(res.reason); return; }
+  adminRegionDone('Đã xoá tỉnh.', key, 'delete', 'Xoá tỉnh "' + key + '"');
 }
 
 
@@ -297,6 +240,7 @@ function adminRouteToggleAll(cb) {
 }
 function adminRouteClearSel() { ROUTE_SEL = {}; renderDirectionsView(); }
 function adminRouteDeleteSelected() {
+  if (!adminRequire('manage_routes')) return;
   var ids = Object.keys(ROUTE_SEL);
   if (!ids.length) return;
   var routes = FleetStore.getRoutes();
@@ -330,13 +274,9 @@ function adminRouteRowMenu(btn, routeId) {
 
 function adminSelectDirection(id) { SELECTED_DIR_ID = id; SELECTED_ROUTE_ID = null; renderDirectionsView(); }
 
-// Suy chiều nội bộ từ tên hướng (để bộ lọc "Chiều đi / Chiều về" ở TicketStaff vẫn chạy) — KHÔNG hiển thị.
-function senseFromLabel(label) {
-  return /^\s*(Sài Gòn|Bình Dương)\b/i.test(label || '') ? 'di' : 've';
-}
-
-/* ---- Cập nhật hướng — 1 modal gộp Thêm / Sửa tên / Bật-Tắt / Xoá cho mọi hướng ---- */
+/* ---- Cập nhật hướng — 1 modal gộp Thêm / Sửa (tên + tỉnh đi + tỉnh đến) / Bật-Tắt / Xoá cho mọi hướng ---- */
 function adminOpenDirsModal() {
+  if (!adminRequire('manage_directions')) return;
   openAdminModal(
     '<h3>Cập nhật hướng</h3>' +
     '<div class="admin-form regions-modal dirs-modal">' +
@@ -345,6 +285,39 @@ function adminOpenDirsModal() {
     '</div>'
   );
 }
+// <select> tỉnh: chỉ tỉnh đang bật, riêng tỉnh đang chọn (kể cả đã tắt) vẫn giữ để không mất dữ liệu.
+function dirRegionSelect(cls, attr, current, placeholder) {
+  var opts = getRegionMeta({ all: true }).filter(function (m) { return m[2] || m[0] === current; });
+  return '<select class="' + cls + '" ' + attr + ' aria-label="' + esc(placeholder) + '">' +
+    '<option value=""' + (current ? '' : ' selected') + '>' + esc(placeholder) + '</option>' +
+    opts.map(function (m) { return '<option value="' + esc(m[0]) + '"' + (m[0] === current ? ' selected' : '') + '>' + esc(m[1]) + '</option>'; }).join('') +
+  '</select>';
+}
+// Các tỉnh giữa (có thứ tự, không giới hạn số lượng): chip + <select> "+ Tỉnh giữa". Trạng thái nằm ở data-vias.
+function viaWidgetHtml(attr, vias) {
+  return '<div class="dm-via" ' + attr + ' data-vias="' + esc(vias.join(',')) + '">' + viaInnerHtml(vias) + '</div>';
+}
+function viaInnerHtml(vias) {
+  var meta = getRegionMeta({ all: true });
+  var name = function (k) { var m = meta.filter(function (x) { return x[0] === k; })[0]; return m ? m[1] : k; };
+  return vias.map(function (k, i) {
+    return '<span class="chip">' + esc(name(k)) + '<button type="button" title="Bỏ tỉnh giữa" data-action="adminDirViaRemove" data-args=\'["__this__",' + i + ']\'>&times;</button></span>';
+  }).join('') +
+  '<select data-change-action="adminDirViaAdd" data-args=\'["__this__"]\' aria-label="Thêm tỉnh giữa"><option value="">+ Tỉnh giữa</option>' +
+    meta.filter(function (m) { return m[2] && vias.indexOf(m[0]) === -1; }).map(function (m) { return '<option value="' + esc(m[0]) + '">' + esc(m[1]) + '</option>'; }).join('') +
+  '</select>';
+}
+function viasOf(w) { return w && w.dataset.vias ? w.dataset.vias.split(',') : []; }
+function setVias(w, vias) { w.dataset.vias = vias.join(','); w.innerHTML = viaInnerHtml(vias); }
+function adminDirViaAdd(sel) {
+  var w = sel.closest('.dm-via');
+  if (sel.value) setVias(w, viasOf(w).concat(sel.value));
+}
+function adminDirViaRemove(btn, idx) {
+  var w = btn.closest('.dm-via'), v = viasOf(w);
+  v.splice(idx, 1);
+  setVias(w, v);
+}
 function renderDirsManager() {
   var dirs = FleetStore.getDirections().slice().sort(byOrder);
   var rows = dirs.map(function (d) {
@@ -352,9 +325,12 @@ function renderDirsManager() {
     return '<div class="rgm-row' + (on ? '' : ' rgm-row-hidden') + '">' +
       '<div class="rgm-main">' +
         '<input class="rgm-name dm-name" value="' + esc(d.label) + '" data-dir-id="' + esc(d.id) + '" aria-label="Tên hướng">' +
+        dirRegionSelect('dm-from', 'data-dir-from="' + esc(d.id) + '"', d.fromRegion || '', '— Tỉnh đi —') +
+        viaWidgetHtml('data-dir-via="' + esc(d.id) + '"', d.viaRegions || []) +
+        dirRegionSelect('dm-to', 'data-dir-to="' + esc(d.id) + '"', d.toRegion || '', '— Tỉnh đến —') +
       '</div>' +
       '<div class="rgm-act">' +
-        '<button type="button" class="btn btn-sm" data-action="adminSaveDirName" data-args=\'["' + esc(d.id) + '"]\'>Lưu tên</button>' +
+        '<button type="button" class="btn btn-sm" data-action="adminSaveDirName" data-args=\'["' + esc(d.id) + '"]\'>Lưu</button>' +
         '<button type="button" class="btn btn-sm" data-action="adminToggleDirectionActive" data-args=\'["' + esc(d.id) + '"]\'>' + (on ? 'Tắt' : 'Bật') + '</button>' +
         '<button type="button" class="btn btn-sm btn-danger" data-action="adminDeleteDirection" data-args=\'["' + esc(d.id) + '"]\'>Xoá</button>' +
       '</div>' +
@@ -364,40 +340,54 @@ function renderDirsManager() {
   return '<div class="rgm-list">' + rows + '</div>' +
     '<div class="rgm-add dm-add">' +
       '<input id="dmNewLabel" placeholder="Tên hướng mới — VD: Sài Gòn - An Giang" aria-label="Tên hướng mới">' +
-      '<input id="dmNewKey" placeholder="Mã (vd: sg-ag)" aria-label="Mã hướng">' +
+      dirRegionSelect('', 'id="dmNewFrom"', '', '— Tỉnh đi —') +
+      viaWidgetHtml('id="dmNewVia"', []) +
+      dirRegionSelect('', 'id="dmNewTo"', '', '— Tỉnh đến —') +
       '<button type="button" class="btn btn-primary" data-action="adminAddDirection">+ Thêm</button>' +
     '</div>';
 }
 
 function adminSaveDirName(id) {
+  if (!adminRequire('manage_directions')) return;
   var inp = document.querySelector('.dm-name[data-dir-id="' + id + '"]');
-  var label = (inp && inp.value || '').trim();
-  if (!label) { showToast('Nhập tên hướng.'); return; }
+  var fields = {
+    label: (inp && inp.value || '').trim(),
+    fromRegion: (document.querySelector('[data-dir-from="' + id + '"]') || {}).value || '',
+    viaRegions: viasOf(document.querySelector('[data-dir-via="' + id + '"]')),
+    toRegion: (document.querySelector('[data-dir-to="' + id + '"]') || {}).value || ''
+  };
   var list = FleetStore.getDirections();
   var d = list.find(function (x) { return x.id === id; });
   if (!d) return;
-  if (d.label === label) { showToast('Tên không đổi.'); return; }
+  var why = FleetStore.validateDirection(fields, id);
+  if (why) { showToast(why); return; }
+  if (d.label === fields.label && d.fromRegion === fields.fromRegion && d.toRegion === fields.toRegion && (d.viaRegions || []).join() === fields.viaRegions.join()) { showToast('Không có thay đổi.'); return; }
   var before = JSON.parse(JSON.stringify(d));
-  d.label = label; d.sense = senseFromLabel(label);
+  d.label = fields.label; d.fromRegion = fields.fromRegion; d.toRegion = fields.toRegion; d.viaRegions = fields.viaRegions;
   FleetStore.setDirections(list);
-  FleetStore.log({ action: 'update', entity: 'direction', entityId: id, summary: 'Sửa hướng ' + label, before: before, after: d });
-  showToast('Đã lưu tên hướng.');
+  FleetStore.log({ action: 'update', entity: 'direction', entityId: id, summary: 'Sửa hướng ' + fields.label, before: before, after: d });
+  showToast('Đã lưu hướng.');
   renderDirectionsView();
   adminOpenDirsModal();
 }
 
 function adminAddDirection() {
-  var label = ($('dmNewLabel').value || '').trim();
-  var key = ($('dmNewKey').value || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
-  if (!label) { showToast('Nhập tên hướng.'); return; }
-  if (!key) key = slugifyRegion(label);
+  if (!adminRequire('manage_directions')) return;
+  var fields = {
+    label: ($('dmNewLabel').value || '').trim(),
+    fromRegion: $('dmNewFrom').value,
+    viaRegions: viasOf($('dmNewVia')),
+    toRegion: $('dmNewTo').value
+  };
+  var why = FleetStore.validateDirection(fields, null);
+  if (why) { showToast(why); return; }
+  var key = FleetStore.genDirectionId(fields.fromRegion, fields.toRegion, fields.viaRegions); // mã hướng tự sinh từ mã các tỉnh
   var list = FleetStore.getDirections();
-  if (list.some(function (x) { return x.id === key; })) { showToast('Mã hướng "' + key + '" đã tồn tại.'); return; }
   var maxOrder = list.reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
-  var nd = { id: key, label: label, sense: senseFromLabel(label), active: true, order: maxOrder + 1 };
+  var nd = { id: key, label: fields.label, fromRegion: fields.fromRegion, viaRegions: fields.viaRegions, toRegion: fields.toRegion, active: true, order: maxOrder + 1 };
   list.push(nd);
   FleetStore.setDirections(list);
-  FleetStore.log({ action: 'create', entity: 'direction', entityId: key, summary: 'Thêm hướng ' + label, after: nd });
+  FleetStore.log({ action: 'create', entity: 'direction', entityId: key, summary: 'Thêm hướng ' + fields.label, after: nd });
   SELECTED_DIR_ID = key;
   showToast('Đã thêm hướng.');
   renderDirectionsView();
@@ -405,6 +395,7 @@ function adminAddDirection() {
 }
 
 function adminToggleDirectionActive(id) {
+  if (!adminRequire('manage_directions')) return;
   var list = FleetStore.getDirections();
   var d = list.find(function (x) { return x.id === id; });
   if (!d) return;
@@ -417,6 +408,7 @@ function adminToggleDirectionActive(id) {
 }
 
 function adminDeleteDirection(id) {
+  if (!adminRequire('manage_directions')) return;
   var chk = FleetStore.canDeleteDirection(id);
   if (!chk.ok) { showToast('Không thể xoá: ' + chk.reason); return; }
   if (!confirm('Xoá hướng này?')) return;
@@ -435,9 +427,12 @@ function mutateRoute(id, fn) {
   var r = list.find(function (x) { return x.id === id; });
   if (!r) return;
   fn(r);
+  // route_price chỉ hợp lệ với cặp (trạm đi, trạm đến) còn nằm trong tuyến.
+  if (r.prices) r.prices = r.prices.filter(function (p) { return (r.fromStations || []).indexOf(p.from) !== -1 && (r.toStations || []).indexOf(p.to) !== -1; });
   FleetStore.setRoutes(list);
 }
 function adminRemoveRouteStation(routeId, kind, idx) {
+  if (!adminRequire('manage_routes')) return;
   var removed = '';
   mutateRoute(routeId, function (r) {
     if (!Array.isArray(r[kind])) return;
@@ -452,16 +447,26 @@ function adminRemoveRouteStation(routeId, kind, idx) {
   }
 }
 function adminOpenStationPicker(routeId, kind) {
+  if (!adminRequire('manage_routes')) return;
   var r = FleetStore.getRoutes().find(function (x) { return x.id === routeId; });
   if (!r) return;
   var groupLabel = (STATION_GROUPS.filter(function (g) { return g[0] === kind; })[0] || ['', 'Trạm'])[1];
   var chosen = {};
   (r[kind] || []).forEach(function (s) { chosen[s] = true; });
   var metaPick = getRegionMeta();
-  var byRegion = { '': [] };
-  var regionTitle = { '': 'Trạm khác' };
-  metaPick.forEach(function (m) { byRegion[m[0]] = []; regionTitle[m[0]] = m[1]; });
-  FleetStore.getStations().forEach(function (s) { (byRegion[s.region] || byRegion['']).push(s.name); });
+  var dir = FleetStore.getDirections().find(function (x) { return x.id === r.directionId; }) || {};
+  // Trạm đi → tỉnh đi của hướng; trạm đến / nhận thêm → tỉnh đến. Hướng chưa có tỉnh thì không lọc.
+  // Trạm nhận thêm khách nằm dọc đường đi → cho chọn cả tỉnh đi lẫn tỉnh đến.
+  var wantRegions = kind === 'fromStations' ? [dir.fromRegion] : kind === 'pickupStations' ? FleetStore.directionRegions(dir) : [dir.toRegion];
+  var noFilter = !wantRegions.some(Boolean);
+  var byRegion = {};
+  var regionTitle = {};
+  metaPick.forEach(function (m) { if (noFilter || wantRegions.indexOf(m[0]) !== -1) { byRegion[m[0]] = []; regionTitle[m[0]] = m[1]; } });
+  // Chỉ trạm đang bật; trạm đã chọn từ trước mà nay tắt vẫn hiện (đã tick) để không mất khi lưu.
+  FleetStore.getStations().forEach(function (s) {
+    if (!byRegion[s.region]) return;
+    if (s.active !== false || chosen[s.name]) byRegion[s.region].push(s.name);
+  });
   var groupsHtml = Object.keys(byRegion).filter(function (k) { return byRegion[k].length; }).map(function (k) {
     return '<div class="sp-region">' +
       '<div class="grp-label">' + regionTitle[k] + ' <span class="sp-count">' + byRegion[k].length + '</span></div>' +
@@ -477,13 +482,6 @@ function adminOpenStationPicker(routeId, kind) {
       '<p class="sp-hint hint-inline">Tuyến: <b>' + esc(r.label) + '</b></p>' +
       '<input type="hidden" id="spRoute" value="' + esc(routeId) + '"><input type="hidden" id="spKind" value="' + esc(kind) + '">' +
       '<div class="sp-list" id="spList">' + (groupsHtml || '<span class="hint-inline">Danh mục trạm trống.</span>') + '</div>' +
-      '<div class="fld sp-addfld"><label>Thêm trạm mới vào danh mục</label>' +
-        '<div class="sp-addrow">' +
-          '<input id="spNew" placeholder="Tên trạm mới">' +
-          '<select id="spNewRegion"><option value="">— chọn địa điểm —</option>' +
-            metaPick.map(function (m) { return '<option value="' + esc(m[0]) + '">' + esc(m[1]) + '</option>'; }).join('') +
-          '</select>' +
-        '</div></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
     '</form>',
     false, true
@@ -491,13 +489,9 @@ function adminOpenStationPicker(routeId, kind) {
 }
 function adminSaveStationPick(e) {
   e.preventDefault();
+  if (!adminRequire('manage_routes')) return;
   var routeId = $('spRoute').value, kind = $('spKind').value;
   var picked = Array.prototype.map.call($('spList').querySelectorAll('input[type=checkbox]:checked'), function (c) { return c.value; });
-  var newName = ($('spNew').value || '').trim();
-  if (newName) {
-    FleetStore.addStation(newName, $('spNewRegion').value);
-    if (picked.indexOf(newName) === -1) picked.push(newName);
-  }
   mutateRoute(routeId, function (r) { r[kind] = picked; });
   FleetStore.log({ action: 'update', entity: 'route', entityId: routeId, summary: 'Cập nhật ' + kind + ' (' + picked.length + ' trạm)' });
   showToast('Đã lưu trạm.');
@@ -509,22 +503,9 @@ function adminSaveStationPick(e) {
   }
 }
 
-/* "Loại xe" của 1 tuyến/mức giá — dùng lại đúng danh mục Loại xe (scope 'line') như modal "Tạo phơi xe"
-   (admin-trips.js) thay vì tự bịa danh sách riêng. Route đang sửa mà vehicleType không còn active/đã bị
-   xoá khỏi danh mục vẫn được giữ lại trong <select> (nối thêm) để không mất dữ liệu cũ khi sửa. */
-function routeVehicleTypeOptionsHtml(current) {
-  var vtypes = FleetStore.getVehicleTypes({ scope: 'line' }).filter(activeOf);
-  if (current && !vtypes.some(function (v) { return v.name === current; })) vtypes = vtypes.concat([{ name: current }]);
-  return vtypes.map(function (v) {
-    return '<option value="' + esc(v.name) + '"' + (v.name === current ? ' selected' : '') + '>' + esc(v.name) + '</option>';
-  }).join('');
-}
-
-// Mỗi tuyến có 2 ô giá độc lập: Ghế đơn và Ghế đôi (không còn phụ thuộc vào Loại xe như trước). Điền cả
-// 2 ô thì cột "Giá" ở bảng Quản lý giá hiện cả 2 mức (Đơn/Đôi, như xe 24 Phòng hiện nay); chỉ điền 1 ô thì
-// cột "Giá" chỉ hiện đúng 1 mức đó (như các xe còn lại). Logic quyết định hasDouble nằm ở buildSeatPriceMeta
-// (admin-placeholders.js), dựa trên chính 2 giá trị route.price/route.doubleSeatPrice.
+// Tuyến không có giá/loại xe: giá nhập theo cặp trạm đi - trạm đến (adminOpenRoutePrices), loại xe nằm ở phơi mẫu.
 function adminOpenRouteModal(id, directionId) {
+  if (!adminRequire('manage_routes')) return;
   var routes = FleetStore.getRoutes();
   var r = id ? routes.find(function (x) { return x.id === id; }) : null;
   var dirs = FleetStore.getDirections().slice().sort(byOrder);
@@ -538,14 +519,7 @@ function adminOpenRouteModal(id, directionId) {
       '</select></div>' +
       '<div class="fld"><label>Tên tuyến *</label>' +
         '<input id="rmLabel" required value="' + (r ? esc(r.label) : '') + '" placeholder="VD: Sài Gòn - An Giang"></div>' +
-      '<div class="fld-row">' +
-        '<div class="fld"><label>Mã tuyến</label><input id="rmAbbr" value="' + (r ? esc(r.abbr || '') : '') + '" placeholder="SG-LX"></div>' +
-        '<div class="fld"><label>Loại xe *</label><select id="rmVehicleType" required>' + routeVehicleTypeOptionsHtml(r ? r.vehicleType : '') + '</select></div>' +
-      '</div>' +
-      '<div class="fld-row">' +
-        '<div class="fld"><label>Giá vé ghế đơn (đ)</label><input id="rmPrice" type="number" min="0" step="5000" placeholder="Bỏ trống nếu không bán" value="' + (r && r.price ? r.price : '') + '"></div>' +
-        '<div class="fld"><label>Giá vé ghế đôi (đ)</label><input id="rmDoublePrice" type="number" min="0" step="5000" placeholder="Bỏ trống nếu không bán" value="' + (r && r.doubleSeatPrice ? r.doubleSeatPrice : '') + '"></div>' +
-      '</div>' +
+      '<div class="fld"><label>Mã tuyến</label><input id="rmAbbr" value="' + (r ? esc(r.abbr || '') : '') + '" placeholder="SG-LX"></div>' +
       '<div class="fld"><label><input type="checkbox" id="rmActive" ' + (!r || activeOf(r) ? 'checked' : '') + '> Đang hoạt động</label></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
     '</form>'
@@ -554,29 +528,26 @@ function adminOpenRouteModal(id, directionId) {
 
 function adminSaveRoute(e) {
   e.preventDefault();
+  if (!adminRequire('manage_routes')) return;
   var id0 = $('rmId').value;
   var label = $('rmLabel').value.trim();
   var dirId = $('rmDir').value;
-  var price = parseInt($('rmPrice').value, 10) || 0;
-  var doublePrice = parseInt($('rmDoublePrice').value, 10) || 0;
   if (!label || !dirId) { showToast('Nhập đủ Tên tuyến và hướng.'); return; }
-  if (!price && !doublePrice) { showToast('Nhập ít nhất 1 trong 2 giá vé (ghế đơn hoặc ghế đôi).'); return; }
   var list = FleetStore.getRoutes();
   if (list.some(function (x) { return x.label === label && x.id !== id0; })) { showToast('Tên tuyến đã tồn tại.'); return; }
   var abbr = $('rmAbbr').value.trim();
-  var vehicleType = ($('rmVehicleType') || {}).value || '';
   var active = $('rmActive').checked;
 
   if (id0) {
     var r = list.find(function (x) { return x.id === id0; });
     var before = JSON.parse(JSON.stringify(r));
-    r.label = label; r.directionId = dirId; r.price = price; r.doubleSeatPrice = doublePrice; r.abbr = abbr; r.vehicleType = vehicleType; r.active = active;
+    r.label = label; r.directionId = dirId; r.abbr = abbr; r.active = active;
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'update', entity: 'route', entityId: id0, summary: 'Sửa tuyến ' + label, before: before, after: r });
   } else {
     var newId = dirId + '-' + Date.now().toString(36);
     var maxOrder = list.filter(function (x) { return x.directionId === dirId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
-    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, price: price, doubleSeatPrice: doublePrice, vehicleType: vehicleType, active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
+    var nr = { id: newId, directionId: dirId, label: label, abbr: abbr, prices: [], active: active, order: maxOrder + 1, fromStations: [], toStations: [], pickupStations: [] };
     list.push(nr);
     FleetStore.setRoutes(list);
     FleetStore.log({ action: 'create', entity: 'route', entityId: newId, summary: 'Thêm tuyến ' + label, after: nr });
@@ -598,6 +569,7 @@ function adminSaveRoute(e) {
    chỉnh lại cho nhanh thay vì gõ lại từ đầu. Tên tuyến phải là DUY NHẤT (adminSaveRoute kiểm tra) nên tự
    thêm hậu tố "(Copy)"/"(Copy 2)"... cho tới khi không trùng. */
 function adminDuplicateRoute(id) {
+  if (!adminRequire('manage_routes')) return;
   var list = FleetStore.getRoutes();
   var src = list.find(function (x) { return x.id === id; });
   if (!src) return;
@@ -610,7 +582,7 @@ function adminDuplicateRoute(id) {
   var maxOrder = list.filter(function (x) { return x.directionId === src.directionId; }).reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
   var copy = {
     id: newId, directionId: src.directionId, label: label, abbr: src.abbr || '',
-    price: src.price || 0, doubleSeatPrice: src.doubleSeatPrice, vehicleType: src.vehicleType || '',
+    prices: JSON.parse(JSON.stringify(src.prices || [])),
     active: true, order: maxOrder + 1,
     fromStations: (src.fromStations || []).slice(),
     toStations: (src.toStations || []).slice(),
@@ -624,6 +596,7 @@ function adminDuplicateRoute(id) {
 }
 
 function adminDeleteRoute(id) {
+  if (!adminRequire('manage_routes')) return;
   var chk = FleetStore.canDeleteRoute(id);
   if (!chk.ok) { showToast('Không thể xoá: ' + chk.reason); return; }
   if (!confirm('Xoá tuyến này?')) return;

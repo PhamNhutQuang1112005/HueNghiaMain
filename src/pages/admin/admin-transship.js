@@ -195,7 +195,7 @@ function renderTransshipView() {
   var all = adminScanTransshipRows();
   var f = TRANSSHIP_FILTERS;
   var selectedDate = adminCalState('ts').selectedStr;
-  var stationNames = FleetStore.getStations().map(function (s) { return s.name; }).sort();
+  var stationNames = FleetStore.getActiveStations().map(function (s) { return s.name; }).sort();
 
   var byTab = all.filter(function (r) {
     if (TRANSSHIP_SUBTAB === 'ruoclien') return r.kind === 'pk';
@@ -933,7 +933,7 @@ function adminTsDismissDivider(id) {
 
 /* ---------- Modal "+ Tạo mới" khách rước liền (ghi thật vào PickupService) ---------- */
 function adminOpenPickupModal() {
-  var stations = FleetStore.getStations().map(function (s) { return s.name; }).sort();
+  var stations = FleetStore.getActiveStations().map(function (s) { return s.name; }).sort();
   var stOpt = function () { return '<option value="">— Chọn —</option>' + stations.map(function (s) { return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join(''); };
   openAdminModal(
     '<h3>Thông tin khách rước</h3>' +

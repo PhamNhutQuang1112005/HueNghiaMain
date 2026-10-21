@@ -17,24 +17,13 @@ function renderStopsView() {
 var PRICING_FILTERS = { search: '', direction: '', route: '' };
 var PRICE_SEL = {}; // id tuyến đang tick chọn (bảng Quản lý giá) — dùng cho "Xoá"/"Cập nhật giá" hàng loạt
 
-function routeVehicleType(r, idx) {
-  if (r && r.vehicleType) return r.vehicleType;
-  if (idx % 2 === 0) return 'Limousine 24 Phòng';
-  return 'Xe 45 chỗ';
-}
-
-// hasDouble chỉ true khi cả 2 ô giá (Ghế đơn + Ghế đôi) đều được điền ở modal Thêm/Sửa tuyến — lúc đó
-// cột "Giá" hiện cả 2 mức (Đơn/Đôi). Nếu chỉ điền 1 ô thì chỉ hiện đúng giá của ô đó (only).
-function buildSeatPriceMeta(r) {
-  var single = Number(r && r.price) || 0;
-  var double = Number(r && r.doubleSeatPrice) || 0;
-  var hasDouble = single > 0 && double > 0;
-  return {
-    single: single,
-    double: double,
-    hasDouble: hasDouble,
-    only: single || double
-  };
+// Giá nằm ở route.prices = [{ from, to, price, doubleSeatPrice }] (bảng route_price: theo cặp trạm đi - trạm đến).
+// Cột "Giá" chỉ tóm tắt: số cặp đã có giá + mức thấp nhất.
+function routePriceSummary(r) {
+  var ps = (r && r.prices) || [];
+  var singles = ps.map(function (p) { return Number(p.price) || 0; }).filter(Boolean);
+  var doubles = ps.map(function (p) { return Number(p.doubleSeatPrice) || 0; }).filter(Boolean);
+  return { count: ps.length, single: singles.length ? Math.min.apply(null, singles) : 0, double: doubles.length ? Math.min.apply(null, doubles) : 0 };
 }
 
 function adminPricingFilterInput(field, value) {
@@ -54,6 +43,7 @@ function adminResetPricingFilters() {
 // Cột "Thao tác" bảng Quản lý giá — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
 function adminPriceRowMenu(btn, routeId) {
   adminOpenRowMenu(btn, 'price:' + routeId,
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenRoutePrices" data-args=\'["' + esc(routeId) + '"]\'>Giá theo trạm</button>' +
     '<button type="button" class="admin-row-menu-item" data-action="adminOpenRouteModal" data-args=\'["' + esc(routeId) + '"]\'>Sửa</button>' +
     '<button type="button" class="admin-row-menu-item" data-action="adminDuplicateRoute" data-args=\'["' + esc(routeId) + '"]\'>Sao chép</button>' +
     '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteRoute" data-args=\'["' + esc(routeId) + '"]\'>Xoá</button>');
@@ -66,7 +56,7 @@ function renderPricingView() {
   function routeDirId(r) { return FleetStore && FleetStore.getRouteDirectionId ? FleetStore.getRouteDirectionId(r.label) : null; }
 
   var filteredRoutes = routes.filter(function (r) {
-    var text = [r.label, r.abbr, r.price, (r.fromStations || []).join(' '), (r.toStations || []).join(' ')].join(' ').toLowerCase();
+    var text = [r.label, r.abbr, (r.fromStations || []).join(' '), (r.toStations || []).join(' ')].join(' ').toLowerCase();
     var dirId = routeDirId(r);
     if (PRICING_FILTERS.search && text.indexOf(PRICING_FILTERS.search.trim().toLowerCase()) === -1) return false;
     if (PRICING_FILTERS.direction && dirId !== PRICING_FILTERS.direction) return false;
@@ -95,22 +85,19 @@ function renderPricingView() {
     '</div>';
   }
 
-  function priceBadgeHtml(priceMeta) {
-    if (!priceMeta.hasDouble) return '<span class="price-badge">' + esc(fmtMoney(priceMeta.only)) + '</span>';
+  function priceBadgeHtml(sm) {
+    if (!sm.count) return '<span class="hint-inline">Chưa có giá</span>';
     return '<div class="price-badge-stack">' +
-      '<span class="price-badge"><em>Đơn</em>' + esc(fmtMoney(priceMeta.single)) + '</span>' +
-      '<span class="price-badge"><em>Đôi</em>' + esc(fmtMoney(priceMeta.double)) + '</span>' +
+      '<span class="price-badge"><em>' + sm.count + ' cặp · từ</em>' + esc(fmtMoney(sm.single || sm.double)) + '</span>' +
     '</div>';
   }
 
   function routeRowHtml(r, idx) {
-    var vehicleType = routeVehicleType(r, idx);
-    var priceMeta = buildSeatPriceMeta(r);
+    var priceMeta = routePriceSummary(r);
     var sel = !!PRICE_SEL[r.id];
     return '<tr data-row-key="' + esc(r.id) + '" class="' + (sel ? 'selected-row' : '') + '">' +
       '<td class="num">' + (idx + 1) + '</td>' +
       '<td><strong>' + esc(r.label || '—') + '</strong></td>' +
-      '<td class="pr-vehicle">' + esc(vehicleType) + '</td>' +
       '<td class="pr-price">' + priceBadgeHtml(priceMeta) + '</td>' +
       '<td style="white-space:normal;">' + stationCells({ routeId: r.id, field: 'fromStations' }, r.fromStations || []) + '</td>' +
       '<td style="white-space:normal;">' + stationCells({ routeId: r.id, field: 'toStations' }, r.toStations || []) + '</td>' +
@@ -121,7 +108,7 @@ function renderPricingView() {
     '</tr>';
   }
 
-  var rows = filteredRoutes.length ? filteredRoutes.map(routeRowHtml).join('') : '<tr><td colspan="8" class="empty-state">Không có tuyến nào phù hợp với bộ lọc.</td></tr>';
+  var rows = filteredRoutes.length ? filteredRoutes.map(routeRowHtml).join('') : '<tr><td colspan="7" class="empty-state">Không có tuyến nào phù hợp với bộ lọc.</td></tr>';
 
   var allChecked = filteredRoutes.length && filteredRoutes.every(function (r) { return PRICE_SEL[r.id]; });
 
@@ -131,7 +118,6 @@ function renderPricingView() {
         '<thead><tr>' +
           '<th class="num" style="width:44px; white-space:nowrap;">STT</th>' +
           '<th style="width:160px;">Tuyến chính</th>' +
-          '<th class="pr-vehicle" style="width:130px;">Loại xe</th>' +
           '<th class="pr-price" style="width:95px;">Giá</th>' +
           '<th style="width:227px;">Điểm đi</th>' +
           '<th style="width:238px;">Điểm đến</th>' +
@@ -166,7 +152,7 @@ function renderPricingView() {
           }).join('') +
         '</select>' +
       '</div>' +
-      '<button type="button" class="btn btn-primary" data-action="adminOpenRouteModal" data-args=\'["", "' + esc(PRICING_FILTERS.direction || SELECTED_DIR_ID || '') + '"]\'>+ Thêm giá</button>' +
+      '<button type="button" class="btn btn-primary" data-action="adminOpenRouteModal" data-args=\'["", "' + esc(PRICING_FILTERS.direction || SELECTED_DIR_ID || '') + '"]\'>+ Thêm tuyến</button>' +
       '<button type="button" class="btn" data-action="adminResetPricingFilters">Đặt lại</button>' +
     '</div>' +
     tableHtml +
@@ -174,36 +160,13 @@ function renderPricingView() {
       '<span class="bulk-bar-hint" id="prActionHint">Đã chọn 0 khung giá</span>' +
       '<div class="bulk-bar-fields">' +
         '<button type="button" class="btn btn-secondary" data-action="adminPriceClearSel">Hủy</button>' +
-        '<button type="button" class="btn" id="prBulkUpdateBtn" data-action="adminPriceOpenBulkUpdate">Cập nhật giá</button>' +
         '<button type="button" class="btn btn-danger" data-action="adminPriceDeleteSelected">Xoá các khung giá đã chọn</button>' +
       '</div>' +
     '</div>';
   adminPriceSyncBar();
 }
 
-/* ---- Chọn nhiều dòng trong bảng Quản lý giá (checkbox cuối bảng) để xoá/cập nhật giá hàng loạt.
-   "Cập nhật giá" bật khi mọi khung giá đã chọn đang cùng giá Đơn VÀ cùng giá Đôi với nhau (so từng
-   cặp, không cần cùng giá Đơn = giá Đôi trong nội bộ 1 khung) — vd 2 khung cùng Đơn 160k/Đôi 140k thì
-   gộp được, còn 1 khung Đơn 160k/Đôi 140k với 1 khung Đơn 160k/Đôi 150k thì không (giá Đôi lệch nhau).
-   Lúc lưu, cập nhật CẢ 2 loại giá (Đơn/Đôi) cùng lúc cho mọi khung trong nhóm — chỉ bỏ qua loại nào
-   khung đó vốn không có (vd toàn khung chỉ có giá Đơn thì không đụng tới giá Đôi). ---- */
-function adminPriceGroupInfo() {
-  var ids = Object.keys(PRICE_SEL);
-  if (!ids.length) return null;
-  var routes = FleetStore.getRoutes();
-  var items = ids.map(function (id) { return routes.find(function (r) { return r.id === id; }); }).filter(Boolean);
-  if (!items.length) return null;
-  var metas = items.map(function (r) { var m = buildSeatPriceMeta(r); return { id: r.id, single: m.single, double: m.double }; });
-  var single = metas[0].single, double = metas[0].double;
-  var sameSingle = metas.every(function (mt) { return mt.single === single; });
-  var sameDouble = metas.every(function (mt) { return mt.double === double; });
-  return {
-    ids: items.map(function (r) { return r.id; }), metas: metas, count: items.length,
-    single: single, double: double, hasSingle: single > 0, hasDouble: double > 0,
-    valid: sameSingle && sameDouble
-  };
-}
-
+/* ---- Chọn nhiều dòng trong bảng Quản lý giá (checkbox cuối bảng) để xoá hàng loạt. ---- */
 function adminPriceSyncBar() {
   var bar = $('prActionBar');
   if (!bar) return;
@@ -211,13 +174,6 @@ function adminPriceSyncBar() {
   if (!ids.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   var hint = $('prActionHint'); if (hint) hint.textContent = 'Đã chọn ' + ids.length + ' khung giá';
-  var group = adminPriceGroupInfo();
-  var updateBtn = $('prBulkUpdateBtn');
-  if (updateBtn) {
-    var ok = !!(group && group.valid);
-    updateBtn.disabled = !ok;
-    updateBtn.title = ok ? '' : 'Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá Đơn và cùng giá Đôi với nhau.';
-  }
 }
 
 function adminPriceToggleRow(id, cb) {
@@ -266,44 +222,56 @@ function adminPriceDeleteSelected() {
   renderPricingView();
 }
 
-function adminPriceOpenBulkUpdate() {
-  var group = adminPriceGroupInfo();
-  if (!group || !group.valid) { showToast('Chỉ cập nhật hàng loạt khi các khung giá đã chọn có cùng giá Đơn và cùng giá Đôi với nhau.'); return; }
-  var summary = [group.hasSingle ? 'Đơn ' + fmtMoney(group.single) : null, group.hasDouble ? 'Đôi ' + fmtMoney(group.double) : null]
-    .filter(Boolean).join(' / ');
+/* ---- Giá theo cặp trạm đi - trạm đến của 1 tuyến (route_price). Cặp để trống = không bán. ---- */
+var RP_SEP = '\u0001';
+function adminOpenRoutePrices(routeId) {
+  if (!adminRequire('manage_prices')) return;
+  var r = FleetStore.getRoutes().find(function (x) { return x.id === routeId; });
+  if (!r) return;
+  var froms = r.fromStations || [], tos = r.toStations || [];
+  if (!froms.length || !tos.length) { showToast('Tuyến cần có trạm đi và trạm đến trước khi nhập giá.'); return; }
+  var cur = {};
+  (r.prices || []).forEach(function (p) { cur[p.from + RP_SEP + p.to] = p; });
+  var rows = '';
+  froms.forEach(function (f) {
+    tos.forEach(function (t) {
+      var p = cur[f + RP_SEP + t] || {};
+      rows += '<tr data-from="' + esc(f) + '" data-to="' + esc(t) + '"><td>' + esc(f) + ' → ' + esc(t) + '</td>' +
+        '<td><input class="rp-s" type="number" min="0" step="5000" placeholder="Đơn" value="' + (p.price || '') + '"></td>' +
+        '<td><input class="rp-d" type="number" min="0" step="5000" placeholder="Đôi" value="' + (p.doubleSeatPrice || '') + '"></td></tr>';
+    });
+  });
   openAdminModal(
-    '<h3>Cập nhật giá hàng loạt</h3>' +
-    '<p class="hint-inline">Áp dụng cho ' + group.count + ' khung giá, đang cùng giá ' + esc(summary) + '.</p>' +
-    '<form class="admin-form" data-submit-action="adminSaveBulkPriceUpdate" data-args=\'["__event__"]\'>' +
-      (group.hasSingle ? '<div class="fld"><label>Giá vé đơn mới (đ) *</label><input id="pmBulkSingle" type="number" min="0" step="5000" required value="' + group.single + '"></div>' : '') +
-      (group.hasDouble ? '<div class="fld"><label>Giá vé đôi mới (đ) *</label><input id="pmBulkDouble" type="number" min="0" step="5000" required value="' + group.double + '"></div>' : '') +
+    '<h3>Giá theo trạm — ' + esc(r.label) + '</h3>' +
+    '<form class="admin-form" data-submit-action="adminSaveRoutePrices" data-args=\'["__event__"]\'>' +
+      '<input type="hidden" id="rpRoute" value="' + esc(routeId) + '">' +
+      '<p class="hint-inline">Để trống cả 2 ô = không bán cặp trạm đó.</p>' +
+      '<div style="max-height:55vh;overflow:auto;"><table class="admin-table"><thead><tr><th>Trạm đi → Trạm đến</th><th>Giá ghế đơn (đ)</th><th>Giá ghế đôi (đ)</th></tr></thead><tbody id="rpList">' + rows + '</tbody></table></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
-    '</form>'
+    '</form>', false, true
   );
 }
 
-// Cập nhật CẢ 2 loại giá (Đơn/Đôi) cùng lúc cho mọi khung trong nhóm — chỉ đụng tới field nào nhóm đó
-// vốn có (xem hasSingle/hasDouble ở adminPriceGroupInfo), tránh gán nhầm giá Đôi cho khung chỉ bán vé đơn.
-function adminSaveBulkPriceUpdate(e) {
+function adminSaveRoutePrices(e) {
   e.preventDefault();
-  var group = adminPriceGroupInfo();
-  if (!group || !group.valid) { showToast('Danh sách đã chọn thay đổi, thử lại.'); closeAdminModal(); renderPricingView(); return; }
-  var newSingle = group.hasSingle ? parseInt($('pmBulkSingle').value, 10) : null;
-  var newDouble = group.hasDouble ? parseInt($('pmBulkDouble').value, 10) : null;
-  if (group.hasSingle && (!newSingle || newSingle <= 0)) { showToast('Nhập giá vé đơn hợp lệ.'); return; }
-  if (group.hasDouble && (!newDouble || newDouble <= 0)) { showToast('Nhập giá vé đôi hợp lệ.'); return; }
-  var list = FleetStore.getRoutes();
-  group.metas.forEach(function (mt) {
-    var r = list.find(function (x) { return x.id === mt.id; });
-    if (!r) return;
-    var before = JSON.parse(JSON.stringify(r));
-    if (group.hasSingle) r.price = newSingle;
-    if (group.hasDouble) r.doubleSeatPrice = newDouble;
-    FleetStore.log({ action: 'update', entity: 'route', entityId: mt.id, summary: 'Cập nhật giá hàng loạt ' + r.label, before: before, after: r });
+  if (!adminRequire('manage_prices')) return;
+  var id = $('rpRoute').value;
+  var prices = [];
+  Array.prototype.forEach.call($('rpList').querySelectorAll('tr'), function (tr) {
+    var s = parseInt(tr.querySelector('.rp-s').value, 10) || 0, d = parseInt(tr.querySelector('.rp-d').value, 10) || 0;
+    if (s > 0 || d > 0) prices.push({ from: tr.getAttribute('data-from'), to: tr.getAttribute('data-to'), price: s, doubleSeatPrice: d });
   });
+  var list = FleetStore.getRoutes();
+  var r = list.find(function (x) { return x.id === id; });
+  if (!r) return;
+  var before = JSON.parse(JSON.stringify(r));
+  r.prices = prices;
+  // ponytail: route.price/doubleSeatPrice = mức thấp nhất, chỉ để phơi/đặt vé cũ (chưa tra theo cặp trạm) còn chạy; bỏ khi các nơi đó dùng FleetStore.getRoutePrice.
+  var sm = routePriceSummary(r);
+  r.price = sm.single; r.doubleSeatPrice = sm.double;
   FleetStore.setRoutes(list);
+  FleetStore.log({ action: 'update', entity: 'route', entityId: id, summary: 'Cập nhật giá theo trạm ' + r.label + ' (' + prices.length + ' cặp)', before: before, after: r });
   closeAdminModal();
-  showToast('Đã cập nhật giá cho ' + group.ids.length + ' khung giá.');
+  showToast('Đã lưu giá (' + prices.length + ' cặp trạm).');
   renderPricingView();
 }
-

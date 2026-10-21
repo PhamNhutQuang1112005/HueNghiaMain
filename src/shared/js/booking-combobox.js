@@ -170,7 +170,7 @@ function stopSuggestionsForStation(stationInputId) {
   const stops = (window.FleetStore && FleetStore.getStopStations) ? FleetStore.getStopStations() : [];
   const seen = {};
   return stops
-    .filter(s => s && s.name && (!stationName || s.stationName === stationName))
+    .filter(s => s && s.name && s.active !== false && (!stationName || s.stationName === stationName))
     .map(s => s.name)
     .filter(n => !seen[n] && (seen[n] = true));
 }

@@ -174,8 +174,35 @@ var VIEW_RENDERERS = {
   viewSettings: function () { renderSettingsView(); }
 };
 
+/* Quyền cần để vào từng view (có ÍT NHẤT 1 quyền trong danh sách). View không khai báo = không khoá. */
+var ADMIN_VIEW_PERMS = {
+  viewStations: ['manage_regions', 'manage_stations', 'manage_stop_stations'],
+  viewDirections: ['manage_directions', 'manage_routes']
+};
+// Có quyền `key` không (admin gốc luôn có).
+function adminCan(key) { return Auth.hasPermission(key); }
+// Dùng ở đầu mỗi thao tác ghi: không có quyền thì báo và dừng.
+function adminRequire(key) {
+  if (adminCan(key)) return true;
+  var info = window.permInfo && permInfo(key);
+  showToast('Bạn không có quyền' + (info ? ': ' + info.label : '') + '.');
+  return false;
+}
+function adminCanView(view) {
+  var need = ADMIN_VIEW_PERMS[view];
+  return !need || Auth.hasAnyPermission(need);
+}
+// Ẩn mục sidebar mà tài khoản không đủ quyền.
+function adminApplyNavPerms() {
+  document.querySelectorAll('.admin-nav-item').forEach(function (b) {
+    var m = /"(view\w+)"/.exec(b.getAttribute('data-args') || '');
+    if (m && !adminCanView(m[1])) b.style.display = 'none';
+  });
+}
+
 function switchAdminView(view) {
   if (!VIEW_RENDERERS[view]) return;
+  if (!adminCanView(view)) { showToast('Bạn không có quyền vào chức năng này.'); return; }
   CURRENT_VIEW = view;
   document.querySelectorAll('.admin-view').forEach(function (s) { s.hidden = s.id !== view; });
   document.querySelectorAll('.admin-nav-item').forEach(function (b) {
@@ -309,7 +336,7 @@ function initAdminSidebarTooltips() {
 /* Admin sửa dữ liệu ở tab khác → render lại view đang mở. */
 window.addEventListener('storage', function (e) {
   if (!e.key) return;
-  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_MAIN_STATIONS_KEY, HN_SUB_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_AGENTS_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY, HN_ACCOUNTING_CHI_CATEGORIES_KEY];
+  var watched = [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_REGIONS_KEY, HN_STOP_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_AGENTS_KEY, HN_TRIPS_KEY, HN_ADMIN_ACTIVITY_KEY, HN_STORAGE_KEY, HN_PICKUP_PAX_KEY, HN_SHUTTLE_DRIVER_KEY, HN_SEAT_LAYOUTS_KEY, HN_VEHICLE_CATEGORIES_KEY, HN_ACCOUNTING_VOUCHERS_KEY, HN_ACCOUNTING_FUEL_LOGS_KEY, HN_ACCOUNTING_FIXED_ASSETS_KEY, HN_ACCOUNTING_DEBTS_KEY, HN_ACCOUNTING_PAYROLL_KEY, HN_ACCOUNTING_INSPECTION_KEY, HN_ACCOUNTING_CHI_CATEGORIES_KEY];
   if (watched.indexOf(e.key) !== -1 && VIEW_RENDERERS[CURRENT_VIEW]) VIEW_RENDERERS[CURRENT_VIEW]();
   if (e.key === HN_TRIPS_KEY) adminUpdateNotifBadge();
 });

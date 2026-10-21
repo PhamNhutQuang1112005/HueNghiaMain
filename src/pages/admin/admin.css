@@ -3776,12 +3776,7 @@ table.admin-table {
   flex: 0 0 auto;
   accent-color: var(--red);
 }
-.sp-addfld { margin-bottom: 0; }
-/* Modal "Chọn trạm": thu hẹp khoảng cách từ ô "Thêm trạm mới vào danh mục" xuống nút Huỷ/Lưu */
 .sp-picker > .modal-actions { margin-top: 4px; padding-top: 6px; }
-.sp-addrow { display: flex; gap: 10px; align-items: center; }
-.admin-form .sp-addrow > input { flex: 1 1 auto; min-width: 0; }
-.admin-form .sp-addrow > select { flex: 0 0 150px; min-width: 0; }
 @media (max-width: 620px) {
   .sp-region .chip-editor { grid-template-columns: 1fr; }
 }
@@ -4809,3 +4804,23 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 .acc-table td, .staff-table td { vertical-align: top; }
 .hint-inline { font-size: 11.5px; font-weight: 500; color: var(--text-sub); line-height: 1.45; }
 .admin-form .fld > .hint-inline { display: block; }
+
+/* Modal Cập nhật tỉnh / hướng: mã tỉnh + 2 ô chọn tỉnh đi/đến nằm cùng hàng với tên */
+.regions-modal .rgm-main { flex-wrap: wrap; }
+.regions-modal .rgm-code { flex: 0 0 64px; min-width: 0 !important; text-transform: uppercase; }
+.regions-modal .dm-from, .regions-modal .dm-to { flex: 1 1 130px; min-width: 0; }
+.regions-modal .dm-via { flex: 1 1 130px; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.regions-modal .dm-add { flex-wrap: wrap; }
+.regions-modal .dm-add > select { flex: 1 1 130px; min-width: 0; }
+
+/* Cột Thứ tự: số + ▲▼ nhỏ xếp dọc; hàng tiêu đề nhóm theo tỉnh; cột audit */
+#viewStations .col-order { white-space: nowrap; width: 1%; }
+#viewStations td.col-order { text-align: left; }
+.ord-no { display: inline-block; min-width: 18px; margin-right: 4px; color: var(--text-sub); font-size: 12px; }
+.mv { display: inline-flex; flex-direction: column; vertical-align: middle; }
+.mv button, #viewStations .mv button { width: 16px; height: 11px; padding: 0; margin: 0; border: 0; background: transparent; color: var(--text-sub); font-size: 8px; line-height: 11px; cursor: pointer; box-shadow: none; }
+.mv button:hover:not(:disabled) { color: var(--text); }
+.mv button:disabled { opacity: .3; cursor: not-allowed; }
+#viewStations tr.sd-group-row td { background: var(--surface-2); padding: 6px 12px; font-size: 13px; }
+#viewStations .audit-cell { font-size: 12px; white-space: nowrap; line-height: 1.35; }
+#viewStations th.col-check, #viewStations td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }

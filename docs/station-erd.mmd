@@ -1,0 +1,145 @@
+erDiagram
+    region ||--o{ station : "khu vực của trạm"
+    region ||--o{ direction : "tỉnh đi (from_region_id)"
+    region ||--o{ direction : "tỉnh đến (to_region_id)"
+    direction ||--o{ direction_via_region : "các tỉnh đi qua giữa, theo thứ tự"
+    region ||--o{ direction_via_region : ""
+    station ||--o{ stop_station : "có điểm dừng"
+
+    direction ||--o{ route : "có tuyến chính"
+    stop_station ||--o{ route : "điểm dừng nhận chính (pickup_stop_id)"
+
+    route ||--o{ route_from_station : "trạm đi"
+    station ||--o{ route_from_station : ""
+    route ||--o{ route_to_station : "trạm đến"
+    station ||--o{ route_to_station : ""
+    route ||--o{ route_pickup_station : "trạm có thể nhận thêm khách"
+    station ||--o{ route_pickup_station : ""
+
+    users ||--o{ user_station_access : "được thao tác trạm"
+    station ||--o{ user_station_access : "trạm được cấp"
+    users ||--o{ user_region_access : "được thao tác tỉnh"
+    region ||--o{ user_region_access : "tỉnh được cấp"
+    users ||--o{ user_route_access : "được thao tác tuyến"
+    route ||--o{ user_route_access : "tuyến được cấp"
+    station |o--o{ users : "trạm chính (main_station_id)"
+
+    region {
+        bigint region_id PK
+        varchar code UK "TỰ SINH từ chữ cái đầu của tên (SG, CT), trùng thì thêm số; không cho nhập"
+        varchar name UK "tên hiển thị, vd: An Giang"
+        boolean active "NOT NULL DEFAULT TRUE; không tắt được khi còn trạm active"
+        int sort_order "thứ tự trên quãng đường A -> B (▲▼ ở modal Cập nhật danh mục)"
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    station {
+        bigint station_id PK
+        varchar name UK
+        varchar code UK "TỰ SINH = mã tỉnh + số thứ tự (SG09); không cho nhập"
+        text address
+        bigint region_id FK "NOT NULL"
+        varchar hotline_cargo
+        varchar hotline_ticket
+        boolean active "NOT NULL DEFAULT TRUE, cột Trạng thái + bật/tắt"
+        int sort_order "thứ tự trong tỉnh theo quãng đường A -> B (▲▼ ở bảng Trạm xe)"
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    stop_station {
+        bigint stop_station_id PK
+        bigint station_id FK "NOT NULL, ON DELETE CASCADE, UNIQUE cùng name"
+        varchar name "UNIQUE (station_id, name)"
+        varchar code UK "TỰ SINH D001, D002...; không cho nhập"
+        text address
+        varchar hotline
+        boolean active "NOT NULL DEFAULT TRUE"
+        int sort_order "thứ tự trong trạm (▲▼ ở bảng Điểm dừng)"
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    direction {
+        bigint direction_id PK
+        varchar code UK "TỰ SINH = ghép mã 2 tỉnh (sg-ag); không cho nhập"
+        bigint from_region_id FK "NOT NULL; lộ trình (from, các tỉnh giữa, to) phải duy nhất"
+        bigint to_region_id FK "NOT NULL, CHECK khác from_region_id"
+        varchar label "tên hiển thị của hướng"
+        boolean active
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    direction_via_region {
+        bigint direction_id PK, FK
+        bigint region_id PK, FK "khác from_region/to_region; UNIQUE (direction_id, region_id)"
+        int seq "NOT NULL, thứ tự đi qua giữa from -> to (web lưu mảng viaRegions)"
+    }
+
+    route {
+        bigint route_id PK
+        bigint direction_id FK "NOT NULL"
+        varchar label UK "tên tuyến chính"
+        varchar abbr "mã tuyến, vd: SG-LX"
+        varchar vehicle_type "nullable, loại xe (danh mục Loại xe, scope line)"
+        bigint pickup_stop_id FK "NOT NULL, điểm dừng nhận chính (stop_station), thuộc tỉnh đến"
+        boolean active
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    route_from_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc from_region của hướng"
+    }
+
+    route_to_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc to_region của hướng"
+    }
+
+    route_pickup_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc from_region, một tỉnh giữa (direction_via_region) HOẶC to_region của hướng (trạm dọc đường)"
+    }
+
+    users {
+        bigint user_id PK "bảng đầy đủ ở sơ đồ đăng nhập"
+        boolean all_stations "NOT NULL DEFAULT FALSE, TRUE = mọi trạm, bỏ qua user_station_access"
+        bigint main_station_id FK "nullable, trạm chính"
+    }
+
+    user_station_access {
+        bigint user_id PK, FK
+        bigint station_id PK, FK
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }
+
+    user_region_access {
+        bigint user_id PK, FK
+        bigint region_id PK, FK "phạm vi trạm tính động: mọi trạm active của tỉnh"
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }
+
+    user_route_access {
+        bigint user_id PK, FK
+        bigint route_id PK, FK
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }
