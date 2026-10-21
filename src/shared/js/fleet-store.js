@@ -441,7 +441,7 @@
     var code = genRegionCode(name, list);
     var base = slugify(name) || 'tinh', key = base, n = 2;
     while (list.some(function (r) { return r.key === key; })) key = base + '-' + (n++);
-    var item = { key: key, code: code, name: name, active: true, order: list.length, custom: true };
+    var item = { key: key, code: code, name: name, active: true, order: list.length };
     list.push(item);
     setRegions(list);
     return { ok: true, item: item };
@@ -472,7 +472,6 @@
   function removeRegion(key) {
     var r = regionByKey(key);
     if (!r) return { ok: true };
-    if (!r.custom) return { ok: false, reason: 'Tỉnh mặc định không xoá được — chỉ tắt.' };
     var ns = getStations({ region: key }).length;
     if (ns) return { ok: false, reason: 'Tỉnh còn ' + ns + ' trạm — xoá hết trạm trước.' };
     var nd = getDirections().filter(function (d) { return d.fromRegion === key || d.toRegion === key; }).length;
@@ -671,7 +670,7 @@
         if (!lr || !lr.key) return;
         var r = regs.find(function (x) { return x.key === lr.key; });
         if (r) { if (lr.title) r.name = stripTram(lr.title); if (lr.hidden) r.active = false; return; }
-        if (lr.custom && !lr.hidden) regs.push({ key: lr.key, code: '', name: stripTram(lr.title) || lr.key, active: true, order: regs.length, custom: true });
+        if (!lr.hidden) regs.push({ key: lr.key, code: '', name: stripTram(lr.title) || lr.key, active: true, order: regs.length });
       });
     } else {
       regs = getRegions();
@@ -679,7 +678,7 @@
     var stations = getStations();
     stations.forEach(function (s) {
       if (s && s.region && !regs.some(function (r) { return r.key === s.region; })) {
-        regs.push({ key: s.region, code: '', name: s.region, active: true, order: regs.length, custom: true });
+        regs.push({ key: s.region, code: '', name: s.region, active: true, order: regs.length });
       }
     });
     var usedCodes = {};

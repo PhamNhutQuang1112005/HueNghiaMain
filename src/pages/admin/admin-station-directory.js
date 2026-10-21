@@ -185,7 +185,7 @@ function adminOpenStationModal(id, defaultRegion) {
   var s = id ? FleetStore.getStations().find(function (x) { return x.id === id; }) : null;
   var curRegion = s ? (s.region || '') : (defaultRegion || '');
   // Chỉ tỉnh đang bật; tỉnh hiện tại của trạm (nếu đã tắt) vẫn giữ trong danh sách.
-  var regionMeta = getRegionMeta({ all: true }).filter(function (rm) { return rm[3] || rm[0] === curRegion; });
+  var regionMeta = getRegionMeta({ all: true }).filter(function (rm) { return rm[2] || rm[0] === curRegion; });
   openAdminModal(
     '<h3>' + (s ? 'Sửa trạm' : 'Thêm trạm mới') + '</h3>' +
     '<form class="admin-form" data-submit-action="adminSaveStationFull" data-args=\'["__event__"' + (s ? ',"' + esc(s.id) + '"' : '') + ']\'>' +

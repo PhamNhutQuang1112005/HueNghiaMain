@@ -11,13 +11,13 @@ var ROUTE_FILTER = ''; // ô tìm tuyến ở trang Tuyến xe (lọc theo tên 
 var ROUTE_SEL = {}; // id tuyến đang tick chọn (bảng Tuyến) — dùng cho hành động "Xoá các tuyến đã chọn"
 var STATION_GROUPS = [['fromStations', 'Trạm điểm đi'], ['toStations', 'Trạm điểm đến'], ['pickupStations', 'Trạm có thể nhận thêm khách']];
 
-// Danh sách tỉnh cho dropdown: [key, tên, isCustom, active]. Mặc định chỉ tỉnh đang bật; { all: true } lấy cả tỉnh tắt.
+// Danh sách tỉnh cho dropdown: [key, tên, active]. Mặc định chỉ tỉnh đang bật; { all: true } lấy cả tỉnh tắt.
 // Nguồn dữ liệu: FleetStore.getRegions() (không còn cơ chế ẩn/xoá/khôi phục — dùng cờ active).
 function getRegionMeta(opts) {
   var all = !!(opts && opts.all);
   return FleetStore.getRegions().slice().sort(byOrder)
     .filter(function (r) { return all || r.active !== false; })
-    .map(function (r) { return [r.key, r.name, !!r.custom, r.active !== false]; });
+    .map(function (r) { return [r.key, r.name, r.active !== false]; });
 }
 function regionTitleOf(key) {
   var m = getRegionMeta({ all: true }).find(function (x) { return x[0] === key; });
@@ -93,17 +93,17 @@ function adminRerenderRegionViews() {
 }
 function renderRegionsManager() {
   var rows = getRegionMeta({ all: true }).map(function (rm) {
-    var key = rm[0], isCustom = rm[2], on = rm[3];
+    var key = rm[0], on = rm[2];
     return '<div class="rgm-row' + (on ? '' : ' rgm-row-hidden') + '">' +
       '<div class="rgm-main">' +
         '<input class="rgm-name" value="' + esc(rm[1]) + '" data-region-key="' + esc(key) + '" aria-label="Tên tỉnh">' +
         '<span class="rgm-count">Mã: ' + esc(FleetStore.getRegions().find(function (r) { return r.key === key; }).code) + '</span>' +
-        '<span class="rgm-count">' + (on ? (isCustom ? 'Tự thêm' : 'Mặc định') : 'Đã tắt') + '</span>' +
+        '<span class="rgm-count">' + (on ? '' : 'Đã tắt') + '</span>' +
       '</div>' +
       '<div class="rgm-act">' +
         '<button type="button" class="btn btn-sm" data-action="adminRenameRegion" data-args=\'["' + esc(key) + '"]\'>Lưu</button>' +
         '<button type="button" class="btn btn-sm" data-action="adminToggleRegion" data-args=\'["' + esc(key) + '"]\'>' + (on ? 'Tắt' : 'Bật') + '</button>' +
-        (isCustom ? '<button type="button" class="btn btn-sm btn-danger" data-action="adminRemoveRegion" data-args=\'["' + esc(key) + '"]\'>Xoá</button>' : '') +
+        '<button type="button" class="btn btn-sm btn-danger" data-action="adminRemoveRegion" data-args=\'["' + esc(key) + '"]\'>Xoá</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -267,7 +267,7 @@ function adminOpenDirsModal() {
 }
 // <select> tỉnh: chỉ tỉnh đang bật, riêng tỉnh đang chọn (kể cả đã tắt) vẫn giữ để không mất dữ liệu.
 function dirRegionSelect(cls, attr, current, placeholder) {
-  var opts = getRegionMeta({ all: true }).filter(function (m) { return m[3] || m[0] === current; });
+  var opts = getRegionMeta({ all: true }).filter(function (m) { return m[2] || m[0] === current; });
   return '<select class="' + cls + '" ' + attr + ' aria-label="' + esc(placeholder) + '">' +
     '<option value=""' + (current ? '' : ' selected') + '>' + esc(placeholder) + '</option>' +
     opts.map(function (m) { return '<option value="' + esc(m[0]) + '"' + (m[0] === current ? ' selected' : '') + '>' + esc(m[1]) + '</option>'; }).join('') +
