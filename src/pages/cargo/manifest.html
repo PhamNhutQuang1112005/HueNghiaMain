@@ -1204,7 +1204,7 @@
         const on = String(m.tripId) === reusePickedId;
         return `<div class="reuse-card" data-id="${m.tripId}" style="cursor:pointer; padding:8px 12px; border:2px solid ${on ? '#b91c1c' : '#e2e8f0'}; border-radius:12px; background:${on ? '#fef2f2' : 'white'};">
           <div style="display:flex; gap:10px; font-weight:800;"><span>${m.time || ''}</span><span style="color:#b91c1c;">${m.plate || 'Chưa có'}</span></div>
-          <div style="font-size:13px; font-weight:600; color:#475569;">${m.fromStation || ''} → ${m.toStation || ''}${m.date ? ' • ' + m.date : ''}</div></div>`;
+          <div style="font-size:13px; font-weight:600; color:#475569;">${m.name || ((m.fromStation || '') + ' → ' + (m.toStation || ''))}${m.date ? ' • ' + m.date : ''}</div></div>`;
       }).join('') || '<div style="padding:10px; text-align:center; color:#94a3b8; font-size:13px;">Chưa có phơi bán vé nào</div>';
     }
     document.getElementById('reuseDate').addEventListener('change', renderReuseList);
@@ -1929,11 +1929,18 @@
         return matchesName && matchesSearch && matchesFrom && matchesTo && matchesPlate;
       });
 
-      manifestTableBody.innerHTML = rows.length
-        ? rows.map((row, index) => {
+      // Gom theo biển số: mỗi xe 1 dòng tiêu đề sổ xuống, các phơi (tuyến) nằm trong.
+      const groups = new Map();
+      rows.forEach((r) => {
+        const key = (r.plate || '').trim().toUpperCase() || '—';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      });
+      const filtering = !!(nameVal || searchVal || plateVal || fromVal !== 'all' || toVal !== 'all');
+      const rowHtml = (row, index, key, open) => {
           const driverInfo = parseDriverDetails(row.driver);
           return `
-          <tr>
+          <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
@@ -1983,7 +1990,19 @@
             </td>
           </tr>
         `;
-      }).join('')
+      };
+      manifestTableBody.innerHTML = rows.length
+        ? [...groups].map(([key, list]) => {
+          const open = filtering || openPlates.has(key);
+          return `
+          <tr class="plate-group ${open ? 'open' : ''}" data-grp="${key}" tabindex="0" role="button" aria-expanded="${open}">
+            <td colspan="8">
+              <span class="pg-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+              <strong class="pg-plate">${key}</strong>
+              <span class="pg-count">${list.length} phơi</span>
+            </td>
+          </tr>` + list.map((r, i) => rowHtml(r, i, key, open)).join('');
+        }).join('')
         : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
       syncRowSelection('manifestTableBody');
     }
@@ -2156,7 +2175,18 @@
       renderManifestTable();
     });
 
+    const openPlates = new Set();
+    function togglePlateGroup(head) {
+      const key = head.dataset.grp;
+      const open = !head.classList.contains('open');
+      head.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', open);
+      open ? openPlates.add(key) : openPlates.delete(key);
+      manifestTableBody.querySelectorAll('.plate-child').forEach((tr) => { if (tr.dataset.grp === key) tr.hidden = !open; });
+    }
     manifestTableBody.addEventListener('click', (event) => {
+      const head = event.target.closest('.plate-group');
+      if (head) return togglePlateGroup(head);
       const button = event.target.closest('button[data-action]');
       if (!button) return;
       const { action, id } = button.dataset;
@@ -2178,6 +2208,11 @@
       } else if (action === 'delete') {
         promptDeleteManifest(targetId);
       }
+    });
+
+    manifestTableBody.addEventListener('keydown', (e) => {
+      const head = e.target.closest('.plate-group');
+      if (head && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); togglePlateGroup(head); }
     });
 
     window.confirmScanReceiveAllFromDetail = function() {
