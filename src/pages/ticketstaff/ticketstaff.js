@@ -1064,7 +1064,7 @@ function renderTransshipTables() {
   const tsPickupStatusOf = g => (shuttleDriverMap[`${(g.main.phone || '').replace(/\s+/g, '')}_don`] ? 'Đang đón' : 'Chờ đón');
   const tsDropoffStatusOf = g => (g.main.paid ? 'Đã trả' : 'Chờ trả');
   rsFillFilterSelect('tsFilterStatus', [...pickupList.map(tsPickupStatusOf), ...dropoffList.map(tsDropoffStatusOf)], 'Tất cả trạng thái');
-  rsFillFilterSelect('tsFilterPickup', pickupList.map(g => g.main.firstStop || '—'), 'Tất cả địa chỉ đón');
+  rsFillFilterSelect('tsFilterPickup', pickupList.map(g => (typeof sgCanon === 'function' ? sgCanon(g.main.firstStop || '') : (g.main.firstStop || '')) || '—'), 'Tất cả địa chỉ đón');
   rsFillFilterSelect('tsFilterDropoff', dropoffList.map(g => g.main.lastStop || '—'), 'Tất cả địa chỉ trả');
   const tsFStatus = tsFVal('tsFilterStatus');
   const tsFPickup = tsFVal('tsFilterPickup');
@@ -1100,7 +1100,7 @@ function renderTransshipTables() {
       // "Trạm đi" (station) KHÔNG còn là cột riêng — gộp hiển thị chung vào ô "Địa chỉ đón" (trạm chính ở
       // dòng đầu, địa chỉ cụ thể ở dòng phụ nhỏ hơn nếu khác trạm — xem addressHtml bên dưới) nhưng vẫn
       // giữ làm giá trị-để-lọc riêng cho nút lọc gắn trên header "Địa chỉ đón" (tsOpenColumnFilter).
-      const station = item.firstStop || '—';
+      const station = (typeof sgCanon === 'function' ? sgCanon(item.firstStop || '') : (item.firstStop || '')) || '—';
       const pickupLoc = item.pickupAddress || item.transship || item.transshipStation || item.firstStop || '—';
       const seatCodes = g.members ? g.members.map(s => s.code) : [item.code || '—'];
       const seatCount = g.members ? g.members.length : 1;
@@ -1241,7 +1241,7 @@ function printTransshipList() {
       const it = g.main;
       const drv = drvMap[`${(it.phone || '').replace(/\s+/g, '')}_don`];
       return {
-        station: it.firstStop || '—',
+        station: (typeof sgCanon === 'function' ? sgCanon(it.firstStop || '') : (it.firstStop || '')) || '—',
         loc: it.pickupAddress || it.transship || it.transshipStation || it.firstStop || '—',
         status: drv ? 'Đang đón' : 'Chờ đón',
         driver: drv ? drv.driverName : 'Chưa gán',
@@ -1331,7 +1331,7 @@ function getRoadsideRows() {
         item,
         name: item.customerName || 'Khách',
         phone: item.phone || '—',
-        firstStop: item.firstStop || '—',
+        firstStop: (typeof sgCanon === 'function' ? sgCanon(item.firstStop || '') : (item.firstStop || '')) || '—',
         lastStop: item.lastStop || '—',
         pickupLoc,
         seatCodes,
@@ -1524,7 +1524,7 @@ function renderPassengerList() {
   // Thanh lọc select (giống tab Rước đường): Trạm đi / Trạm đến / Thanh toán. Lọc theo VÉ (nhóm ghế
   // cùng ticketNo) chứ không theo từng ghế — đổ danh sách trạm từ đúng các giá trị đang có.
   const allGroups = groupSeatsByTicket(getAllBookedSeats());
-  rsFillFilterSelect('pxFilterFirstStop', allGroups.map(g => g.main.firstStop), 'Tất cả trạm đi');
+  rsFillFilterSelect('pxFilterFirstStop', allGroups.map(g => (typeof sgCanon === 'function' ? sgCanon(g.main.firstStop || '') : (g.main.firstStop || ''))), 'Tất cả trạm đi');
   rsFillFilterSelect('pxFilterLastStop', allGroups.map(g => g.main.lastStop), 'Tất cả trạm đến');
 
   const fVal = id => (document.getElementById(id) || {}).value || '';
@@ -1534,7 +1534,8 @@ function renderPassengerList() {
 
   const groups = allGroups.filter(g => {
     const s = g.main;
-    if (fFirst && (s.firstStop || '') !== fFirst) return false;
+    const canonFirst = (typeof sgCanon === 'function') ? sgCanon(s.firstStop || '') : (s.firstStop || '');
+    if (fFirst && canonFirst !== fFirst) return false;
     if (fLast && (s.lastStop || '') !== fLast) return false;
     if (fPaid) {
       const isPaid = !!s.paid && s.state !== 'free';
@@ -2462,7 +2463,7 @@ function buildTicketPrintData(seats) {
   const ticketNo = firstSeat.ticketNo || ('SGAG-' + String(Math.floor(1000 + Math.random() * 9000)));
   const customerName = firstSeat.customerName || document.getElementById('f_name').value.trim() || 'Khách lẻ';
   const phone = maskPhoneForPrint(firstSeat.phone || collectPhoneValues('f_phone', 'f_phone_extra') || '—');
-  const fromStation = firstSeat.firstStop || getStationValue().trim() || '508 Kinh Dương Vương';
+  const fromStation = (typeof sgCanon === 'function' ? sgCanon(firstSeat.firstStop || '') : (firstSeat.firstStop || '')) || getStationValue().trim() || '508 Kinh Dương Vương';
   const toStation = firstSeat.lastStop || document.getElementById('f_destination').value.trim() || 'Trạm Châu Đốc';
   const unitPrice = firstSeat.price || getEditedPrice();
   const totalPrice = unitPrice * seats.length;
@@ -3947,17 +3948,59 @@ function stationsForTrip(trip) {
 // Panel đặt vé (Zone 4): gợi ý Trạm đi/Trạm đến theo phơi đang mở (xem stationsForTrip).
 function populateBookingStationDatalists(trip) {
   const { from, to } = stationsForTrip(trip);
-  const tags = names => names.map(n => `<option value="${n}"></option>`).join('');
+  // Gộp 4 điểm đón SG thành 1 option duy nhất trong datalist — value = trạm đại diện (sgCanon),
+  // text hiện nhãn đầy đủ "508 Kinh Dương Vương, 4 Tống Văn Trân, 58 Lê Đại Hành, Sài Gòn".
+  const sgGroupLabel = (typeof SG_GROUP_STATIONS !== 'undefined') ? SG_GROUP_STATIONS.join(', ') : '';
+  const sgCanonName = (typeof SG_GROUP_STATIONS !== 'undefined') ? SG_GROUP_STATIONS[0] : '';
+  const dedupFromStations = (names) => {
+    const seen = new Set();
+    const out = [];
+    names.forEach(n => {
+      if (!n) return;
+      const c = (typeof sgCanon === 'function') ? sgCanon(n) : n;
+      if (seen.has(c)) return;
+      seen.add(c);
+      out.push(c);
+    });
+    return out;
+  };
+  const tags = names => dedupFromStations(names).map(n => {
+    const label = (sgGroupLabel && n === sgCanonName) ? sgGroupLabel : n;
+    return `<option value="${n}">${label}</option>`;
+  }).join('');
   const depEl = document.getElementById('departureStationList');
   const destEl = document.getElementById('destinationStationList');
   if (depEl) depEl.innerHTML = tags(from);
-  if (destEl) destEl.innerHTML = tags(to);
+  if (destEl) destEl.innerHTML = to.map(n => `<option value="${n}"></option>`).join('');
 }
 
 // Modal "Đặt lại vé": Trạm đi/Trạm đến theo phơi ĐÍCH đang chọn (cùng quy tắc stationsForTrip); giữ lại
 // giá trị đang chọn nếu vẫn hợp lệ, còn setSelectOptionValue() sau đó vẫn tự thêm nếu cần.
 function populateRebookStationSelects(trip) {
   const { from, to } = stationsForTrip(trip);
+  // Gộp 4 điểm đón SG thành 1 option cho Trạm đi trong modal đặt lại vé
+  const fillFrom = (id, names) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = (typeof sgCanon === 'function') ? sgCanon(el.value) : el.value;
+    const seen = new Set();
+    const deduped = [];
+    names.forEach(n => {
+      if (!n) return;
+      const c = (typeof sgCanon === 'function') ? sgCanon(n) : n;
+      if (seen.has(c)) return;
+      seen.add(c);
+      deduped.push(c);
+    });
+    const list = (prev && deduped.indexOf(prev) === -1) ? [prev].concat(deduped) : deduped;
+    const sgGroupLabel = (typeof SG_GROUP_STATIONS !== 'undefined') ? SG_GROUP_STATIONS.join(', ') : '';
+    const sgCanonName = (typeof SG_GROUP_STATIONS !== 'undefined') ? SG_GROUP_STATIONS[0] : '';
+    el.innerHTML = list.map(n => {
+      const label = (sgGroupLabel && n === sgCanonName) ? sgGroupLabel : n;
+      return `<option value="${n}">${label}</option>`;
+    }).join('');
+    if (prev && list.indexOf(prev) !== -1) el.value = prev;
+  };
   const fill = (id, names) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -3966,7 +4009,7 @@ function populateRebookStationSelects(trip) {
     el.innerHTML = list.map(n => `<option value="${n}">${n}</option>`).join('');
     if (prev && list.indexOf(prev) !== -1) el.value = prev;
   };
-  fill('rbFirstStop', from);
+  fillFrom('rbFirstStop', from);
   fill('rbLastStop', to);
 }
 

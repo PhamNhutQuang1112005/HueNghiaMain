@@ -212,7 +212,9 @@ function toggleCalendar(force) {
 }
 
 function getStationValue() {
-  return document.getElementById('f_station_select').value;
+  const raw = document.getElementById('f_station_select').value;
+  // Chuẩn hoá 4 điểm đón SG về 1 trạm đại diện — dùng sgCanon nếu đã load constants.js
+  return (typeof sgCanon === 'function') ? sgCanon(raw) : raw;
 }
 
 // #f_station_select giờ là 1 ô combobox (input tự do + datalist gợi ý, xem initDatalistCombobox() ở
@@ -220,7 +222,9 @@ function getStationValue() {
 // .value luôn được, không cần kiểm tra "hasOption" như trước (kiểm tra đó từng khiến setStationValue()
 // im lặng bỏ qua nếu seat.firstStop không khớp đúng 1 option, làm mất giá trị thật đã lưu).
 function setStationValue(val) {
-  document.getElementById('f_station_select').value = val || '';
+  // Chuẩn hoá 4 điểm đón SG về trạm đại diện trước khi điền vào ô
+  const canon = (typeof sgCanon === 'function') ? sgCanon(val || '') : (val || '');
+  document.getElementById('f_station_select').value = canon;
 }
 
 function setSelectOptionValue(selectId, val) {

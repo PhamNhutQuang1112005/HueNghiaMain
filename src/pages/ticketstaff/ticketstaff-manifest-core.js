@@ -232,7 +232,7 @@ function tsAggregateTicketsFromSeats(seats, predicateFn) {
       result.roadsideList.push({
         name: s.customerName || '',
         phone: s.phone || '',
-        firstStop: s.firstStop || '',
+        firstStop: (typeof sgCanon === 'function' ? sgCanon(s.firstStop || '') : (s.firstStop || '')),
         lastStop: s.lastStop || '',
         pickupLoc,
         seatCount: count,

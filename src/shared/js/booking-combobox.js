@@ -194,9 +194,11 @@ function stationNameForStop(stopName) {
 function autoFillStationFromTransship(transshipInputId, stationInputId) {
   const stationName = stationNameForStop(document.getElementById(transshipInputId)?.value);
   if (!stationName) return;
+  // Chuẩn hoá 4 điểm đón SG về trạm đại diện
+  const canon = (typeof sgCanon === 'function') ? sgCanon(stationName) : stationName;
   const stationEl = document.getElementById(stationInputId);
-  if (stationEl && stationEl.value !== stationName) {
-    stationEl.value = stationName;
+  if (stationEl && stationEl.value !== canon) {
+    stationEl.value = canon;
     stationEl.dispatchEvent(new Event('input', { bubbles: true }));
   }
 }
@@ -344,7 +346,7 @@ function openRebookFromHistory(idx) {
     setVal('rbGuestType', guestType);
     onRebookGuestTypeChange();
 
-    setSelectOptionValue('rbFirstStop', r.firstStop || '508 Kinh Dương Vương');
+    setSelectOptionValue('rbFirstStop', (typeof sgCanon === 'function' ? sgCanon(r.firstStop || '508 Kinh Dương Vương') : (r.firstStop || '508 Kinh Dương Vương')));
     // Cùng công thức fallback với getHistoryStopsDisplay() — giữ nhất quán giữa thông tin hiển thị ở
     // danh sách lịch sử và thông tin điền sẵn vào form đặt lại vé (trước đây thiếu transshipStation/
     // fromTransfer nên có trường hợp danh sách hiện thông tin nhưng form đặt lại vé lại trống).

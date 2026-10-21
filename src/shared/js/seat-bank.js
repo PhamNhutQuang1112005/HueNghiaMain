@@ -16,8 +16,7 @@ function generateTripSeatPlanForVehicleType(vehicleType, tripId = '1') {
   let seatCustIdx = (parseInt(tripId || '1') * 7) % nameSamples.length;
   const buildFloor = floorCodes => floorCodes.map((code) => {
     if (code.endsWith('_hidden')) return { code, state: 'hidden' };
-    const st = pattern[(seatCustIdx++) % pattern.length];
-    return makeSeat(code, st);
+    return makeSeat(code, 'empty'); // ghế trống, không còn khách mẫu
   });
   return {
     down: buildFloor(codes.down),

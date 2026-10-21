@@ -105,7 +105,7 @@ function adminScanTransshipRows() {
         tripId: t.id, ticketNo: m.ticketNo || '', seatCodes: codes,
         name: m.customerName || '', phone: m.phone || '', ticketCount: members.length,
         date: t.date || '', createdAt: m.actionTime || '', printedAt: m.printedAt || '',
-        fromStation: m.firstStop || t.fromStation || '—', toStation: m.lastStop || t.toStation || '—',
+        fromStation: (typeof sgCanon === 'function' ? sgCanon(m.firstStop || t.fromStation || '') : (m.firstStop || t.fromStation || '')) || '—', toStation: m.lastStop || t.toStation || '—',
         fromTransfer: m.pickupAddress || m.transship || m.transshipStation || '',
         toTransfer: m.dropoffAddress || m.arrivalTransfer || '',
         assigned: true, seatStr: codes.join(', '),
@@ -687,7 +687,7 @@ function adminTsPrintTickets(seats, trip) {
       ticketNo: s.ticketNo || ('SGAG-' + String(Math.floor(1000 + Math.random() * 9000))),
       nowStr: nowStr, seatsText: s.code, customerName: s.customerName || 'Khách lẻ',
       phone: s.phone || '—', route: (trip && trip.route) || 'Sài Gòn - An Giang', time: (trip && trip.time) || '07:00',
-      fromStation: s.firstStop || (trip && trip.fromStation) || '508 Kinh Dương Vương',
+      fromStation: (typeof sgCanon === 'function' ? sgCanon(s.firstStop || (trip && trip.fromStation) || '') : (s.firstStop || (trip && trip.fromStation) || '')) || '508 Kinh Dương Vương',
       toStation: s.lastStop || (trip && trip.toStation) || 'Trạm Châu Đốc',
       unitPrice: unit, totalPrice: unit, qrImgUrl: qrUrl, paymentMethod: s.paymentMethod || 'Tiền mặt'
     };
