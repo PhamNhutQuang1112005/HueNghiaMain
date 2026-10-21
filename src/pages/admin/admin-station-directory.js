@@ -9,6 +9,8 @@
 var STATION_DIR_FILTER = '';
 var STATION_DIR_REGION = '';
 var STATION_SUBTAB = 'all';
+var SD_SEL = { station: {}, stop: {} }; // id đang tick chọn để xoá hàng loạt (theo tab)
+var SD_VISIBLE = { station: [], stop: [] }; // id đang hiển thị (sau tìm kiếm / lọc tỉnh) — cho "chọn tất cả"
 
 function adminSetStationSubTab(tab) {
   if (!['all', 'stop'].includes(tab)) return;
@@ -62,6 +64,12 @@ function renderStationsView() {
     return out;
   }
 
+  SD_VISIBLE.station = filteredAll.map(function (x) { return x.id; });
+  SD_VISIBLE.stop = filteredStop.map(function (x) { return x.id; });
+  ['station', 'stop'].forEach(function (k) {
+    Object.keys(SD_SEL[k]).forEach(function (id) { if (SD_VISIBLE[k].indexOf(id) === -1) delete SD_SEL[k][id]; });
+  });
+
   var allRows = filteredAll.length ? groupByRegion(filteredAll, function (s) { return s.region; }, function (s, no) {
     return '<tr>' +
       adminOrderTd('adminMoveStation', s.id, !q, no) +
@@ -75,8 +83,9 @@ function renderStationsView() {
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStationRowMenu" data-args=\'["__this__","' + esc(s.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
       '</td>' +
+      sdCheckTd('station', s.id) +
     '</tr>';
-  }, 10, 'trạm') : '<tr><td colspan="10" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
+  }, 11, 'trạm') : '<tr><td colspan="11" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
 
   // Mỗi tab / nút chỉ hiện khi tài khoản có đúng quyền: trạm, điểm dừng, tỉnh (danh mục).
   var canSt = adminCan('manage_stations'), canStop = adminCan('manage_stop_stations'), canReg = adminCan('manage_regions');
@@ -90,7 +99,7 @@ function renderStationsView() {
   } else if (currentTab === 'all') {
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="col-order">Thứ tự</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="col-order">Thứ tự</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th>' + sdCheckAllTh('station') + '</tr></thead><tbody>' + allRows + '</tbody></table></div>' +
       '</div>';
   } else {
     var stopStations = filteredStop;
@@ -108,12 +117,13 @@ function renderStationsView() {
         '<td class="row-actions">' +
           '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminStopStationRowMenu" data-args=\'["__this__","' + esc(stop.id) + '"]\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
         '</td>' +
+        sdCheckTd('stop', stop.id) +
       '</tr>';
-    }, 10, 'điểm dừng') : '<tr><td colspan="10" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
+    }, 11, 'điểm dừng') : '<tr><td colspan="11" class="empty-state">Không có điểm dừng phù hợp.</td></tr>';
 
     tabContent =
       '<div class="sd-section-block">' +
-        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="col-order">Thứ tự</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
+        '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="col-order">Thứ tự</th><th>Trạm xe</th><th>Điểm dừng</th><th>Mã</th><th>Địa chỉ</th><th>Hotline</th><th class="col-status">Trạng thái</th><th>Tạo</th><th>Cập nhật</th><th class="th-actions">Thao tác</th>' + sdCheckAllTh('stop') + '</tr></thead><tbody>' + stopRows + '</tbody></table></div>' +
       '</div>';
   }
 
@@ -146,7 +156,15 @@ function renderStationsView() {
         (canReg ? '<button type="button" class="btn sd-btn" data-action="adminOpenRegionsModal">Cập nhật danh mục</button>' : '') +
       '</div>' +
     '</div>' +
-    '<div class="sd-blocks">' + tabContent + '</div>';
+    '<div class="sd-blocks">' + tabContent + '</div>' +
+    '<div class="bulk-bar" id="sdActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="sdActionHint"></span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminSdClearSel">Hủy</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminSdDeleteSelected">Xoá đã chọn</button>' +
+      '</div>' +
+    '</div>';
+  sdSyncBar();
 }
 
 function adminStationDirSearch(v) { STATION_DIR_FILTER = v || ''; adminKeepFocus(renderStationsView); }
@@ -379,5 +397,77 @@ function adminMoveStation(id, delta) {
 function adminMoveStopStation(id, delta) {
   if (!adminRequire('manage_stop_stations')) return;
   FleetStore.moveStopStation(id, delta);
+  renderStationsView();
+}
+
+/* ---- Chọn nhiều dòng (ô tick cuối bảng) để xoá hàng loạt — Trạm xe / Điểm dừng ---- */
+function sdCurKind() { return STATION_SUBTAB === 'stop' ? 'stop' : 'station'; }
+function sdCheckTd(kind, id) {
+  var on = !!SD_SEL[kind][id];
+  return '<td class="col-check"><input type="checkbox"' + (on ? ' checked' : '') + ' data-change-action="adminSdToggleRow" data-args=\'["' + kind + '","' + esc(id) + '","__this__"]\'></td>';
+}
+function sdCheckAllTh(kind) {
+  var ids = SD_VISIBLE[kind];
+  var all = ids.length && ids.every(function (id) { return SD_SEL[kind][id]; });
+  return '<th class="col-check"><input type="checkbox"' + (all ? ' checked' : '') + ' data-action="adminSdToggleAll" data-args=\'["' + kind + '","__this__"]\'></th>';
+}
+function sdSyncBar() {
+  var bar = $('sdActionBar');
+  if (!bar) return;
+  var kind = sdCurKind();
+  var n = Object.keys(SD_SEL[kind]).length;
+  bar.style.display = n ? 'flex' : 'none';
+  var hint = $('sdActionHint');
+  if (hint) hint.textContent = 'Đã chọn ' + n + (kind === 'stop' ? ' điểm dừng' : ' trạm');
+}
+function adminSdToggleRow(kind, id, cb) {
+  if (cb.checked) SD_SEL[kind][id] = true; else delete SD_SEL[kind][id];
+  var tr = cb.closest && cb.closest('tr');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var head = document.querySelector('#viewStations thead .col-check input');
+  if (head) head.checked = SD_VISIBLE[kind].length > 0 && SD_VISIBLE[kind].every(function (x) { return SD_SEL[kind][x]; });
+  sdSyncBar();
+}
+function adminSdToggleAll(kind, cb) {
+  SD_VISIBLE[kind].forEach(function (id) { if (cb.checked) SD_SEL[kind][id] = true; else delete SD_SEL[kind][id]; });
+  renderStationsView();
+}
+function adminSdClearSel() {
+  SD_SEL[sdCurKind()] = {};
+  renderStationsView();
+}
+function adminSdDeleteSelected() {
+  var kind = sdCurKind();
+  if (!adminRequire(kind === 'stop' ? 'manage_stop_stations' : 'manage_stations')) return;
+  var ids = Object.keys(SD_SEL[kind]);
+  if (!ids.length) return;
+  if (kind === 'stop') {
+    if (!confirm('Xoá ' + ids.length + ' điểm dừng đã chọn?')) return;
+    ids.forEach(function (id) {
+      FleetStore.removeStopStation(id);
+      FleetStore.log({ action: 'delete', entity: 'stop_station', entityId: id, summary: 'Xoá điểm dừng' });
+    });
+    SD_SEL.stop = {};
+    showToast('Đã xoá ' + ids.length + ' điểm dừng.');
+  } else {
+    var stations = FleetStore.getStations();
+    var del = [], blocked = [], nStops = 0;
+    var stops = FleetStore.getStopStations();
+    ids.forEach(function (id) {
+      var s = stations.find(function (x) { return x.id === id; });
+      if (!s) return;
+      if (FleetStore.stationUsage(s.name)) blocked.push(s.name); else { del.push(s); nStops += stops.filter(function (x) { return x.stationId === id; }).length; }
+    });
+    if (!del.length) { showToast('Không thể xoá: tất cả trạm đã chọn đang được tuyến dùng (chỉ có thể tắt).'); return; }
+    var msg = 'Xoá ' + del.length + ' trạm đã chọn?' + (nStops ? '\nSẽ xoá luôn ' + nStops + ' điểm dừng của các trạm này.' : '') +
+      (blocked.length ? '\nBỏ qua ' + blocked.length + ' trạm đang được tuyến dùng: ' + blocked.join(', ') : '');
+    if (!confirm(msg)) return;
+    del.forEach(function (s) {
+      FleetStore.removeStation(s.id);
+      FleetStore.log({ action: 'delete', entity: 'station', entityId: s.name, summary: 'Xoá trạm "' + s.name + '"' });
+      delete SD_SEL.station[s.id];
+    });
+    showToast('Đã xoá ' + del.length + ' trạm.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' trạm đang dùng.' : ''));
+  }
   renderStationsView();
 }

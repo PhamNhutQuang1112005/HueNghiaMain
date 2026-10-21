@@ -4827,4 +4827,4 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 .mv button:disabled { opacity: .3; cursor: not-allowed; }
 #viewStations tr.sd-group-row td { background: var(--surface-2); padding: 6px 12px; font-size: 13px; }
 #viewStations .audit-cell { font-size: 12px; white-space: nowrap; line-height: 1.35; }
-
+#viewStations th.col-check, #viewStations td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
