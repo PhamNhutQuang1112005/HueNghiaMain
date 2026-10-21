@@ -159,16 +159,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     var panel = document.getElementById('nettingPanel');
     if (!panel) return;
-    var tabs = document.querySelectorAll('[data-cod-tab]');
-    var codParts = document.querySelectorAll('.cod-metrics-grid, .filter-grid, .table-card');
-    function showTab(name) {
-      tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.codTab === name); });
-      codParts.forEach(function (el) { el.style.display = name === 'tickets' ? '' : 'none'; });
-      panel.style.display = name === 'netting' ? '' : 'none';
-      if (name === 'netting') render();
-    }
-    tabs.forEach(function (t) { t.addEventListener('click', function () { showTab(t.dataset.codTab); }); });
-
     panel.addEventListener('change', function (ev) {
       if (ev.target.id === 'ntMe') { ui.me = ev.target.value; render(); }
       if (ev.target.id === 'ntOther') { ui.other = ev.target.value; render(); }
@@ -190,6 +180,6 @@
         if (amt2) addEntry({ kind: 'reroute', from: debtor, to: creditor, via: ui.via, amount: amt2 });
       }
     });
-    showTab('tickets');
+    render();
   });
 })();

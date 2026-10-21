@@ -1903,6 +1903,7 @@
               <span class="pg-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
               <strong class="pg-plate">${key}</strong>
               <span class="pg-count">${list.length} phơi</span>
+              <button type="button" class="pg-del" data-del-plate="${key}" title="Xóa tất cả phơi của xe ${key}" aria-label="Xóa tất cả phơi của xe ${key}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Xóa hết</button>
             </td>
           </tr>` + list.map((r, i) => rowHtml(r, i, key, open)).join('');
         }).join('')
@@ -2095,6 +2096,8 @@
       manifestTableBody.querySelectorAll('.plate-child').forEach((tr) => { if (tr.dataset.grp === key) tr.hidden = !open; });
     }
     manifestTableBody.addEventListener('click', (event) => {
+      const delBtn = event.target.closest('.pg-del');
+      if (delBtn) return promptDeletePlate(delBtn.dataset.delPlate);
       const head = event.target.closest('.plate-group');
       if (head) return togglePlateGroup(head);
       const button = event.target.closest('button[data-action]');
@@ -2122,7 +2125,7 @@
 
     manifestTableBody.addEventListener('keydown', (e) => {
       const head = e.target.closest('.plate-group');
-      if (head && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); togglePlateGroup(head); }
+      if (head && !e.target.closest('.pg-del') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); togglePlateGroup(head); }
     });
 
     window.confirmScanReceiveAllFromDetail = function() {
@@ -3016,7 +3019,22 @@
       if (modalBadgeEl) modalBadgeEl.textContent = `${deletedList.length} phơi`;
     }
 
+    let pendingDeletePlate = null;
+    const plateKey = (m) => (m.plate || '').trim().toUpperCase() || '—';
+    function promptDeletePlate(key) {
+      const list = manifestData.filter(m => plateKey(m) === key);
+      if (!list.length) return;
+      pendingDeletePlate = key;
+      pendingDeleteManifestId = null;
+      document.getElementById('deleteTargetManifestInfo').innerHTML = `<strong>Xóa tất cả ${list.length} phơi của xe ${key}</strong>`;
+      document.getElementById('deleteManifestReasonInput').value = '';
+      const errEl = document.getElementById('deleteReasonError');
+      if (errEl) errEl.style.display = 'none';
+      document.getElementById('deleteManifestReasonModal').classList.add('open');
+    }
+
     function promptDeleteManifest(manifestId) {
+      pendingDeletePlate = null;
       pendingDeleteManifestId = manifestId;
       const manifest = manifestData.find(m => m.id === manifestId);
       if (!manifest) return;
@@ -3035,9 +3053,24 @@
     function closeDeleteManifestReasonModal() {
       document.getElementById('deleteManifestReasonModal').classList.remove('open');
       pendingDeleteManifestId = null;
+      pendingDeletePlate = null;
     }
 
     function confirmDeleteManifestSubmit() {
+      if (pendingDeletePlate) {
+        const reason = document.getElementById('deleteManifestReasonInput').value.trim();
+        const errEl = document.getElementById('deleteReasonError');
+        if (!reason) { if (errEl) errEl.style.display = 'block'; return; }
+        const at = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN')}`;
+        const gone = manifestData.filter(m => plateKey(m) === pendingDeletePlate);
+        saveDeletedManifests([...gone.map(m => ({ ...m, deletedAt: at, deletedBy: m.staff || 'Nguyễn Thị Linh', deleteReason: reason })), ...loadDeletedManifests()]);
+        manifestData = manifestData.filter(m => plateKey(m) !== pendingDeletePlate);
+        saveManifests(manifestData);
+        renderManifestTable();
+        updateDeletedCountBadge();
+        showToast(`Đã xóa ${gone.length} phơi của xe ${pendingDeletePlate} và lưu vào Lịch sử xóa!`);
+        return closeDeleteManifestReasonModal();
+      }
       if (!pendingDeleteManifestId) return;
       const reasonInput = document.getElementById('deleteManifestReasonInput');
       const reason = reasonInput ? reasonInput.value.trim() : '';
