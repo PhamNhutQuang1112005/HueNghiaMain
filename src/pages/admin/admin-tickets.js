@@ -37,7 +37,7 @@ function adminScanTicketRows() {
           plate: bank.plate || t.plate || '', vehicleType: bank.vehicleType || t.vehicleType || '',
           driver: bank.driver || '', helper: bank.helper || '',
           name: seat.customerName || '—', phone: seat.phone || '—',
-          firstStop: seat.firstStop || t.fromStation || '—', lastStop: seat.lastStop || t.toStation || '—',
+          firstStop: (typeof sgCanon === 'function' ? sgCanon(seat.firstStop || t.fromStation || '') : (seat.firstStop || t.fromStation || '')) || '—', lastStop: seat.lastStop || t.toStation || '—',
           guestType: seat.guestType || 'Khách trạm',
           transshipStation: seat.transshipStation || seat.transship || '',
           pickupAddress: seat.pickupAddress || '', dropoffAddress: seat.dropoffAddress || '',
@@ -83,13 +83,15 @@ function adminScanCancelledSeats() {
 function tkHistoryStops(r) {
   if (!r) return { first: '—', last: '—' };
   var type = r.guestType || 'Khách trạm';
-  var first = esc(r.firstStop || '—'), last = esc(r.lastStop || '—');
+  // Chuẩn hoá 4 điểm đón SG về trạm đại diện khi hiển thị
+  var canonFirstStop = (typeof sgCanon === 'function') ? sgCanon(r.firstStop || '') : (r.firstStop || '');
+  var first = esc(canonFirstStop || '—'), last = esc(r.lastStop || '—');
   var pickupLoc = r.transshipStation || r.transship || r.pickupAddress || r.fromTransfer || '';
   var dropLoc = r.dropoffAddress || r.arrivalTransfer || (type === 'Trung chuyển' ? (r.transshipStation || r.transship || '') : '');
   var sub = function (label, loc) { return '<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">' + label + esc(loc) + '</div>'; };
-  if (type === 'Rước liền' && pickupLoc) first = esc(r.firstStop || 'Trạm đi') + sub('Rước liền: ', pickupLoc);
-  else if (type === 'Rước đường' && pickupLoc) first = esc(r.firstStop || 'Trạm đi') + sub('Rước: ', pickupLoc);
-  else if (type === 'Trung chuyển' && pickupLoc) first = esc(r.firstStop || 'Trạm đi') + sub('Đón: ', pickupLoc);
+  if (type === 'Rước liền' && pickupLoc) first = esc(canonFirstStop || 'Trạm đi') + sub('Rước liền: ', pickupLoc);
+  else if (type === 'Rước đường' && pickupLoc) first = esc(canonFirstStop || 'Trạm đi') + sub('Rước: ', pickupLoc);
+  else if (type === 'Trung chuyển' && pickupLoc) first = esc(canonFirstStop || 'Trạm đi') + sub('Đón: ', pickupLoc);
   if (dropLoc) last = esc(r.lastStop || 'Trạm đến') + sub(type === 'Trung chuyển' ? 'TC: ' : '', dropLoc);
   return { first: first, last: last };
 }

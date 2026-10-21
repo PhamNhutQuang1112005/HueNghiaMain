@@ -38,7 +38,9 @@ function normalizeSearchText(str) {
 
 function shortenStopName(name) {
   if (!name || name === '—') return '—';
-  return name
+  // Chuẩn hoá 4 điểm đón SG về trạm đại diện trước khi rút gọn
+  const canonical = (typeof sgCanon === 'function') ? sgCanon(name) : name;
+  return canonical
     .replace('Trạm ', '')
     .replace('Bến xe ', 'BX ')
     .replace('Văn phòng ', 'VP ');

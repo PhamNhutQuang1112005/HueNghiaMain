@@ -260,10 +260,10 @@ function renderTable() {
           <strong style="color:#0f172a; font-family:'Roboto Mono', monospace; font-size:14px;">${Number(row.codAmount).toLocaleString('vi-VN')}đ</strong>
         </td>
         <td style="text-align:right;">
-          <strong style="color:#0f172a; font-family:'Roboto Mono', monospace; font-size:14px;">${Number(row.transferredAmount).toLocaleString('vi-VN')}đ</strong>
+          <strong class="cod-amt ${Number(row.transferredAmount) > 0 ? 'ok' : 'zero'}">${Number(row.transferredAmount).toLocaleString('vi-VN')}đ</strong>
         </td>
         <td style="text-align:right;">
-          <strong style="color:#0f172a; font-family:'Roboto Mono', monospace; font-size:14px;">${Number(row.remainingAmount).toLocaleString('vi-VN')}đ</strong>
+          <strong class="cod-amt ${Number(row.remainingAmount) > 0 ? 'due' : 'zero'}">${Number(row.remainingAmount).toLocaleString('vi-VN')}đ</strong>
         </td>
         <td style="text-align:center;">
           ${renderStatusBadge(row.status)}

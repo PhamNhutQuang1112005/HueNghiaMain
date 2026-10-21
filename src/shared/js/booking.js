@@ -522,7 +522,8 @@ function blockIfMultiSelectActive() {
 }
 
 function cancelledSeatCard(seat) {
-  const firstStopShort = shortenStopName(seat.firstStop) || '—';
+  const canonFirst = (typeof sgCanon === 'function') ? sgCanon(seat.firstStop || '') : (seat.firstStop || '');
+  const firstStopShort = shortenStopName(canonFirst) || '—';
   const lastStopShort = shortenStopName(seat.lastStop) || '—';
   const routeStr = `${firstStopShort} → ${lastStopShort}`;
   const custName = seat.customerName || '—';
@@ -662,18 +663,20 @@ function isSubSeatCode(code) {
 function getHistoryStopsDisplay(r) {
   if (!r) return { firstStopHtml: '—', lastStopHtml: '—' };
   const type = r.guestType || 'Khách trạm';
-  let firstStopHtml = r.firstStop || '—';
+  // Chuẩn hoá 4 điểm đón SG về 1 trạm đại diện khi hiển thị lịch sử
+  const firstStopName = (typeof sgCanon === 'function') ? sgCanon(r.firstStop || '') : (r.firstStop || '');
+  let firstStopHtml = firstStopName || '—';
   let lastStopHtml = r.lastStop || '—';
 
   const pickupLoc = r.transshipStation || r.transship || r.pickupAddress || r.fromTransfer || '';
   const dropLoc = r.dropoffAddress || r.arrivalTransfer || (type === 'Trung chuyển' ? (r.transshipStation || r.transship || '') : '');
 
   if (type === 'Rước liền' && pickupLoc) {
-    firstStopHtml = `${r.firstStop || 'Trạm đi'}<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">Rước liền: ${pickupLoc}</div>`;
+    firstStopHtml = `${firstStopName || 'Trạm đi'}<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">Rước liền: ${pickupLoc}</div>`;
   } else if (type === 'Rước đường' && pickupLoc) {
-    firstStopHtml = `${r.firstStop || 'Trạm đi'}<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">Rước: ${pickupLoc}</div>`;
+    firstStopHtml = `${firstStopName || 'Trạm đi'}<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">Rước: ${pickupLoc}</div>`;
   } else if (type === 'Trung chuyển' && pickupLoc) {
-    firstStopHtml = `${r.firstStop || 'Trạm đi'}<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">Đón: ${pickupLoc}</div>`;
+    firstStopHtml = `${firstStopName || 'Trạm đi'}<div class="ch-sub-address" style="font-size:12px;color:var(--text-sub);margin-top:2px;">Đón: ${pickupLoc}</div>`;
   }
   // Tách riêng khỏi nhánh trên (thay vì if/else-if chung 1 chuỗi): trước đây "Rước liền"/"Rước đường" khớp
   // nhánh của mình rồi dừng, không bao giờ chạy tới đây nên "Trung chuyển đến" (dropLoc) bị bỏ sót dù đã nhập.

@@ -792,104 +792,7 @@
       localStorage.setItem('hueNghia_cargo_clean_test_v5', 'true');
     }
 
-    const defaultManifests = [
-      {
-        id: 101,
-        name: 'Xe : 64855 Sài Gòn->Long Bình 12h',
-        route: 'Sài Gòn → Long Bình',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'Long Bình',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 102,
-        name: 'Xe : 64855 Sài Gòn->Tân Châu 12h',
-        route: 'Sài Gòn → Tân Châu',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'Tân Châu',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 108,
-        name: 'Xe : 64855 Sài Gòn->AG 12h',
-        route: 'Sài Gòn → AG',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'AG',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 103,
-        name: 'Xe : 64855 Sài Gòn->Đồng Ky 12h',
-        route: 'Sài Gòn → Đồng Ky',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'Đồng Ky',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 104,
-        name: 'Xe : 64855 Sài Gòn->Cái Dầu 12h',
-        route: 'Sài Gòn → Cái Dầu',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'Cái Dầu',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 105,
-        name: 'Xe : 64855 Sài Gòn->Châu Đốc 12h',
-        route: 'Sài Gòn → Châu Đốc',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'Châu Đốc',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 106,
-        name: 'Xe : 64855 Sài Gòn->Chi Lăng 12h',
-        route: 'Sài Gòn → Chi Lăng',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'Chi Lăng',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      },
-      {
-        id: 107,
-        name: 'Xe : 64855 Sài Gòn->An Phú 12h',
-        route: 'Sài Gòn → An Phú',
-        plate: '64855',
-        from: 'Sài Gòn',
-        to: 'An Phú',
-        driver: 'Nguyễn Văn Long • 0901111111 • Xe 45 chỗ',
-        helper: 'Trần Văn Bình',
-        staff: 'Linh',
-        time: '12h'
-      }
-    ];
+    const defaultManifests = [];
 
     function loadManifests() {
       const saved = localStorage.getItem(STORAGE_KEYS.MANIFESTS);
@@ -2140,11 +2043,18 @@
         }
         if (errEl) errEl.style.display = 'none';
 
+        // 4 điểm Sài Gòn (508 Kinh Dương Vương, 4 Tống Văn Trân, 58 Lê Đại Hành, Sài Gòn) tính là 1 điểm đi:
+        // chọn 1–4 cái vẫn ra 1 phơi/điểm đến, tên "Sài Gòn, Kinh Dương Vương -> Châu Đốc".
+        const SG_GROUP = ['Sài Gòn', '508 Kinh Dương Vương', '4 Tống Văn Trân', '58 Lê Đại Hành'];
+        const sgPicked = selectedDepartures.filter(d => SG_GROUP.includes(d));
+        const departureGroups = selectedDepartures.filter(d => !SG_GROUP.includes(d));
+        if (sgPicked.length) departureGroups.unshift(sgPicked.join(', '));
+
         let count = 0;
-        selectedDepartures.forEach(fromVal => {
+        departureGroups.forEach(fromVal => {
           selectedDestinations.forEach((dest, idx) => {
             if (fromVal === dest) return; // bỏ qua nếu trùng
-            const isSinglePair = selectedDepartures.length === 1 && selectedDestinations.length === 1;
+            const isSinglePair = departureGroups.length === 1 && selectedDestinations.length === 1;
             const manifestName = isSinglePair && customName ? customName : `Xe : ${plate} ${fromVal}->${dest} ${time}`;
             const route = isSinglePair && customRoute ? customRoute : `${fromVal} → ${dest}`;
             manifestData.unshift({

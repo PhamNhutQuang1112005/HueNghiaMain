@@ -92,7 +92,7 @@
     cands.forEach(function (s) { var v = net(d, me, s); if (v > 0) toPay += v; else toGet -= v; });
 
     var col1 = '<div class="nt-col"><h3>1. Trạm đang đối soát</h3>' +
-      '<select id="ntMe"><option value="">— Chọn trạm —</option>' +
+      '<select id="ntMe" aria-label="Trạm đang đối soát"><option value="">— Chọn trạm —</option>' +
       all.map(function (s) { return '<option' + (s === me ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
       (me ? sourceTable(breakdown(cargos, me), 'Nợ các trạm', 'Các trạm nợ').html : '') +
       '<div class="nt-sum">Phải trả các trạm (sau cấn trừ)<b>' + fmt(toPay) + '</b></div>' +
@@ -109,7 +109,7 @@
         (n ? '<div class="nt-actions"><button class="secondary-btn" data-act="pay">Ghi nhận ' + (n > 0 ? 'đã trả' : 'đã nhận') + '</button></div>' : '');
     }
     var col2 = '<div class="nt-col nt-wide"><h3>2. Trạm cần đối soát</h3>' +
-      '<select id="ntOther"><option value="">— Chọn trạm —</option>' +
+      '<select id="ntOther" aria-label="Trạm cần đối soát"><option value="">— Chọn trạm —</option>' +
       cands.map(function (s) {
         var v = me ? net(d, me, s) : 0;
         return '<option value="' + s + '"' + (s === other ? ' selected' : '') + '>' + s + (v ? ' — ' + pairText(me, s, v) : '') + '</option>';
@@ -132,7 +132,7 @@
         '<small>' + e.time + ' · ' + e.by + '</small></div>';
     }).join('') || '<div class="nt-empty">Chưa có khoản nợ nào chuyển qua trạm trung gian.</div>';
     var col3 = '<div class="nt-col"><h3>3. Trạm trung gian</h3>' +
-      '<select id="ntVia"><option value="">— Chọn trạm trung gian —</option>' +
+      '<select id="ntVia" aria-label="Trạm trung gian"><option value="">— Chọn trạm trung gian —</option>' +
       all.filter(function (c) { return c !== me && c !== other; }).map(function (c) {
         return '<option' + (c === via ? ' selected' : '') + '>' + c + '</option>';
       }).join('') + '</select>' + viaBody +

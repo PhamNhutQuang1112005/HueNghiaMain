@@ -6,13 +6,7 @@
 // noteSamples, phonePool) và biến allTripsMeta/tripSeatBank dùng lại bản đã có ở trên, không tạo bản
 // sao riêng nữa — tránh 2 bản dữ liệu ghế lệch nhau ngay trên cùng 1 trang.
 
-const DEFAULT_PICKUP_PASSENGERS = [
-  { id: 1, name: 'Nguyễn Thị Hồng', phone: '0909123456', ticketCount: 1, fromStation: '508 Kinh Dương Vương', toStation: 'Trạm Châu Đốc', fromTransfer: '12 Kinh Dương Vương, Q.Bình Tân', toTransfer: 'Ngã 3 Vĩnh Xương, Châu Đốc', note: 'Khách lớn tuổi, cần hỗ trợ lên xuống xe', assigned: null, date: '2026-07-18', createdAt: '2026-07-18T07:05:00', printedAt: '2026-07-18T07:10:00', statusNote: 'Khách yêu cầu gọi trước 10 phút khi xe tới' },
-  { id: 2, name: 'Trần Văn Bình', phone: '0918234567', ticketCount: 1, fromStation: 'Trạm An Sương', toStation: 'Trạm Long Xuyên', fromTransfer: '45 Trường Chinh, Q.12', toTransfer: 'Công viên Long Xuyên', note: '', assigned: { tripId: '1', seat: 'A12' }, date: '2026-07-18', createdAt: '2026-07-18T07:20:00', printedAt: '2026-07-18T07:35:00', statusNote: '' },
-  { id: 3, name: 'Lê Thị Mai', phone: '0933345678', ticketCount: 2, fromStation: '58 Lê Đại Hành', toStation: 'Trạm Tân Châu', fromTransfer: '88 Nguyễn Trãi, Q.5', toTransfer: 'Bến phà Tân Châu', note: 'Đi cùng 1 trẻ nhỏ', assigned: null, date: '2026-07-18', createdAt: '2026-07-18T08:10:00', printedAt: '', statusNote: 'Đang chờ xác nhận trung chuyển đón' },
-  { id: 4, name: 'Phạm Quốc Huy', phone: '0944456789', ticketCount: 1, fromStation: '4 Tống Văn Trân', toStation: 'Trạm Châu Đốc', fromTransfer: '120 Lê Hồng Phong, Q.10', toTransfer: 'Bến xe Châu Đốc', note: '', assigned: null, date: '2026-07-18', createdAt: '2026-07-18T08:45:00', printedAt: '', statusNote: '' },
-  { id: 5, name: 'Võ Thị Kim Ngân', phone: '0977567890', ticketCount: 2, fromStation: '508 Kinh Dương Vương', toStation: 'Trạm Long Xuyên', fromTransfer: '5 Hồ Học Lãm, Bình Tân', toTransfer: 'Bến Ninh Kiều, Cần Thơ', note: 'Gọi trước 15 phút khi xe tới', assigned: null, date: '2026-07-18', createdAt: '2026-07-18T09:15:00', printedAt: '2026-07-18T09:20:00', statusNote: 'Đã liên hệ tài xế, đang chờ xác nhận giờ đón' }
-];
+const DEFAULT_PICKUP_PASSENGERS = [];
 
 // Tải danh sách hành khách rước liền từ LocalStorage
 function loadPickupPassengers() {
@@ -737,13 +731,7 @@ function savePickupInfo() {
     return;
   }
 
-  const defaults = [
-    { id: 1, name: 'Nguyễn Thị Hồng', phone: '0909123456', ticketCount: 1, fromStation: '508 Kinh Dương Vương', toStation: 'Trạm Châu Đốc', fromTransfer: '12 Kinh Dương Vương, Q.Bình Tân', toTransfer: 'Ngã 3 Vĩnh Xương, Châu Đốc', note: 'Khách lớn tuổi, cần hỗ trợ lên xuống xe', assigned: null, guestType: 'Rước liền', isRuocLien: true, createdAt: '2026-07-18T07:05:00', printedAt: '2026-07-18T07:10:00', statusNote: 'Khách yêu cầu gọi trước 10 phút khi xe tới' },
-    { id: 2, name: 'Trần Văn Bình', phone: '0918234567', ticketCount: 1, fromStation: 'Trạm An Sương', toStation: 'Trạm Long Xuyên', fromTransfer: '45 Trường Chinh, Q.12', toTransfer: 'Công viên Long Xuyên', note: '', assigned: { tripId: '1', seat: 'A12' }, guestType: 'Rước liền', isRuocLien: true, createdAt: '2026-07-18T07:20:00', printedAt: '2026-07-18T07:35:00', statusNote: '' },
-    { id: 3, name: 'Lê Thị Mai', phone: '0933345678', ticketCount: 2, fromStation: '58 Lê Đại Hành', toStation: 'Trạm Tân Châu', fromTransfer: '88 Nguyễn Trãi, Q.5', toTransfer: 'Bến phà Tân Châu', note: 'Đi cùng 1 trẻ nhỏ', assigned: null, guestType: 'Rước liền', isRuocLien: true, createdAt: '2026-07-18T08:10:00', printedAt: '', statusNote: 'Đang chờ xác nhận trung chuyển đón' },
-    { id: 4, name: 'Phạm Quốc Huy', phone: '0944456789', ticketCount: 1, fromStation: '4 Tống Văn Trân', toStation: 'Trạm Châu Đốc', fromTransfer: '120 Lê Hồng Phong, Q.10', toTransfer: 'Bến xe Châu Đốc', note: '', assigned: null, guestType: 'Rước liền', isRuocLien: true, createdAt: '2026-07-18T08:45:00', printedAt: '', statusNote: '' },
-    { id: 5, name: 'Võ Thị Kim Ngân', phone: '0977567890', ticketCount: 2, fromStation: '508 Kinh Dương Vương', toStation: 'Trạm Long Xuyên', fromTransfer: '5 Hồ Học Lãm, Bình Tân', toTransfer: 'Bến Ninh Kiều, Cần Thơ', note: 'Gọi trước 15 phút khi xe tới', assigned: null, guestType: 'Rước liền', isRuocLien: true, createdAt: '2026-07-18T09:15:00', printedAt: '2026-07-18T09:20:00', statusNote: 'Đã liên hệ tài xế, đang chờ xác nhận giờ đón' }
-  ];
+  const defaults = [];
 
   let paxList = PickupService.readFirstNonEmpty(['hn_pickup_passengers_v5', 'hn_pickup_passengers_v4']);
   if (paxList.length === 0) {
