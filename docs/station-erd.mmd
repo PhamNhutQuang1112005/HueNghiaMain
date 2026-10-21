@@ -2,6 +2,8 @@ erDiagram
     region ||--o{ station : "khu vực của trạm"
     region ||--o{ direction : "tỉnh đi (from_region_id)"
     region ||--o{ direction : "tỉnh đến (to_region_id)"
+    direction ||--o{ direction_via_region : "các tỉnh đi qua giữa, theo thứ tự"
+    region ||--o{ direction_via_region : ""
     station ||--o{ stop_station : "có điểm dừng"
 
     direction ||--o{ route : "có tuyến chính"
@@ -68,7 +70,7 @@ erDiagram
     direction {
         bigint direction_id PK
         varchar code UK "TỰ SINH = ghép mã 2 tỉnh (sg-ag); không cho nhập"
-        bigint from_region_id FK "NOT NULL, UNIQUE cùng to_region_id"
+        bigint from_region_id FK "NOT NULL; lộ trình (from, các tỉnh giữa, to) phải duy nhất"
         bigint to_region_id FK "NOT NULL, CHECK khác from_region_id"
         varchar label "tên hiển thị của hướng"
         boolean active
@@ -79,14 +81,18 @@ erDiagram
         bigint updated_by FK "nullable, users.user_id"
     }
 
+    direction_via_region {
+        bigint direction_id PK, FK
+        bigint region_id PK, FK "khác from_region/to_region; UNIQUE (direction_id, region_id)"
+        int seq "NOT NULL, thứ tự đi qua giữa from -> to (web lưu mảng viaRegions)"
+    }
+
     route {
         bigint route_id PK
         bigint direction_id FK "NOT NULL"
         varchar label UK "tên tuyến chính"
         varchar abbr "mã tuyến, vd: SG-LX"
         varchar vehicle_type "nullable, loại xe (danh mục Loại xe, scope line)"
-        int price "giá vé ghế đơn, 0 = không bán"
-        int double_seat_price "giá vé ghế đôi, 0 = không bán; CHECK price > 0 OR double_seat_price > 0"
         bigint pickup_stop_id FK "NOT NULL, điểm dừng nhận chính (stop_station), thuộc tỉnh đến"
         boolean active
         int sort_order
@@ -108,7 +114,7 @@ erDiagram
 
     route_pickup_station {
         bigint route_id PK, FK
-        bigint station_id PK, FK "thuộc to_region của hướng"
+        bigint station_id PK, FK "thuộc from_region, một tỉnh giữa (direction_via_region) HOẶC to_region của hướng (trạm dọc đường)"
     }
 
     users {

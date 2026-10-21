@@ -176,7 +176,8 @@ var VIEW_RENDERERS = {
 
 /* Quyền cần để vào từng view (có ÍT NHẤT 1 quyền trong danh sách). View không khai báo = không khoá. */
 var ADMIN_VIEW_PERMS = {
-  viewStations: ['manage_regions', 'manage_stations', 'manage_stop_stations']
+  viewStations: ['manage_regions', 'manage_stations', 'manage_stop_stations'],
+  viewDirections: ['manage_directions', 'manage_routes']
 };
 // Có quyền `key` không (admin gốc luôn có).
 function adminCan(key) { return Auth.hasPermission(key); }

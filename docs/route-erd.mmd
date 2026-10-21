@@ -1,0 +1,122 @@
+erDiagram
+    region ||--o{ direction : "tỉnh đi (from_region_id)"
+    region ||--o{ direction : "tỉnh đến (to_region_id)"
+    direction ||--o{ direction_via_region : "các tỉnh đi qua giữa, theo thứ tự"
+    region ||--o{ direction_via_region : ""
+    region ||--o{ station : "khu vực của trạm"
+    station ||--o{ stop_station : "có điểm dừng"
+
+    direction ||--o{ route : "có tuyến chính"
+    stop_station ||--o{ route : "điểm dừng nhận chính (pickup_stop_id)"
+
+    route ||--o{ route_from_station : "trạm đi"
+    station ||--o{ route_from_station : ""
+    route ||--o{ route_to_station : "trạm đến"
+    station ||--o{ route_to_station : ""
+    route ||--o{ route_pickup_station : "trạm có thể nhận thêm khách"
+    station ||--o{ route_pickup_station : ""
+
+    station ||--o{ station_price : "trạm đi"
+    station ||--o{ station_price : "trạm đến"
+
+    users ||--o{ user_permission : "được cấp quyền chức năng"
+    users ||--o{ user_route_access : "được thao tác tuyến"
+    route ||--o{ user_route_access : "tuyến được cấp"
+
+    region {
+        bigint region_id PK
+        varchar code UK "tự sinh, vd: SG, AG"
+        varchar name UK
+        boolean active
+        int sort_order
+    }
+
+    direction {
+        bigint direction_id PK
+        varchar code UK "TỰ SINH = ghép mã các tỉnh theo lộ trình (bd-sg-ag); không cho nhập"
+        bigint from_region_id FK "NOT NULL"
+        bigint to_region_id FK "NOT NULL, CHECK khác from_region_id"
+        varchar label "tên hiển thị của hướng"
+        boolean active
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    direction_via_region {
+        bigint direction_id PK, FK
+        bigint region_id PK, FK "khác from_region/to_region của hướng"
+        int seq "NOT NULL, thứ tự đi qua từ tỉnh đi đến tỉnh đến (web lưu mảng viaRegions)"
+    }
+
+    station {
+        bigint station_id PK
+        varchar code UK
+        varchar name UK
+        bigint region_id FK "NOT NULL"
+        boolean active
+    }
+
+    stop_station {
+        bigint stop_station_id PK
+        bigint station_id FK "NOT NULL, ON DELETE CASCADE"
+        varchar name "UNIQUE (station_id, name)"
+        boolean active
+    }
+
+    route {
+        bigint route_id PK
+        bigint direction_id FK "NOT NULL"
+        varchar label UK "tên tuyến chính, vd: Bình Dương - Tân Châu"
+        varchar abbr "mã tuyến, vd: SG-LX"
+        varchar vehicle_type "nullable, loại xe (danh mục Loại xe, scope line)"
+        bigint pickup_stop_id FK "NOT NULL, điểm dừng nhận chính (stop_station), thuộc tỉnh đến"
+        boolean active
+        int sort_order
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id"
+        bigint updated_by FK "nullable, users.user_id"
+    }
+
+    route_from_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc from_region của hướng"
+    }
+
+    route_to_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc to_region của hướng"
+    }
+
+    route_pickup_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "thuộc from_region, một tỉnh giữa (direction_via_region) HOẶC to_region của hướng"
+    }
+
+    station_price {
+        bigint from_station_id PK, FK "trạm đi"
+        bigint to_station_id PK, FK "trạm đến, CHECK khác from_station_id"
+        int price "giá vé ghế đơn, 0 = không bán"
+        int double_seat_price "giá vé ghế đôi, 0 = không bán; CHECK price > 0 OR double_seat_price > 0"
+    }
+
+    users {
+        bigint user_id PK "bảng đầy đủ ở sơ đồ đăng nhập"
+    }
+
+    user_permission {
+        bigint user_id PK, FK
+        varchar permission_key PK "manage_directions = sửa hướng (thêm/sửa/bật tắt/xoá, tỉnh giữa); manage_routes = sửa tuyến (thêm/sửa/xoá/sao chép, trạm đi/đến/nhận thêm); manage_prices = giá theo cặp trạm"
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }
+
+    user_route_access {
+        bigint user_id PK, FK
+        bigint route_id PK, FK
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }

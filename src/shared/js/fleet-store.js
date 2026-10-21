@@ -457,9 +457,8 @@
   }
   function genStopCode(list) { return 'D' + padN(nextSeq(list || readJSON(HN_STOP_STATIONS_KEY, []), 'D'), 3); }
   // Mã hướng tự sinh từ mã 2 tỉnh: sg-ag.
-  function genDirectionId(fromKey, toKey) {
-    var f = regionByKey(fromKey), t = regionByKey(toKey);
-    var base = lc((f && f.code) || fromKey) + '-' + lc((t && t.code) || toKey), id = base, n = 2;
+  function genDirectionId(fromKey, toKey, viaKeys) {
+    var base = [fromKey].concat(viaKeys || [], [toKey]).map(function (k) { var r = regionByKey(k); return lc((r && r.code) || k); }).join('-'), id = base, n = 2;
     var dirs = getDirections();
     while (dirs.some(function (d) { return d.id === id; })) id = base + '-' + (n++);
     return id;
@@ -514,7 +513,7 @@
     if (!r) return { ok: true };
     var ns = getStations({ region: key }).length;
     if (ns) return { ok: false, reason: 'Tỉnh còn ' + ns + ' trạm — xoá hết trạm trước.' };
-    var nd = getDirections().filter(function (d) { return d.fromRegion === key || d.toRegion === key; }).length;
+    var nd = getDirections().filter(function (d) { return d.fromRegion === key || d.toRegion === key || (d.viaRegions || []).indexOf(key) !== -1; }).length;
     if (nd) return { ok: false, reason: 'Tỉnh đang dùng ở ' + nd + ' hướng.' };
     setRegions(getRegions().filter(function (x) { return x.key !== key; }));
     return { ok: true };
@@ -527,8 +526,14 @@
     if (!String(fields.label || '').trim()) return 'Nhập tên hướng.';
     if (!fields.fromRegion || !fields.toRegion) return 'Chọn tỉnh đi và tỉnh đến.';
     if (fields.fromRegion === fields.toRegion) return 'Tỉnh đi và tỉnh đến phải khác nhau.';
-    var dup = getDirections().find(function (d) { return d.id !== selfId && d.fromRegion === fields.fromRegion && d.toRegion === fields.toRegion; });
-    return dup ? 'Đã có hướng "' + dup.label + '" cùng tỉnh đi/đến.' : '';
+    var path = directionRegions(fields);
+    if (path.some(function (k, i) { return path.indexOf(k) !== i; })) return 'Các tỉnh trong hướng không được trùng nhau.';
+    var dup = getDirections().find(function (d) { return d.id !== selfId && directionRegions(d).join() === path.join(); });
+    return dup ? 'Đã có hướng "' + dup.label + '" cùng lộ trình tỉnh.' : '';
+  }
+  // Lộ trình tỉnh theo thứ tự: tỉnh đi → các tỉnh giữa → tỉnh đến.
+  function directionRegions(d) {
+    return [d.fromRegion].concat(d.viaRegions || [], [d.toRegion]).filter(Boolean);
   }
 
   /* ---------------- ĐIỂM DỪNG (stop_station) — thuộc trạm bằng stationId ---------------- */
@@ -1425,6 +1430,7 @@
     directionSense: directionSense,
     genDirectionId: genDirectionId,
     validateDirection: validateDirection,
+    directionRegions: directionRegions,
     addStation: addStation,
     addStationFull: addStationFull,
     updateStation: updateStation,

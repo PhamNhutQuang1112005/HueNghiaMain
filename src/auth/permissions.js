@@ -70,7 +70,7 @@
    chọn quyền ở modal "Thêm/Sửa tài khoản" (admin/admin-accounts.js). Mỗi tài khoản lưu
    1 mảng permissions: string[] gồm các "key" dưới đây (rỗng = chưa được gán quyền nào).
    Đã thực thi bằng Auth.hasPermission(key) cho: manage_regions / manage_stations /
-   manage_stop_stations (trang Admin > Trạm xe). Các quyền còn lại mới chỉ khai báo + gán.
+   manage_stop_stations (trang Admin > Trạm xe) và manage_directions / manage_routes (Admin > Tuyến xe). Các quyền còn lại mới chỉ khai báo + gán.
    ========================================================= */
 window.PERMISSION_GROUPS = [
   {
@@ -103,7 +103,8 @@ window.PERMISSION_GROUPS = [
       { key: 'manage_regions', label: 'Quản lý tỉnh' },
       { key: 'manage_stations', label: 'Quản lý trạm' },
       { key: 'manage_stop_stations', label: 'Quản lý điểm dừng' },
-      { key: 'manage_routes', label: 'Quản lý tuyến (hướng đi/về)' },
+      { key: 'manage_directions', label: 'Quản lý hướng (tỉnh đi / tỉnh giữa / tỉnh đến)' },
+      { key: 'manage_routes', label: 'Quản lý tuyến (tuyến chính, trạm đi/đến/nhận thêm)' },
       { key: 'manage_prices', label: 'Quản lý giá vé' },
       { key: 'manage_schedule', label: 'Quản lý khung giờ chạy' },
       { key: 'manage_vehicles', label: 'Quản lý xe (biển số, tài xế/phụ xe mặc định)' },

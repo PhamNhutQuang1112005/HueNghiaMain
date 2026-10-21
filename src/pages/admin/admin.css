@@ -3776,12 +3776,7 @@ table.admin-table {
   flex: 0 0 auto;
   accent-color: var(--red);
 }
-.sp-addfld { margin-bottom: 0; }
-/* Modal "Chọn trạm": thu hẹp khoảng cách từ ô "Thêm trạm mới vào danh mục" xuống nút Huỷ/Lưu */
 .sp-picker > .modal-actions { margin-top: 4px; padding-top: 6px; }
-.sp-addrow { display: flex; gap: 10px; align-items: center; }
-.admin-form .sp-addrow > input { flex: 1 1 auto; min-width: 0; }
-.admin-form .sp-addrow > select { flex: 0 0 150px; min-width: 0; }
 @media (max-width: 620px) {
   .sp-region .chip-editor { grid-template-columns: 1fr; }
 }
@@ -4814,6 +4809,7 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 .regions-modal .rgm-main { flex-wrap: wrap; }
 .regions-modal .rgm-code { flex: 0 0 64px; min-width: 0 !important; text-transform: uppercase; }
 .regions-modal .dm-from, .regions-modal .dm-to { flex: 1 1 130px; min-width: 0; }
+.regions-modal .dm-via { flex: 1 1 130px; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .regions-modal .dm-add { flex-wrap: wrap; }
 .regions-modal .dm-add > select { flex: 1 1 130px; min-width: 0; }
 
