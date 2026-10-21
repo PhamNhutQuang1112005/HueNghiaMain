@@ -399,20 +399,46 @@
     return (w.length > 1 ? w.map(function (x) { return x[0]; }).join('') : (w[0] || 'X').slice(0, 2)).toUpperCase();
   }
   function regionActiveStations(key) { return getStations({ region: key }).filter(isActive).length; }
-  function checkRegionFields(name, code, selfKey) {
+  function checkRegionName(name, selfKey) {
     if (!name) return 'Nhập tên tỉnh.';
-    if (!code) return 'Nhập mã tỉnh.';
     var clash = getRegions().some(function (r) { return r.key !== selfKey && lc(r.name) === lc(name); });
-    if (clash) return 'Tên tỉnh đã tồn tại.';
-    clash = getRegions().some(function (r) { return r.key !== selfKey && lc(r.code) === lc(code); });
-    return clash ? 'Mã tỉnh "' + code + '" đã tồn tại.' : '';
+    return clash ? 'Tên tỉnh đã tồn tại.' : '';
+  }
+  // Mã tự sinh (không cho nhập): chữ cái đầu của tên, trùng thì thêm số.
+  function genRegionCode(name, list) {
+    var taken = {};
+    (list || getRegions()).forEach(function (r) { if (r.code) taken[lc(r.code)] = true; });
+    var base = initialsOf(name), c = base, n = 2;
+    while (taken[lc(c)]) c = base + (n++);
+    return c;
+  }
+  // Số thứ tự kế tiếp cho các mã dạng PREFIX + số (SG01, D009...).
+  function nextSeq(list, prefix) {
+    var re = new RegExp('^' + prefix + '(\\d+)$', 'i'), max = 0;
+    list.forEach(function (x) { var m = x && x.code && re.exec(x.code); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+    return max + 1;
+  }
+  function padN(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
+  function genStationCode(regionKey, list) {
+    var r = regionByKey(regionKey);
+    var prefix = r && r.code ? r.code : 'TR';
+    return prefix + padN(nextSeq(list || getStations(), prefix), 2);
+  }
+  function genStopCode(list) { return 'D' + padN(nextSeq(list || readJSON(HN_STOP_STATIONS_KEY, []), 'D'), 3); }
+  // Mã hướng tự sinh từ mã 2 tỉnh: sg-ag.
+  function genDirectionId(fromKey, toKey) {
+    var f = regionByKey(fromKey), t = regionByKey(toKey);
+    var base = lc((f && f.code) || fromKey) + '-' + lc((t && t.code) || toKey), id = base, n = 2;
+    var dirs = getDirections();
+    while (dirs.some(function (d) { return d.id === id; })) id = base + '-' + (n++);
+    return id;
   }
   function addRegion(fields) {
     var name = stripTram(fields && fields.name);
-    var code = String((fields && fields.code) || initialsOf(name)).trim().toUpperCase();
-    var why = checkRegionFields(name, code, null);
+    var why = checkRegionName(name, null);
     if (why) return { ok: false, reason: why };
     var list = getRegions();
+    var code = genRegionCode(name, list);
     var base = slugify(name) || 'tinh', key = base, n = 2;
     while (list.some(function (r) { return r.key === key; })) key = base + '-' + (n++);
     var item = { key: key, code: code, name: name, active: true, order: list.length, custom: true };
@@ -425,10 +451,9 @@
     var r = list.find(function (x) { return x.key === key; });
     if (!r) return { ok: false, reason: 'Không tìm thấy tỉnh.' };
     var name = stripTram(fields && fields.name);
-    var code = String((fields && fields.code) || '').trim().toUpperCase();
-    var why = checkRegionFields(name, code, key);
+    var why = checkRegionName(name, key);
     if (why) return { ok: false, reason: why };
-    r.name = name; r.code = code;
+    r.name = name; // mã tỉnh giữ nguyên
     setRegions(list);
     return { ok: true, item: r };
   }
@@ -491,11 +516,7 @@
     if (list.some(function (s) { return s.id !== selfId && s.stationId === station.id && lc(s.name) === lc(name); })) {
       return { reason: 'Điểm dừng này đã tồn tại trong trạm xe.' };
     }
-    var code = nullIfBlank(fields.code);
-    if (code && list.some(function (s) { return s.id !== selfId && s.code && lc(s.code) === lc(code); })) {
-      return { reason: 'Mã điểm dừng "' + code + '" đã tồn tại.' };
-    }
-    return { station: station, name: name, code: code };
+    return { station: station, name: name };
   }
   function addStopStation(fields) {
     fields = fields || {};
@@ -504,7 +525,7 @@
     if (!isActive(c.station)) return { ok: false, reason: 'Trạm xe đang tắt.' };
     var item = {
       id: String(fields.id || makeStationId('stop')),
-      stationId: c.station.id, name: c.name, code: c.code,
+      stationId: c.station.id, name: c.name, code: genStopCode(),
       address: String(fields.address || '').trim(), hotline: String(fields.hotline || '').trim(),
       active: fields.active !== false
     };
@@ -521,7 +542,7 @@
     var c = checkStopFields(fields, id);
     if (c.reason) return { ok: false, reason: c.reason };
     cur.stationId = c.station.id; delete cur.orphanStationName;
-    cur.name = c.name; cur.code = c.code;
+    cur.name = c.name; if (!cur.code) cur.code = genStopCode(raw);
     cur.address = String(fields.address || '').trim(); cur.hotline = String(fields.hotline || '').trim();
     if (fields.active != null) cur.active = !!fields.active;
     writeJSON(HN_STOP_STATIONS_KEY, raw);
@@ -549,17 +570,15 @@
     if (!regionByKey(fields.region)) return 'Tỉnh không hợp lệ.';
     var list = getStations();
     if (list.some(function (s) { return s.id !== selfId && s.name === name; })) return 'Tên trạm đã tồn tại.';
-    var code = nullIfBlank(fields.code);
-    if (code && list.some(function (s) { return s.id !== selfId && s.code && lc(s.code) === lc(code); })) return 'Mã trạm "' + code + '" đã tồn tại.';
     return '';
   }
-  // fields: { name, region, code, address, hotlineCargo, hotlineTicket } → { ok, reason?, item? }
+  // fields: { name, region, address, hotlineCargo, hotlineTicket } — mã trạm tự sinh (mã tỉnh + số thứ tự) → { ok, reason?, item? }
   function addStationFull(fields) {
     var why = checkStationFields(fields, null);
     if (why) return { ok: false, reason: why };
     var item = {
       id: makeStationId('st'),
-      name: String(fields.name).trim(), region: fields.region, code: nullIfBlank(fields.code),
+      name: String(fields.name).trim(), region: fields.region, code: genStationCode(fields.region),
       address: String(fields.address || '').trim(),
       hotlineCargo: String(fields.hotlineCargo || '').trim(), hotlineTicket: String(fields.hotlineTicket || '').trim(),
       active: true
@@ -582,7 +601,7 @@
     var why = checkStationFields(fields, st.id);
     if (why) return { ok: false, reason: why };
     var oldName = st.name, newName = String(fields.name).trim();
-    st.name = newName; st.region = fields.region; st.code = nullIfBlank(fields.code);
+    st.name = newName; st.region = fields.region; if (!st.code) st.code = genStationCode(fields.region, list);
     st.address = String(fields.address || '').trim();
     st.hotlineCargo = String(fields.hotlineCargo || '').trim();
     st.hotlineTicket = String(fields.hotlineTicket || '').trim();
@@ -683,7 +702,8 @@
       if (!s.id) { s.id = makeStationId('st'); stChanged = true; }
       if (s.active === undefined) { s.active = true; stChanged = true; }
       if ('province' in s) { delete s.province; stChanged = true; }
-      if (s.code === '' || s.code === undefined) { s.code = null; stChanged = true; }
+      if (!s.code && s.region) { s.code = genStationCode(s.region, stations); stChanged = true; }
+      else if (s.code === '' || s.code === undefined) { s.code = null; stChanged = true; }
     });
     if (stChanged) setStations(stations);
     var unassigned = stations.filter(function (s) { return s && !s.region; }).length;
@@ -703,7 +723,7 @@
       }
       if ('stationName' in sp) { delete sp.stationName; spChanged = true; }
       if (sp.active === undefined) { sp.active = true; spChanged = true; }
-      if (sp.code === '' || sp.code === undefined) { sp.code = null; spChanged = true; }
+      if (!sp.code) { sp.code = genStopCode(stops); spChanged = true; }
     });
     if (spChanged) writeJSON(HN_STOP_STATIONS_KEY, stops);
 
@@ -1320,6 +1340,7 @@
     getActiveStations: getActiveStations,
     setStationActive: setStationActive,
     directionSense: directionSense,
+    genDirectionId: genDirectionId,
     validateDirection: validateDirection,
     addStation: addStation,
     addStationFull: addStationFull,

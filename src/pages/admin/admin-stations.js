@@ -97,7 +97,7 @@ function renderRegionsManager() {
     return '<div class="rgm-row' + (on ? '' : ' rgm-row-hidden') + '">' +
       '<div class="rgm-main">' +
         '<input class="rgm-name" value="' + esc(rm[1]) + '" data-region-key="' + esc(key) + '" aria-label="Tên tỉnh">' +
-        '<input class="rgm-code" value="' + esc(FleetStore.getRegions().find(function (r) { return r.key === key; }).code) + '" data-region-code="' + esc(key) + '" aria-label="Mã tỉnh" placeholder="Mã" size="5">' +
+        '<span class="rgm-count">Mã: ' + esc(FleetStore.getRegions().find(function (r) { return r.key === key; }).code) + '</span>' +
         '<span class="rgm-count">' + (on ? (isCustom ? 'Tự thêm' : 'Mặc định') : 'Đã tắt') + '</span>' +
       '</div>' +
       '<div class="rgm-act">' +
@@ -111,7 +111,6 @@ function renderRegionsManager() {
   return '<div class="rgm-list">' + rows + '</div>' +
     '<div class="rgm-add">' +
       '<input id="rgmNew" placeholder="Tên tỉnh mới" aria-label="Tên tỉnh mới">' +
-      '<input id="rgmNewCode" placeholder="Mã (vd: CT)" aria-label="Mã tỉnh mới" size="8">' +
       '<button type="button" class="btn btn-primary" data-action="adminAddRegion">+ Thêm</button>' +
     '</div>';
 }
@@ -134,18 +133,16 @@ function adminRegionDone(msg, entityId, action, summary) {
 
 function adminAddRegion() {
   var name = (($('rgmNew') || {}).value || '').trim();
-  var code = (($('rgmNewCode') || {}).value || '').trim();
-  var res = FleetStore.addRegion({ name: name, code: code });
+  var res = FleetStore.addRegion({ name: name });
   if (!res.ok) { showToast(res.reason); return; }
   adminRegionDone('Đã thêm tỉnh.', res.item.key, 'create', 'Thêm tỉnh "' + res.item.name + '"');
 }
 
 function adminRenameRegion(key) {
   var nameEl = document.querySelector('.rgm-name[data-region-key="' + key + '"]');
-  var codeEl = document.querySelector('.rgm-code[data-region-code="' + key + '"]');
-  var res = FleetStore.updateRegion(key, { name: nameEl && nameEl.value, code: codeEl && codeEl.value });
+  var res = FleetStore.updateRegion(key, { name: nameEl && nameEl.value });
   if (!res.ok) { showToast(res.reason); return; }
-  adminRegionDone('Đã lưu tỉnh.', key, 'update', 'Sửa tỉnh "' + res.item.name + '" (' + res.item.code + ')');
+  adminRegionDone('Đã lưu tỉnh.', key, 'update', 'Sửa tỉnh "' + res.item.name + '"');
 }
 
 function adminToggleRegion(key) {
@@ -297,7 +294,6 @@ function renderDirsManager() {
   return '<div class="rgm-list">' + rows + '</div>' +
     '<div class="rgm-add dm-add">' +
       '<input id="dmNewLabel" placeholder="Tên hướng mới — VD: Sài Gòn - An Giang" aria-label="Tên hướng mới">' +
-      '<input id="dmNewKey" placeholder="Mã (vd: sg-ag)" aria-label="Mã hướng">' +
       dirRegionSelect('', 'id="dmNewFrom"', '', '— Tỉnh đi —') +
       dirRegionSelect('', 'id="dmNewTo"', '', '— Tỉnh đến —') +
       '<button type="button" class="btn btn-primary" data-action="adminAddDirection">+ Thêm</button>' +
@@ -332,12 +328,10 @@ function adminAddDirection() {
     fromRegion: $('dmNewFrom').value,
     toRegion: $('dmNewTo').value
   };
-  var key = ($('dmNewKey').value || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
   var why = FleetStore.validateDirection(fields, null);
   if (why) { showToast(why); return; }
-  if (!key) key = slugifyRegion(fields.label);
+  var key = FleetStore.genDirectionId(fields.fromRegion, fields.toRegion); // mã hướng tự sinh từ mã 2 tỉnh
   var list = FleetStore.getDirections();
-  if (list.some(function (x) { return x.id === key; })) { showToast('Mã hướng "' + key + '" đã tồn tại.'); return; }
   var maxOrder = list.reduce(function (m, x) { return Math.max(m, x.order || 0); }, -1);
   var nd = { id: key, label: fields.label, fromRegion: fields.fromRegion, toRegion: fields.toRegion, active: true, order: maxOrder + 1 };
   list.push(nd);

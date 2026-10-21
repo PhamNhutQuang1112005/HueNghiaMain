@@ -191,7 +191,7 @@ function adminOpenStationModal(id, defaultRegion) {
     '<form class="admin-form" data-submit-action="adminSaveStationFull" data-args=\'["__event__"' + (s ? ',"' + esc(s.id) + '"' : '') + ']\'>' +
       '<div class="fld"><label>Tên trạm <span class="req">*</span></label><input id="sdName" required value="' + (s ? esc(s.name) : '') + '" placeholder="VD: 508 Kinh Dương Vương"></div>' +
       '<div class="fld-row">' +
-        '<div class="fld"><label>Mã trạm</label><input id="sdCode" value="' + (s ? esc(s.code || '') : '') + '" placeholder="VD: SG01"></div>' +
+        (s ? '<div class="fld"><label>Mã trạm (tự sinh)</label><input value="' + esc(s.code || '') + '" disabled></div>' : '') +
         '<div class="fld"><label>Tỉnh <span class="req">*</span></label>' +
           '<select id="sdRegion" required>' +
             '<option value="" disabled' + (curRegion ? '' : ' selected') + '>— Chọn tỉnh —</option>' +
@@ -215,7 +215,6 @@ function adminSaveStationFull(e, id) {
   e.preventDefault();
   var fields = {
     name: $('sdName').value.trim(),
-    code: $('sdCode').value.trim(),
     address: $('sdAddress').value.trim(),
     hotlineCargo: $('sdHotlineCargo').value.trim(),
     hotlineTicket: $('sdHotlineTicket').value.trim(),
@@ -280,7 +279,7 @@ function adminOpenStopStationModal(id) {
         '<div class="fld"><label>Trạm xe <span class="req">*</span></label><select id="stopStationStationId" required>' + stationOptions + '</select></div>' +
         '<div class="fld"><label>Tên điểm dừng <span class="req">*</span></label><input id="stopStationName" required value="' + (stop ? esc(stop.name) : '') + '" placeholder="Nhập tên điểm dừng"></div>' +
       '</div>' +
-      '<div class="fld"><label>Mã điểm dừng</label><input id="stopStationCode" value="' + (stop ? esc(stop.code || '') : '') + '" placeholder="VD: D009"></div>' +
+      (stop ? '<div class="fld"><label>Mã điểm dừng (tự sinh)</label><input value="' + esc(stop.code || '') + '" disabled></div>' : '') +
       '<div class="fld"><label>Địa chỉ</label><input id="stopStationAddress" value="' + (stop ? esc(stop.address || '') : '') + '" placeholder="Số nhà, đường, xã/phường..."></div>' +
       '<div class="fld"><label>Hotline</label><input id="stopStationHotline" value="' + (stop ? esc(stop.hotline || '') : '') + '" placeholder="SĐT liên hệ"></div>' +
       '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu</button></div>' +
@@ -293,7 +292,6 @@ function adminSaveStopStation(e, id) {
   var payload = {
     stationId: $('stopStationStationId').value,
     name: $('stopStationName').value.trim(),
-    code: $('stopStationCode').value.trim(),
     address: $('stopStationAddress').value.trim(),
     hotline: $('stopStationHotline').value.trim()
   };
