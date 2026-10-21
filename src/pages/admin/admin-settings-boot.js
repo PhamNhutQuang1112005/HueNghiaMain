@@ -58,4 +58,5 @@ initAdminUserMenu();
 initAdminNavGroups();
 initAdminSidebarTooltips();
 initAdminSidebarCollapse();
+adminApplyNavPerms();
 switchAdminView('viewDashboard');

@@ -12,6 +12,7 @@ var STATION_SUBTAB = 'all';
 
 function adminSetStationSubTab(tab) {
   if (!['all', 'stop'].includes(tab)) return;
+  if (!adminRequire(tab === 'all' ? 'manage_stations' : 'manage_stop_stations')) return;
   STATION_SUBTAB = tab;
   renderStationsView();
 }
@@ -60,10 +61,16 @@ function renderStationsView() {
     '</tr>';
   }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy trạm phù hợp.</td></tr>';
 
+  // Mỗi tab / nút chỉ hiện khi tài khoản có đúng quyền: trạm, điểm dừng, tỉnh (danh mục).
+  var canSt = adminCan('manage_stations'), canStop = adminCan('manage_stop_stations'), canReg = adminCan('manage_regions');
   var currentTab = STATION_SUBTAB || 'all';
+  if (currentTab === 'all' && !canSt && canStop) currentTab = 'stop';
+  if (currentTab === 'stop' && !canStop && canSt) currentTab = 'all';
   var tabContent = '';
 
-  if (currentTab === 'all') {
+  if (!canSt && !canStop) {
+    tabContent = '<div class="empty-state">Bạn chỉ có quyền quản lý tỉnh — dùng nút “Cập nhật danh mục”.</div>';
+  } else if (currentTab === 'all') {
     tabContent =
       '<div class="sd-section-block">' +
         '<div class="sd-table-wrap"><table class="admin-table"><thead><tr><th class="num">STT</th><th>Tên trạm</th><th>Mã trạm</th><th>Địa chỉ</th><th>Tỉnh</th><th>Hotline hàng</th><th>Hotline vé</th><th class="col-status">Trạng thái</th><th class="th-actions">Thao tác</th></tr></thead><tbody>' + allRows + '</tbody></table></div>' +
@@ -93,7 +100,9 @@ function renderStationsView() {
   }
 
   var addButton = '';
-  if (currentTab === 'all') {
+  if (!canSt && !canStop) {
+    addButton = '';
+  } else if (currentTab === 'all') {
     addButton = '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenStationModal" data-args=\'["","' + esc(STATION_DIR_REGION) + '"]\'>Thêm trạm</button>';
   } else {
     addButton = '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenStopStationModal">Thêm điểm dừng</button>';
@@ -101,8 +110,8 @@ function renderStationsView() {
 
   $('viewStations').innerHTML =
     '<div class="station-subtabs">' +
-      '<button type="button" class="station-subtab' + (currentTab === 'all' ? ' active' : '') + '" data-action="adminSetStationSubTab" data-args=\'["all"]\'>Trạm xe</button>' +
-      '<button type="button" class="station-subtab' + (currentTab === 'stop' ? ' active' : '') + '" data-action="adminSetStationSubTab" data-args=\'["stop"]\'>Điểm dừng</button>' +
+      (canSt ? '<button type="button" class="station-subtab' + (currentTab === 'all' ? ' active' : '') + '" data-action="adminSetStationSubTab" data-args=\'["all"]\'>Trạm xe</button>' : '') +
+      (canStop ? '<button type="button" class="station-subtab' + (currentTab === 'stop' ? ' active' : '') + '" data-action="adminSetStationSubTab" data-args=\'["stop"]\'>Điểm dừng</button>' : '') +
     '</div>' +
     '<div class="sd-toolbar" style="gap:8px;">' +
       '<div class="filter-field sd-field-search" style="flex:1 1 190px; min-width:150px; max-width:none;">' +
@@ -116,7 +125,7 @@ function renderStationsView() {
         '</select></div>' +
       '<div class="sd-toolbar-actions" style="margin-left:auto; display:flex; gap:8px;">' +
         addButton +
-        '<button type="button" class="btn sd-btn" data-action="adminOpenRegionsModal">Cập nhật danh mục</button>' +
+        (canReg ? '<button type="button" class="btn sd-btn" data-action="adminOpenRegionsModal">Cập nhật danh mục</button>' : '') +
       '</div>' +
     '</div>' +
     '<div class="sd-blocks">' + tabContent + '</div>';
@@ -172,6 +181,7 @@ function adminOpenRowMenu(btn, key, itemsHtml) {
 }
 // Trạm đang được tuyến dùng → không cho Xoá, chỉ Bật/Tắt (tuyến cũ vẫn giữ trạm tắt).
 function adminStationRowMenu(btn, id) {
+  if (!adminRequire('manage_stations')) return;
   var s = FleetStore.getStations().find(function (x) { return x.id === id; });
   if (!s) return;
   var used = FleetStore.stationUsage(s.name);
@@ -182,6 +192,7 @@ function adminStationRowMenu(btn, id) {
 }
 
 function adminOpenStationModal(id, defaultRegion) {
+  if (!adminRequire('manage_stations')) return;
   var s = id ? FleetStore.getStations().find(function (x) { return x.id === id; }) : null;
   var curRegion = s ? (s.region || '') : (defaultRegion || '');
   // Chỉ tỉnh đang bật; tỉnh hiện tại của trạm (nếu đã tắt) vẫn giữ trong danh sách.
@@ -213,6 +224,7 @@ function adminOpenStationModal(id, defaultRegion) {
 
 function adminSaveStationFull(e, id) {
   e.preventDefault();
+  if (!adminRequire('manage_stations')) return;
   var fields = {
     name: $('sdName').value.trim(),
     address: $('sdAddress').value.trim(),
@@ -229,6 +241,7 @@ function adminSaveStationFull(e, id) {
 }
 
 function adminToggleStation(id) {
+  if (!adminRequire('manage_stations')) return;
   var s = FleetStore.getStations().find(function (x) { return x.id === id; });
   if (!s) return;
   var on = s.active === false;
@@ -240,6 +253,7 @@ function adminToggleStation(id) {
 }
 
 function adminDeleteStationFull(id) {
+  if (!adminRequire('manage_stations')) return;
   var s = FleetStore.getStations().find(function (x) { return x.id === id; });
   if (!s) return;
   if (FleetStore.stationUsage(s.name)) { showToast('Trạm đang được tuyến dùng — chỉ có thể tắt.'); return; }
@@ -256,6 +270,7 @@ function renderSubStationsView() {
 }
 
 function adminStopStationRowMenu(btn, id) {
+  if (!adminRequire('manage_stop_stations')) return;
   var stop = FleetStore.getStopStations().find(function (x) { return x.id === id; });
   adminOpenRowMenu(btn, 'stop-station:' + id,
     '<button type="button" class="admin-row-menu-item" data-action="adminOpenStopStationModal" data-args=\'["' + esc(id) + '"]\'>Sửa điểm dừng</button>' +
@@ -264,6 +279,7 @@ function adminStopStationRowMenu(btn, id) {
 }
 
 function adminOpenStopStationModal(id) {
+  if (!adminRequire('manage_stop_stations')) return;
   var stop = id ? FleetStore.getStopStations().find(function (x) { return x.id === id; }) : null;
   var curStationId = stop ? (stop.stationId || '') : '';
   // Chỉ trạm đang bật; trạm hiện tại của điểm dừng (nếu đã tắt) vẫn giữ. Điểm dừng mồ côi bắt chọn lại.
@@ -289,6 +305,7 @@ function adminOpenStopStationModal(id) {
 
 function adminSaveStopStation(e, id) {
   e.preventDefault();
+  if (!adminRequire('manage_stop_stations')) return;
   var payload = {
     stationId: $('stopStationStationId').value,
     name: $('stopStationName').value.trim(),
@@ -304,6 +321,7 @@ function adminSaveStopStation(e, id) {
 }
 
 function adminToggleStopStation(id) {
+  if (!adminRequire('manage_stop_stations')) return;
   var stop = FleetStore.getStopStations().find(function (x) { return x.id === id; });
   if (!stop) return;
   var on = stop.active === false;
@@ -315,6 +333,7 @@ function adminToggleStopStation(id) {
 }
 
 function adminDeleteStopStation(id) {
+  if (!adminRequire('manage_stop_stations')) return;
   if (!confirm('Xoá điểm dừng này?')) return;
   FleetStore.removeStopStation(id);
   FleetStore.log({ action: 'delete', entity: 'stop_station', entityId: id, summary: 'Xoá điểm dừng' });

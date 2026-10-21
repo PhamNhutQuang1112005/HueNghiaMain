@@ -174,8 +174,34 @@ var VIEW_RENDERERS = {
   viewSettings: function () { renderSettingsView(); }
 };
 
+/* Quyền cần để vào từng view (có ÍT NHẤT 1 quyền trong danh sách). View không khai báo = không khoá. */
+var ADMIN_VIEW_PERMS = {
+  viewStations: ['manage_regions', 'manage_stations', 'manage_stop_stations']
+};
+// Có quyền `key` không (admin gốc luôn có).
+function adminCan(key) { return Auth.hasPermission(key); }
+// Dùng ở đầu mỗi thao tác ghi: không có quyền thì báo và dừng.
+function adminRequire(key) {
+  if (adminCan(key)) return true;
+  var info = window.permInfo && permInfo(key);
+  showToast('Bạn không có quyền' + (info ? ': ' + info.label : '') + '.');
+  return false;
+}
+function adminCanView(view) {
+  var need = ADMIN_VIEW_PERMS[view];
+  return !need || Auth.hasAnyPermission(need);
+}
+// Ẩn mục sidebar mà tài khoản không đủ quyền.
+function adminApplyNavPerms() {
+  document.querySelectorAll('.admin-nav-item').forEach(function (b) {
+    var m = /"(view\w+)"/.exec(b.getAttribute('data-args') || '');
+    if (m && !adminCanView(m[1])) b.style.display = 'none';
+  });
+}
+
 function switchAdminView(view) {
   if (!VIEW_RENDERERS[view]) return;
+  if (!adminCanView(view)) { showToast('Bạn không có quyền vào chức năng này.'); return; }
   CURRENT_VIEW = view;
   document.querySelectorAll('.admin-view').forEach(function (s) { s.hidden = s.id !== view; });
   document.querySelectorAll('.admin-nav-item').forEach(function (b) {

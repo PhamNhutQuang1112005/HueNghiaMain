@@ -115,6 +115,7 @@ function renderRegionsManager() {
     '</div>';
 }
 function adminOpenRegionsModal() {
+  if (!adminRequire('manage_regions')) return;
   openAdminModal(
     '<h3>Cập nhật danh mục tỉnh</h3>' +
     '<div class="admin-form regions-modal">' +
@@ -132,6 +133,7 @@ function adminRegionDone(msg, entityId, action, summary) {
 }
 
 function adminAddRegion() {
+  if (!adminRequire('manage_regions')) return;
   var name = (($('rgmNew') || {}).value || '').trim();
   var res = FleetStore.addRegion({ name: name });
   if (!res.ok) { showToast(res.reason); return; }
@@ -139,6 +141,7 @@ function adminAddRegion() {
 }
 
 function adminRenameRegion(key) {
+  if (!adminRequire('manage_regions')) return;
   var nameEl = document.querySelector('.rgm-name[data-region-key="' + key + '"]');
   var res = FleetStore.updateRegion(key, { name: nameEl && nameEl.value });
   if (!res.ok) { showToast(res.reason); return; }
@@ -146,6 +149,7 @@ function adminRenameRegion(key) {
 }
 
 function adminToggleRegion(key) {
+  if (!adminRequire('manage_regions')) return;
   var cur = FleetStore.getRegions().find(function (r) { return r.key === key; });
   if (!cur) return;
   var on = cur.active === false;
@@ -155,6 +159,7 @@ function adminToggleRegion(key) {
 }
 
 function adminRemoveRegion(key) {
+  if (!adminRequire('manage_regions')) return;
   if (!confirm('Xoá tỉnh này khỏi danh mục?')) return;
   var res = FleetStore.removeRegion(key);
   if (!res.ok) { showToast(res.reason); return; }
@@ -441,6 +446,7 @@ function adminSaveStationPick(e) {
   var picked = Array.prototype.map.call($('spList').querySelectorAll('input[type=checkbox]:checked'), function (c) { return c.value; });
   var newName = ($('spNew').value || '').trim();
   if (newName) {
+    if (!adminRequire('manage_stations')) return;
     if (!$('spNewRegion').value) { showToast('Chọn tỉnh cho trạm mới.'); return; }
     if (!FleetStore.addStation(newName, $('spNewRegion').value)) { showToast('Không thêm được trạm "' + newName + '" (trùng tên hoặc tỉnh sai).'); return; }
     if (picked.indexOf(newName) === -1) picked.push(newName);

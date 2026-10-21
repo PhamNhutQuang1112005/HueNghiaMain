@@ -34,6 +34,12 @@
     } catch (e) { return false; }
   }
 
+  function hasPermission(key) {
+    if (role() === 'admin') return true;
+    var t = window.FleetStore && FleetStore.getStaffRoles().find(function (r) { return r.key === role(); });
+    return !!t && (t.permissions || []).indexOf(key) !== -1;
+  }
+
   window.Auth = {
     // Được vào trang Admin.
     isAdmin: function () {
@@ -47,9 +53,14 @@
     // Ở chế độ ĐIỀU HÀNH trung chuyển (thay vì phòng vé) tại tab "Trung chuyển" — admin luôn có đủ
     // quyền cao nhất nên cũng được tính là chế độ điều hành (vd bấm "Đón khách" từ sidebar Admin).
     isShuttleDispatch: function () {
-      if (role() === 'admin') return true;
-      var t = window.FleetStore && FleetStore.getStaffRoles().find(function (r) { return r.key === role(); });
-      return !!t && (t.permissions || []).indexOf('transship_assign') !== -1;   // theo quyền của loại, không so mã loại
+      return hasPermission('transship_assign');   // theo quyền của loại, không so mã loại
+    },
+    // Tài khoản hiện tại có quyền `key` (khai báo ở PERMISSION_GROUPS) không. Admin gốc luôn có đủ.
+    // Quyền gán theo LOẠI nhân viên (role), không gán riêng từng người.
+    hasPermission: hasPermission,
+    // Có ít nhất 1 trong các quyền `keys` không.
+    hasAnyPermission: function (keys) {
+      return (keys || []).some(hasPermission);
     }
   };
 })();
@@ -58,9 +69,8 @@
    DANH MỤC QUYỀN THEO CHỨC NĂNG (không theo chức vụ/role) — nguồn DUY NHẤT cho khung
    chọn quyền ở modal "Thêm/Sửa tài khoản" (admin/admin-accounts.js). Mỗi tài khoản lưu
    1 mảng permissions: string[] gồm các "key" dưới đây (rỗng = chưa được gán quyền nào).
-   Hiện CHƯA có nơi nào đọc mảng này để ẩn/khoá chức năng thật (admin tự xem bằng mắt khi
-   phân quyền) — đây là bước khai báo + gán quyền; việc thực thi (hasPermission(key)) sẽ
-   làm ở giai đoạn sau khi đã rõ cần khoá ở đúng những chỗ nào.
+   Đã thực thi bằng Auth.hasPermission(key) cho: manage_regions / manage_stations /
+   manage_stop_stations (trang Admin > Trạm xe). Các quyền còn lại mới chỉ khai báo + gán.
    ========================================================= */
 window.PERMISSION_GROUPS = [
   {
@@ -90,7 +100,9 @@ window.PERMISSION_GROUPS = [
     key: 'catalog_admin',
     label: 'Quản lý danh mục (Admin)',
     items: [
+      { key: 'manage_regions', label: 'Quản lý tỉnh' },
       { key: 'manage_stations', label: 'Quản lý trạm' },
+      { key: 'manage_stop_stations', label: 'Quản lý điểm dừng' },
       { key: 'manage_routes', label: 'Quản lý tuyến (hướng đi/về)' },
       { key: 'manage_prices', label: 'Quản lý giá vé' },
       { key: 'manage_schedule', label: 'Quản lý khung giờ chạy' },
