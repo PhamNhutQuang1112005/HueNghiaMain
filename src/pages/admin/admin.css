@@ -1240,9 +1240,21 @@ table.admin-table {
 .rt-table .col-status,
 .rt-table th.th-actions,
 .rt-table td.row-actions { width: 120px; }
-.rt-table td.rt-pickup-cell { text-align: left; min-width: 360px; }
-.rt-pickup.chip-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.rt-pickup .btn-ghost { flex: 0 0 auto; }
+.rt-table td.rt-pickup-cell { text-align: left; min-width: 220px; }
+.rt-table td.rt-pickup-cell { min-width: 420px; }
+/* Chip trạm xếp lưới 2-3 ô/hàng thay vì mỗi chip 1 dòng. */
+.rt-pickup.chip-editor { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); align-items: center; gap: 6px; }
+.rt-pickup .btn-ghost { justify-self: start; }
+/* Modal Thêm/Sửa tuyến: rộng, 2 cột; điểm đi xếp lưới 3 ô/hàng; co về 1 cột trên màn hẹp. */
+.modal:has(> .route-form) { width: min(860px, calc(100vw - 24px)); }
+.route-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; max-height: calc(100vh - 130px); overflow-y: auto; }
+.route-form > .fld-full, .route-form > .modal-actions { grid-column: 1 / -1; }
+#rmFrom.chip-editor { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 260px; overflow-y: auto; }
+@media (max-width: 760px) { #rmFrom.chip-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  .route-form { grid-template-columns: 1fr; }
+  #rmFrom.chip-editor { grid-template-columns: 1fr; }
+}
 /* Chip trạm dài (tên trạm nhiều chữ) trong cột hẹp (Điểm đi/Điểm đến ở Quản lý giá) mặc định không
    co lại được (flex item min-width:auto) nên tràn ra ngoài, đè lên cột kế bên. Cho phép chip tự co và
    xuống dòng bên trong chính nó thay vì tràn. */
@@ -4824,3 +4836,12 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 #viewStations tr.sd-group-row td { background: var(--surface-2); padding: 6px 12px; font-size: 13px; }
 #viewStations .audit-cell { font-size: 12px; white-space: nowrap; line-height: 1.35; }
 #viewStations th.col-check, #viewStations td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+
+/* Modal chọn trạm của khung giá (Quản lý giá): lưới nhiều cột tự co theo bề rộng, danh sách dài thì cuộn. */
+.modal:has(.pf-pick) { width: 720px; max-width: calc(100vw - 24px); }
+.modal:has(.pf-pick) > .admin-form { max-height: calc(100vh - 120px); overflow-y: auto; }
+.chip-editor.pf-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; padding: 0; }
+.chip-editor.pf-pick .chip.sp-opt { min-height: 38px; }
+@media (max-width: 480px) {
+  .chip-editor.pf-pick { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}

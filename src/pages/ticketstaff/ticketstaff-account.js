@@ -190,6 +190,7 @@ function confirmRebook() {
       count: targetSeats.length,
       staff: staffCode,
       price: priceInfo.price,
+      ...tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat'),
       zeroPriceReason: priceInfo.zeroPriceReason,
       depositAmount: deposit.depositAmount,
       depositMethod: deposit.depositMethod,
@@ -234,6 +235,7 @@ function confirmRebookAndSell() {
     seatCodes: rebookSelectedSeats.slice(),
     form,
     priceInfo,
+    fare: tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat'),
     deposit
   };
 

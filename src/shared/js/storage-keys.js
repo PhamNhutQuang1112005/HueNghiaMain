@@ -39,6 +39,7 @@ const HN_PK_PRINT_RUOC_KEY = 'hn_pk_print_ruoc_dividers_v1'; // [{ id, label }]
 const HN_DIRECTIONS_KEY = 'hn_directions_v3';
 const HN_ROUTES_KEY = 'hn_routes_v5';
 const HN_STATIONS_KEY = 'hn_stations_v1';
+const HN_STATION_PRICES_KEY = 'hn_station_prices_v1'; // station_price: giá theo cặp (trạm đi, trạm đến) — docs/fare-erd.mmd
 const HN_REGIONS_KEY = 'hn_regions_v2';
 const HN_STOP_STATIONS_KEY = 'hn_stop_stations_v1';
 const HN_VEHICLE_TYPES_KEY = 'hn_vehicle_types_v1';

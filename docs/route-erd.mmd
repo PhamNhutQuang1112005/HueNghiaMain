@@ -16,9 +16,7 @@ erDiagram
     route ||--o{ route_pickup_station : "trạm có thể nhận thêm khách"
     station ||--o{ route_pickup_station : ""
 
-    route ||--o{ route_price : "giá của tuyến"
-    route_from_station ||--o{ route_price : "trạm đi phải thuộc tuyến"
-    route_to_station ||--o{ route_price : "trạm đến phải thuộc tuyến"
+    %% Giá vé: xem docs/fare-erd.mmd (station_price theo cặp trạm, route_price_frame + tập trạm đi/đến của khung).
 
     users ||--o{ user_permission : "được cấp quyền chức năng"
     users ||--o{ user_route_access : "được thao tác tuyến"
@@ -70,7 +68,7 @@ erDiagram
     route {
         bigint route_id PK
         bigint direction_id FK "NOT NULL"
-        varchar label UK "tên tuyến chính, vd: Bình Dương - Tân Châu"
+        varchar label "tên tuyến chính, được phép trùng, vd: Bình Dương - Tân Châu"
         varchar abbr "mã tuyến, vd: SG-LX"
         bigint pickup_stop_id FK "NOT NULL, điểm dừng nhận chính (stop_station), thuộc tỉnh đến"
         boolean active
@@ -96,13 +94,6 @@ erDiagram
         bigint station_id PK, FK "thuộc from_region, một tỉnh giữa (direction_via_region) HOẶC to_region của hướng"
     }
 
-    route_price {
-        bigint route_id PK, FK
-        bigint from_station_id PK, FK "FK ghép (route_id, from_station_id) -> route_from_station"
-        bigint to_station_id PK, FK "FK ghép (route_id, to_station_id) -> route_to_station"
-        int price "giá vé ghế đơn, 0 = không bán"
-        int double_seat_price "giá vé ghế đôi, 0 = không bán; CHECK price > 0 OR double_seat_price > 0"
-    }
 
     users {
         bigint user_id PK "bảng đầy đủ ở sơ đồ đăng nhập"

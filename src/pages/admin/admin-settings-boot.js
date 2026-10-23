@@ -36,6 +36,8 @@ function adminImportConfig(e) {
       if (Array.isArray(d.vehicleTypes)) FleetStore.setVehicleTypes(d.vehicleTypes);
       if (Array.isArray(d.vehicles)) FleetStore.setVehicles(d.vehicles);
       if (Array.isArray(d.staff)) FleetStore.setStaff(d.staff);
+      FleetStore.normalizePrices(); // khung trong file trùng cặp thì tách lại ngay, không đợi lần nạp sau
+      FleetStore.pruneOrphanPrices(); // file không mang station_price: giá của cặp không còn trong khung nào thì bỏ
       FleetStore.log({ action: 'import', entity: 'config', summary: 'Nhập cấu hình từ file ' + file.name });
       showToast('Đã nhập cấu hình.');
       switchAdminView(CURRENT_VIEW);

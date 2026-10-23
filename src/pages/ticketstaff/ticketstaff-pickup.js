@@ -1648,6 +1648,7 @@ function pkConfirmAssign() {
     tripId: pkActiveTripId,
     seatCodes: pkSelectedSeats.slice(),
     unitPrice,
+    fare: tsFareSnapshot(pkActiveTripId, 'pkAssignPriceDoubleSeat'),
     ticketNo: 'SGCD-' + String(Math.floor(1000 + Math.random() * 9000))
   };
 

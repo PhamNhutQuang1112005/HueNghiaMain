@@ -7,8 +7,8 @@
 (function () {
   'use strict';
 
-  // Hậu tố id tuyến khớp SEED_ROUTES (fleet-store.js): 'main' = tuyến gốc, còn lại theo AG_ENDPOINTS.
-  var FEATURED_SUFFIXES = ['main', 'lx', 'cd', 'tc'];
+  // Tối đa số thẻ mỗi chiều; tuyến Admin tạo có id động nên chọn theo hướng chứ không theo id cố định.
+  var PER_DIRECTION = 4;
 
   var BUS_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9"/><path d="M4 16h16"/><path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>';
   var TAG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m20.59 13.41-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7" cy="7" r="1"/></svg>';
@@ -25,8 +25,13 @@
   }
 
   function priceLabel(route) {
-    var p = route.price || route.doubleSeatPrice;
-    return p ? fmtVnd(p) : 'Liên hệ';
+    var p = 0; // giá thấp nhất trong các cặp trạm của mọi tuyến cùng tên (1 tuyến có thể tách nhiều bản ghi, mỗi bản ghi vài khung giá)
+    FleetStore.getRoutes().forEach(function (r) {
+      if (r.label !== route.label || r.directionId !== route.directionId || r.active === false) return;
+      var f = FleetStore.routeFare(r), v = f.price || f.doubleSeatPrice;
+      if (v && (!p || v < p)) p = v;
+    });
+    return p ? 'Từ ' + fmtVnd(p) : 'Liên hệ';
   }
 
   function vehicleTypeLabel(route) {
@@ -36,15 +41,15 @@
   }
 
   function pickPopularRoutes() {
-    var byId = {};
-    FleetStore.getRoutes().forEach(function (r) { if (r.active !== false) byId[r.id] = r; });
-
+    var routes = FleetStore.getRoutes().filter(function (r) { return r.active !== false; })
+      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     var picked = [];
     ['sg-ag', 'ag-sg'].forEach(function (dir) {
-      FEATURED_SUFFIXES.forEach(function (suffix) {
-        var r = byId[dir + '-' + suffix];
-        if (r) picked.push(r);
-      });
+      var seen = {};
+      routes.filter(function (r) {
+        if (r.directionId !== dir || seen[r.label]) return false; // tuyến trùng tên (nhiều khung) chỉ hiện 1 thẻ
+        return (seen[r.label] = true);
+      }).slice(0, PER_DIRECTION).forEach(function (r) { picked.push(r); });
     });
     return picked;
   }

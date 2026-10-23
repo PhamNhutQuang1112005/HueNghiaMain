@@ -1,0 +1,167 @@
+erDiagram
+    %% ===== GIÁ VÉ =====
+    %% Nguồn: Admin > Quản lý giá (admin-placeholders.js), FleetStore (fleet-store.js), docs/route-erd.mmd.
+    %% Quy tắc: giá phụ thuộc DUY NHẤT vào bộ ba (điểm đi, điểm đến, LOẠI XE), dùng chung mọi tuyến. Tuyến chỉ gom hiển thị cho gọn.
+    %%   Loại xe = tên loại xe scope 'line' (danh mục Loại xe, FleetStore.getVehicleTypes), vd xe 36 giường rẻ hơn xe 34 giường cùng cặp trạm.
+    %%   Khung giá chọn được NHIỀU loại xe (route_price_frame_vehicle, >= 1, bắt buộc khi Thêm/Sửa khung); mỗi loại xe của khung có mức giá
+    %%   riêng (ghi vào station_price cho mọi cặp của khung ở loại xe đó). Giá chờ nằm theo từng loại xe (route_price_frame_vehicle.pending_*).
+    %%   Mọi chỗ "cặp" bên dưới hiểu là cặp + loại xe: 1 (đi, đến, loại xe) chỉ có 1 dòng station_price và chỉ thuộc 1 khung; cùng cặp trạm
+    %%   nhưng khác loại xe thì ở các khung khác nhau, giá khác nhau. Bỏ tick 1 loại xe khỏi khung = cặp của loại xe đó rời khung nên giá của nó bị xoá.
+    %%   Bán vé/tạo phơi tra giá theo (trạm đi, trạm đến, loại xe của phơi) = FleetStore.getFare(from, to, vehicleType). Dòng cũ chưa gắn loại xe
+    %%   (vehicle_type rỗng) còn dùng làm giá dự phòng khi loại xe đó chưa có giá riêng; Admin Sửa khung để gắn loại xe.
+    %% Chiều đi và chiều về là 2 dòng riêng (A->B khác B->A).
+    %% Khung giá (UI): trong 1 tuyến, tập điểm đi x tập điểm đến cùng 1 mức giá = 1 dòng ở màn Quản lý giá.
+    %%   Khung chỉ lưu 2 TẬP trạm (route_price_frame_from / route_price_frame_to), KHÔNG lưu giá. Các cặp của khung
+    %%   là SUY RA = tập đi x tập đến, bỏ cặp đi = đến (FleetStore.framePairs); giá luôn đọc từ station_price.
+    %%   Lưu 1 khung = ghi cùng mức giá cho mọi cặp của khung.
+    %%   DUY NHẤT GIÁ GIỮA 2 TRẠM: mỗi cặp (từ trạm A đến trạm B) chỉ có 1 dòng giá (PK station_price) VÀ chỉ thuộc đúng 1 khung
+    %%   trên TOÀN HỆ THỐNG (mọi tuyến), không chỉ trong 1 tuyến. Thêm/sửa khung mà có cặp đã thuộc khung khác (kể cả khung của
+    %%   tuyến khác) -> chặn, báo khung nào đang giữ cặp đó; muốn đổi giá cặp thì Sửa chính khung đó. Vì vậy một khung luôn
+    %%   cùng 1 mức giá, không có khung "Nhiều mức", không có chuyện giá lan sang khung khác (bỏ linkedPairs, bỏ hộp xác nhận).
+    %%   Migrate dữ liệu cũ (FleetStore.migrateUniquePairs, chạy mỗi lần nạp): khung gặp trước giữ cặp trùng, khung sau tách lại
+    %%   chỉ còn ô không trùng (hết ô thì bỏ); mọi cặp của khung được ghi theo giá cặp có giá đầu tiên của khung.
+    %%   Hai tuyến chồng nhau (cùng đi A->B) thì cặp A->B chỉ nằm ở khung của 1 tuyến; tuyến còn lại không đặt giá cặp đó.
+    %%   Giá (đơn và đôi) luôn là SỐ NGUYÊN (app: Number.isInteger; ô nhập step=1).
+    %%   Khung vừa thêm chưa có trạm: giá nhập lúc Thêm giữ ở pending_price / pending_double_seat_price, tự áp vào
+    %%   các cặp khi khung đủ điểm đi + điểm đến rồi xoá (NULL). Khung đã có cặp thì 2 cột này luôn NULL.
+    %%   Sửa khung đang giữ giá chờ mà để trống ô giá -> vẫn áp giá chờ vào cặp, không bỏ.
+    %%   Trạm được đặt giá = trạm đi/đến của tuyến + trạm có thể nhận thêm (route_pickup_station):
+    %%   tập đi của khung thuộc route_from_station HOẶC route_pickup_station; tập đến thuộc route_to_station HOẶC route_pickup_station.
+    %%   Bỏ trạm khỏi tuyến -> bỏ trạm đó khỏi khung (khung mất hết trạm vẫn giữ để Sửa/Xoá). Ràng buộc app: 1 cặp chỉ
+    %%   thuộc 1 khung trên toàn hệ thống (FleetStore.pairClash kiểm theo tập đi x tập đến của MỌI khung ở mọi tuyến, bỏ cặp đi = đến).
+    %%   Cặp rời khỏi khung (xoá khung, xoá tuyến, bỏ trạm khỏi tuyến, kể cả sửa điểm đi/đến ở modal Sửa tuyến) thì xoá luôn
+    %%   station_price của cặp đó (FleetStore.releasePairPrices), vì không còn khung nào giữ nó.
+    %%   Tuyến: tên được phép trùng; Sao chép tuyến KHÔNG copy khung giá (copy sẽ trùng cặp); modal Thêm/Sửa tuyến chọn nhiều điểm đi + 1 điểm đến chính
+    %%   (route_to_station có thể nhiều dòng/tuyến: điểm đến thêm và điểm nhận thêm chọn ở bảng Tuyến xe; sửa tuyến giữ các
+    %%   điểm đến thêm nếu điểm đến chính không đổi).
+    %% Quyền sửa giá: user_permission.permission_key = 'manage_prices' ("Quản lý giá vé", src/auth/permissions.js). Có khoá này mới
+    %%   được thêm/sửa/xoá khung giá, thêm trạm vào khung, ghi station_price (adminRequire('manage_prices')). Admin cấp ở màn phân quyền tài khoản.
+    %%   Ngoại lệ có chủ ý: xoá/sửa tuyến (manage_routes) cascade xoá station_price của cặp không còn khung nào giữ. Xoá trạm cũng cascade (FleetStore.removeStation
+    %%   xoá station_price và gỡ trạm khỏi khung), nhưng màn Trạm chỉ cho xoá trạm KHÔNG thuộc tuyến nào (stationUsage = 0, còn thì chỉ tắt), nên nhánh cascade này là lớp phòng thủ của tầng FleetStore.
+    %%   Xoá khung giá là xoá vĩnh viễn: cặp của khung rời khung nên station_price bị xoá, cặp chưa nằm trong khung nào khác thì không có giá (getFare trả null) tới khi được đưa vào khung khác.
+    %%   Bảng Quản lý giá hiện cả khung của tuyến đã tắt (có nhãn "tuyến đang tắt") để Sửa/Xoá được, vì pairClash vẫn tính cặp của chúng.
+    %%   Loại xe (FK theo tên, scope line): xoá loại xe = ON DELETE CASCADE (xoá station_price của loại xe đó, gỡ loại xe khỏi khung; khung hết loại xe thì bỏ,
+    %%   FleetStore.setVehicleTypes); đổi tên = ON UPDATE CASCADE (FleetStore.renameVehicleType: đổi vehicle_type ở station_price, khung giá và xe tuyến). Tên loại xe line duy nhất.
+    %% Bản cài đặt hiện tại là localStorage: key hn_station_prices_v1 (station_price), route.priceFrames (khung giá). Phạm vi sơ đồ: giá theo cặp trạm đi - trạm đến + tuyến gom lại; chưa liên quan tới vé.
+    %% Lệch giữa sơ đồ và cách app đang chạy (ghi nhận để không hiểu nhầm; 3 điểm đầu) và lưu ý về cặp trạm:
+    %%   1) Loại xe khi tạo phơi: ô "Loại xe" của phơi (ticketstaff populateTripVehicleTypeSelect, admin-trips) chỉ liệt kê loại xe line đang bật CÓ CỜ
+    %%      featuredForTrip (không có loại nào được gắn cờ thì mới hiện tất cả). Khung giá thì chọn được mọi loại xe line đang bật, nên loại không gắn cờ
+    %%      có giá nhưng không bán được cho đến khi Admin gắn cờ. Cột featuredForTrip của vehicle_type không vẽ ở bảng bên dưới (không ảnh hưởng giá).
+    %%   2) Xuất/nhập cấu hình (admin-settings-boot.js) chỉ có directions, routes (kèm khung giá), vehicleTypes, vehicles, staff; KHÔNG có station_price.
+    %%      Nhập file nạp khung giá, không nạp station_price từ file. Với mỗi loại xe của khung: nếu đã có cặp nào có dòng giá thì lấy mức giá của cặp có giá đầu tiên,
+    %%      GHI ĐÈ lên các cặp còn lại của khung (giá khác bị đổi) và TẠO dòng giá cho cặp chưa có (migrateUniquePairs, chạy trong normalizePrices); chỉ khi cả khung
+    %%      chưa cặp nào có dòng giá thì mới hiện "—" tới khi nhập giá ở Quản lý giá. Reset về mặc định thì xoá cả station_price.
+    %%      Sau khi nhập, adminImportConfig gọi FleetStore.normalizePrices (migrateRoutePrices + migrateFrameVehicles + migrateUniquePairs): khung trong file trùng cặp
+    %%      thì tách lại ngay (khung gặp trước giữ cặp), không đợi lần nạp sau. Rồi gọi FleetStore.pruneOrphanPrices: xoá mọi station_price mà cặp + loại xe
+    %%      không còn nằm trong khung của tuyến nào (giá mồ côi), để getFare không bán giá của cặp đã rời khung. Chỉ chạy sau khi nhập, không chạy lúc nạp trang.
+    %%   3) Xoá / đổi tên loại xe (cascade ở trên) mới có ở tầng FleetStore: chưa có màn Admin nào gọi renameVehicleType; setVehicleTypes chỉ được gọi khi
+    %%      nhập cấu hình. Danh mục loại xe hiện lấy từ dữ liệu mẫu (SEED_VEHICLE_TYPES) hoặc file nhập.
+    %%   Giá không chỉ có ở "điểm đầu - điểm cuối" của tuyến: mọi cặp (A -> B) trong khung đều có giá, kể cả khi A hoặc B là trạm nhận thêm (route_pickup_station)
+    %%   được thêm vào điểm đi/đến của khung. Bán vé tra FleetStore.getFare(phơi.trạm đi, phơi.trạm đến, phơi.loại xe); 2 ô trạm của phơi liệt kê mọi trạm của
+    %%   tỉnh đi / tỉnh đến theo hướng, nên phơi chọn trạm nhận thêm làm trạm đi/đến vẫn ra đúng giá. Cặp chưa có giá thì nhân viên nhập tay (có thông báo).
+    %%   Ngoài ra màn khách (customer-popular-routes) hiện "giá từ" = FleetStore.routeFare: giá thấp nhất mọi cặp + mọi loại xe trong khung của tuyến; chỉ để hiển thị.
+    %%   Màn khách lấy tuyến đang bật theo hướng (sg-ag, ag-sg; tối đa 4 mỗi chiều, tuyến trùng tên gộp 1 thẻ, giá từ = thấp nhất các bản ghi cùng tên), không theo id cố định.
+    %%   Tuyến chưa có giá nào (chưa có khung, hoặc khung đã xoá) thì hiện "Liên hệ".
+
+    region ||--o{ station : "khu vực của trạm"
+
+    users ||--o{ user_permission : "được cấp quyền chức năng"
+    users ||--o{ station_price : "người tạo/sửa giá (created_by, updated_by)"
+
+    station ||--o{ station_price : "trạm đi (from_station_id)"
+    station ||--o{ station_price : "trạm đến (to_station_id)"
+    vehicle_type ||--o{ station_price : "giá theo loại xe (vehicle_type)"
+    vehicle_type ||--o{ route_price_frame_vehicle : "loại xe được chọn cho khung giá"
+
+    route ||--o{ route_price_frame : "khung giá của tuyến"
+    route_price_frame ||--o{ route_price_frame_vehicle : "loại xe của khung, mỗi loại xe 1 mức giá riêng"
+    route_price_frame ||--o{ route_price_frame_from : "tập điểm đi của khung"
+    route_price_frame ||--o{ route_price_frame_to : "tập điểm đến của khung"
+    station ||--o{ route_price_frame_from : ""
+    station ||--o{ route_price_frame_to : ""
+    station_price ||..o{ route_price_frame : "giá cặp suy ra từ tập đi x tập đến, KHÔNG FK"
+
+    route ||--o{ route_from_station : "trạm đi"
+    station ||--o{ route_from_station : ""
+    route ||--o{ route_to_station : "trạm đến"
+    station ||--o{ route_to_station : ""
+    route ||--o{ route_pickup_station : "trạm nhận thêm khách"
+    station ||--o{ route_pickup_station : ""
+
+    region
+
+    station
+
+    vehicle_type {
+        varchar name PK "tên loại xe, duy nhất trong scope line (danh mục Loại xe, FleetStore.getVehicleTypes({scope:'line'})); loại scope shuttle cùng tên là danh mục riêng, không liên quan giá; DB thật: PK (scope, name) hoặc chỉ bảng line; chỉ vẽ cột cần cho giá"
+        int seats "số chỗ, vd 34, 36"
+        boolean active "chỉ loại xe đang bật mới chọn được ở khung giá"
+    }
+
+    station_price {
+        bigint from_station_id PK, FK "điểm đi = trạm; xoá trạm thì xoá giá (ON DELETE CASCADE)"
+        bigint to_station_id PK, FK "điểm đến = trạm, CHECK khác from_station_id"
+        varchar vehicle_type PK, FK "loại xe = vehicle_type.name (scope line); '' = giá cũ chưa gắn loại xe, chỉ làm dự phòng (bản localStorage, không áp FK)"
+        int price "giá ghế đơn, CHECK price > 0 (form bắt buộc nhập, không ràng buộc bước giá)"
+        int double_seat_price "giá ghế đôi, CHECK >= 0; 0 = không có giá riêng, bán ghế đôi thì app tạm tính price x 2 (FleetStore.getFare)"
+        timestamptz created_at
+        timestamptz updated_at
+        bigint created_by FK "nullable, users.user_id (bản localStorage lưu tên đăng nhập)"
+        bigint updated_by FK "nullable, users.user_id (bản localStorage lưu tên đăng nhập)"
+    }
+
+    users
+
+    user_permission {
+        bigint user_id PK, FK
+        varchar permission_key PK "manage_prices = được chỉnh giá theo cặp trạm / khung giá; các khoá khác (manage_routes, manage_directions...) ở route-erd.mmd"
+        bigint granted_by FK "NOT NULL, nhân sự cấp quyền"
+        timestamptz granted_at "NOT NULL DEFAULT now()"
+    }
+
+    route {
+        bigint route_id PK "bảng đầy đủ ở route-erd.mmd"
+        varchar label "tên tuyến chính, được phép trùng"
+        varchar abbr "mã tuyến, vd: SG-LX"
+    }
+
+    route_from_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "chọn nhiều điểm đi"
+    }
+
+    route_to_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK "UI chỉ cho 1 điểm đến chính/tuyến"
+    }
+
+    route_pickup_station {
+        bigint route_id PK, FK
+        bigint station_id PK, FK
+    }
+
+    route_price_frame {
+        bigint route_id PK, FK
+        varchar frame_id PK "mã khung trong tuyến; khung = tập điểm đi x tập điểm đến x các loại xe của khung, chỉ để gom hiển thị"
+    }
+
+    route_price_frame_vehicle {
+        bigint route_id PK, FK "FK ghép (route_id, frame_id) -> route_price_frame"
+        varchar frame_id PK, FK
+        varchar vehicle_type PK, FK "loại xe = vehicle_type.name (scope line), khung có >= 1 loại xe; '' = khung cũ chưa chọn loại xe (bản localStorage, không áp FK)"
+        int pending_price "nullable, giá ghế đơn chờ áp khi khung chưa có cặp, CHECK > 0"
+        int pending_double_seat_price "nullable, giá ghế đôi chờ, CHECK >= 0"
+    }
+
+    route_price_frame_from {
+        bigint route_id PK, FK "FK ghép (route_id, frame_id) -> route_price_frame"
+        varchar frame_id PK, FK
+        bigint station_id PK, FK "app: thuộc route_from_station HOẶC route_pickup_station của tuyến"
+    }
+
+    route_price_frame_to {
+        bigint route_id PK, FK "FK ghép (route_id, frame_id) -> route_price_frame"
+        varchar frame_id PK, FK
+        bigint station_id PK, FK "app: thuộc route_to_station HOẶC route_pickup_station của tuyến"
+    }
+

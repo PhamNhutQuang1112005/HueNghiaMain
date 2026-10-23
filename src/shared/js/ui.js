@@ -67,7 +67,11 @@ function openBookingPanel(seats, options = {}) {
   // tự chọn sẵn nếu giá đang hiện (seat.price) đúng bằng giá đôi (VD: xem lại ghế đã bán giá đôi).
   if (typeof resolveDoubleSeatPricing === 'function' && typeof wireDoubleSeatToggle === 'function') {
     const doublePricing = resolveDoubleSeatPricing(tripMeta);
-    wireDoubleSeatToggle(document.getElementById('t_priceDoubleSeat'), doublePricing, seat.price, (amount) => {
+    // Đặt/bán vé mới: giá tra theo cặp Trạm đi → Trạm đến của phơi tại thời điểm bán (Quản lý giá), không dùng
+    // giá cũ đã lưu sẵn trên ghế trống. Mở lại vé đã có thì giữ đúng giá đã chụp lúc bán.
+    const shownPrice = (mode !== 'edit' && doublePricing) ? doublePricing.single : seat.price;
+    document.getElementById('t_price').textContent = shownPrice.toLocaleString('vi-VN') + 'đ';
+    wireDoubleSeatToggle(document.getElementById('t_priceDoubleSeat'), doublePricing, shownPrice, (amount) => {
       const priceEl = document.getElementById('t_price');
       if (priceEl) { priceEl.textContent = String(amount); if (typeof onPriceEdit === 'function') onPriceEdit(); }
     });

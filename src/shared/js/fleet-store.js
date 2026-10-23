@@ -82,44 +82,8 @@
   var LEGACY_REGIONS_KEY = 'hn_admin_regions_v1';
   var HUB_REGION = 'angiang'; // xuất phát từ tỉnh này = chiều về, còn lại = chiều đi
 
-  // Điểm đầu An Giang cho từng tuyến: [tên hiển thị, tên trạm An Giang, viết tắt]
-  var AG_ENDPOINTS = [
-    ['Long Xuyên', 'Trạm Long Xuyên', 'LX'],
-    ['Châu Đốc', 'Trạm Châu Đốc', 'CD'],
-    ['An Phú', 'Trạm An Phú', 'AP'],
-    ['Tri Tôn', 'Trạm Tri Tôn', 'TT'],
-    ['Chi Lăng', 'Trạm Chi Lăng', 'CL'],
-    ['Tịnh Biên', 'Trạm Tịnh Biên', 'TB'],
-    ['Tân Châu', 'Trạm Tân Châu', 'TC'],
-    ['Núi Sập', 'Trạm Núi Sập', 'NS'],
-    ['Hà Tiên', 'Trạm Hà Tiên', 'HT']
-  ];
-
-  // Tuyến chính — 10 tuyến / 1 hướng (40 tuyến): 1 tuyến gốc + 9 tuyến theo điểm đầu An Giang.
-  // `label` = chuỗi `route` lưu vào mọi phơi. Trạm đi/đến seed theo quy ước; "Trạm có thể nhận"
-  // (pickupStations) để trống — Admin thêm từ danh mục trạm của từng địa điểm.
-  var SEED_ROUTES = (function buildSeedRoutes() {
-    var out = [];
-    // tuyến gốc (row đầu): địa điểm ↔ An Giang, trạm đi/đến = cả 2 danh mục
-    out.push({ id: 'sg-ag-main', directionId: 'sg-ag', label: 'Sài Gòn - An Giang', abbr: 'SG-AG', price: 160000, active: true, order: 0, fromStations: SG_STATIONS.slice(), toStations: AG_STATIONS.slice(), pickupStations: [] });
-    out.push({ id: 'bd-ag-main', directionId: 'bd-ag', label: 'Bình Dương - An Giang', abbr: 'BD-AG', price: 140000, active: true, order: 0, fromStations: BD_STATIONS.slice(), toStations: AG_STATIONS.slice(), pickupStations: [] });
-    out.push({ id: 'ag-bd-main', directionId: 'ag-bd', label: 'An Giang - Bình Dương', abbr: 'AG-BD', price: 140000, active: true, order: 0, fromStations: AG_STATIONS.slice(), toStations: BD_STATIONS.slice(), pickupStations: [] });
-    out.push({ id: 'ag-sg-main', directionId: 'ag-sg', label: 'An Giang - Sài Gòn', abbr: 'AG-SG', price: 160000, active: true, order: 0, fromStations: AG_STATIONS.slice(), toStations: SG_STATIONS.slice(), pickupStations: [] });
-
-    AG_ENDPOINTS.forEach(function (ep, i) {
-      var name = ep[0], stn = ep[1], ab = ep[2];
-      var o = i + 1;
-      // Sài Gòn -> An Giang
-      out.push({ id: 'sg-ag-' + ab.toLowerCase(), directionId: 'sg-ag', label: 'Sài Gòn - ' + name, abbr: 'SG-' + ab, price: 160000, active: true, order: o, fromStations: SG_STATIONS.slice(), toStations: [stn], pickupStations: [] });
-      // Bình Dương -> An Giang
-      out.push({ id: 'bd-ag-' + ab.toLowerCase(), directionId: 'bd-ag', label: 'Bình Dương - ' + name, abbr: 'BD-' + ab, price: 140000, active: true, order: o, fromStations: BD_STATIONS.slice(), toStations: [stn], pickupStations: [] });
-      // An Giang -> Bình Dương
-      out.push({ id: 'ag-bd-' + ab.toLowerCase(), directionId: 'ag-bd', label: name + ' - Bình Dương', abbr: ab + '-BD', price: 140000, active: true, order: o, fromStations: [stn], toStations: BD_STATIONS.slice(), pickupStations: [] });
-      // An Giang -> Sài Gòn
-      out.push({ id: 'ag-sg-' + ab.toLowerCase(), directionId: 'ag-sg', label: name + ' - Sài Gòn', abbr: ab + '-SG', price: 160000, active: true, order: o, fromStations: [stn], toStations: SG_STATIONS.slice(), pickupStations: [] });
-    });
-    return out;
-  })();
+  // Tuyến (chứa các khung giá): không seed sẵn, Admin tự thêm ở Quản lý giá.
+  var SEED_ROUTES = [];
 
   // Loại xe — scope 'line' = 18 loại của VEHICLE_TYPE_SEATS (js/shared/constants.js).
   // featuredForTrip:true = đúng 3 loại đang có trong <select id="tripVehicleType"> (ticketstaff.html).
@@ -732,6 +696,261 @@
           changed = true;
         }
       });
+      // ON DELETE CASCADE: gỡ trạm khỏi khung giá của tuyến (giá theo cặp xoá ngay dưới).
+      (r.priceFrames || []).forEach(function (f) {
+        ['from', 'to'].forEach(function (k) {
+          if ((f[k] || []).indexOf(st.id) !== -1) { f[k] = f[k].filter(function (x) { return x !== st.id; }); changed = true; }
+        });
+      });
+    });
+    if (changed) setRoutes(routes);
+    setStationPrices(getStationPrices().filter(function (p) { return p.fromStationId !== st.id && p.toStationId !== st.id; }));
+  }
+
+  /* ---------------- GIÁ THEO CẶP TRẠM (station_price) — docs/fare-erd.mmd ----------------
+     Giá phụ thuộc (trạm đi → trạm đến, theo station.id) + LOẠI XE (tên loại xe scope 'line'), dùng chung mọi tuyến;
+     A→B khác B→A; mỗi (cặp, loại xe) chỉ 1 giá. vehicleType '' = giá cũ chưa gắn loại xe (getFare dùng dự phòng).
+     Tuyến chỉ gom hiển thị: route.priceFrames = [{ id, vehicles:[{ vehicleType }], from:[stationId], to:[stationId] }]
+     (khung giá = tập đi × tập đến × các loại xe của khung, mỗi loại xe 1 mức giá riêng; bỏ cặp đi = đến). Hàng giá: { fromStationId, toStationId, vehicleType, price, doubleSeatPrice,
+     createdAt/By, updatedAt/By }; doubleSeatPrice 0 = chưa có giá riêng → bán ghế đôi tạm tính price × 2. */
+  function getStationPrices() { return readJSON(HN_STATION_PRICES_KEY, []); }
+  function setStationPrices(a) { writeJSON(HN_STATION_PRICES_KEY, Array.isArray(a) ? a : []); }
+  // Khoá giá = (trạm đi, trạm đến, loại xe); '' = giá cũ chưa gắn loại xe (getFare dùng làm dự phòng).
+  function pairKey(from, to, vt) { return from + '>' + to + '>' + (vt || ''); }
+  function priceMap() {
+    var m = {};
+    getStationPrices().forEach(function (p) { if (p) m[pairKey(p.fromStationId, p.toStationId, p.vehicleType)] = p; });
+    return m;
+  }
+  // Loại xe của khung: f.vehicles = [{ vehicleType, pendingPrice?, pendingDoublePrice? }]; khung chưa có f.vehicles
+  // (cũ, hoặc {from,to,vehicleType} dựng tạm) thì coi là 1 loại xe f.vehicleType.
+  function frameVehicles(f) {
+    if (f && Array.isArray(f.vehicles)) return f.vehicles;
+    return [{ vehicleType: (f && f.vehicleType) || '', pendingPrice: f && f.pendingPrice, pendingDoublePrice: f && f.pendingDoublePrice }];
+  }
+  function framePairs(f) {
+    var out = [];
+    frameVehicles(f).forEach(function (v) {
+      ((f && f.from) || []).forEach(function (a) {
+        ((f && f.to) || []).forEach(function (b) { if (a !== b) out.push({ from: a, to: b, vehicleType: v.vehicleType || '' }); });
+      });
+    });
+    return out;
+  }
+  function routePairs(r) {
+    var out = [];
+    (r.priceFrames || []).forEach(function (f) { out = out.concat(framePairs(f)); });
+    return out;
+  }
+  // Chỉ bắt buộc có giá ghế đơn (CHECK price > 0) → '' nếu ổn, ngược lại là lý do. Giá luôn là số nguyên.
+  // Giá đôi 0/để trống = chưa có giá riêng.
+  function validatePairPrice(price, doublePrice) {
+    if (!(price > 0)) return 'Nhập giá ghế đơn.';
+    if (!Number.isInteger(price)) return 'Giá ghế đơn phải là số nguyên.';
+    if (!(doublePrice >= 0) || !Number.isInteger(doublePrice)) return 'Giá ghế đôi phải là số nguyên không âm.';
+    return '';
+  }
+  // Ghi (thêm mới hoặc cập nhật) giá cho các cặp [{from, to}] (station id) → { ok, reason? }.
+  function savePairPrices(pairs, price, doublePrice) {
+    var why = validatePairPrice(price, doublePrice);
+    if (why) return { ok: false, reason: why };
+    var ids = {};
+    getStations().forEach(function (s) { ids[s.id] = true; });
+    var valid = pairs.filter(function (p) { return p.from !== p.to; });
+    if (!valid.length) return { ok: false, reason: 'Điểm đi và điểm đến phải khác nhau.' };
+    if (valid.some(function (p) { return !ids[p.from] || !ids[p.to]; })) return { ok: false, reason: 'Có trạm không tồn tại.' };
+    if (valid.some(function (p) { return !p.vehicleType; })) return { ok: false, reason: 'Chọn loại xe.' };
+    var list = getStationPrices(), idx = {};
+    list.forEach(function (p, i) { idx[pairKey(p.fromStationId, p.toStationId, p.vehicleType)] = i; });
+    valid.forEach(function (p) {
+      var k = pairKey(p.from, p.to, p.vehicleType), isNew = idx[k] == null;
+      var row = isNew ? { fromStationId: p.from, toStationId: p.to, vehicleType: p.vehicleType } : list[idx[k]];
+      row.price = price; row.doubleSeatPrice = doublePrice;
+      touch(row, isNew);
+      if (isNew) idx[k] = list.push(row) - 1;
+    });
+    setStationPrices(list);
+    return { ok: true };
+  }
+  // Cặp còn nằm trong khung giá của tuyến nào khác exceptRouteId không.
+  function pairInUse(from, to, vt, exceptRouteId) {
+    return getRoutes().some(function (r) {
+      return r.id !== exceptRouteId && routePairs(r).some(function (p) { return p.from === from && p.to === to && p.vehicleType === (vt || ''); });
+    });
+  }
+  // Mỗi (cặp, loại xe) chỉ thuộc 1 khung trên TOÀN hệ thống (mọi tuyến): cặp nào của tập from × to × vts (tên loại xe) đã nằm trong khung khác
+  // (bỏ qua khung đang sửa skipRouteId/skipFrameId) → { route, frame, pair }; không trùng → null.
+  function pairClash(from, to, vts, skipRouteId, skipFrameId) {
+    var want = {}, hit = null;
+    framePairs({ from: from, to: to, vehicles: (vts || []).map(function (vt) { return { vehicleType: vt }; }) }).forEach(function (p) { want[pairKey(p.from, p.to, p.vehicleType)] = true; });
+    getRoutes().some(function (r) {
+      return (r.priceFrames || []).some(function (f) {
+        if (r.id === skipRouteId && f.id === skipFrameId) return false;
+        var p = framePairs(f).find(function (x) { return want[pairKey(x.from, x.to, x.vehicleType)]; });
+        if (p) hit = { route: r, frame: f, pair: p };
+        return !!p;
+      });
+    });
+    return hit;
+  }
+  // Xoá mọi station_price không còn khung giá nào của bất kỳ tuyến nào giữ (sau khi nhập cấu hình thay cả bộ tuyến).
+  function pruneOrphanPrices() {
+    var live = {};
+    getRoutes().forEach(function (r) { routePairs(r).forEach(function (p) { live[pairKey(p.from, p.to, p.vehicleType)] = true; }); });
+    var list = getStationPrices();
+    var keep = list.filter(function (p) { return live[pairKey(p.fromStationId, p.toStationId, p.vehicleType)]; });
+    if (keep.length !== list.length) setStationPrices(keep);
+  }
+  // Xoá giá của các cặp không còn khung giá nào (ở tuyến khác exceptRouteId) dùng — tránh giá "mồ côi" không sửa được.
+  function releasePairPrices(pairs, exceptRouteId) {
+    var drop = {};
+    pairs.forEach(function (p) { if (!pairInUse(p.from, p.to, p.vehicleType, exceptRouteId)) drop[pairKey(p.from, p.to, p.vehicleType)] = true; });
+    var list = getStationPrices();
+    var keep = list.filter(function (p) { return !drop[pairKey(p.fromStationId, p.toStationId, p.vehicleType)]; });
+    if (keep.length !== list.length) setStationPrices(keep);
+  }
+  // double = giá ghế đôi riêng, chưa có (0) thì tạm tính single × 2.
+  function fareOf(row) {
+    var dbl = row.doubleSeatPrice || 0;
+    return { fromStationId: row.fromStationId, toStationId: row.toStationId, vehicleType: row.vehicleType || '', price: row.price, doubleSeatPrice: dbl, single: row.price, double: dbl || row.price * 2 };
+  }
+  // Giá vé của (cặp trạm id/tên, loại xe) → { fromStationId, toStationId, vehicleType, price, doubleSeatPrice, single, double } | null.
+  // Chưa có giá riêng cho loại xe đó thì dùng giá cũ chưa gắn loại xe (nếu còn).
+  function getFare(fromRef, toRef, vehicleType) {
+    var a = stationByRef(fromRef), b = stationByRef(toRef);
+    if (!a || !b || a.id === b.id) return null;
+    var m = priceMap(), row = m[pairKey(a.id, b.id, vehicleType)] || m[pairKey(a.id, b.id, '')];
+    return row ? fareOf(row) : null;
+  }
+  // Mọi giá của 1 cặp trạm (mỗi loại xe 1 dòng) — dùng khi chưa biết loại xe (bộ lọc nâng cao).
+  function getFares(fromRef, toRef) {
+    var a = stationByRef(fromRef), b = stationByRef(toRef);
+    if (!a || !b || a.id === b.id) return [];
+    return getStationPrices().filter(function (p) { return p && p.fromStationId === a.id && p.toStationId === b.id; }).map(fareOf);
+  }
+  // Giá từng loại xe của 1 khung (mọi cặp của loại xe đó cùng mức — migrateUniquePairs/lưu khung đảm bảo):
+  // [{ vehicleType, price, doubleSeatPrice, pending? }]. Loại xe chưa có cặp nào có giá thì lấy giá chờ (nhập lúc
+  // Thêm khung, chờ có trạm; pending = true), không có nữa thì price 0.
+  function frameFares(f, map) {
+    map = map || priceMap();
+    return frameVehicles(f).map(function (v) {
+      var vt = v.vehicleType || '';
+      var first = framePairs({ from: f.from, to: f.to, vehicleType: vt }).map(function (p) { return map[pairKey(p.from, p.to, vt)]; }).filter(Boolean)[0];
+      if (first) return { vehicleType: vt, price: first.price, doubleSeatPrice: first.doubleSeatPrice || 0 };
+      return { vehicleType: vt, price: v.pendingPrice || 0, doubleSeatPrice: v.pendingDoublePrice || 0, pending: !!v.pendingPrice };
+    });
+  }
+  // Giá thấp nhất trong tuyến — CHỈ để hiện "giá từ"/giá mặc định; bán vé luôn tra theo cặp (getFare).
+  function routeFare(r, map) {
+    map = map || priceMap();
+    var s = 0, d = 0;
+    routePairs(r).forEach(function (p) {
+      var row = map[pairKey(p.from, p.to, p.vehicleType)];
+      if (!row) return;
+      s = s ? Math.min(s, row.price) : row.price;
+      if (row.doubleSeatPrice) d = d ? Math.min(d, row.doubleSeatPrice) : row.doubleSeatPrice;
+    });
+    return { price: s, doubleSeatPrice: d };
+  }
+
+  // Giá cũ nằm trong tuyến (route.priceFrames có price/doubleSeatPrice, trạm theo TÊN; route.prices/price) →
+  // giá theo cặp (station_price, theo id) + khung giá chỉ giữ trạm id. Cặp trùng giữa 2 tuyến với giá khác nhau:
+  // lấy giá gặp đầu tiên. Idempotent: tuyến đã chuyển không còn khoá cũ.
+  function migrateRoutePrices() {
+    var routes = getRoutes(), byName = {}, changed = false;
+    getStations().forEach(function (s) { byName[s.name] = s.id; });
+    var rows = getStationPrices(), idx = {}, rowsChanged = false;
+    rows.forEach(function (p, i) { idx[pairKey(p.fromStationId, p.toStationId)] = i; });
+    routes.forEach(function (r) {
+      var frames = Array.isArray(r.priceFrames) ? r.priceFrames : null;
+      var legacy = ('prices' in r) || ('price' in r) || ('doubleSeatPrice' in r) || (frames && frames.some(function (f) { return f && ('price' in f); }));
+      if (!legacy) return;
+      if (!frames) {
+        frames = (r.prices || []).map(function (p, i) { return { id: 'pf' + (i + 1), from: [p.from], to: [p.to], price: p.price, doubleSeatPrice: p.doubleSeatPrice }; });
+      }
+      r.priceFrames = frames.map(function (f) {
+        var toId = function (n) { return byName[n] || (getStations().some(function (s) { return s.id === n; }) ? n : null); };
+        var from = (f.from || []).map(toId).filter(Boolean), to = (f.to || []).map(toId).filter(Boolean);
+        var price = Number(f.price) || 0, dbl = Number(f.doubleSeatPrice) || 0;
+        if (price > 0 && dbl >= 0) {
+          framePairs({ from: from, to: to }).forEach(function (p) {
+            var k = pairKey(p.from, p.to);
+            if (idx[k] != null) return;
+            var row = { fromStationId: p.from, toStationId: p.to, price: price, doubleSeatPrice: dbl };
+            touch(row, true);
+            idx[k] = rows.push(row) - 1; rowsChanged = true;
+          });
+        }
+        return { id: f.id, from: from, to: to };
+      });
+      delete r.prices; delete r.price; delete r.doubleSeatPrice;
+      changed = true;
+    });
+    if (rowsChanged) setStationPrices(rows);
+    if (changed) setRoutes(routes);
+  }
+
+  // Dữ liệu cũ cho phép 1 cặp nằm ở nhiều khung (cùng tuyến hoặc khác tuyến) và khung lệch giá. Đưa về quy tắc
+  // docs/fare-erd.mmd: khung gặp trước giữ cặp; khung sau tách lại chỉ còn ô không trùng (gom điểm đi cùng tập điểm đến
+  // còn lại thành 1 khung, hết ô thì bỏ). Rồi mọi cặp của khung ghi theo giá cặp có giá đầu tiên. Idempotent.
+  function migrateUniquePairs() {
+    var routes = getRoutes(), owned = {}, changed = false;
+    function own(f) { framePairs(f).forEach(function (p) { owned[pairKey(p.from, p.to, p.vehicleType)] = true; }); }
+    routes.forEach(function (r) {
+      if (!Array.isArray(r.priceFrames)) return;
+      var out = [];
+      r.priceFrames.forEach(function (f) {
+        var clash = framePairs(f).some(function (p) { return owned[pairKey(p.from, p.to, p.vehicleType)]; });
+        if (!clash) { own(f); out.push(f); return; }
+        var groups = [], byKey = {}, vts = frameVehicles(f).map(function (v) { return v.vehicleType || ''; });
+        f.from.forEach(function (a) {
+          var ok = f.to.filter(function (b) { return !vts.some(function (vt) { return owned[pairKey(a, b, vt)]; }); }), k = ok.join('|');
+          if (!byKey[k]) groups.push(byKey[k] = { from: [], to: ok, vehicles: frameVehicles(f) });
+          byKey[k].from.push(a);
+        });
+        groups.filter(function (g) { return framePairs(g).length; }).forEach(function (g, i) {
+          g.id = i ? f.id + '-' + i : f.id;
+          own(g); out.push(g);
+        });
+        changed = true;
+      });
+      r.priceFrames = out;
+    });
+    if (changed) setRoutes(routes);
+    var rows = getStationPrices(), idx = {}, rowsChanged = false;
+    rows.forEach(function (p, i) { idx[pairKey(p.fromStationId, p.toStationId, p.vehicleType)] = i; });
+    routes.forEach(function (r) {
+      (r.priceFrames || []).forEach(function (f) {
+        frameVehicles(f).forEach(function (v) { // mỗi loại xe của khung 1 mức giá riêng
+          var pairs = framePairs({ from: f.from, to: f.to, vehicleType: v.vehicleType }), first = null;
+          pairs.some(function (p) { var i = idx[pairKey(p.from, p.to, p.vehicleType)]; if (i != null) first = rows[i]; return first; });
+          if (!first) return;
+          pairs.forEach(function (p) {
+            var k = pairKey(p.from, p.to, p.vehicleType), i = idx[k], row = i == null ? { fromStationId: p.from, toStationId: p.to, vehicleType: p.vehicleType } : rows[i];
+            if (i != null && row.price === first.price && (row.doubleSeatPrice || 0) === (first.doubleSeatPrice || 0)) return;
+            row.price = first.price; row.doubleSeatPrice = first.doubleSeatPrice || 0;
+            touch(row, i == null);
+            if (i == null) idx[k] = rows.push(row) - 1;
+            rowsChanged = true;
+          });
+        });
+      });
+    });
+    if (rowsChanged) setStationPrices(rows);
+  }
+
+  // Khung 1 loại xe kiểu cũ (f.vehicleType + giá chờ ở cấp khung) → f.vehicles (mỗi loại xe giữ giá chờ riêng). Idempotent.
+  function migrateFrameVehicles() {
+    var routes = getRoutes(), changed = false;
+    routes.forEach(function (r) {
+      (r.priceFrames || []).forEach(function (f) {
+        if (Array.isArray(f.vehicles)) return;
+        var v = frameVehicles(f)[0], e = { vehicleType: v.vehicleType };
+        if (v.pendingPrice) { e.pendingPrice = v.pendingPrice; e.pendingDoublePrice = v.pendingDoublePrice || 0; }
+        f.vehicles = [e];
+        delete f.vehicleType; delete f.pendingPrice; delete f.pendingDoublePrice;
+        changed = true;
+      });
     });
     if (changed) setRoutes(routes);
   }
@@ -838,7 +1057,56 @@
     if (opts && opts.scope) list = list.filter(function (v) { return v.scope === opts.scope; });
     return list;
   }
-  function setVehicleTypes(a) { writeJSON(HN_VEHICLE_TYPES_KEY, Array.isArray(a) ? a : []); }
+  // docs/fare-erd.mmd: station_price.vehicle_type / route_price_frame_vehicle.vehicle_type là FK tới vehicle_type.name
+  // (scope 'line'): xoá loại xe = ON DELETE CASCADE (xoá giá + gỡ loại xe khỏi khung, khung hết loại xe thì bỏ);
+  // đổi tên = ON UPDATE CASCADE (renameVehicleType). Giá/khung chỉ tham chiếu loại xe 'line'.
+  function setVehicleTypes(a) {
+    var next = Array.isArray(a) ? a : [], keep = {}, gone = {}, any = false;
+    next.forEach(function (v) { if (v && v.scope === 'line') keep[v.name] = true; });
+    getVehicleTypes({ scope: 'line' }).forEach(function (v) { if (!keep[v.name]) { gone[v.name] = true; any = true; } });
+    writeJSON(HN_VEHICLE_TYPES_KEY, next);
+    if (any) dropVehicleTypesFromPrices(gone);
+  }
+  function dropVehicleTypesFromPrices(names) {
+    setStationPrices(getStationPrices().filter(function (p) { return !names[p.vehicleType || '']; }));
+    var routes = getRoutes(), changed = false;
+    routes.forEach(function (r) {
+      if (!Array.isArray(r.priceFrames)) return;
+      r.priceFrames = r.priceFrames.filter(function (f) {
+        var all = frameVehicles(f), left = all.filter(function (v) { return !names[v.vehicleType || '']; });
+        if (left.length === all.length) return true;
+        changed = true;
+        f.vehicles = left;
+        return left.length > 0;
+      });
+    });
+    if (changed) setRoutes(routes);
+  }
+  // Đổi tên loại xe 'line' → { ok, reason? }; giá, khung giá và xe thuộc loại đó đổi tên theo.
+  function renameVehicleType(oldName, newName) {
+    newName = String(newName || '').trim();
+    if (!newName) return { ok: false, reason: 'Nhập tên loại xe.' };
+    var types = getVehicleTypes(), t = types.find(function (v) { return v.scope === 'line' && v.name === oldName; });
+    if (!t) return { ok: false, reason: 'Không tìm thấy loại xe.' };
+    if (newName === oldName) return { ok: true };
+    if (types.some(function (v) { return v.scope === 'line' && v.name === newName; })) return { ok: false, reason: 'Tên loại xe đã tồn tại.' };
+    t.name = newName;
+    writeJSON(HN_VEHICLE_TYPES_KEY, types); // không qua setVehicleTypes: đổi tên không phải xoá
+    var prices = getStationPrices();
+    prices.forEach(function (p) { if (p.vehicleType === oldName) p.vehicleType = newName; });
+    setStationPrices(prices);
+    var routes = getRoutes();
+    routes.forEach(function (r) {
+      (r.priceFrames || []).forEach(function (f) {
+        (f.vehicles || []).forEach(function (v) { if (v.vehicleType === oldName) v.vehicleType = newName; });
+      });
+    });
+    setRoutes(routes);
+    var vehicles = getVehicles();
+    vehicles.forEach(function (v) { if (v.scope === 'line' && v.vehicleType === oldName) v.vehicleType = newName; });
+    setVehicles(vehicles);
+    return { ok: true };
+  }
 
   function getVehicles(opts) {
     var list = readJSON(HN_VEHICLES_KEY, clone(SEED_VEHICLES));
@@ -1099,7 +1367,7 @@
   function buildTripDirectionsCfg() {
     var dirById = {};
     getDirections().forEach(function (d) { dirById[d.id] = d; });
-    var cfg = {};
+    var cfg = {}, fares = priceMap();
     getRoutes().slice()
       .filter(function (r) { return r.active !== false; })
       .sort(function (a, b) {
@@ -1112,7 +1380,7 @@
         cfg[r.id] = {
           label: r.label,
           route: r.label,
-          price: r.price,
+          price: routeFare(r, fares).price,
           directionId: r.directionId,
           directionLabel: d ? d.label : '',
           fromStations: (r.fromStations || []).slice(),
@@ -1146,7 +1414,7 @@
       return uniq(out);
     };
     var routes = getRoutes();
-    var cfg = {};
+    var cfg = {}, fares = priceMap();
     getDirections().slice().sort(byOrder).forEach(function (d) {
       if (d.active === false) return;
       var kids = routes.filter(function (r) { return r.directionId === d.id && r.active !== false; }).sort(byOrder);
@@ -1158,12 +1426,13 @@
         (r.pickupStations || []).forEach(function (n) { pickup[n] = true; });
       });
       var main = kids[0] || null;
+      var mainFare = main ? routeFare(main, fares) : { price: 0, doubleSeatPrice: 0 };
       cfg[d.id] = {
         label: d.label,
         route: main ? main.label : d.label,
         sense: directionSense(d),
-        price: main ? (main.price || 0) : 0,
-        doubleSeatPrice: main ? (main.doubleSeatPrice || 0) : 0,
+        price: mainFare.price,
+        doubleSeatPrice: mainFare.doubleSeatPrice,
         fromStations: collectRegions(fromReg),
         toStations: collectRegions(toReg),
         pickupStations: uniq(Object.keys(pickup)),
@@ -1171,12 +1440,12 @@
         // Tuyến con thô để TicketStaff suy ra "tuyến chính" sau khi chọn Trạm đi/Trạm đến,
         // rồi hiện đúng "trạm có thể rước" (pickupStations) của tuyến đó.
         routes: kids.map(function (r) {
+          var rf = routeFare(r, fares);
           return {
             label: r.label,
-            price: r.price || 0,
-            // Giá vé ghế đôi (nếu tuyến có cấu hình ở Admin > Quản lý giá) — mang theo để TicketStaff
-            // hiện được ô tick "Ghế đôi" cạnh giá vé, đổi giá đơn/đôi đúng theo đúng tuyến đang chọn.
-            doubleSeatPrice: r.doubleSeatPrice || 0,
+            // Giá thấp nhất của tuyến — chỉ làm giá mặc định; giá bán thật tra theo cặp trạm (getFare).
+            price: rf.price,
+            doubleSeatPrice: rf.doubleSeatPrice,
             vehicleType: r.vehicleType || '',
             order: r.order || 0,
             fromStations: (r.fromStations || []).slice(),
@@ -1193,14 +1462,14 @@
   function buildRoutesCfg() {
     var dirById = {};
     getDirections().forEach(function (d) { dirById[d.id] = d; });
-    var out = { 'chieu-di': [], 'chieu-ve': [] };
+    var out = { 'chieu-di': [], 'chieu-ve': [] }, fares = priceMap();
     getDirections().slice().sort(byOrder).forEach(function (d) {
       if (d.active === false) return;
       var bucket = directionSense(d) === 'di' ? out['chieu-di'] : out['chieu-ve'];
       getRoutes()
         .filter(function (r) { return r.directionId === d.id && r.active !== false; })
         .sort(byOrder)
-        .forEach(function (r) { bucket.push({ label: r.label, abbr: r.abbr, price: r.price }); });
+        .forEach(function (r) { bucket.push({ label: r.label, abbr: r.abbr, price: routeFare(r, fares).price }); });
     });
     return out;
   }
@@ -1389,15 +1658,25 @@
      SEED khi nạp + export
      --------------------------------------------------------- */
   seedAll();
+  // Một lần: xoá tuyến/giá mẫu cũ để Admin tự nhập lại (sau đó không đụng nữa).
+  if (localStorage.getItem('hn_routes_sample_cleared') === null) { writeJSON(HN_ROUTES_KEY, []); localStorage.setItem('hn_routes_sample_cleared', '1'); }
   mergeSeedStations();
   mergeSeedRouteStations();
   migrateStationModel();
+  // Đưa khung/giá về đúng quy tắc fare-erd.mmd — chạy lúc nạp và sau khi nhập cấu hình (file nhập có thể trùng cặp).
+  function normalizePrices() {
+    migrateRoutePrices();
+    migrateFrameVehicles();
+    migrateUniquePairs();
+  }
+  normalizePrices();
 
   window.FleetStore = {
     KEYS: {
       directions: HN_DIRECTIONS_KEY,
       routes: HN_ROUTES_KEY,
       stations: HN_STATIONS_KEY,
+      stationPrices: HN_STATION_PRICES_KEY,
       vehicleTypes: HN_VEHICLE_TYPES_KEY,
       vehicles: HN_VEHICLES_KEY,
       staff: HN_STAFF_KEY,
@@ -1436,8 +1715,25 @@
     updateStation: updateStation,
     removeStation: removeStation,
     stationUsage: stationUsage,
+    stationByRef: stationByRef,
+    getStationPrices: getStationPrices,
+    priceMap: priceMap,
+    framePairs: framePairs,
+    routePairs: routePairs,
+    validatePairPrice: validatePairPrice,
+    savePairPrices: savePairPrices,
+    releasePairPrices: releasePairPrices,
+    pruneOrphanPrices: pruneOrphanPrices,
+    pairInUse: pairInUse,
+    pairClash: pairClash,
+    normalizePrices: normalizePrices,
+    getFare: getFare,
+    getFares: getFares,
+    frameFares: frameFares,
+    routeFare: routeFare,
     getVehicleTypes: getVehicleTypes,
     setVehicleTypes: setVehicleTypes,
+    renameVehicleType: renameVehicleType,
     getVehicles: getVehicles,
     setVehicles: setVehicles,
     getStaff: getStaff,
@@ -1472,7 +1768,7 @@
     log: log,
     // Cho phép Admin "Khôi phục mặc định": xoá các key cấu hình rồi seed lại.
     resetToSeed: function () {
-      [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_REGIONS_KEY, HN_STOP_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_RECRUITMENT_KEY].forEach(function (k) {
+      [HN_DIRECTIONS_KEY, HN_ROUTES_KEY, HN_STATIONS_KEY, HN_STATION_PRICES_KEY, HN_REGIONS_KEY, HN_STOP_STATIONS_KEY, HN_VEHICLE_TYPES_KEY, HN_VEHICLES_KEY, HN_STAFF_KEY, HN_STAFF_ROLES_KEY, HN_RECRUITMENT_KEY].forEach(function (k) {
         localStorage.removeItem(k);
       });
       seedAll();
