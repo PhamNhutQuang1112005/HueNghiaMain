@@ -49,6 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Mặc định mở sẵn mọi nhóm menu (Nhận hàng/Giao hàng + submenu), bấm để thu lại
+  document.querySelectorAll('.sidebar-nav-group, .sidebar-subgroup').forEach(g => g.classList.add('open'));
+
   // Event delegation for all chevron clicks and accordion toggles
   document.addEventListener('click', (e) => {
     // 1. Chevron icon click

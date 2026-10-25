@@ -303,6 +303,7 @@
                   <th>Tài xế lái xe</th>
                   <th>Xe & Phụ xe</th>
                   <th>Nhân viên & Thời gian</th>
+                  <th style="width: 120px; text-align: center;">Số đơn hàng</th>
                   <th style="width: 145px; text-align: center;">Trạng thái phơi</th>
                   <th style="width: 220px; text-align: center;">Hành động</th>
                 </tr>
@@ -1840,8 +1841,10 @@
         groups.get(key).push(r);
       });
       const filtering = !!(nameVal || searchVal || plateVal || fromVal !== 'all' || toVal !== 'all');
+      const allCargos = loadCargos();
       const rowHtml = (row, index, key, open) => {
           const driverInfo = parseDriverDetails(row.driver);
+          const orderCount = allCargos.filter(c => Number(c.manifestId) === row.id).length;
           return `
           <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
@@ -1863,6 +1866,7 @@
               <span>${row.time}</span><br>
               <small style="color:var(--text-muted);">NV: ${row.staff}</small>
             </td>
+            <td style="text-align:center;"><span class="vehicle-pill">${orderCount} đơn hàng</span></td>
             <td style="text-align:center;">
               ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
                 ? `<span class="status-pill status-delivered">Đã nhận hàng</span>`
@@ -1899,7 +1903,7 @@
           const open = filtering || openPlates.has(key);
           return `
           <tr class="plate-group ${open ? 'open' : ''}" data-grp="${key}" tabindex="0" role="button" aria-expanded="${open}">
-            <td colspan="8">
+            <td colspan="9">
               <span class="pg-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
               <strong class="pg-plate">${key}</strong>
               <span class="pg-count">${list.length} phơi</span>
@@ -1907,7 +1911,7 @@
             </td>
           </tr>` + list.map((r, i) => rowHtml(r, i, key, open)).join('');
         }).join('')
-        : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+        : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
       syncRowSelection('manifestTableBody');
     }
 

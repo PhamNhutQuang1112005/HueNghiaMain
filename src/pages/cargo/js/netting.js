@@ -67,13 +67,27 @@
   }
 
   // Bảng nợ theo nguồn tiền từ breakdown(...); trả về { total: [trái, phải], html }
-  function sourceTable(b, left, right) {
+  // adj (tuỳ chọn) = [điều chỉnh cột trái, cột phải] do đã trả / chuyển nợ, hiện thành 1 dòng trừ vào tổng.
+  // base (tuỳ chọn) = [nợ ròng trái, phải] sau khi bù trừ từng cặp trạm → thêm dòng "Bù trừ hai chiều".
+  function sourceTable(b, left, right, adj, base) {
     var tot = [0, 0];
     var rows = ['cash', 'hot', 'cod'].map(function (k) {
       tot[0] += b[k][0]; tot[1] += b[k][1];
       return '<tr><td>' + KIND_LABEL[k] + '</td><td class="r">' + fmt(b[k][0]) + '</td><td class="r">' + fmt(b[k][1]) + '</td></tr>';
     }).join('');
-    rows += '<tr class="nt-total"><td>Tổng gộp</td><td class="r">' + fmt(tot[0]) + '</td><td class="r">' + fmt(tot[1]) + '</td></tr>';
+    var sh = function (v) { return (v < 0 ? '−' : '') + fmt(Math.abs(v)); }, label = 'Tổng gộp';
+    var off = base ? [base[0] - tot[0], base[1] - tot[1]] : [0, 0];
+    if (off[0] || off[1]) {
+      label = 'Còn lại';
+      rows += '<tr><td>Bù trừ hai chiều</td><td class="r">' + sh(off[0]) + '</td><td class="r">' + sh(off[1]) + '</td></tr>';
+      tot = [tot[0] + off[0], tot[1] + off[1]];
+    }
+    if (adj && (adj[0] || adj[1])) {
+      label = 'Còn lại';
+      rows += '<tr><td>Đã trả / chuyển nợ</td><td class="r">' + sh(adj[0]) + '</td><td class="r">' + sh(adj[1]) + '</td></tr>';
+      tot = [tot[0] + adj[0], tot[1] + adj[1]];
+    }
+    rows += '<tr class="nt-total"><td>' + label + '</td><td class="r">' + fmt(tot[0]) + '</td><td class="r">' + fmt(tot[1]) + '</td></tr>';
     return { total: tot, html: '<table class="nt-table"><thead><tr><th>Nguồn tiền</th><th>' + left + '</th><th>' + right + '</th></tr></thead><tbody>' + rows + '</tbody></table>' };
   }
 
@@ -88,14 +102,25 @@
     if (ui.via === me || ui.via === other) ui.via = '';
     var via = ui.via, cargos = load('hueNghia_cargos');
 
-    var toPay = 0, toGet = 0;
-    cands.forEach(function (s) { var v = net(d, me, s); if (v > 0) toPay += v; else toGet -= v; });
+    var toPay = 0, toGet = 0, totalDebt = 0, totalGet0 = 0, d0 = computeDebts(cargos, []);
+    var perStation = '';
+    cands.forEach(function (s) {
+      var v = net(d, me, s); if (v > 0) toPay += v; else toGet -= v;
+      var v0 = net(d0, me, s); if (v0 > 0) totalDebt += v0; else totalGet0 -= v0; // nợ ròng gốc khi chưa trả / chuyển nợ
+      if (!v0 && !v) return;
+      var mine = (v0 || v) > 0, a0 = Math.abs(v0), a = Math.abs(v);
+      perStation += '<tr><td>' + s + (mine ? '' : ' <small>(nợ mình)</small>') + '</td><td class="r">' + fmt(a0) + '</td><td class="r">' + fmt(Math.max(a0 - a, 0)) + '</td><td class="r">' + fmt(a) + '</td></tr>';
+    });
+    if (perStation) perStation = '<table class="nt-table"><thead><tr><th>Trạm</th><th>Tổng nợ</th><th>Đã trả</th><th>Thiếu</th></tr></thead><tbody>' + perStation + '</tbody></table>';
 
     var col1 = '<div class="nt-col"><h3>1. Trạm đang đối soát</h3>' +
       '<select id="ntMe" aria-label="Trạm đang đối soát"><option value="">— Chọn trạm —</option>' +
       all.map(function (s) { return '<option' + (s === me ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
-      (me ? sourceTable(breakdown(cargos, me), 'Nợ các trạm', 'Các trạm nợ').html : '') +
-      '<div class="nt-sum">Phải trả các trạm (sau cấn trừ)<b>' + fmt(toPay) + '</b></div>' +
+      (me ? sourceTable(breakdown(cargos, me), 'Nợ các trạm', 'Các trạm nợ', [toPay - totalDebt, toGet - totalGet0], [totalDebt, totalGet0]).html : '') +
+      perStation +
+      '<div class="nt-sum">Tổng nợ các trạm<b>' + fmt(totalDebt) + '</b></div>' +
+      '<div class="nt-sum">Nợ đã trả<b style="color:#16a34a">' + fmt(Math.max(totalDebt - toPay, 0)) + '</b></div>' +
+      '<div class="nt-sum">Nợ thiếu (còn phải trả)<b>' + fmt(toPay) + '</b></div>' +
       '<div class="nt-sum">Được các trạm trả (sau cấn trừ)<b>' + fmt(toGet) + '</b></div></div>';
 
     var n = 0, body = '<div class="nt-empty">' + (me ? 'Chọn trạm cần đối soát.' : 'Chọn trạm đang đối soát trước.') + '</div>';
@@ -106,7 +131,8 @@
       body = t.html +
         (adj ? '<div class="nt-adj">Đã trả / chuyển nợ trước đó: ' + (adj > 0 ? '+' : '−') + fmt(Math.abs(adj)) + '</div>' : '') +
         '<div class="nt-net">Nợ ròng: <b>' + pairText(me, other, n) + '</b></div>' +
-        (n ? '<div class="nt-actions"><button class="secondary-btn" data-act="pay">Ghi nhận ' + (n > 0 ? 'đã trả' : 'đã nhận') + '</button></div>' : '');
+        (n ? '<div class="nt-actions"><button class="secondary-btn" data-act="pay">Ghi nhận ' + (n > 0 ? 'đã trả' : 'đã nhận') + '</button>' +
+          '<button class="secondary-btn" data-act="reroute">Chuyển nợ qua ' + (via || 'trạm trung gian') + '</button></div>' : '');
     }
     var col2 = '<div class="nt-col nt-wide"><h3>2. Trạm cần đối soát</h3>' +
       '<select id="ntOther" aria-label="Trạm cần đối soát"><option value="">— Chọn trạm —</option>' +
@@ -120,8 +146,7 @@
       viaBody = !via ? '' :
         '<div class="nt-adj">' + via + '–' + me + ': ' + pairText(via, me, net(d, via, me)) + '</div>' +
         '<div class="nt-adj">' + via + '–' + other + ': ' + pairText(via, other, net(d, via, other)) + '</div>' +
-        (n ? '<div class="nt-actions"><button class="secondary-btn" data-act="reroute">Chuyển nợ ' + me + '–' + other + ' qua ' + via + '</button></div>'
-           : '<div class="nt-adj">' + me + ' và ' + other + ' không còn nợ ròng để chuyển.</div>');
+        (n ? '' : '<div class="nt-adj">' + me + ' và ' + other + ' không còn nợ ròng để chuyển.</div>');
     }
     var chains = entries.filter(function (e) {
       return e.kind === 'reroute' && (e.from === me || e.to === me || e.via === me);

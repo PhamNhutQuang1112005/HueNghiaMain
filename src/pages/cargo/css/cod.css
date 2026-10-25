@@ -482,3 +482,9 @@
 .nt-table th { white-space: normal; padding: 10px 6px; letter-spacing: 0; line-height: 1.25; vertical-align: bottom; }
 .nt-table td { padding: 8px 6px; }
 @media (max-width: 1250px) { .nt-grid { grid-template-columns: 1fr; } }
+/* fix: nút dài tràn khỏi khung */
+.nt-actions { display: flex; }
+.nt-actions .secondary-btn { max-width: 100%; white-space: normal; height: auto; padding: 10px 14px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
+.nt-col { overflow: hidden; }
+/* nút Ghi nhận đã trả: sang phải */
+.nt-wide .nt-actions { justify-content: flex-end; }
