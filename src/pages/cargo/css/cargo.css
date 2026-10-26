@@ -848,16 +848,7 @@ input[type=number] {
 
 /* ── Tablet (769px – 992px) ── */
 @media (max-width: 992px) and (min-width: 769px) {
-  /* Brand khớp với sidebar icon-only 68px */
-  .app-shell .brand {
-    width: var(--sidebar-collapsed-width, 68px) !important;
-    flex: 0 0 var(--sidebar-collapsed-width, 68px) !important;
-    padding: 0 !important;
-    justify-content: center;
-  }
-  .app-shell .brand .brand-text {
-    display: none;
-  }
+  /* Brand theo trạng thái sidebar (is-collapsed) — xem shell.css, không ép 68px ở đây */
   /* Search shell hẹp lại */
   .app-shell .header-left .search-shell {
     max-width: 220px;
