@@ -57,3 +57,69 @@ function saveSeatBank() {
   const jsonStr = JSON.stringify(tripSeatBank);
   localStorage.setItem(HN_STORAGE_KEY, jsonStr);
 }
+
+
+// Trạm của nhân viên đang đăng nhập (HR: staff.station = trạm chính) — nguồn của ticket.selling_station
+// (ERD quy tắc 12: trạm bán KHÔNG chọn tay). '' khi chưa đăng nhập / nhân viên chưa được gán trạm.
+function getActingStaffStation() {
+  try {
+    const u = window.Session && Session.get();
+    const me = u && window.FleetStore && FleetStore.getStaff().find(s => s && s.username === u.username);
+    if (me && me.station) return me.station;
+    // Admin gốc không gắn trạm: vé admin bán ghi trạm hệ thống 'Admin' (ERD quy tắc 12), người bán là username admin.
+    return (window.Auth && Auth.isAdmin && Auth.isAdmin()) ? 'Admin' : '';
+  } catch (e) { return ''; }
+}
+
+// Gom các ghế cùng chung 1 mã vé (ticketNo) thành 1 dòng hành khách duy nhất,
+// dùng đúng mã ghế thật trên sơ đồ thay vì suy đoán ghế kế tiếp — đảm bảo
+// danh sách ghế và danh sách hành khách luôn thống nhất với nhau.
+function groupSeatsByTicket(seats) {
+  const map = new Map();
+  seats.forEach(s => {
+    const key = s.ticketNo || ('T-' + s.code);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(s);
+  });
+  return Array.from(map.values()).map(members => {
+    members.sort((a, b) => a.code.localeCompare(b.code));
+    return { main: members[0], members };
+  });
+}
+
+// Số vé kế tiếp dạng "SGCD-0001" từ một seat bank { [tripId]: {down, up, subSeats, extraSeats, cancelledSeats} }:
+// tuần tự chung cho mọi phơi, không bao giờ trùng (ERD ticket.ticket_no UK). Dùng ở trang không có ticketSeq (Admin).
+function nextTicketNoFromBank(bank, prefix) {
+  let max = 0;
+  Object.keys(bank || {}).forEach(tid => {
+    const b = bank[tid];
+    if (!b) return;
+    [].concat(b.down || [], b.up || [], b.subSeats || [], b.extraSeats || [], b.cancelledSeats || []).forEach(s => {
+      const m = s && s.ticketNo != null && String(s.ticketNo).match(/(\d+)\s*$/);
+      if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; }
+    });
+  });
+  return (prefix || 'SGCD') + '-' + String(max + 1).padStart(4, '0');
+}
+
+// Mã nhân viên của tài khoản đang đăng nhập ('' khi chưa đăng nhập). NGUỒN DUY NHẤT cho "người thao tác":
+// KHÔNG còn giá trị dự phòng ('NV trực', 'Nhân viên trực', 'system', 'admin') — dữ liệu mới bắt buộc có người thao tác.
+function getActingStaffCode() {
+  try {
+    const u = window.Session && Session.get();
+    if (!u || !u.username) return '';
+    return (typeof getStaffCode === 'function' && getStaffCode(u.username)) || u.username;
+  } catch (e) { return ''; }
+}
+
+// Chặn thao tác ghi dữ liệu khi chưa đăng nhập; needStation = true thì tài khoản thường còn phải có trạm
+// (admin gốc không gắn trạm nên được miễn). Trả về true nếu được phép tiếp tục.
+function requireActor(needStation) {
+  const say = m => { if (typeof showToast === 'function') showToast(m); else alert(m); };
+  if (!getActingStaffCode()) { say('Chưa đăng nhập — không thực hiện được thao tác này'); return false; }
+  if (needStation && !getActingStaffStation() && !(window.Auth && Auth.isAdmin && Auth.isAdmin())) {
+    say('Tài khoản chưa được gán trạm — liên hệ quản trị viên');
+    return false;
+  }
+  return true;
+}

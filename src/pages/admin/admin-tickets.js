@@ -106,8 +106,8 @@ function tkRouteHtml(first, last) {
 
 function tkRenderRow(r, idx) {
   var stops = tkHistoryStops(r);
-  var bookStaff = getStaffCode(r.staff) || 'NV01';
-  var sellStaff = r.paid ? (getStaffCode(r.staff) || 'NV05') : '—';
+  var bookStaff = getStaffCode(r.bookedBy || r.staff) || '—';
+  var sellStaff = r.paid ? (getStaffCode(r.staff) || '—') : '—';
   var staffTags = '<div class="staff-tag-stack">' +
     '<span class="staff-tag staff-tag-book">' + esc(bookStaff) + '</span>' +
     (sellStaff === '—' ? '<span class="staff-tag staff-tag-empty">—</span>' : '<span class="staff-tag staff-tag-sell">' + esc(sellStaff) + '</span>') +

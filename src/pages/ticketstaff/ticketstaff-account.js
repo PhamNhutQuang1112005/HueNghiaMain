@@ -151,6 +151,7 @@ function readAndValidateRebookDeposit(referencePrice) {
 }
 
 function confirmRebook() {
+  if (!requireActor(true)) return;
   const form = readRebookForm();
   if (!form.name || !form.phone) { showToast('Vui lòng nhập họ tên và SĐT', 'error'); return; }
   if (!rebookSelectedTripId || !rebookSelectedSeats.length) { showToast('Vui lòng chọn chuyến và ghế', 'error'); return; }
@@ -169,9 +170,9 @@ function confirmRebook() {
   if (!deposit) return;
 
   const tripMeta = allTripsMeta.find(t => t.id === rebookSelectedTripId);
-  const prefix = (tripMeta?.route?.includes('Sài Gòn')) ? 'SGCD' : 'CDSG';
-  const newTicketNo = `${prefix}-${Math.floor(Math.random() * 9000) + 1000}`;
-  const staffCode = (typeof getCurrentActionStaffCode === 'function') ? getCurrentActionStaffCode() : 'system';
+  reseedTicketSeqFromBank();
+  const newTicketNo = 'SGCD-' + String(ticketSeq++).padStart(4, '0'); // tuần tự, duy nhất — cùng quy ước luồng bán chính
+  const staffCode = getCurrentActionStaffCode();
 
   targetSeats.forEach(seat => {
     Object.assign(seat, {
@@ -196,6 +197,8 @@ function confirmRebook() {
       depositMethod: deposit.depositMethod,
       actionTime: new Date().toISOString()
     });
+    // Nhãn trạm bán / giai đoạn bán / lần Re-open chụp 1 lần lúc tạo vé đặt (ERD quy tắc 4, 12)
+    tsStampSoldPhaseIfNeeded(seat, rebookSelectedTripId);
   });
 
   saveSeatBank();
@@ -213,6 +216,7 @@ function confirmRebook() {
 // thanh toán (#sellPaymentModal, y chang panel đặt vé chính) trước; việc bán thật sự chuyển sang nhánh
 // pendingRebookSell trong confirmSellPayment() (ticketstaff.js).
 function confirmRebookAndSell() {
+  if (!requireActor(true)) return;
   const form = readRebookForm();
   if (!form.name || !form.phone) { showToast('Vui lòng nhập họ tên và SĐT', 'error'); return; }
   if (!rebookSelectedTripId || !rebookSelectedSeats.length) { showToast('Vui lòng chọn chuyến và ghế', 'error'); return; }

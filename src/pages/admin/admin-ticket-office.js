@@ -97,7 +97,7 @@ function toDirStationFieldsHtml(tab, f) {
 }
 // t = phơi (trip) gắn với dòng lịch sử đang lọc — có thể null nếu phơi gốc đã bị xoá dữ liệu.
 function toTripMatchesFilters(t, f) {
-  if (f.direction && (!t || tripRouteDirectionId(t.route) !== f.direction)) return false;
+  if (f.direction && (!t || tripRouteDirectionId(t.route, t) !== f.direction)) return false;
   if (f.fromStation && (!t || t.fromStation !== f.fromStation)) return false;
   return true;
 }
@@ -153,7 +153,8 @@ function toGetCancelledTrips() {
       var m = /Lý do:\s*(.+)$/.exec(log.summary);
       if (m) reason = m[1];
     }
-    return { trip: t, cancelledAt: log ? log.ts : null, cancelledBy: log ? log.user : '—', reason: reason };
+    // Ưu tiên giờ/người hủy ghi thẳng trên phơi (t.cancelledAt/cancelledBy); phơi cũ chưa có thì lấy từ log.
+    return { trip: t, cancelledAt: t.cancelledAt ? Date.parse(t.cancelledAt) : (log ? log.ts : null), cancelledBy: t.cancelledBy || (log ? log.user : '—'), reason: reason };
   }).sort(function (a, b) { return (b.cancelledAt || 0) - (a.cancelledAt || 0); });
 }
 

@@ -462,6 +462,10 @@ function startTransferFromCancelled(cancelId) {
   if (blockIfMultiSelectActive()) return;
   const record = (cancelledSeats || []).find(c => c.id === cancelId);
   if (!record) { showToast('Không tìm thấy vé đã hủy này'); return; }
+  if (record.prevState !== 'hold') {
+    showToast('Chỉ chuyển được vé của ghế ĐÃ ĐẶT. Vé đã bán (hoặc vé hủy cũ chưa ghi nhận trạng thái) không chuyển sang phơi khác được.');
+    return;
+  }
   multiSelectMode = true;
   selectionMode = 'transfer';
   selectedSourceSeats = [];
@@ -481,6 +485,18 @@ function confirmRestoreFromCancelled() {
     return;
   }
   const targetTripId = transferTargetTripId || currentTripId;
+  if (record.prevState !== 'hold') { showToast('Vé của ghế đã bán không chuyển sang phơi khác được'); return; }
+  if (!requireActor(true)) return;
+  const targetTripMeta = allTripsMeta.find(t => t.id === targetTripId);
+  if (!targetTripMeta || targetTripMeta.status === 'Đã hủy' || targetTripMeta.isTemplate) {
+    showToast('Phơi đích không nhận vé được (đã hủy hoặc là phơi mẫu)');
+    return;
+  }
+  // Phơi đã khởi hành chỉ nhận khi đang Re-open (tsIsSellingLocked = đã khởi hành và KHÔNG có Re-open đang mở)
+  if (typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(targetTripId)) {
+    showToast('Phơi đích đã khởi hành — chỉ chuyển vào khi phơi đang Re-open');
+    return;
+  }
   const targetCode = selectedTargetSeats[0];
   const targetSeat = findSeatInTrip(targetTripId, targetCode);
   if (!targetSeat || targetSeat.state !== 'empty') {
@@ -496,10 +512,13 @@ function confirmRestoreFromCancelled() {
     lastStop: record.lastStop,
     price: record.price,
     note: record.note,
-    ticketNo: record.ticketNo,
+    // Mã vé: giữ mã cũ CHỈ khi đặt lại đúng ghế cũ trong đúng phơi cũ; sang ghế / phơi khác thì cấp mã mới (ERD quy tắc 13, 14).
+    ticketNo: (targetTripId === transferSourceTripId && targetCode === record.code) ? record.ticketNo : issueTicketNo(),
     paid: false,
     count: 1
   });
+  // Vé chuyển (ghế đã đặt) gắn cho NGƯỜI THAO TÁC MỚI NHẤT: người, trạm, giai đoạn bán, lần Re-open (ERD quy tắc 13)
+  tsStampSoldPhaseIfNeeded(targetSeat, targetTripId, true);
   // Không xoá record khỏi cancelledSeats — giữ lại để lưu vết theo yêu cầu nghiệp vụ (tab "Ghế hủy"
   // vẫn hiện đủ mọi bản ghi). Chỉ đánh dấu "restored" để danh sách rút gọn cuối Zone 3 (nơi để bấm
   // chuyển ghế) ẩn bớt các vé đã xử lý xong, tránh chuyển nhầm lần 2 vào cùng 1 vé hủy.
@@ -507,6 +526,9 @@ function confirmRestoreFromCancelled() {
   record.restored = true;
   record.restoredToSeat = targetCode;
   record.restoredToTripLabel = trip ? trip.time : '';
+  record.restoredToTripId = targetTripId;
+  record.restoredAtIso = new Date().toISOString();
+  record.restoredBy = getCurrentActionStaffCode();
   record.restoredAt = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN');
 
   saveSeatBank();

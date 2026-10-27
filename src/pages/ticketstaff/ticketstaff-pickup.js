@@ -259,13 +259,7 @@ function pkBuildDriversPool() {
       if (list.length) return list;
     }
   } catch (e) { /* ignore, dùng fallback bên dưới */ }
-  return [
-    { id: "TX01", driverName: "Nguyễn Văn Bình", driverPhone: "0909111222", license: "D" },
-    { id: "TX02", driverName: "Trịnh Công Sơn", driverPhone: "0918222333", license: "B2" },
-    { id: "TX03", driverName: "Lê Hoài Nam", driverPhone: "0927333444", license: "E" },
-    { id: "TX04", driverName: "Phạm Đức Duy", driverPhone: "0936444555", license: "D" },
-    { id: "TX05", driverName: "Trần Văn Hải", driverPhone: "0907222333", license: "FC" }
-  ];
+  return []; // không còn tài xế mẫu: danh sách trống cho tới khi nhập nhân sự tài xế trung chuyển thật
 }
 
 function pkPopulateFleetSelects() {
@@ -1282,15 +1276,8 @@ function pkStableIndex(str, mod) {
   return mod ? h % mod : h;
 }
 
-// Dữ liệu mẫu tài xế trung chuyển (dùng khi seat bank chưa có tài xế thật gán từ trang shuttle.html) —
-// để cột "Trung chuyển" của khách trung chuyển không bị trống trong bản demo.
-const PK_TS_SAMPLE_DRIVERS = [
-  { name: 'Trần Văn Hùng', phone: '0908 111 222', note: 'Đã liên hệ khách, hẹn đón đúng giờ' },
-  { name: 'Nguyễn Văn Nam', phone: '0918 333 444', note: 'Khách chờ ở sảnh, xe 7 chỗ' },
-  { name: 'Phạm Quốc Bảo', phone: '0937 555 666', note: 'Đón thêm 1 khách cùng điểm' },
-  { name: 'Lê Hoàng Anh', phone: '0946 777 888', note: 'Xe đang trên đường, ETA 10 phút' },
-  { name: 'Võ Thành Long', phone: '0977 999 000', note: '' }
-];
+// Số "hạt giống" ổn định cho mốc thời gian mẫu (pkSampleStamp). KHÔNG còn tên / ghi chú tài xế mẫu.
+const PK_TS_SAMPLE_SEEDS = 5;
 
 // Mốc thời gian mẫu — suy ổn định từ giờ khởi hành phơi (trước giờ chạy `minutesBefore` phút), trả về
 // chuỗi ISO để formatHistoryDate()/formatActionTime() hiển thị 2 dòng giống cột "Thời gian"/"In lúc"
@@ -1312,7 +1299,7 @@ function pkSampleStamp(trip, minutesBefore, seed) {
 // định khi chưa có giá trị thật. Ghi chú "Phòng vé" bấm được, sửa qua #tsStatusNoteModal theo ticketNo.
 function pkRenderTransshipRow(r, idx, shuttleDriverMap) {
   const m = r.main;
-  const sampleSeed = pkStableIndex(m.phone || m.ticketNo || r.seatCodes[0] || String(idx), PK_TS_SAMPLE_DRIVERS.length);
+  const sampleSeed = pkStableIndex(m.phone || m.ticketNo || r.seatCodes[0] || String(idx), PK_TS_SAMPLE_SEEDS);
   const routeParts = (r.trip && r.trip.route ? String(r.trip.route).split(' - ') : []);
   const fromMain = escapeHtml(m.firstStop || routeParts[0] || '—');
   const toMain = escapeHtml(m.lastStop || routeParts[routeParts.length - 1] || '—');
@@ -1486,7 +1473,7 @@ function pkRenderTripList() {
 
   // Ẩn "phơi mẫu" (isTemplate) — danh sách modal "Chỉ định xe" phải trùng đúng tập chuyến ở Zone 1.
   const filtered = (allTripsMeta || []).filter(t =>
-    !t.isTemplate && (!kw ||
+    !t.isTemplate && t.status !== 'Đã hủy' && (!kw ||
       t.time.toLowerCase().includes(kw) || (t.plate && t.plate.toLowerCase().includes(kw)) ||
       t.route.toLowerCase().includes(kw) || (t.vehicleType && t.vehicleType.toLowerCase().includes(kw)))
   );
@@ -1637,6 +1624,8 @@ function pkConfirmAssign() {
   const tripPlan = tripSeatBank[pkActiveTripId];
   if (!tripPlan) return;
 
+  if (tripNotSellable(pkActiveTripId)) { showToast('Phơi này đã hủy hoặc đã khởi hành (chưa Re-open) — chọn phơi khác'); return; }
+
   // Việc trả ghế cũ về trống (nếu khách đang đổi chỉ định) chỉ thực hiện lúc XÁC NHẬN thanh toán xong
   // (nhánh pendingPickupAssignSell trong confirmSellPayment(), ticketstaff.js) — làm ngay ở đây rồi lỡ
   // người dùng bấm "Đóng" ở modal thanh toán thay vì xác nhận sẽ mất luôn cả ghế cũ lẫn ghế mới.
@@ -1649,7 +1638,7 @@ function pkConfirmAssign() {
     seatCodes: pkSelectedSeats.slice(),
     unitPrice,
     fare: tsFareSnapshot(pkActiveTripId, 'pkAssignPriceDoubleSeat'),
-    ticketNo: 'SGCD-' + String(Math.floor(1000 + Math.random() * 9000))
+    ticketNo: (reseedTicketSeqFromBank(), 'SGCD-' + String(ticketSeq++).padStart(4, '0')) // tuần tự, duy nhất
   };
 
   document.querySelectorAll('input[name="sellPaymentMethod"]').forEach(r => { r.checked = r.value === 'Tiền mặt'; });

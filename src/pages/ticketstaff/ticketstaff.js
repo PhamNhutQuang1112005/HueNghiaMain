@@ -31,11 +31,10 @@ function makeSeat(code, state, opts = {}) {
     '228 Trần Hưng Đạo, TP. Long Xuyên, An Giang',
     'Khách sạn Victoria Châu Đốc, An Giang'
   ];
-  const driverList = ['Trần Văn Hùng', 'Nguyễn Văn Nam (TC-03)', 'Phạm Quốc Bảo (TC-02)', 'Lê Hoàng Anh (TC-05)'];
 
   const tAddr = (isBooked && gType !== 'Khách trạm') ? transAddrs[Math.floor(Math.random() * transAddrs.length)] : '';
   const dAddr = (isBooked && gType !== 'Khách trạm' && (gType === 'Trung chuyển' || Math.random() > 0.4)) ? dropoffAddrs[Math.floor(Math.random() * dropoffAddrs.length)] : '';
-  const driver = isBooked ? driverList[Math.floor(Math.random() * driverList.length)] : '';
+  const driver = ''; // tài xế gắn theo phơi (Chỉ định xe), không có giá trị mẫu
 
   const base = {
     code, state, // empty | hold | sold | free | cargo
@@ -119,7 +118,7 @@ let seatPlanUp = [
 
 // Danh sách các chuyến (khớp với data-trip trên trip-card ở Zone 1) để có thể
 // chuyển ghế của khách sang một chuyến xe khác, không chỉ trong cùng 1 chuyến.
-const todayStr = new Date().toISOString().split("T")[0];
+const todayStr = zone1DateStr(new Date()); // ngày LOCAL (toISOString là UTC: 00:00–07:00 giờ VN còn ra hôm qua)
 
 /* ---- Zone 1: trạng thái lịch chọn ngày (khai báo SỚM vì renderZone1TripList() lọc theo selectedDate
    và được gọi ngay lúc nạp trang). Ngày mặc định = HÔM NAY THẬT (khớp todayStr — cùng ngày mà phơi mẫu
@@ -186,9 +185,14 @@ function loadAllTrips() {
         // (có sơ đồ ghế demo), chỉ id 11..14 mới là phơi mẫu. Gỡ cờ để chúng hiện lại ở Zone 1 /
         // danh sách phơi thường như trước.
         const REAL_SEED_TRIP_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+        let mf = {};
+        try { mf = JSON.parse(localStorage.getItem('hn_ts_manifests_v1') || '{}') || {}; } catch (e) { /* manifest hỏng → coi như chưa có */ }
         parsed.forEach((t, idx) => {
           if (!t.date || t.date === '2026-07-29') t.date = todayStr;
           if (t.isTemplate && REAL_SEED_TRIP_IDS.indexOf(String(t.id)) !== -1) delete t.isTemplate;
+          TripService.syncStatus(t); // sửa trạng thái lưu lệch biển số (đã gán xe mà vẫn "Chưa chỉ định")
+          if (mf[t.id] && !t.isTemplate && t.status !== 'Đã hủy') t.status = 'Khởi hành'; // di trú: phơi đã có manifest = đã khởi hành
+          if (t.status === 'Đã khởi hành') t.status = 'Khởi hành'; // chuẩn hoá giá trị cũ (ERD quy tắc 2)
           // Phơi cũ nạp từ trước khi có createdAt (seed/mẫu) không có mốc thời gian tạo thật — gán tạm
           // theo thứ tự trong mảng (số rất nhỏ so với Date.now()) để phơi tạo thật sự sau này luôn nổi
           // lên đầu danh sách (xem applyFilters), còn phơi cũ vẫn giữ đúng thứ tự tương đối với nhau.
@@ -226,7 +230,8 @@ function tripRouteSense(route) {
 
 // Suy id HƯỚNG (1 trong 4 hướng cố định) của 1 phơi: ưu tiên FleetStore, fallback theo sense cũ
 // (phơi/tuyến lạ chưa có trong store → gộp vào hướng cùng chiều: 'sg-ag' nếu đi, 'ag-sg' nếu về).
-function tripDirectionId(route) {
+function tripDirectionId(route, t) {
+  if (t && t.directionId) return t.directionId; // phơi mới lưu thẳng id hướng; phơi cũ suy từ nhãn tuyến
   try {
     if (window.FleetStore && typeof FleetStore.getRouteDirectionId === 'function') {
       const id = FleetStore.getRouteDirectionId(route);
@@ -242,8 +247,8 @@ function tripDirectionId(route) {
 function refreshTripMetaFilters() {
   tripsByDirection = {};
   allTripsMeta.forEach(t => {
-    if (!t || !t.route || t.status === 'Đã hủy' || t.isTemplate) return;
-    const id = tripDirectionId(t.route);
+    if (!t || !(t.route || t.directionId) || t.status === 'Đã hủy' || t.isTemplate) return;
+    const id = tripDirectionId(t.route, t);
     (tripsByDirection[id] = tripsByDirection[id] || []).push(t);
   });
 }
@@ -290,18 +295,12 @@ function reloadDirectionLabels() {
 }
 reloadDirectionLabels();
 
-// 1 phơi có "khớp tuyến đang lọc ở Zone 1" không: so TRẠM ĐI + TRẠM ĐẾN của phơi với nhóm trạm đi/đến
-// của tuyến (không dùng chuỗi trip.route). Phơi thiếu cả 2 trạm → fallback so nhãn trip.route.
+// 1 phơi có "khớp tuyến đang lọc ở Zone 1" không — xem FleetStore.tripServesRoute (tính cả trạm nhận thêm).
 function zone1TripMatchesRoute(t) {
   if (!selectedRoute || selectedRoute === 'all') return true;
   const r = (routeOptions[selectedDirection] || []).find(o => o.id === selectedRoute);
   if (!r || !r.fromStations) return true;
-  if (t.fromStation || t.toStation) {
-    const okFrom = !t.fromStation || !r.fromStations.length || r.fromStations.indexOf(t.fromStation) !== -1;
-    const okTo = !t.toStation || !r.toStations.length || r.toStations.indexOf(t.toStation) !== -1;
-    return okFrom && okTo;
-  }
-  return t.route === selectedRoute;
+  return FleetStore.tripServesRoute(t, r);
 }
 
 // Sinh dữ liệu ghế mẫu cho các chuyến còn lại (mỗi ghế là 1 khách hàng độc nhất)
@@ -320,8 +319,8 @@ if (!savedBank) {
     up: seatPlanUp,
     plate: '51F-123.45',
     vehicleType: 'Limousine 24 Phòng',
-    driver: 'Trần Văn Hùng',
-    helper: 'Nguyễn Thị Hương',
+    driver: '',
+    helper: '',
     cancelledSeats: []
   };
   allTripsMeta.forEach(t => {
@@ -332,8 +331,8 @@ if (!savedBank) {
         up: plan.up,
         plate: t.plate || '50H-678.90',
         vehicleType: t.vehicleType || 'Giường nằm 34 chỗ',
-        driver: 'Phạm Quốc Bảo',
-        helper: 'Đỗ Văn Sơn',
+        driver: '',
+        helper: '',
         cancelledSeats: []
       };
     }
@@ -358,12 +357,17 @@ function reseedTicketSeqFromBank() {
   Object.keys(tripSeatBank).forEach(tid => {
     const bank = tripSeatBank[tid];
     if (!bank) return;
-    [].concat(bank.down || [], bank.up || [], bank.subSeats || [], bank.extraSeats || []).forEach(s => {
+    [].concat(bank.down || [], bank.up || [], bank.subSeats || [], bank.extraSeats || [], bank.cancelledSeats || []).forEach(s => {
       const m = s && s.ticketNo != null && String(s.ticketNo).match(/(\d+)\s*$/);
       if (m) { const n = parseInt(m[1], 10); if (n > maxNo) maxNo = n; }
     });
   });
   if (maxNo + 1 > ticketSeq) ticketSeq = maxNo + 1;
+}
+// Cấp mã vé mới tuần tự (SGCD-0001...), dùng cho chuyển ghế / đặt lại vé hủy sang ghế khác (ERD quy tắc 13, 21).
+function issueTicketNo() {
+  reseedTicketSeqFromBank();
+  return 'SGCD-' + String(ticketSeq++).padStart(4, '0');
 }
 reseedTicketSeqFromBank();
 
@@ -457,10 +461,10 @@ window.addEventListener('storage', (e) => {
         }
 
         const headerDriver = document.getElementById('headerDriver');
-        if (headerDriver) headerDriver.textContent = bank.driver || 'Trần Văn Hùng';
+        if (headerDriver) headerDriver.textContent = bank.driver || '—';
 
         const headerHelper = document.getElementById('headerHelper');
-        if (headerHelper) headerHelper.textContent = bank.helper || 'Nguyễn Thị Hương';
+        if (headerHelper) headerHelper.textContent = bank.helper || '—';
       }
       renderSeats();
       renderExtraSeats();
@@ -1504,22 +1508,6 @@ function getAllBookedSeats() {
     .filter(s => ['sold', 'hold', 'free', 'cargo'].includes(s.state));
 }
 
-// Gom các ghế cùng chung 1 mã vé (ticketNo) thành 1 dòng hành khách duy nhất,
-// dùng đúng mã ghế thật trên sơ đồ thay vì suy đoán ghế kế tiếp — đảm bảo
-// danh sách ghế và danh sách hành khách luôn thống nhất với nhau.
-function groupSeatsByTicket(seats) {
-  const map = new Map();
-  seats.forEach(s => {
-    const key = s.ticketNo || ('T-' + s.code);
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(s);
-  });
-  return Array.from(map.values()).map(members => {
-    members.sort((a, b) => a.code.localeCompare(b.code));
-    return { main: members[0], members };
-  });
-}
-
 function renderPassengerList() {
   // Thanh lọc select (giống tab Rước đường): Trạm đi / Trạm đến / Thanh toán. Lọc theo VÉ (nhóm ghế
   // cùng ticketNo) chứ không theo từng ghế — đổ danh sách trạm từ đúng các giá trị đang có.
@@ -1918,6 +1906,12 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#seatMenu') && !e.target.closest('.seat-card')) closeSeatMenu();
 });
 
+// Phơi KHÔNG nhận vé: đã hủy, phơi mẫu, hoặc đã khởi hành mà không có Re-open đang mở (ERD quy tắc 4, 13, 18, 21).
+function tripNotSellable(tripId) {
+  const t = allTripsMeta.find(x => x && x.id === tripId);
+  return !t || t.status === 'Đã hủy' || !!t.isTemplate || (typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(tripId));
+}
+
 function confirmTransfer() {
   if (!multiSelectMode || !selectedSourceSeats.length || !selectedTargetSeats.length) {
     showToast('Vui lòng chọn ít nhất 1 ghế đã đặt và 1 ghế trống');
@@ -1928,11 +1922,16 @@ function confirmTransfer() {
   if (pairCount === 0) { showToast('Vui lòng chọn ít nhất 1 ghế trống để chuyển'); return; }
   const sourceTripId = transferSourceTripId || currentTripId;
   const targetTripId = transferTargetTripId || currentTripId;
+  if (!requireActor(true)) return;
+  if (tripNotSellable(targetTripId) || (typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(sourceTripId))) {
+    showToast('Phơi nguồn hoặc phơi đích đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không chuyển được'); return;
+  }
 
   let extraSeatsChanged = false;
   // Ghế đích của các ghế NGUỒN đã bán (state 'sold') — in lại vé cho đúng mã ghế/chuyến mới sau khi
   // chuyển, vì vé giấy khách đang cầm giờ ghi sai mã ghế/chuyến cũ.
   const reprintSeats = [];
+  const newNoByOld = {}; // ghế khác = vé khác: các ghế của CÙNG vé gốc chuyển chung một lần dùng chung một mã mới (ERD quy tắc 21)
   for (let i = 0; i < pairCount; i++) {
     const sourceSeat = findSeatInTrip(sourceTripId, selectedSourceSeats[i]);
     const targetSeat = findSeatInTrip(targetTripId, selectedTargetSeats[i]);
@@ -1948,7 +1947,7 @@ function confirmTransfer() {
       note: sourceSeat.note,
       customerName: sourceSeat.customerName,
       pickupTime: sourceSeat.pickupTime,
-      ticketNo: sourceSeat.ticketNo,
+      ticketNo: sourceSeat.ticketNo ? (newNoByOld[sourceSeat.ticketNo] || (newNoByOld[sourceSeat.ticketNo] = issueTicketNo())) : sourceSeat.ticketNo,
       paid: sourceSeat.paid,
       count: sourceSeat.count,
       hasLuggage: sourceSeat.hasLuggage,
@@ -1966,6 +1965,18 @@ function confirmTransfer() {
       paymentMethod: sourceSeat.paymentMethod
     });
 
+    // Giữ nhãn bán vé (ERD quy tắc 21): cùng phơi chép nguyên; khác phơi thì giai đoạn bán / Re-open tính lại theo phơi đích.
+    // Vé ĐÃ BÁN giữ người bán + trạm (doanh thu thuộc người thu tiền); vé chưa bán mang người thao tác mới nhất.
+    ['staff', 'bookedBy', 'bookedStation', 'sellingStation', 'agentId', 'agentName', 'actionTime', 'callState', 'transship',
+     'pickupAddress', 'dropoffAddress', 'transshipPickupNote', 'transshipDropoffNote', 'soldPhase', 'reopenEventId', 'settledReopenEventId']
+      .forEach(k => { targetSeat[k] = sourceSeat[k]; });
+    if (sourceTripId !== targetTripId) {
+      const seller = { staff: sourceSeat.staff, bookedBy: sourceSeat.bookedBy, bookedStation: sourceSeat.bookedStation, sellingStation: sourceSeat.sellingStation };
+      targetSeat.settledReopenEventId = null;
+      tsStampSoldPhaseIfNeeded(targetSeat, targetTripId, true);
+      if (wasSold) Object.assign(targetSeat, seller);
+    }
+
     if (wasSold) reprintSeats.push(targetSeat);
 
     // Ghế dư không phải "mã ghế thật" của xe hiện tại (đã mất khi đổi loại xe) — chuyển đi xong thì
@@ -1979,6 +1990,15 @@ function confirmTransfer() {
       clearSeatToEmpty(sourceSeat);
     }
   }
+
+  // Đếm lại số ghế của vé gốc (còn lại ở phơi nguồn) và của vé mới (ở phơi đích) sau khi tách.
+  const recountTicket = (tripId, no) => {
+    const b = tripSeatBank[tripId];
+    if (!b || !no) return;
+    const grp = [].concat(b.down || [], b.up || [], b.extraSeats || [], b.subSeats || []).filter(s => s && s.ticketNo === no && OCCUPIED_STATES.includes(s.state));
+    grp.forEach(s => { s.count = grp.length; });
+  };
+  Object.keys(newNoByOld).forEach(oldNo => { recountTicket(sourceTripId, oldNo); recountTicket(targetTripId, newNoByOld[oldNo]); });
 
   renderSeats();
   if (extraSeatsChanged) renderExtraSeats();
@@ -2003,6 +2023,7 @@ function confirmTransfer() {
    dù nhóm gốc đã bán — nhân viên bán riêng sau bằng luồng bán vé thường.
    Cuối cùng đồng bộ lại count cho MỌI ghế cùng số vé. */
 function confirmAddToGroup() {
+  if (!requireActor(true)) return;
   if (!multiSelectMode || selectionMode !== 'transfer' || transferSourceCancelId) {
     showToast('Vui lòng chọn 1 ghế trong vé nhóm và ít nhất 1 ghế trống');
     return;
@@ -2069,14 +2090,7 @@ function confirmAddToGroup() {
       actionTime: new Date().toISOString()
     });
     // Nhãn trạm bán / giai đoạn bán cho vé mới (giống applyFormToSeat khi ghế chưa có soldPhase).
-    if (!tgt.soldPhase) {
-      tgt.sellingStation = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
-      const tripStatus = (typeof getTripLifecycleStatus === 'function') ? getTripLifecycleStatus(tripId) : 'SELLING';
-      tgt.soldPhase = tripStatus === 'SELLING' ? 'PRE_DEPART' : 'POST_DEPART';
-      tgt.reopenEventId = (tripStatus === 'REOPEN' && typeof getActiveReopenEvent === 'function')
-        ? ((getActiveReopenEvent(tripId) || {}).id || null)
-        : null;
-    }
+    tsStampSoldPhaseIfNeeded(tgt, tripId);
     addedSeats.push(tgt);
   });
 
@@ -2104,7 +2118,10 @@ function clearSeatToEmpty(seat) {
     ticketNo: null, paid: false, hasLuggage: false, guestType: null,
     transshipStation: null, arrivalTransfer: null, zeroPriceReason: null,
     fromStationId: null, toStationId: null, isDoubleSeat: false,
-    luggageNote: null, paymentMethod: null
+    luggageNote: null, paymentMethod: null,
+    // Nhãn của lần bán cũ — phải xoá để lần bán sau gắn lại đúng giai đoạn / Re-open / trạm (ERD quy tắc 4)
+    soldPhase: null, sellingStation: null, reopenEventId: null, bookedBy: null, bookedStation: null, settledReopenEventId: null,
+    depositAmount: 0, depositMethod: '', agentId: '', agentName: '', actionTime: null
   });
 }
 
@@ -2113,6 +2130,35 @@ function clearSeatToEmpty(seat) {
      nhưng vẫn có thể chọn trạm đi khác trong danh sách.
    - Trung chuyển: có thêm ô nhập nơi trung chuyển (bắt buộc).
    - Rước đường: trạm đi vẫn là dropdown, còn địa điểm rước là dropdown danh sách điểm rước. */
+
+// Trạm đi / Trạm đến của KHÁCH đổi → cập nhật vé mẫu + giá vé theo đúng cặp trạm khách nhập.
+function onTicketStationInput() {
+  refreshTicket();
+  syncTicketFareFromStations();
+}
+
+// Giá vé của vé MỚI theo cặp (Trạm đi → Trạm đến khách nhập, Loại xe của phơi) trong Admin > Quản lý giá — không
+// theo cặp trạm của phơi. Chỉ chạy khi cả 2 ô khớp đúng 1 trạm trong danh mục (gõ dở thì giữ nguyên giá). Cặp chưa
+// có giá → để TRỐNG, nhân viên bấm vào giá vé tự nhập (lưu vé bị chặn nếu còn trống). Sửa vé đã có giữ giá đã chụp.
+function syncTicketFareFromStations() {
+  if (currentPanelMode === 'edit' || !window.FleetStore) return;
+  const from = getStationValue().trim();
+  const to = document.getElementById('f_destination').value.trim();
+  if (!FleetStore.stationByRef(from) || !FleetStore.stationByRef(to)) return;
+  const trip = allTripsMeta.find(t => t.id === currentTripId) || {};
+  const fare = FleetStore.getFare(from, to, trip.vehicleType);
+  const priceEl = document.getElementById('t_price');
+  const toggle = document.getElementById('t_priceDoubleSeat');
+  const wasDouble = !!(toggle && toggle.checked);
+  const pricing = fare ? { single: fare.single, double: fare.double } : null;
+  const price = pricing ? (wasDouble ? pricing.double : pricing.single) : null;
+  priceEl.textContent = price == null ? '' : price.toLocaleString('vi-VN') + 'đ';
+  wireDoubleSeatToggle(toggle, pricing, price, (amount) => { priceEl.textContent = String(amount); onPriceEdit(); });
+  const depositBlockEl = document.querySelector('.deposit-block');
+  if (depositBlockEl) depositBlockEl.classList.toggle('has-double-toggle', !!pricing);
+  if (price == null) showToast(`${from} → ${to} chưa có giá trong Quản lý giá — bấm vào giá vé để nhập`);
+  else updateZeroPriceReasonVisibility();
+}
 
 function refreshTicket() {
   const type = document.getElementById('f_type').value;
@@ -2570,6 +2616,7 @@ function syncDepositToTicketGroup(seat) {
 }
 
 function saveTicket() {
+  if (!requireActor(true)) return;
   const type = document.getElementById('f_type').value;
 
   if (type === 'Trung chuyển' && !document.getElementById('f_transship').value.trim()) {
@@ -2589,6 +2636,10 @@ function saveTicket() {
     return;
   }
 
+  if (!document.getElementById('t_price').textContent.trim()) {
+    showToast('Chưa có giá vé — bấm vào giá vé để nhập');
+    return;
+  }
   const editedPrice = getEditedPrice();
   if (editedPrice === 0 && !document.getElementById('f_zero_price_reason').value.trim()) {
     showToast('Vui lòng nhập lý do khi giá vé 0đ');
@@ -2621,7 +2672,7 @@ function saveTicket() {
     seat.hasLuggage = document.getElementById('f_luggage').checked;
     seat.luggageNote = seat.hasLuggage ? document.getElementById('f_luggage_note').value.trim() : '';
     seat.price = editedPrice;
-    Object.assign(seat, tsFareSnapshot(currentTripId, 't_priceDoubleSeat')); // cặp trạm + ghế đôi lúc bán (ERD ticket)
+    Object.assign(seat, tsFareSnapshot(currentTripId, 't_priceDoubleSeat', getStationValue().trim(), document.getElementById('f_destination').value.trim())); // cặp trạm + ghế đôi lúc bán (ERD ticket)
     // Ghi chú giữ nguyên đúng những gì gõ ở ô "Ghi chú" — lý do giá 0đ lưu riêng ở zeroPriceReason,
     // chỉ ghép hiển thị chung lúc render (seatNoteWithReason) chứ không ghi đè vào note thật.
     seat.note = document.getElementById('f_note').value.trim();
@@ -2637,14 +2688,7 @@ function saveTicket() {
     // Gắn nhãn trạm bán/giai đoạn bán CHỈ 1 LẦN lúc tạo vé mới (seat.soldPhase chưa có) — sửa vé sau đó
     // không được đổi lại đã bán ở trạm nào/giai đoạn nào, tránh sai lệch báo cáo doanh thu theo trạm và
     // lịch sử Re-open (xem js/ticketstaff-manifest-core.js).
-    if (!seat.soldPhase) {
-      seat.sellingStation = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
-      const tripStatus = (typeof getTripLifecycleStatus === 'function') ? getTripLifecycleStatus(currentTripId) : 'SELLING';
-      seat.soldPhase = tripStatus === 'SELLING' ? 'PRE_DEPART' : 'POST_DEPART';
-      seat.reopenEventId = (tripStatus === 'REOPEN' && typeof getActiveReopenEvent === 'function')
-        ? ((getActiveReopenEvent(currentTripId) || {}).id || null)
-        : null;
-    }
+    tsStampSoldPhaseIfNeeded(seat, currentTripId);
   };
 
   const seatsTarget = currentPanelSeats.length ? currentPanelSeats : (currentPanelSeat ? [currentPanelSeat] : []);
@@ -2693,6 +2737,7 @@ function saveTicket() {
 
 /* ---- Bán vé trực tiếp: xác nhận bán và chuyển ghế sang trạng thái đã bán (màu đỏ) ---- */
 function sellTicket() {
+  if (!requireActor(true)) return;
   const type = document.getElementById('f_type').value;
 
   if (type === 'Trung chuyển' && !document.getElementById('f_transship').value.trim()) {
@@ -2712,6 +2757,10 @@ function sellTicket() {
     return;
   }
 
+  if (!document.getElementById('t_price').textContent.trim()) {
+    showToast('Chưa có giá vé — bấm vào giá vé để nhập');
+    return;
+  }
   const editedPrice = getEditedPrice();
   if (editedPrice === 0 && !document.getElementById('f_zero_price_reason').value.trim()) {
     showToast('Vui lòng nhập lý do khi giá vé 0đ');
@@ -2754,9 +2803,33 @@ function closeSellPaymentModal() {
 // Gắn nhãn trạm bán/giai đoạn bán (PRE_DEPART/POST_DEPART) + lần Re-open đang mở (nếu có) CHỈ 1 LẦN
 // lúc tạo vé mới — dùng chung cho mọi luồng tạo vé "sold" ngoài panel chính (Đặt lại vé, Chỉ định xe
 // rước) để nhất quán với applyFormToSeat() ở sellTicket()/confirmSellPayment().
-function tsStampSoldPhaseIfNeeded(seat, tripId) {
-  if (seat.soldPhase) return;
+// force = true: gắn lại nhãn theo NGƯỜI THAO TÁC MỚI NHẤT (dùng khi chuyển vé ghế ĐÃ ĐẶT sang phơi khác).
+// Ghế ĐẶT -> ĐÃ BÁN: doanh thu tính cho NGƯỜI THU TIỀN (người bấm bán), không phải người đặt. Người đặt giữ ở
+// seat.bookedBy; trạm bán theo trạm của người bán. Gọi TRƯỚC khi đổi state sang 'sold'. Vé đã bán rồi (sửa vé)
+// thì không đổi người bán.
+function tsStampSeller(seat, tripId) {
+  if (!seat || seat.state === 'sold') return;
+  const actor = getCurrentActionStaffCode();
+  if (!seat.bookedBy) seat.bookedBy = seat.staff || actor;
+  if (seat.bookedStation == null) seat.bookedStation = seat.sellingStation || '';
+  seat.staff = actor;
+  const st = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
+  if (st || !seat.sellingStation) seat.sellingStation = st;
+  // Vé ĐẶT từ trước (trước khởi hành hoặc ở lần Re-open khác) được THU TIỀN trong lúc Re-open đang mở: ghi nhận
+  // vào lần Re-open đó (settledReopenEventId) để số liệu Re-open / kết ca sau tính đúng người, trạm, tiền đã thu.
+  if (seat.state === 'hold' && tripId && typeof getTripLifecycleStatus === 'function'
+      && getTripLifecycleStatus(tripId) === 'REOPEN' && typeof getActiveReopenEvent === 'function') {
+    const ev = getActiveReopenEvent(tripId);
+    if (ev && seat.reopenEventId !== ev.id) seat.settledReopenEventId = ev.id;
+  }
+}
+
+function tsStampSoldPhaseIfNeeded(seat, tripId, force) {
+  if (seat.soldPhase && !force) return;
+  seat.staff = force ? getCurrentActionStaffCode() : (seat.staff || getCurrentActionStaffCode()); // người thao tác gần nhất; thành người BÁN khi vé được thu tiền (tsStampSeller)
+  seat.bookedBy = seat.staff; // người ĐẶT vé (ticket.booked_by)
   seat.sellingStation = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
+  seat.bookedStation = seat.sellingStation; // trạm lúc ĐẶT vé (ticket.booked_station_id), để chuyển doanh thu sang trạm người bán
   const tripStatus = (typeof getTripLifecycleStatus === 'function') ? getTripLifecycleStatus(tripId) : 'SELLING';
   seat.soldPhase = tripStatus === 'SELLING' ? 'PRE_DEPART' : 'POST_DEPART';
   seat.reopenEventId = (tripStatus === 'REOPEN' && typeof getActiveReopenEvent === 'function')
@@ -2764,7 +2837,11 @@ function tsStampSoldPhaseIfNeeded(seat, tripId) {
     : null;
 }
 
+// Địa chỉ đón / trả nhập ở modal Rước liền: ô trống được lưu là '—' (hiển thị), không coi là địa chỉ thật.
+function tsCleanPlace(v) { v = (v == null ? '' : String(v).trim()); return v === '—' ? '' : v; }
+
 function confirmSellPayment() {
+  if (!requireActor(true)) return;
   const paymentMethod = document.querySelector('input[name="sellPaymentMethod"]:checked')?.value || 'Tiền mặt';
 
   // "Bán vé" từ modal "Đặt lại vé" (confirmRebookAndSell() ở ticketstaff-account.js) — chuyến đích có
@@ -2776,9 +2853,9 @@ function confirmSellPayment() {
     if (!bank) { closeSellPaymentModal(); return; }
     const allSeats = [...(bank.down || []), ...(bank.up || [])];
     const tripMeta = allTripsMeta.find(t => t.id === ctx.tripId);
-    const prefix = (tripMeta?.route?.includes('Sài Gòn')) ? 'SGCD' : 'CDSG';
-    const newTicketNo = `${prefix}-${Math.floor(Math.random() * 9000) + 1000}`;
-    const staffCode = (typeof getCurrentActionStaffCode === 'function') ? getCurrentActionStaffCode() : 'system';
+    reseedTicketSeqFromBank();
+    const newTicketNo = 'SGCD-' + String(ticketSeq++).padStart(4, '0'); // tuần tự, duy nhất — cùng quy ước luồng bán chính
+    const staffCode = getCurrentActionStaffCode();
     const soldSeats = [];
     ctx.seatCodes.forEach(code => {
       const seat = allSeats.find(s => s.code === code);
@@ -2832,8 +2909,9 @@ function confirmSellPayment() {
     const pax = pickupPassengers.find(p => p.id === ctx.paxId);
     const bank = tripSeatBank[ctx.tripId];
     if (!pax || !bank) { closeSellPaymentModal(); return; }
+    if (tripNotSellable(ctx.tripId)) { showToast('Phơi này đã hủy hoặc đã khởi hành (chưa Re-open) — không bán thêm được'); closeSellPaymentModal(); return; }
     const allSeats = [...(bank.down || []), ...(bank.up || [])];
-    const staffCode = (typeof getCurrentActionStaffCode === 'function') ? getCurrentActionStaffCode() : 'system';
+    const staffCode = getCurrentActionStaffCode();
 
     // Nếu khách đang đổi chỉ định từ 1 hoặc nhiều ghế/phơi xe khác thì trả ghế cũ về trạng thái trống —
     // chỉ làm lúc xác nhận thanh toán xong (không phải lúc mở modal), tránh mất ghế cũ nếu người dùng
@@ -2844,7 +2922,7 @@ function confirmSellPayment() {
         const oldSeatsList = pax.assigned.seats || (pax.assigned.seat ? pax.assigned.seat.split(',').map(s => s.trim()).filter(Boolean) : []);
         oldSeatsList.forEach(code => {
           const oldSeat = [...oldBank.down, ...oldBank.up].find(s => s.code === code);
-          if (oldSeat) Object.assign(oldSeat, { state: 'empty', customerName: null, phone: null, ticketNo: null, paid: false });
+          if (oldSeat) clearSeatToEmpty(oldSeat);
         });
       }
     }
@@ -2859,7 +2937,13 @@ function confirmSellPayment() {
         phone: pax.phone,
         firstStop: pax.fromStation,
         lastStop: pax.toStation,
-        transshipStation: pax.fromTransfer,
+        // Khách Rước liền về nhà xe = khách Trung chuyển: lưu điểm đón / điểm trả như vé Trung chuyển thường.
+        guestType: 'Trung chuyển',
+        transshipStation: tsCleanPlace(pax.fromTransfer),
+        transship: tsCleanPlace(pax.fromTransfer),
+        pickupAddress: tsCleanPlace(pax.fromTransfer),
+        dropoffAddress: tsCleanPlace(pax.toTransfer),
+        arrivalTransfer: tsCleanPlace(pax.toTransfer),
         price: ctx.unitPrice,
         ...ctx.fare,
         paid: true,
@@ -2900,6 +2984,7 @@ function confirmSellPayment() {
     const seats = sellFromTransferBarSeats;
     sellFromTransferBarSeats = null;
     seats.forEach(seat => {
+      tsStampSeller(seat, currentTripId);
       seat.paid = true;
       seat.state = 'sold';
       seat.paymentMethod = paymentMethod;
@@ -2933,7 +3018,7 @@ function confirmSellPayment() {
     seat.hasLuggage = document.getElementById('f_luggage').checked;
     seat.luggageNote = seat.hasLuggage ? document.getElementById('f_luggage_note').value.trim() : '';
     seat.price = editedPrice;
-    Object.assign(seat, tsFareSnapshot(currentTripId, 't_priceDoubleSeat')); // cặp trạm + ghế đôi lúc bán (ERD ticket)
+    Object.assign(seat, tsFareSnapshot(currentTripId, 't_priceDoubleSeat', getStationValue().trim(), document.getElementById('f_destination').value.trim())); // cặp trạm + ghế đôi lúc bán (ERD ticket)
     // Ghi chú giữ nguyên đúng những gì gõ ở ô "Ghi chú" — lý do giá 0đ lưu riêng ở zeroPriceReason,
     // chỉ ghép hiển thị chung lúc render (seatNoteWithReason) chứ không ghi đè vào note thật.
     seat.note = document.getElementById('f_note').value.trim();
@@ -2948,14 +3033,7 @@ function confirmSellPayment() {
     seat.actionTime = new Date().toISOString();
     // Gắn nhãn trạm bán/giai đoạn bán CHỈ 1 LẦN lúc tạo vé mới (seat.soldPhase chưa có) — xem giải thích
     // ở applyFormToSeat phía trên.
-    if (!seat.soldPhase) {
-      seat.sellingStation = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
-      const tripStatus = (typeof getTripLifecycleStatus === 'function') ? getTripLifecycleStatus(currentTripId) : 'SELLING';
-      seat.soldPhase = tripStatus === 'SELLING' ? 'PRE_DEPART' : 'POST_DEPART';
-      seat.reopenEventId = (tripStatus === 'REOPEN' && typeof getActiveReopenEvent === 'function')
-        ? ((getActiveReopenEvent(currentTripId) || {}).id || null)
-        : null;
-    }
+    tsStampSoldPhaseIfNeeded(seat, currentTripId);
   };
 
   const seatsToSell = currentPanelSeats.length ? currentPanelSeats : (currentPanelSeat ? [currentPanelSeat] : []);
@@ -2967,6 +3045,7 @@ function confirmSellPayment() {
 
   seatsToSell.forEach(seat => {
     applyFormToSeat(seat);
+    tsStampSeller(seat, currentTripId); // người thu tiền = người bán (trước khi đổi state)
     seat.ticketNo = seat.ticketNo || groupTicketNo;
     seat.paid = true;
     seat.count = seatsToSell.length;
@@ -3177,6 +3256,7 @@ function checkCancelReason() {
 }
 
 function confirmCancel() {
+  if (!requireActor(false)) return;
   const codes = currentCancelSeatCodes;
   if (!codes || !codes.length) return;
   const reasonEl = document.getElementById('cancelReason');
@@ -3194,16 +3274,19 @@ function confirmCancel() {
     const cancelledRecord = {
       id: 'CANCEL_' + Date.now() + '_' + code,
       code: seat.code,
-      customerName: seat.customerName || 'Khách vảng lai',
-      phone: seat.phone || '—',
-      firstStop: seat.firstStop || 'Kinh Dương Vương',
-      lastStop: seat.lastStop || 'Châu Đốc',
-      price: seat.price || 280000,
+      customerName: seat.customerName || '',
+      phone: seat.phone || '',
+      firstStop: seat.firstStop || '',
+      lastStop: seat.lastStop || '',
+      price: seat.price || 0,
       reason: reason,
       cancelTime: nowStr,
+      cancelledAt: new Date().toISOString(),
       cancelStaff: getCurrentActionStaffCode(),
-      ticketNo: seat.ticketNo || '—',
-      note: seatNoteWithReason(seat) || ''
+      ticketNo: seat.ticketNo || '',
+      note: seatNoteWithReason(seat) || '',
+      // Trạng thái ghế LÚC HỦY: chỉ vé của ghế ĐÃ ĐẶT ('hold') mới được chuyển sang phơi khác (booking-combobox.js)
+      prevState: seat.state || ''
     };
     cancelledSeats.unshift(cancelledRecord);
     cancelledCodes.push(seat.code);
@@ -3277,7 +3360,6 @@ function hydrateCrewDropdown(panelId, containerId, role) {
 
 function openAssignModal() {
   document.getElementById('assignModal').classList.add('open');
-  document.getElementById('driverWarn').style.display = 'none';
   hydrateAssignModalFromStore();
 
   // Pre-select current vehicle type and add to select options if missing
@@ -3347,30 +3429,32 @@ function openAssignModal() {
     });
   }
 }
-function checkDriverConflict() {
-  const conflict = document.getElementById('driverSelect').value.includes('trùng lịch');
-  document.getElementById('driverWarn').style.display = conflict ? 'flex' : 'none';
-}
 function saveAssign() {
-  if (document.getElementById('driverWarn').style.display === 'flex') { showToast('Vui lòng chọn tài xế khác trước khi lưu (BR-07)'); return; }
 
   const select = document.getElementById('vehicleTypeSelect');
+  if (tsIsTripEditLocked(allTripsMeta.find(t => t.id === currentTripId))) { showToast('Phơi đã hủy hoặc đã khởi hành — không chỉ định xe được'); return; }
+  if (select && select.value && !FleetStore.plateMatchesType(document.getElementById('plateSelect').value, select.value)) {
+    showToast('Biển số đã chọn không thuộc loại xe "' + select.value + '"'); return;
+  }
   if (select && select.value) {
     applyVehicleType(select.value);
   }
 
   // Update header info dynamically
   const plateVal = document.getElementById('plateSelect').value;
-  const driverVal = document.getElementById('driverSelect').value;
-  const helperVal = document.getElementById('helperSelect').value;
+  // Ô tài xế / phụ xe chưa chọn có value '—' (chữ giữ chỗ) — KHÔNG được lưu thành tên người, nếu không điều kiện
+  // khởi hành "đã có tài xế" (tsCheckCanDepart) bị qua mặt.
+  const cleanPerson = v => { const t = String(v == null ? '' : v).trim(); return (t === '—' || t === '-') ? '' : t; };
+  const driverVal = cleanPerson(document.getElementById('driverSelect').value);
+  const helperVal = cleanPerson(document.getElementById('helperSelect').value);
 
   const headerPlate = document.getElementById('headerPlate');
   const headerDriver = document.getElementById('headerDriver');
   const headerHelper = document.getElementById('headerHelper');
 
   if (headerPlate) headerPlate.textContent = plateVal;
-  if (headerDriver) headerDriver.textContent = driverVal;
-  if (headerHelper) headerHelper.textContent = helperVal;
+  if (headerDriver) headerDriver.textContent = driverVal || '—';
+  if (headerHelper) headerHelper.textContent = helperVal || '—';
 
   if (tripSeatBank[currentTripId]) {
     tripSeatBank[currentTripId].plate = plateVal;
@@ -3382,7 +3466,11 @@ function saveAssign() {
   // số" ở thẻ phơi bên phần quản lý phơi (renderTable) đọc trực tiếp, thiếu dòng này thì gán xe ở Zone 2
   // không thấy phản ánh lại bên quản lý phơi.
   const tripMeta = allTripsMeta.find(t => t.id === currentTripId);
-  if (tripMeta) tripMeta.plate = plateVal;
+  if (tripMeta) {
+    tripMeta.plate = plateVal;
+    if (select && select.value) tripMeta.vehicleType = select.value; // giữ trip.vehicleType = bank.vehicleType
+    TripService.syncStatus(tripMeta);
+  }
 
   saveData();
   refreshTripsList();
@@ -3391,18 +3479,7 @@ function saveAssign() {
   showToast('Đã lưu thông tin chỉ định xe');
 }
 
-/* ---- Modal khởi hành xe ---- */
-function openDepartModal() {
-  const tripEl = document.getElementById('tripTitle');
-  const infoEl = document.getElementById('departTripInfo');
-  if (tripEl && infoEl) infoEl.textContent = tripEl.textContent.trim();
-  document.getElementById('departModal').classList.add('open');
-}
-function confirmDepart() {
-  const tripEl = document.getElementById('tripTitle');
-  closeModal('departModal');
-  showToast('Xe đã khởi hành: ' + (tripEl ? tripEl.textContent.trim() : ''));
-}
+/* ---- Modal khởi hành xe: openDepartModal / confirmDepart nằm ở ticketstaff-manifest-ui.js (đã gỡ bản trùng ở đây) ---- */
 
 /* ---- Toast ---- */
 let toastTimer;
@@ -3460,10 +3537,10 @@ function refreshVehicleHeader(bank) {
   }
 
   const headerDriver = document.getElementById('headerDriver');
-  if (headerDriver) headerDriver.textContent = bank.driver || 'Trần Văn Hùng';
+  if (headerDriver) headerDriver.textContent = bank.driver || '—';
 
   const headerHelper = document.getElementById('headerHelper');
-  if (headerHelper) headerHelper.textContent = bank.helper || 'Nguyễn Thị Hương';
+  if (headerHelper) headerHelper.textContent = bank.helper || '—';
 }
 
 // Gọi sau khi lưu 1 phơi ở modal quản lý phơi — nếu đúng phơi đang được chọn/xem ở Zone 2 thì refresh
@@ -3623,9 +3700,6 @@ function selectSearchDropdownItem(containerId, label, value, type) {
   const panel = container.querySelector('.dropdown-panel');
   if (panel) panel.classList.remove('open');
 
-  if (type === 'driver') {
-    checkDriverConflict();
-  }
 }
 
 /* ---- Zone 1: Calendar ---- */
@@ -3821,8 +3895,8 @@ let ROUTES_CFG = FleetStore.buildRoutesCfg();
 
 // Cấu hình "Hướng đi" cho modal Tạo phơi xe (singleModal) — key = id HƯỚNG CHÍNH (Admin quản trị),
 // shape { [dirId]: {label,route,sense,price,fromStations,toStations,pickupStations,routeLabels} }.
-// Dropdown chỉ có 4 hướng chính; Trạm đi/Trạm đến là TỔNG HỢP mọi trạm ở địa điểm điểm-đi/điểm-đến
-// của hướng (xem FleetStore.buildDirTripCfg). Chỉ gồm hướng đang bật.
+// Dropdown chỉ có 4 hướng chính; Trạm đi/Trạm đến = mọi trạm của tỉnh đi/tỉnh đến của hướng
+// (xem FleetStore.buildDirTripCfg). Chỉ gồm hướng đang bật.
 let TRIP_DIRECTIONS_CFG = FleetStore.buildDirTripCfg();
 
 // Dựng lại các cấu hình trên khi Admin sửa Hướng/Tuyến (gọi từ listener 'storage' và sau khi Admin cùng máy đổi dữ liệu).
@@ -4047,22 +4121,6 @@ function onModalDirectionChange(modalType) {
   }
 }
 
-function onRouteSelect(modalType) {
-  const dir = document.getElementById(modalType === 'single' ? "tripDirection" : "bulkDirection").value;
-  const routeVal = document.getElementById(modalType === 'single' ? "tripRoute" : "bulkRoute").value;
-  const priceInput = document.getElementById(modalType === 'single' ? "tripPrice" : "bulkPrice");
-
-  if (dir && routeVal && ROUTES_CFG[dir]) {
-    const routeObj = ROUTES_CFG[dir].find(r => r.label === routeVal);
-    if (routeObj) {
-      priceInput.value = routeObj.price;
-    }
-  }
-  if (modalType === 'single') {
-    updateSingleTripNameSuggestion();
-  }
-}
-
 // Đổ danh sách "Hướng đi" (modal Tạo phơi xe đơn) = 4 HƯỚNG CHÍNH từ TRIP_DIRECTIONS_CFG — gọi lại mỗi
 // lần mở modal (openSingleModal/openEditModal) thay vì đổ 1 lần lúc nạp trang, để không phụ thuộc thứ
 // tự script chạy trước/sau khi HTML đã sẵn sàng.
@@ -4073,14 +4131,13 @@ function populateTripDirectionSelect() {
     Object.keys(TRIP_DIRECTIONS_CFG).map(key => `<option value="${key}">${TRIP_DIRECTIONS_CFG[key].label}</option>`).join('');
 }
 
-// Chọn "Hướng đi" xong: Trạm đi = tổng hợp mọi trạm ở địa điểm điểm-đi, Trạm đến = mọi trạm ở địa điểm
-// điểm-đến (xem TRIP_DIRECTIONS_CFG) — đổi hướng thì đổ lại 2 ô trạm + giá vé mặc định của hướng. Danh
+// Chọn "Hướng đi" xong: Trạm đi = mọi trạm của tỉnh đi, Trạm đến = mọi trạm của tỉnh đến của hướng
+// (xem TRIP_DIRECTIONS_CFG) — đổi hướng thì đổ lại 2 ô trạm. Danh
 // sách "trạm có thể rước" CHƯA hiện: phải chọn xong Trạm đi + Trạm đến để xác định tuyến chính đã.
 function onTripDirectionChange() {
   const dirKey = document.getElementById("tripDirection").value;
   const fromSel = document.getElementById("tripFromStation");
   const toSel = document.getElementById("tripToStation");
-  const priceInput = document.getElementById("tripPrice");
   const resolvedEl = document.getElementById("tripResolvedRoute");
   const cfg = TRIP_DIRECTIONS_CFG[dirKey];
   if (resolvedEl) resolvedEl.value = '';
@@ -4089,7 +4146,7 @@ function onTripDirectionChange() {
     fromSel.innerHTML = '<option value="">-- Chọn hướng đi trước --</option>';
     toSel.innerHTML = '<option value="">-- Chọn hướng đi trước --</option>';
     renderPickupStationPills([]);
-    tripWirePriceDoubleToggle(null);
+    tripSyncPriceField();
     return;
   }
 
@@ -4098,83 +4155,47 @@ function onTripDirectionChange() {
   toSel.innerHTML = '<option value="">-- Chọn trạm đến --</option>' +
     cfg.toStations.map(s => `<option value="${s}">${s}</option>`).join('');
   renderPickupStationPills([], 'Chọn Trạm đi và Trạm đến để xem trạm có thể nhận');
-  priceInput.value = cfg.price;
-  // Chưa chọn Trạm đi/Trạm đến → chưa có cặp để tra giá; giá chính thức hiện khi resolveTripRoute() chạy.
-  tripWirePriceDoubleToggle(null);
+  tripSyncPriceField();
 
   updateSingleTripNameSuggestion();
 }
 
-// "Ghế đơn"/"Ghế đôi" cạnh giá vé (modal Tạo/Sửa phơi xe) — khác 3 nơi dùng chung wireDoubleSeatToggle()
-// (panel Đặt vé, Đặt lại vé, Chỉ định xe rước liền — vẫn là ô tick "Ghế đôi" trống): ở đây hiện thẳng SỐ
-// TIỀN của từng loại ghế trên 2 nút bấm để nhân viên thấy ngay giá trước khi chọn, cùng nguồn giá
-// resolveDoubleSeatPricing() ở trên. `tripLike` = { fromStation, toStation } (phơi hoặc Trạm đi/Trạm đến đang
-// chọn trong form); null/chưa đủ 2 trạm → ẩn 2 nút.
-function tripWirePriceDoubleToggle(tripLike) {
-  const priceInput = document.getElementById('tripPrice');
-  const wrap = document.getElementById('tripPriceDoubleSeat');
-  if (!priceInput || !wrap) return;
-
-  const pricing = tripLike ? resolveDoubleSeatPricing(tripLike) : null;
-
-  if (!pricing) {
-    wrap.style.display = 'none';
-    wrap.innerHTML = '';
-    return;
-  }
-
-  const money = n => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
-  const currentPrice = parseInt(priceInput.value, 10) || 0;
-  const isDouble = currentPrice === pricing.double;
-  wrap.style.display = '';
-  wrap.innerHTML = `
-    <button type="button" class="ts-seat-price-opt${isDouble ? '' : ' active'}" data-seat="single">Ghế đơn <b>${money(pricing.single)}</b></button>
-    <button type="button" class="ts-seat-price-opt${isDouble ? ' active' : ''}" data-seat="double">Ghế đôi <b>${money(pricing.double)}</b></button>
-  `;
-  wrap.querySelectorAll('.ts-seat-price-opt').forEach(btn => {
-    btn.onclick = () => {
-      priceInput.value = btn.dataset.seat === 'double' ? pricing.double : pricing.single;
-      wrap.querySelectorAll('.ts-seat-price-opt').forEach(b => b.classList.toggle('active', b === btn));
-    };
-  });
+// Giá vé của phơi tự lấy theo (Trạm đi, Trạm đến, Loại xe) trong Admin > Quản lý giá nên ô giá ẨN. Cặp
+// CHƯA có giá → hiện ô để TRỐNG cho nhân viên tự nhập (bắt buộc). savedPrice: giá đã lưu của phơi khi sửa.
+function tripSyncPriceField(savedPrice) {
+  const group = document.getElementById('tripPriceGroup');
+  const input = document.getElementById('tripPrice');
+  if (!group || !input) return;
+  const from = document.getElementById('tripFromStation').value;
+  const to = document.getElementById('tripToStation').value;
+  const vehicleType = document.getElementById('tripVehicleType').value;
+  const manual = !!(from && to) && !FleetStore.getFare(from, to, vehicleType);
+  group.style.display = manual ? '' : 'none';
+  input.required = manual;
+  if (!manual) input.value = '';
+  else if (savedPrice != null && input.value === '') input.value = savedPrice;
 }
+
+// Đổi Loại xe → giá phụ thuộc loại xe nên kiểm tra lại cặp có giá chưa.
+function onTripVehicleChange() { tripSyncPriceField(); }
 
 // Đổi Trạm đi / Trạm đến → xác định "tuyến chính" khớp (trong số tuyến con của hướng) rồi hiện đúng
 // "trạm có thể rước" của tuyến đó; đồng thời gợi ý lại tên phơi.
 function onTripStationChange() {
   resolveTripRoute();
+  tripSyncPriceField();
   updateSingleTripNameSuggestion();
-}
-
-// Đổi Loại xe → giá phụ thuộc loại xe nên lấy lại giá mặc định theo (Trạm đi, Trạm đến, Loại xe); không đụng trạm rước đã tick.
-function onTripVehicleChange() {
-  const from = document.getElementById("tripFromStation").value;
-  const to = document.getElementById("tripToStation").value;
-  if (!from || !to) return;
-  const vehicleType = document.getElementById("tripVehicleType").value;
-  const fare = window.FleetStore ? FleetStore.getFare(from, to, vehicleType) : null;
-  if (fare) document.getElementById("tripPrice").value = fare.single;
-  else showToast('Cặp trạm + loại xe này chưa có giá trong Admin > Quản lý giá — nhập giá thủ công.');
-  tripWirePriceDoubleToggle({ fromStation: from, toStation: to, vehicleType });
 }
 
 // Suy "tuyến chính" từ (hướng, trạm đi, trạm đến): tuyến con nào có trạm đi ∈ fromStations và trạm đến
 // ∈ toStations; nhiều tuyến khớp thì lấy tuyến CỤ THỂ nhất (ít trạm đến nhất → ít trạm nhất → order nhỏ).
 // Không tuyến nào khớp → dùng tuyến chính của hướng, không có trạm rước.
 function pickBestTripRoute(routes, from, to) {
-  const hits = (routes || []).filter(r =>
-    (r.fromStations || []).indexOf(from) !== -1 && (r.toStations || []).indexOf(to) !== -1);
-  if (!hits.length) return null;
-  hits.sort((a, b) =>
-    (a.toStations || []).length - (b.toStations || []).length ||
-    ((a.fromStations || []).length + (a.toStations || []).length) -
-      ((b.fromStations || []).length + (b.toStations || []).length) ||
-    (a.order || 0) - (b.order || 0));
-  return hits[0];
+  return FleetStore.pickBestRoute(routes, from, to);
 }
 
-// "Trạm có thể nhận thêm khách" khi tạo phơi = TOÀN BỘ trạm phía điểm đến của hướng — dùng chung
-// FleetStore.pickupStationsForDirection() (xem fleet-store.js). GIỮ nguyên cả Trạm đi/Trạm đến.
+// "Trạm có thể nhận thêm khách" khi tạo phơi = trạm tỉnh đi + trạm tỉnh đến của hướng — dùng chung
+// FleetStore.pickupStationsForDirection() (xem fleet-store.js).
 function pickupPoolForDirection(dirId) {
   try {
     if (window.FleetStore && typeof FleetStore.pickupStationsForDirection === 'function') {
@@ -4192,30 +4213,21 @@ function resolveTripRoute(extraPickups) {
   const from = document.getElementById("tripFromStation").value;
   const to = document.getElementById("tripToStation").value;
   const resolvedEl = document.getElementById("tripResolvedRoute");
-  const priceInput = document.getElementById("tripPrice");
 
   if (!cfg || !from || !to) {
     if (resolvedEl) resolvedEl.value = '';
     renderPickupStationPills([], 'Chọn Trạm đi và Trạm đến để xem trạm có thể nhận');
-    tripWirePriceDoubleToggle(null);
     return;
   }
 
   const matched = pickBestTripRoute(cfg.routes, from, to);
   const routeLabel = (matched && matched.label) || cfg.route || '';
   if (resolvedEl) resolvedEl.value = routeLabel;
-  // Giá vé mặc định của phơi = giá ghế đơn của đúng (Trạm đi → Trạm đến, Loại xe) trong Admin > Quản lý giá.
-  const vehicleType = document.getElementById("tripVehicleType")?.value || '';
-  const fare = window.FleetStore ? FleetStore.getFare(from, to, vehicleType) : null;
-  if (fare) priceInput.value = fare.single;
-  else if (!extraPickups) showToast('Cặp trạm + loại xe này chưa có giá trong Admin > Quản lý giá — nhập giá thủ công.');
-  tripWirePriceDoubleToggle({ fromStation: from, toStation: to, vehicleType });
-
-  // Toàn bộ trạm phía điểm đến của hướng + trạm rước đã lưu (khi sửa phơi), khử trùng lặp.
+  // Trạm tỉnh đi + tỉnh đến của hướng + trạm rước đã lưu (khi sửa phơi), khử trùng lặp.
   const seen = {};
   const pickups = pickupPoolForDirection(dirId).concat(extraPickups || [])
     .filter(s => s && !seen[s] && (seen[s] = true));
-  renderPickupStationPills(pickups, 'Hướng này chưa có trạm nào ở điểm đến');
+  renderPickupStationPills(pickups, 'Hướng này chưa có trạm nào');
 }
 
 // "Trạm có thể nhận thêm khách" hiện dạng chip checkbox nằm ngang (không phải <select multiple> cao
@@ -4318,9 +4330,12 @@ function applyFilters() {
     // trị mặc định "bỏ qua lọc ngày", khiến danh sách trộn lẫn phơi của mọi ngày lại với nhau).
     if (fDate && t.date && t.date !== fDate) return false;
 
-    if (fDir && tripDirectionId(routeStr) !== fDir) return false;
+    if (fDir && tripDirectionId(routeStr, t) !== fDir) return false;
 
-    if (fRoute && routeStr !== fRoute) return false;
+    if (fRoute) {
+      const rc = ((TRIP_DIRECTIONS_CFG[fDir] || {}).routes || []).find(x => x.label === fRoute);
+      if (rc ? !FleetStore.tripServesRoute(t, rc) : routeStr !== fRoute) return false;
+    }
 
     // Lọc theo ĐÚNG trạng thái đang hiển thị trên thẻ (suy từ vòng đời + biển số + vé), không theo
     // chuỗi t.status lưu sẵn — để bộ lọc khớp với những gì nhân viên thấy.
@@ -4511,36 +4526,39 @@ function cancelTripFromModal() {
   const trip = allTripsMeta.find(t => t.id === id);
   if (!trip) return;
 
-  if (trip.status === 'Khởi hành' || trip.status === 'Đã khởi hành') {
-    alert("Lỗi: Không được hủy phơi xe đã khởi hành.");
-    return;
-  }
   if (trip.status === 'Đã hủy') {
     alert("Phơi xe đã ở trạng thái Hủy.");
     return;
   }
-
-  const plan = tripSeatBank[id];
-  let bookedCount = 0;
-  if (plan) {
-    const combined = [...plan.down, ...plan.up];
-    bookedCount = combined.filter(s => ['sold', 'hold', 'free', 'cargo'].includes(s.state)).length;
+  // Đã khởi hành = đã có phơi (manifest) — suy từ vòng đời, không đọc chuỗi trip.status.
+  if (trip.status === 'Khởi hành' || trip.status === 'Đã khởi hành' || (typeof getManifest === 'function' && getManifest(id))) {
+    alert("Lỗi: Không được hủy phơi xe đã khởi hành.");
+    return;
+  }
+  // Chỉ hủy được phơi TRỐNG: phải chuyển hết khách sang phơi khác trước (tính cả ghế phụ / ghế dư).
+  const bookedCount = tripBookedSeatCount(id);
+  if (bookedCount > 0) {
+    alert(`Phơi xe còn ${bookedCount} ghế đã bán/đặt. Hãy chuyển hết khách sang phơi khác rồi mới hủy phơi.`);
+    return;
   }
 
   document.getElementById('cancelTripId').value = id;
   document.getElementById('cancelTripInfo').textContent = trip.name || trip.time || '—';
   document.getElementById('cancelTripReasonInput').value = '';
-  document.getElementById('cancelTripWarnBox').innerHTML = bookedCount > 0
-    ? `<div class="warn-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-        CẢNH BÁO (BR-07): Phơi xe này đang có ${bookedCount} ghế đã bán/đặt — hủy sẽ cần bồi thường/chuyển khách.
-      </div>`
-    : '';
+  document.getElementById('cancelTripWarnBox').innerHTML = '';
 
   // Đóng modal Chỉnh sửa trước — cả 2 dùng chung .modal-overlay (z-index bằng nhau), không đóng lại thì
   // modal Chỉnh sửa (đứng sau trong DOM) đè lên, modal Hủy phơi xe mở ở dưới nhưng không thấy được.
   closeSingleModal();
   document.getElementById('cancelTripModal').classList.add('open');
+}
+
+// Số ghế đã bán/đặt của 1 phơi (sold/hold/free/cargo) — gồm cả ghế phụ và ghế dư. Phơi chỉ được hủy khi = 0.
+function tripBookedSeatCount(tripId) {
+  const plan = tripSeatBank[tripId];
+  if (!plan) return 0;
+  return [...(plan.down || []), ...(plan.up || []), ...(plan.extraSeats || []), ...(plan.subSeats || [])]
+    .filter(s => ['sold', 'hold', 'free', 'cargo'].includes(s.state)).length;
 }
 
 // Xác nhận hủy trong modal #cancelTripModal — lý do bắt buộc, lưu vào trip.cancelReason (đọc lại ở tab
@@ -4556,12 +4574,13 @@ function confirmCancelTripModal() {
     return;
   }
 
-  trip.status = 'Đã hủy';
-  trip.cancelReason = reason;
-  saveData();
-  if (window.FleetStore && typeof FleetStore.log === 'function') {
-    FleetStore.log({ action: 'cancel', entity: 'trip', entityId: id, summary: 'Huỷ chuyến ' + (trip.name || id) + ' — Lý do: ' + reason });
+  // MỘT NƠI KIỂM (ERD quy tắc 10): tsCancelTrips kiểm phơi trống + chưa khởi hành rồi mới ghi, dùng chung với Admin.
+  const res = tsCancelTrips(allTripsMeta, tripSeatBank, [id], reason, getCurrentActionStaffCode());
+  if (!res.cancelled.length) {
+    showToast((res.skipped[0] && res.skipped[0].reason) || 'Không hủy được phơi xe');
+    return;
   }
+  saveData();
   closeModal('cancelTripModal');
   refreshTripsList();
   applyFilters();
@@ -4579,7 +4598,7 @@ function sellTicketForTrip(tripId) {
   // Zone 1 chỉ hiện phơi của HƯỚNG đang chọn — phải chuyển sang đúng hướng chứa phơi đích rồi render lại,
   // nếu không thẻ phơi được chọn ngầm nhưng không nằm trong danh sách đang hiển thị.
   if (trip) {
-    updateTripListForDirection(tripDirectionId(trip.route));
+    updateTripListForDirection(tripDirectionId(trip.route, trip));
     const dirInput = document.getElementById('directionTrigger');
     if (dirInput && directionLabels[selectedDirection]) dirInput.value = directionLabels[selectedDirection];
   }
@@ -4682,7 +4701,7 @@ function openSingleModal() {
   populateTripDirectionSelect();
   onTripDirectionChange();
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayStr;
   document.getElementById("tripDate").value = today;
   document.getElementById("singleModal").classList.add("active");
   document.getElementById("singleModal").classList.add("open");
@@ -4721,13 +4740,13 @@ function openEditModal(id) {
   document.getElementById("tripVehicleType").value = trip.vehicleType || 'Limousine 24 Phòng';
   document.getElementById("tripNote").value = trip.note || '';
 
-  document.getElementById("tripStatus").value = trip.status || 'Chưa chỉ định';
-  document.getElementById("tripPlate").value = trip.plate || '';
+  document.getElementById("tripStatus").value = TripService.syncStatus(trip).status || 'Chưa chỉ định';
+  tripPopulatePlateSelect(trip.plate || '');
 
   // Suy ngược HƯỚNG CHÍNH từ chuỗi route đã lưu: khớp nhãn tuyến chính, hoặc nằm trong danh sách tuyến
   // con của hướng (phơi cũ tạo khi còn chọn theo tuyến). Không khớp → để trống cho nhân viên chọn lại.
   populateTripDirectionSelect();
-  const dirKey = Object.keys(TRIP_DIRECTIONS_CFG).find(k => {
+  const dirKey = (TRIP_DIRECTIONS_CFG[trip.directionId] && trip.directionId) || Object.keys(TRIP_DIRECTIONS_CFG).find(k => {
     const c = TRIP_DIRECTIONS_CFG[k];
     return c.route === trip.route || (c.routeLabels || []).indexOf(trip.route) !== -1;
   }) || '';
@@ -4740,20 +4759,16 @@ function openEditModal(id) {
   // dữ liệu cũ vẫn tick lại được), RỒI mới tick lại các trạm đã lưu.
   const savedPickups = Array.isArray(trip.pickupStations) ? trip.pickupStations : [];
   resolveTripRoute(savedPickups);
+  tripSyncPriceField(trip.price);
   document.querySelectorAll("#tripPickupStations input[type='checkbox']").forEach(cb => {
     cb.checked = savedPickups.includes(cb.value);
     cb.closest('.station-pick-pill').classList.toggle('checked', cb.checked);
   });
 
-  // Ghi đè lại giá vé/tên phơi thật của phơi này — onTripDirectionChange()/resolveTripRoute() ở trên vừa
-  // set giá mặc định theo hướng/tuyến nên phải set lại SAU, nếu không sẽ mất giá vé thật đã lưu trước đó.
-  document.getElementById("tripPrice").value = trip.price || 280000;
+  // Ghi đè lại tên phơi thật của phơi này — onTripDirectionChange()/resolveTripRoute() ở trên vừa gợi ý lại tên.
   document.getElementById("tripName").value = trip.name || '';
-  // Chọn lại đúng nút "Ghế đơn"/"Ghế đôi" theo giá THẬT vừa ghi đè ở trên (resolveTripRoute() ở trên chọn
-  // theo giá mặc định của tuyến, lúc đó chưa biết giá thật đã lưu của phơi này).
-  tripWirePriceDoubleToggle(trip);
 
-  const isReadOnly = (trip.status === 'Khởi hành' || trip.status === 'Đã khởi hành' || trip.status === 'Đã hủy');
+  const isReadOnly = tsIsTripEditLocked(trip);
   const inputs = document.querySelectorAll("#singleForm input, #singleForm select, #singleForm button[type='submit']");
   inputs.forEach(el => {
     if (el.id !== 'btnSaveSingle') el.disabled = isReadOnly;
@@ -4768,6 +4783,23 @@ function openEditModal(id) {
   document.getElementById("singleModal").classList.add("open");
 }
 
+// Biển số chọn từ danh sách xe tuyến THẬT (FleetStore.getVehicles scope line), không gõ tay (ERD quy tắc 2).
+// Phơi cũ có biển không còn trong danh sách vẫn được hiện lại để không mất dữ liệu.
+function tripPopulatePlateSelect(curPlate) {
+  const sel = document.getElementById('tripPlate');
+  if (!sel) return;
+  const plates = (window.FleetStore ? FleetStore.getVehicles({ scope: 'line' }) : []).filter(v => v.active !== false).map(v => v.plate);
+  if (curPlate && plates.indexOf(curPlate) === -1) plates.push(curPlate);
+  sel.innerHTML = '<option value="">-- Chưa chỉ định --</option>' +
+    plates.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  sel.value = curPlate || '';
+}
+// Biển hợp lệ = trống, hoặc không đổi so với biển đang lưu, hoặc nằm trong danh sách xe tuyến đang hoạt động.
+function tripPlateIsValid(plate, currentPlate) {
+  if (!plate || plate === currentPlate) return true;
+  return !!window.FleetStore && FleetStore.getVehicles({ scope: 'line' }).some(v => v.active !== false && v.plate === plate);
+}
+
 // Cập nhật phơi đã có. Trả về false nếu người dùng huỷ xác nhận đổi loại xe (báo cho saveSingleTrip
 // dừng lại, không lưu/đóng modal) — giữ đúng hành vi early-return của bản gốc.
 function updateExistingTrip(id, fields) {
@@ -4775,34 +4807,44 @@ function updateExistingTrip(id, fields) {
   const tripIdx = allTripsMeta.findIndex(t => t.id === id);
   if (tripIdx === -1) return true;
   const trip = allTripsMeta[tripIdx];
+  if (tsIsTripEditLocked(trip)) { showToast('Phơi đã hủy hoặc đã khởi hành — không sửa được'); return false; }
+  if (!FleetStore.plateMatchesType(plateVal, vehicleVal)) { showToast('Biển số ' + plateVal + ' không thuộc loại xe "' + vehicleVal + '"'); return false; }
+  if (trip.vehicleType !== vehicleVal) {
+    if (tripBookedSeatCount(id) > 0) {
+      showToast('Phơi đã có khách — không đổi loại xe ở đây được. Dùng "Chỉ định xe" để dồn khách sang sơ đồ xe mới.');
+      return false;
+    }
+    if (!confirm("Cảnh báo: Thay đổi loại xe sẽ xoá toàn bộ sơ đồ ghế cũ và sinh lại ghế trống mới. Tiếp tục?")) return false;
+  }
+  const priceChanged = trip.price !== priceVal;
 
   trip.name = finalName;
   trip.date = dateVal;
   trip.route = routeVal;
+  trip.directionId = fields.directionId;
   trip.fromStation = fromStationVal;
   trip.toStation = toStationVal;
   trip.pickupStations = pickupStationsVal;
   trip.time = timeVal;
   trip.price = priceVal;
   trip.note = noteVal;
-  trip.status = statusVal;
+  // Trạng thái KHÔNG sửa tay: suy ra từ biển số (TripService.syncStatus), nút Khởi hành, nút Hủy phơi.
 
   if (trip.vehicleType !== vehicleVal) {
-    const confirmed = confirm("Cảnh báo: Thay đổi loại xe sẽ xoá toàn bộ sơ đồ ghế cũ và sinh lại ghế trống mới. Tiếp tục?");
-    if (!confirmed) return false;
     trip.vehicleType = vehicleVal;
-    tripSeatBank[id] = generateNewEmptyPlan(vehicleVal, priceVal);
+    // Chỉ thay down/up — giữ driver/helper/subSeats/extraSeats/cancelledSeats của phơi (ERD quy tắc 3, 11).
+    tripSeatBank[id] = Object.assign(tripSeatBank[id] || {}, generateNewEmptyPlan(vehicleVal, priceVal));
+  } else if (priceChanged && tripSeatBank[id]) {
+    // Giá phơi đổi (đổi cặp trạm / bảng giá): ghế TRỐNG theo giá mới, ghế đã bán giữ giá cũ (ERD quy tắc 7).
+    [...(tripSeatBank[id].down || []), ...(tripSeatBank[id].up || [])].forEach(s => { if (s.state === 'empty') s.price = priceVal; });
   }
 
   trip.plate = plateVal;
+  TripService.syncStatus(trip);
 
   if (tripSeatBank[id]) {
     tripSeatBank[id].plate = plateVal;
     tripSeatBank[id].vehicleType = vehicleVal;
-    if (plateVal) {
-      tripSeatBank[id].driver = tripSeatBank[id].driver || 'Phạm Quốc Bảo';
-      tripSeatBank[id].helper = tripSeatBank[id].helper || 'Đỗ Văn Sơn';
-    }
   }
   return true;
 }
@@ -4816,6 +4858,7 @@ function createNewTrip(fields) {
     // Phơi mẫu không gắn ngày thật — luôn để HÔM NAY (normalizeTemplateTrips cũng kéo về hôm nay mỗi lần nạp).
     date: isTemplate ? todayStr : dateVal,
     route: routeVal,
+    directionId: fields.directionId,
     fromStation: fromStationVal,
     toStation: toStationVal,
     pickupStations: pickupStationsVal,
@@ -4852,16 +4895,25 @@ function saveSingleTrip(e) {
   const pickupStationsVal = Array.from(document.querySelectorAll("#tripPickupStations input[type='checkbox']:checked")).map(cb => cb.value);
   const timeVal = document.getElementById("tripTime").value;
   const vehicleVal = document.getElementById("tripVehicleType").value;
-  const priceVal = parseInt(document.getElementById("tripPrice").value) || 280000;
   const noteVal = document.getElementById("tripNote").value.trim();
   const statusVal = document.getElementById("tripStatus").value || 'Chưa chỉ định';
   const plateVal = document.getElementById("tripPlate").value.trim();
+  if (id) {
+    const curTrip = allTripsMeta.find(t => t.id === id);
+    if (!tripPlateIsValid(plateVal, curTrip && curTrip.plate)) { showToast('Biển số phải chọn từ danh sách xe'); return; }
+  }
 
   const dirCfg = TRIP_DIRECTIONS_CFG[dirVal];
   if (!dirCfg || !fromStationVal || !toStationVal) {
     showToast('Vui lòng chọn đầy đủ Hướng đi, Trạm đi và Trạm đến');
     return;
   }
+  // Giá vé: lấy giá ghế đơn của cặp (Trạm đi, Trạm đến, Loại xe) trong Admin > Quản lý giá; cặp chưa có giá
+  // thì nhân viên tự nhập ở ô Giá vé (đang hiện, xem tripSyncPriceField).
+  const fare = FleetStore.getFare(fromStationVal, toStationVal, vehicleVal);
+  const priceRaw = document.getElementById("tripPrice").value;
+  if (!fare && priceRaw === '') { showToast('Cặp trạm + loại xe này chưa có giá trong Quản lý giá — vui lòng nhập Giá vé'); return; }
+  const priceVal = fare ? fare.single : (parseInt(priceRaw, 10) || 0);
   // "tuyến chính" suy từ Trạm đi/Trạm đến (xem resolveTripRoute); chưa suy được thì fallback tuyến chính của hướng.
   const routeVal = document.getElementById("tripResolvedRoute").value || dirCfg.route;
   const suggested = `${fromStationVal} - ${toStationVal}`;
@@ -4871,7 +4923,7 @@ function saveSingleTrip(e) {
   // hoặc trùng giờ khởi hành trong cùng 1 ngày nếu cần (VD tăng cường thêm xe cùng khung giờ).
   // Tạo mới ở chế độ "Tạo phơi mẫu" → gắn cờ isTemplate cho phơi mới (không áp dụng khi sửa phơi có sẵn).
   const isTemplate = !id && templateModalMode;
-  const fields = { finalName, dateVal, routeVal, fromStationVal, toStationVal, pickupStationsVal, timeVal, vehicleVal, priceVal, noteVal, statusVal, plateVal, isTemplate };
+  const fields = { finalName, dateVal, routeVal, fromStationVal, toStationVal, pickupStationsVal, timeVal, vehicleVal, priceVal, noteVal, statusVal, plateVal, isTemplate, directionId: dirVal };
 
   if (id) {
     if (!updateExistingTrip(id, fields)) return;
@@ -4912,7 +4964,7 @@ function toggleBulkTemplateMode() {
     if (singleCreateBtn) singleCreateBtn.style.display = "none";
     if (templateCreateBtn) templateCreateBtn.style.display = "";
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayStr;
     const fromEl = document.getElementById("bulkTplFromDate");
     const toEl = document.getElementById("bulkTplToDate");
     if (fromEl) { fromEl.value = today; fromEl.min = today; }
@@ -4997,15 +5049,18 @@ function createBulkTripsFromTemplates(validDates, templates) {
   validDates.forEach(dateVal => {
     templates.forEach(tpl => {
       const finalName = tpl.name || `${tpl.route} (${tpl.time})`;
+      const fare = window.FleetStore ? FleetStore.getFare(tpl.fromStation, tpl.toStation, tpl.vehicleType) : null;
+      const price = fare ? fare.single : tpl.price; // tra lại bảng giá hiện hành, cặp chưa có giá thì giữ giá mẫu
       const newId = (Date.now().toString() + Math.random().toString(36).substr(2, 5));
       const newTrip = {
         id: newId,
         name: finalName,
         date: dateVal,
         route: tpl.route,
+        directionId: tpl.directionId,
         time: tpl.time,
         vehicleType: tpl.vehicleType,
-        price: tpl.price,
+        price,
         status: 'Chưa chỉ định',
         plate: '',
         note: tpl.note || '',
@@ -5017,7 +5072,7 @@ function createBulkTripsFromTemplates(validDates, templates) {
       allTripsMeta.push(newTrip);
       if (!firstNew) firstNew = newTrip;
 
-      tripSeatBank[newId] = generateNewEmptyPlan(tpl.vehicleType, tpl.price);
+      tripSeatBank[newId] = generateNewEmptyPlan(tpl.vehicleType, price);
       tripSeatBank[newId].plate = '';
       tripSeatBank[newId].vehicleType = tpl.vehicleType;
       tripSeatBank[newId].driver = '';
@@ -5068,7 +5123,7 @@ function confirmBulkFromTemplates() {
     zone1HourFilter = 'all';
     const hourLabel = document.getElementById('zone1HourFilterLabel');
     if (hourLabel) hourLabel.textContent = 'Tất cả các giờ';
-    const dir = firstNew ? tripDirectionId(firstNew.route) : selectedDirection;
+    const dir = firstNew ? tripDirectionId(firstNew.route, firstNew) : selectedDirection;
     if (directionLabels[dir]) {
       selectedDirection = dir;
       selectedRoute = 'all';
@@ -5095,7 +5150,7 @@ function confirmBulkFromTemplates() {
 
 // Init phơi dates and event listeners
 (function initPhoiDashboard() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayStr;
   const filterDate = document.getElementById("filterDate");
   const tripDate = document.getElementById("tripDate");
 
@@ -5299,10 +5354,11 @@ function resolveDoubleSeatPricing(trip) {
 // Bản chụp lúc bán gắn vào vé (ERD ticket.from_station_id / to_station_id / is_double_seat): cặp trạm của
 // phơi + vé có phải ghế đôi không (đọc ô tick "Ghế đôi" của chỗ đang bán, ô ẩn = không tick). Giá bán đã
 // nằm ở seat.price, không đổi khi giá trong Quản lý giá đổi sau này.
-function tsFareSnapshot(tripId, doubleToggleId) {
+function tsFareSnapshot(tripId, doubleToggleId, fromName, toName) {
   const trip = allTripsMeta.find(t => t.id === tripId) || {};
-  const from = window.FleetStore ? FleetStore.stationByRef(trip.fromStation) : null;
-  const to = window.FleetStore ? FleetStore.stationByRef(trip.toStation) : null;
+  // fromName/toName: Trạm đi/Trạm đến khách nhập (panel Đặt vé) — không truyền thì dùng cặp trạm của phơi.
+  const from = window.FleetStore ? FleetStore.stationByRef(fromName || trip.fromStation) : null;
+  const to = window.FleetStore ? FleetStore.stationByRef(toName || trip.toStation) : null;
   const toggle = doubleToggleId ? document.getElementById(doubleToggleId) : null;
   return { fromStationId: from ? from.id : null, toStationId: to ? to.id : null, isDoubleSeat: !!(toggle && toggle.checked) };
 }

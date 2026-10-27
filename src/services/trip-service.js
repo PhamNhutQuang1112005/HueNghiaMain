@@ -48,7 +48,18 @@
     localStorage.setItem(KEY, JSON.stringify(list));
   }
 
+  // Trạng thái LƯU của phơi chưa chạy theo biển số: có biển = 'Đang bán', chưa có = 'Chưa chỉ định' (cùng
+  // quy tắc với trạng thái hiển thị trên thẻ phơi). Không đụng trạng thái khác (Khởi hành, Đã hủy...) và phơi mẫu.
+  // Gọi sau mỗi lần đổi biển số / trước khi hiện trạng thái để chuỗi lưu không lệch với biển số.
+  function syncStatus(t) {
+    if (t && !t.isTemplate && (!t.status || t.status === 'Chưa chỉ định' || t.status === 'Đang bán' || t.status === 'Đã chỉ định xe')) {
+      t.status = t.plate ? 'Đang bán' : 'Chưa chỉ định';
+    }
+    return t;
+  }
+
   window.TripService = {
+    syncStatus: syncStatus,
     KEY: KEY,
     getRawString: getRawString,
     getAll: getAll,

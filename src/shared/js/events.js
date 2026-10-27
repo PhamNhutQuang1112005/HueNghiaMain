@@ -50,9 +50,8 @@
       window.refreshPickupPreview();
       window.refreshPickupPrice();
     },
-    filterDropdownAndCheckDriverConflict: function () {
+    filterDriverDropdown: function () {
       window.filterDropdown('driverDropdownContainer');
-      window.checkDriverConflict();
     },
     // seat-footbtn: rỗng thì "Đặt vé", đã có khách thì "Sửa" — xem seatCard()/appendix trong booking.js
     // Lưu ý: gọi qua fn.apply(el, args) nên phần tử bấm nằm ở `this`, KHÔNG phải tham số hàm.

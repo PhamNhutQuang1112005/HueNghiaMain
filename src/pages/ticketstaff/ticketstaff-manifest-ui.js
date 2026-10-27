@@ -79,15 +79,19 @@ function tsBuildLifecycleButtonsHtml(status) {
       Xem kết ca
     </button>`;
 
+  // Phơi đã đóng băng (xác nhận ở Xem phơi) thì ẩn nút Re-open.
+  const mf = (typeof currentTripId !== 'undefined' && currentTripId) ? getManifest(currentTripId) : null;
+  const reopenOrNone = (mf && mf.frozenAt) ? '' : reopenBtn;
+
   switch (status) {
     case TRIP_LIFECYCLE_STATUS.DEPARTED:
-      return viewManifestBtn + reopenBtn;
+      return viewManifestBtn + reopenOrNone;
     case TRIP_LIFECYCLE_STATUS.REOPEN:
       return closeReopenBtn + viewLiveReopenBtn;
     case TRIP_LIFECYCLE_STATUS.REOPEN_CLOSED:
-      return viewManifestBtn + viewReopenHistoryBtn + reopenBtn;
+      return viewManifestBtn + viewReopenHistoryBtn + reopenOrNone;
     case TRIP_LIFECYCLE_STATUS.MANIFEST_CLOSED:
-      return viewManifestBtn + viewShiftClosingBtn;
+      return viewManifestBtn + viewShiftClosingBtn + reopenOrNone;
     case TRIP_LIFECYCLE_STATUS.SELLING:
     default:
       return assignBtn + departBtn;
@@ -107,6 +111,8 @@ function openDepartModal() {
     showToast('Chuyến này đã khởi hành rồi');
     return;
   }
+  const departErr = tsCheckCanDepart(currentTripId);
+  if (departErr) { showToast(departErr); return; }
   const box = document.getElementById('departSummaryBox');
   if (box) box.innerHTML = tsRenderDepartPreviewHtml(currentTripId);
 
@@ -126,7 +132,9 @@ function confirmDepart() {
   const advanceAmount = advanceInput ? (parseInt(advanceInput.value, 10) || 0) : 0;
   const tripId = currentTripId;
 
-  tsCreateManifestForCurrentTrip(advanceAmount);
+  const departErr = tsCheckCanDepart(tripId);
+  if (departErr) { showToast(departErr); return; }
+  if (!tsCreateManifestForCurrentTrip(advanceAmount)) { showToast('Không khởi hành được phơi này'); return; }
   saveSeatBank();
 
   // Có in kèm "Danh sách rước đường" vào phơi hay không — theo ô checkbox trong modal Khởi hành xe.
@@ -145,11 +153,12 @@ function confirmDepart() {
 function openReopenModal() {
   if (!currentTripId) return;
   const status = getTripLifecycleStatus(currentTripId);
-  if (status !== TRIP_LIFECYCLE_STATUS.DEPARTED && status !== TRIP_LIFECYCLE_STATUS.REOPEN_CLOSED) {
-    showToast('Chỉ Re-open được chuyến đã khởi hành hoặc đã đóng Re-open');
+  if (status !== TRIP_LIFECYCLE_STATUS.DEPARTED && status !== TRIP_LIFECYCLE_STATUS.REOPEN_CLOSED && status !== TRIP_LIFECYCLE_STATUS.MANIFEST_CLOSED) {
+    showToast('Chỉ Re-open được chuyến đã khởi hành');
     return;
   }
   const manifest = getManifest(currentTripId);
+  if (manifest && manifest.frozenAt) { showToast('Phơi đã đóng băng, không Re-open được nữa'); return; }
   const tripEl = document.getElementById('tripTitle');
   document.getElementById('reopenTripInfo').textContent = tripEl ? tripEl.textContent.trim() : '—';
   document.getElementById('reopenPlateInfo').textContent = (manifest && manifest.plate) || '—';
@@ -167,7 +176,10 @@ function confirmReopen() {
     showToast('Vui lòng nhập lý do mở lại xe');
     return;
   }
-  tsOpenReopen(currentTripId, reason);
+  if (!tsOpenReopen(currentTripId, reason)) {
+    showToast('Không mở Re-open được: chưa đăng nhập, phơi đã đóng băng hoặc đang có lần Re-open khác');
+    return;
+  }
   closeModal('reopenModal');
   renderTripLifecycleUI();
   showToast('Đã Re-open xe — có thể bán vé phát sinh');
@@ -188,7 +200,7 @@ function openCloseReopenModal() {
 
 function confirmCloseReopen() {
   const event = tsCloseActiveReopen(currentTripId);
-  if (!event) { showToast('Không có lần Re-open nào đang mở'); return; }
+  if (!event) { showToast('Không đóng được Re-open: không có lần nào đang mở hoặc chưa đăng nhập'); return; }
   closeModal('closeReopenModal');
   renderTripLifecycleUI();
   showToast(`Đã đóng Re-open #${event.sequence}: +${event.ticketsAdded} vé, +${tsFormatMoney(event.amountAdded)}`);
@@ -215,6 +227,17 @@ function openManifestView() {
   const manifest = getManifest(currentTripId);
   if (!manifest) { showToast('Chuyến này chưa tạo phơi'); return; }
   tsOpenManifestModalWithBody(tsRenderManifestFullHtml(currentTripId));
+  const fb = document.getElementById('manifestFreezeBtn'); // nút Đóng băng chỉ hiện ở màn Xem phơi đầy đủ
+  if (fb) fb.style.display = tsCanFreezeManifest(currentTripId) ? '' : 'none';
+}
+
+function confirmFreezeManifest() {
+  if (!tsCanFreezeManifest(currentTripId)) { showToast('Không thể đóng băng phơi này'); return; }
+  if (!confirm('Đóng băng phơi? Sau khi đóng băng sẽ không Re-open để sửa vé được nữa và số liệu mệnh giá được chốt lại.')) return;
+  if (!tsFreezeManifest(currentTripId)) { showToast('Không đóng băng được phơi này'); return; }
+  closeModal('manifestViewModal');
+  renderTripLifecycleUI();
+  showToast('Đã đóng băng phơi');
 }
 
 function openViolationModalFromManifest() {
@@ -226,6 +249,8 @@ function tsOpenManifestModalWithBody(html) {
   // Mặc định KHÔNG in kèm danh sách rước đường — nhân viên tự tick ở thanh nút nếu cần.
   const roadsideChk = document.getElementById('manifestPrintRoadside');
   if (roadsideChk) roadsideChk.checked = false;
+  const freezeBtn = document.getElementById('manifestFreezeBtn');
+  if (freezeBtn) freezeBtn.style.display = 'none';
   document.getElementById('manifestViewBody').innerHTML = html;
   document.getElementById('manifestViewModal').classList.add('open');
 }
@@ -347,6 +372,10 @@ function tsRenderManifestFullHtml(tripId) {
     metaLabel: 'Tạo phơi lúc',
     advanceAmount: manifest.advanceAmount
   }, totals, templateKey, denomBreakdown, { hideRoadside: true });
+
+  if (manifest.frozenAt) {
+    html = `<div class="readonly-line" style="padding-top:0;">Đã đóng băng lúc ${formatActionTime(manifest.frozenAt)} bởi ${tsEsc(manifest.frozenBy)}</div>` + html;
+  }
 
   // Bỏ khối "Diễn biến phơi" (timeline Phơi gốc → từng lần Re-open → Tổng hiện tại) theo yêu cầu — chỉ
   // còn "Lịch sử Re-open" khi đã có ít nhất 1 lần Re-open.
@@ -898,6 +927,7 @@ function confirmShiftClosing() {
   const chiItems = tsCollectShiftChiItems();
 
   const record = tsConfirmShiftClosing(tsCurrentShiftReport, { actualCash, actualTransfer, diffAmount, chiItems });
+  if (!record) { showToast('Không kết ca được: chưa đăng nhập, hoặc số liệu đã thay đổi / đã kết ca ở nơi khác — mở lại màn Kết ca'); return; }
   tsCurrentShiftReport = null;
   switchView('booking');
   renderTripLifecycleUI();
@@ -907,7 +937,7 @@ function confirmShiftClosing() {
 function openShiftClosingHistoryForTrip() {
   const manifest = getManifest(currentTripId);
   if (!manifest) return;
-  const closings = getAllShiftClosings().filter(c => c.tripIds.includes(currentTripId));
+  const closings = getAllShiftClosings().filter(c => (c.tripIds || []).includes(currentTripId));
   let html = tsRenderManifestFullHtml(currentTripId);
   if (closings.length) {
     const last = closings[closings.length - 1];
@@ -1056,7 +1086,7 @@ function tsRenderReopenHistoryTableHtml(events) {
       <td class="mono" style="text-align:center;">#${e.sequence}</td>
       <td class="mono">${formatActionTime(e.time)}</td>
       <td>${tsEsc(e.staffId)}</td>
-      <td>${tsEsc(e.reason)}</td>
+      <td>${tsEsc(e.reason)}${e.settledCount ? `<div style="font-size:12px;color:var(--text-sub);">Thu bổ sung: ${e.settledCount} vé đặt trước • ${tsFormatMoney(e.settledAmount || 0)}</div>` : ''}</td>
       <td class="mono" style="text-align:center;">${e.status === 'CLOSED' ? (e.ticketsAdded || 0) : '—'}</td>
       <td style="text-align:right;">${e.status === 'CLOSED' ? tsFormatSignedMoney(e.amountAdded || 0) : '—'}</td>
       <td><span class="trip-status-badge ${statusClass}" style="display:inline-flex;">${statusLabel}</span></td>

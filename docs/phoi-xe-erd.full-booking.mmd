@@ -1,0 +1,582 @@
+erDiagram
+    %% ===== PHƠI XE (CHUYẾN XE) — ERD =====
+    %% Nguồn: TicketStaff (ticketstaff.js, ticketstaff-manifest-core.js, ticketstaff-manifest-ui.js, ticketstaff-pickup.js),
+    %%   seat-bank.js, shuttle-driver-service.js, storage-keys.js. Dữ liệu hiện nằm ở localStorage; sơ đồ này là bản quan hệ chuẩn hoá để lên DB.
+    %%   localStorage                       -> bảng
+    %%   hn_trips_meta_v9 (allTripsMeta)    -> trip, trip_pickup_station
+    %%   hn_trip_seat_bank_v12 (tripSeatBank)-> trip_seat, ticket, seat_cancellation (gom theo ticketNo)
+    %%   hn_ts_manifests_v1                 -> trip_manifest, manifest_sales_total, manifest_roadside_guest
+    %%   hn_ts_reopen_events_v1             -> trip_reopen_event
+    %%   hn_ts_violations_v1                -> trip_violation
+    %%   hn_ts_shift_closings_v1            -> shift_closing, shift_closing_trip, shift_closing_expense
+    %%   hn_shuttle_driver_assign_v1        -> shuttle_assignment (khoá app = sđt_don = chặng đón / sđt_tra = chặng trả -> cột leg = pickup / dropoff; KHÔNG kèm phơi: cùng 1 sđt ở 2 phơi dùng chung 1 dòng; khi migrate phải tách theo ticket. Map này cũng chứa status / note / noteImportant / driverPhone của trung chuyển)
+    %%   Ghi chú Phòng vé của khách trung chuyển nằm trên GHẾ trong seat bank (seat.transshipPickupNote / transshipDropoffNote, theo chặng), KHÔNG nằm trong map shuttle: migrate -> shuttle_assignment.office_note của dòng (ticket_id, leg) tương ứng (tạo dòng nếu chưa có). seat.actionTime (giờ thao tác gần nhất, bị ghi đè khi sửa) -> ticket.updated_at; app không lưu giờ tạo vé nên ticket.created_at lấy actionTime của bản ghi cũ nhất hoặc NULL.
+    %%   hn_ts_ticket_stations_v1           -> không thành bảng riêng: chỉ là danh sách tên trạm để hiện các dòng "Doanh thu theo trạm" (nguồn thật của trạm bán là station của nhân viên, quy tắc 12)
+    %%   hn_pickup_passengers_v6            -> pickup_request (hàng chờ "Rước liền"; khi chỉ định xe thì bán vé với guest_type = Trung chuyển và đặt pickup_request.ticket_id, quy tắc 18); hn_shuttle_driver_vehicle_v1 (xe mặc định của tài xế trung chuyển) và hn_pk_phongve_notices_v1 (thông báo Phòng vé) chỉ là dữ liệu giao diện
+    %%   Định danh NGƯỜI THAO TÁC (chốt): mọi cột ghi người thao tác trỏ users.user_id (tài khoản của nhân viên, uuid theo so-do-er-nhan-su-v3.1), KHÔNG trỏ employees.id: trip.created_by / updated_by / cancelled_by, ticket.sold_by, seat_cancellation.cancelled_by / restored_by,
+    %%       trip_manifest.created_by / closed_by / frozen_by, trip_reopen_event.opened_by / closed_by, manifest_sales_total.seller_user_id, trip_violation.recorded_by, shift_closing.user_id, shuttle_assignment.updated_by, pickup_request.created_by.
+    %%       Lý do: admin gốc (users.is_root, employee_id NULL) cũng bán vé, hủy phơi...; và v3.1 đã chốt 'mọi bảng nghiệp vụ lưu created_by (users.user_id) + station_id'. Người được XẾP lên xe (trip.driver_id, helper_id, shuttle_assignment.driver_id) vẫn là employees.id vì tài xế / phụ xe có thể không có tài khoản.
+    %%       Thống kê theo nhân viên đi qua users.employee_id. App hiện lưu MÃ NHÂN VIÊN (NV01.. qua STAFF_CODE_MAP) hoặc username; migrate: mã NV -> employees.employee_code -> users.employee_id -> users.user_id; username của admin gốc -> users.is_root.
+    %%       Các giá trị DỰ PHÒNG CŨ của app ('Nhân viên trực', 'NV trực', 'system', 'admin'; 'NV01' / 'NV05' ở màn hiển thị) NAY ĐÃ BỎ khỏi code, nhưng dữ liệu cũ có thể còn và KHÔNG map được: dữ liệu cũ để NULL (cột nullable chỉ để nhập dữ liệu cũ, giống 'NULL = nhập dữ liệu cũ' của v3.1); NGOẠI LỆ: ticket.sold_by, manifest_sales_total.seller_user_id và các cột trạm bán KHÔNG để NULL, dữ liệu cũ thiếu thì gán admin gốc / trạm hệ thống 'Admin' (quy tắc 25b); username 'admin' của các vé do admin gốc bán thật là hợp lệ và map sang users.is_root;
+    %%       dữ liệu mới BẮT BUỘC có user_id (phải đăng nhập; ĐÃ KHỚP CODE: getActingStaffCode() ở seat-bank.js trả rỗng khi chưa đăng nhập và requireActor() chặn mọi thao tác ghi: đặt / bán vé, hủy ghế, chuyển vé, đặt lại vé, khởi hành, Re-open, đóng băng, kết ca, hủy phơi; chỉ 'Không rõ' còn dùng để HIỂN THỊ dữ liệu cũ thiếu người bán; khi migrate, vé cũ thiếu người bán gán cho admin gốc, quy tắc 25b). Phơi đã khởi hành mà trip_manifest.created_by NULL (dữ liệu cũ) do admin gốc kết ca.
+    %% Ánh xạ dữ liệu app (chuỗi) -> khóa DB khi migrate:
+    %%   trip.id (chuỗi: Admin tạo đơn = Date.now(); Admin tạo hàng loạt = '<ms>_<n>'; TicketStaff tạo đơn và hàng loạt = Date.now() + 5 ký tự ngẫu nhiên; phơi seed demo = '1'..'14' không migrate, quy tắc 16) -> trip_id bigint; giữ bảng tạm legacy_trip_map (app_id, trip_id) để nối seat bank, manifest, Re-open, kết ca, khách ngoài phơi (đều khóa theo tripId chuỗi).
+    %%   trip.fromStation / toStation / pickupStations (TÊN trạm) -> station_id qua station.name (UNIQUE ở station-erd.mmd nên không nhập nhằng); tên không khớp là dữ liệu lỗi, không tự đoán.
+    %%   trip.directionId (slug dạng 'sg-ag') -> direction_id qua direction.code; không khớp thì suy từ tỉnh của trạm đi / đến (quy tắc 8).
+    %%   trip.vehicleType (TÊN loại xe) -> vehicle_type_id qua tên (scope line). Lưu ý: docs/fare-erd.mmd khóa loại xe theo TÊN, sơ đồ này theo id; khi chốt DB chung phải chọn một cách (khuyến nghị id + UNIQUE (scope, name) cho cả hai).
+    %%   trip.plate và bank.plate (biển số) -> vehicle_id qua vehicle.plate (UNIQUE). trip.price (app) -> trip.base_price.
+    %%   driver / helper (TÊN hiển thị lấy từ ô chọn) -> employees.id: khớp full_name + crew_role; trùng tên hoặc không khớp thì đối chiếu tay, không tự đoán (trung chuyển có thêm driverPhone nên khớp theo SĐT).
+    %% .
+    %% Quy tắc chính:
+    %%   (1) Phơi xe = chuyến (trip) ngày X, giờ Y, 1 tuyến, 1 loại xe. Phơi MẪU (is_template = true) là bản thiết kế để nhân bản hàng loạt,
+    %%       luôn Chưa chỉ định, không có biển số, không bán vé được.
+    %%   (2) Trạng thái hiển thị của phơi suy ra: trip.status = cancelled -> Đã hủy; có trip_manifest -> theo manifest.status
+    %%       (DEPARTED = Khởi hành, REOPEN = Re-open, REOPEN_CLOSED = Đóng Re-open, MANIFEST_CLOSED = Đã kết ca); chưa có manifest thì
+    %%       vehicle_id NULL = Chưa chỉ định, có xe = Đang bán. App LƯU trạng thái dạng chuỗi trip.status gồm 4 giá trị: Chưa chỉ định | Đang bán | Khởi hành | Đã hủy.
+    %%       "Đang bán" / "Chưa chỉ định" được đồng bộ lại theo biển số (TripService.syncStatus); "Khởi hành" được GÁN ngay lúc tạo trip_manifest (nút Khởi hành xe) và GIỮ NGUYÊN qua
+    %%       Re-open / đóng Re-open / kết ca (chi tiết các bước đó chỉ nằm ở manifest.status); lúc nạp dữ liệu phơi cũ đã có manifest được tự đặt lại thành "Khởi hành". Giá trị cũ
+    %%       "Đã chỉ định xe" được chuẩn hoá về Đang bán / Chưa chỉ định. Bản DB chuẩn hoá chỉ giữ open | cancelled và suy phần còn lại từ manifest / vehicle_id.
+    %%       Trạng thái KHÔNG sửa tay (cả TicketStaff lẫn Admin): Chưa chỉ định / Đang bán suy từ biển số (biển số chọn trong danh sách xe thật, không gõ tay: Admin lẫn form Sửa phơi của TicketStaff đều dùng ô chọn; phơi cũ có biển không còn trong danh sách vẫn được hiện lại để không mất dữ liệu); Khởi hành chỉ có khi bấm nút Khởi hành;
+    %%       Đã hủy chỉ qua nút Hủy phơi (quy tắc 10). Phơi đã hủy hoặc đã có manifest bị KHOÁ sửa ở mọi trang (kiểm tra cả trip.status lẫn manifest). ĐÃ KHỚP CODE: tsIsTripEditLocked (ticketstaff-manifest-core.js) kiểm ở tầng service trong updateExistingTrip, adminSaveTrip và saveAssign, không chỉ tắt ô nhập; giá trị cũ 'Đã khởi hành' được chuẩn hoá về 'Khởi hành' lúc nạp (loadAllTrips). DB: trigger BEFORE UPDATE ON trip từ chối sửa cột nghiệp vụ khi status = cancelled hoặc đã có trip_manifest.
+    %%   (3) Sơ đồ ghế = các dòng trip_seat, sinh lúc tạo phơi theo loại xe (tầng dưới A, tầng trên B, ghế phụ, ghế dư). Đổi loại xe có 2 đường, cả hai đều cập nhật trip.vehicle_type:
+    %%       (a) form Sửa phơi (TicketStaff và Admin): CHỈ khi phơi chưa có khách (không còn ghế sold / hold / free / cargo); xoá và sinh lại ghế tầng dưới / tầng trên,
+    %%       GIỮ driver, helper, ghế phụ, ghế dư và lịch sử ghế hủy; (b) nút Chỉ định xe: dồn sơ đồ sang loại xe mới, ghế nào còn mã thì giữ nguyên khách, ghế không còn mã chuyển sang ghế dư (floor_type = extra).
+    %%       Đổi giá phơi mà không đổi loại xe thì chỉ ghế TRỐNG lấy giá mới (ghế đã bán giữ giá cũ).
+    %%       1 vé (ticket) có thể giữ nhiều ghế liền kề (ghế đôi); trip_seat.ticket_id NULL = ghế trống.
+    %%   (4) Khởi hành xe = tạo trip_manifest 1 lần, chụp (snapshot) biển số, tài xế, phụ xe, tổng vé. KHÔNG ghi đè số liệu gốc về sau.
+    %%       ĐIỀU KIỆN KHỞI HÀNH (chốt): phơi thật (is_template = FALSE), status <> cancelled, chưa có trip_manifest, ĐÃ có xe (vehicle_id NOT NULL) VÀ ĐÃ có tài xế tuyến (driver_id NOT NULL); phụ xe tùy chọn; phải đăng nhập (manifest.created_by).
+    %%       ĐÃ KHỚP CODE: tsCheckCanDepart (ticketstaff-manifest-core.js) kiểm ở UI (openDepartModal, confirmDepart) lẫn service (tsCreateManifestForCurrentTrip). DB: trigger BEFORE INSERT ON trip_manifest kiểm đủ các điều kiện này (giống trigger của Re-open).
+    %%       KHÓA BÁN SAU KHỞI HÀNH: phơi đã khởi hành chỉ nhận đặt / bán / chuyển vé khi đang Re-open (lúc đó vé gắn reopen_event_id); các trạng thái DEPARTED, REOPEN_CLOSED, MANIFEST_CLOSED là khóa. App hiện chỉ chặn ở tầng giao diện (tsIsSellingLocked: các hàm bọc trong ticketstaff-manifest-ui.js, adminTsConfirmSellPayment, confirmRestoreFromCancelled), không có chặn ở tầng dữ liệu; DB cần trigger BEFORE INSERT / UPDATE trên ticket và trip_seat kiểm khóa này (cùng kiểu trigger Re-open).
+    %%       Bán thêm sau khởi hành -> ticket.sold_phase = POST_DEPART, gắn reopen_event_id của lần Re-open đang mở. Các nhãn của lần bán (sold_phase, reopen_event_id,
+    %%       selling_station, sold_by, tiền cọc, đại lý) được chụp MỘT lần lúc tạo vé. Trên app các nhãn bị xoá khi ghế về trống; trong DB dòng ticket được GIỮ LẠI (ticket.status = cancelled, quy tắc 13), ghế về trống chỉ là trip_seat.ticket_id = NULL; lần bán sau trên cùng ghế tạo ticket MỚI. NGOẠI LỆ (chốt): vé ghế ĐÃ ĐẶT được chuyển sang phơi khác (quy tắc 13) thì các nhãn này gắn lại theo NGƯỜI THAO TÁC MỚI NHẤT lúc chuyển.
+    %%       Số liệu gốc (tổng vé, tiền, theo trạm, theo nhân viên bán) đóng băng trong manifest ngay lúc khởi hành; RIÊNG bảng "mệnh giá theo trạm" của Xem phơi / Kết ca tính lại từ vé hiện tại (sửa vé, Re-open vẫn cập nhật theo) cho tới khi nhân viên bấm xác nhận đóng băng ở màn Xem phơi (quy tắc 15).
+    %%   (5) Re-open: nhiều lần / phơi; LỊCH SỬ nằm ở trip_reopen_event (mỗi lần mở = 1 dòng: seq, lý do, người + giờ mở, người + giờ đóng, số liệu phát sinh đóng băng lúc đóng). Vé bán lúc đó gắn ticket.reopen_event_id, khách rước đường ở manifest_roadside_guest.reopen_event_id, doanh thu ở manifest_sales_total.reopen_event_id.
+    %%       ĐIỀU KIỆN MỞ Re-open (chốt): phơi ĐÃ KHỞI HÀNH (có trip_manifest) VÀ CHƯA ĐÓNG BĂNG (trip_manifest.frozen_at IS NULL) VÀ không có lần nào đang OPEN (UNIQUE WHERE status = OPEN, tối đa 1 lần OPEN cùng lúc). Trạng thái manifest lúc mở không bị giới hạn: DEPARTED, REOPEN_CLOSED, kể cả MANIFEST_CLOSED (đã kết ca). Re-open chỉ cần: xe đã khởi hành và chưa đóng băng; không phụ thuộc kết ca (phần kết ca xử lý sau, xem quy tắc 6).
+    %%       Mở -> manifest.status = REOPEN; đóng -> REOPEN_CLOSED (phơi từng MANIFEST_CLOSED cũng quay về REOPEN_CLOSED, phần phát sinh chờ kết ca đợt sau, xem quy tắc 6; đã khớp code). Đóng băng (quy tắc 15) là khóa cuối cùng, không mở lại.
+    %%       ĐÃ KHỚP CODE: openReopenModal (ticketstaff-manifest-ui.js) cho mở khi DEPARTED / REOPEN_CLOSED / MANIFEST_CLOSED; tsOpenReopen (ticketstaff-manifest-core.js) kiểm lại ở service: đã có manifest, chưa đóng băng, không có lần OPEN. DB: trigger BEFORE INSERT ON trip_reopen_event kiểm manifest tồn tại, frozen_at IS NULL, trip.status <> cancelled.
+    %%   (6) Kết ca gom theo PHẦN của phơi, chỉ các phơi do cùng người tạo manifest (trip_manifest.created_by) và không có lần Re-open đang OPEN: phần GỐC (bán trước khởi hành) và từng lần Re-open đã ĐÓNG mà chưa kết ca. Mỗi phần chỉ kết ca đúng 1 lần: shift_closing_trip có 1 dòng cho phần gốc (reopen_event_id NULL) và 1 dòng cho mỗi lần Re-open,
+    %%       UNIQUE (trip_id) WHERE reopen_event_id IS NULL và UNIQUE (reopen_event_id) WHERE reopen_event_id IS NOT NULL. Số liệu một lần kết ca chỉ cộng các phần đưa vào đợt đó (phần gốc đã kết ca ở đợt trước không tính lại). Sau khi chốt, manifest.status = MANIFEST_CLOSED; mở Re-open mới thì lại REOPEN -> REOPEN_CLOSED và phần mới chờ đợt kết ca sau.
+    %%       ĐÃ KHỚP CODE (chốt, đã sửa lỗi cộng trùng): tsAggregateShiftClosing / tsConfirmShiftClosing (ticketstaff-manifest-core.js) gom theo PHẦN. App đánh dấu phần đã kết ca bằng manifest.baseShiftClosingId (phần gốc, ứng với shift_closing_trip.reopen_event_id NULL) và event.shiftClosingId (từng lần Re-open); bản ghi kết ca có thêm parts = [{tripId, reopenEventId}] (ứng với shift_closing_trip). Số liệu một đợt chỉ cộng các phần chưa kết ca (tsSumManifestParts); tiền ứng chỉ tính cùng phần gốc; bảng mệnh giá chỉ gồm vé của các phần đó. Mở báo cáo cũ rồi xác nhận lại bị từ chối nếu có phần đã kết ca ở nơi khác. Dữ liệu cũ (bản ghi kết ca không có parts) coi như đã phủ phần gốc + mọi Re-open đã đóng trước giờ kết ca đó (migrate: tạo shift_closing_trip tương ứng). Phơi đang có lần Re-open OPEN không được gom. Đã chạy thử các kịch bản: kết ca gốc + Re-open 1, rồi Re-open 2 chỉ cộng phần mới, báo cáo trống khi hết phần, dữ liệu cũ, phơi đang Re-open.
+    %%   (7) Giá vé tra theo (trạm đi, trạm đến, loại xe) ở docs/fare-erd.mmd; ô Giá vé trong modal tạo / sửa phơi bị ẨN: lúc lưu phơi, app tự lấy giá ghế đơn
+    %%       của cặp đó làm trip.base_price và đổ vào trip_seat.price của ghế trống; chỉ khi cặp (trạm đi, trạm đến, loại xe) CHƯA có giá thì ô Giá vé hiện ra để TRỐNG
+    %%       và nhân viên tự nhập (bắt buộc). Tạo phơi hàng loạt từ phơi mẫu cũng tra lại bảng giá hiện hành (cặp chưa có giá thì giữ giá mẫu). trip_seat.price là giá đã bán / đang bán. Khi bán vé, giá tra theo cặp (ticket.first_stop, ticket.last_stop, loại xe của phơi) chứ không theo cặp trạm của phơi; cặp chưa có giá thì nhân viên tự nhập.
+    %%   (8) Phơi thuộc 1 HƯỚNG (direction_id), KHÔNG thuộc riêng 1 tuyến. Trạm đi chọn trong các trạm đang bật của tỉnh đi của hướng (direction.from_region_id), trạm đến
+    %%       trong các trạm của tỉnh đến (direction.to_region_id); "trạm có thể nhận thêm khách" = trạm tỉnh đi + trạm tỉnh đến của hướng (KHÔNG lấy từ route_*_station).
+    %%       Tuyến chỉ là bộ lọc, quan hệ phơi - tuyến được tính chứ không lưu: phơi hiện ở tuyến R khi from_station thuộc route_from_station(R) VÀ (to_station hoặc 1 trạm
+    %%       trong trip_pickup_station) thuộc route_to_station(R). Vì 1 phơi hiện ở nhiều tuyến, doanh thu / thống kê tính theo trạm và theo hướng, không tính theo tuyến.
+    %%       trip.route_id chỉ là tuyến đại diện (tuyến con khớp cặp trạm nhất, không khớp thì tuyến chính của hướng) để hiển thị trên vé, phiếu, kế toán; có thể NULL.
+    %%       Phơi cũ chưa có direction_id thì hướng suy từ nhãn tuyến đã lưu.
+    %%   (9) Danh mục dùng chung (region, direction, station, route, vehicle_type, vehicle, employees, agent) xem route-erd.mmd, station-erd.mmd và so-do-er-nhan-su-v3.1.mermaid. Tài khoản và phân quyền (users, employee_types, permissions...) cũng ở so-do-er-nhan-su-v3.1.mermaid, các bảng cùng tên ở cuối sơ đồ này chỉ là KHUNG để vẽ quan hệ (quy tắc 19).
+    %%   (10) Hủy phơi: CHỈ hủy được phơi TRỐNG (không còn ghế sold / hold / free / cargo, tính cả ghế phụ và ghế dư) và CHƯA khởi hành (chưa có trip_manifest). Phơi đang có khách thì phải chuyển hết ghế sang phơi khác rồi mới hủy. Hủy bắt buộc ghi 3 thứ: cancel_reason, cancelled_at, cancelled_by (users.user_id);
+    %%       CHECK: status = cancelled thì cả 3 cột NOT NULL. Ghế đã hủy trước đó (seat_cancellation) chỉ là lịch sử, không chặn việc hủy phơi.
+    %%       MỘT NƠI KIỂM (chốt): TicketStaff và Admin (kể cả hủy hàng loạt) cùng gọi MỘT hàm tsCancelTrips(trips, seatBank, ids, reason, acting_staff) (ticketstaff-manifest-core.js) kiểm đủ 2 điều kiện ở trên rồi mới ghi; phơi nào không đủ thì bỏ qua và báo số lượng; không để trang nào chỉ dựa vào nút bị tắt.
+    %%       ĐÃ KHỚP CODE: confirmCancelTripModal (TicketStaff) và adminConfirmCancelTrips (Admin) đều gọi tsCancelTrips; phơi không đủ điều kiện bị bỏ qua kèm lý do; chưa đăng nhập thì từ chối (không còn ghi 'admin' gõ cứng).
+    %%       DB chặn thêm bằng trigger BEFORE UPDATE OF status ON trip: chuyển sang cancelled thì từ chối nếu tồn tại trip_manifest của phơi hoặc còn trip_seat có state sold, hold, free, cargo. Quyền: delete_trip (quy tắc 19).
+    %%   (11) Tài xế / phụ xe gắn THEO PHƠI (trip.driver_id, helper_id), không có giá trị mặc định; danh sách chọn lấy từ nhân sự (FleetStore.getStaff theo crew_role). Các tên cứng
+    %%       (Trần Văn Hùng, Phạm Quốc Bảo, Đỗ Văn Sơn, Nguyễn Thị Hương...) đã gỡ khỏi ticketstaff.js (makeSeat), ticketstaff.html (dropdown tĩnh) và ticketstaff-pickup.js; chỉ còn
+    %%       dữ liệu nhân sự mẫu ở fleet-store.js (SEED_STAFF) và vài ghế demo khởi tạo trong ticketstaff.js. Lúc khởi hành, manifest chụp tên tài xế / phụ xe từ trip.
+    %%       Danh sách tài xế trung chuyển dự phòng TX01..TX05 (pkBuildDriversPool ở ticketstaff-pickup.js và adminTsDriverPool ở admin-transship.js) ĐÃ XÓA (chốt): chưa có nhân sự shuttle_driver thì danh sách trống. Còn lại SEED_STAFF (fleet-store.js) và seed seedDefaultShuttleDriverAssignment / seedDefaultDriverVehicleMap (khoá TX01..TX05) là dữ liệu demo, không migrate (quy tắc 16).
+    %%   (12) Trạm bán vé KHÔNG chọn tay: ticket.selling_station_id = trạm chính của nhân viên thao tác lúc bán (HR staff.station, hàm getActingStaffStation; chụp một lần, theo quy ước station_id của
+    %%       acting_context ở so-do-er-nhan-su-v3.1). Nhân viên bán vé BẮT BUỘC đã được gán trạm chính từ lúc tạo tài khoản (chốt): KHÔNG còn trạm dự phòng (đã bỏ trạm đầu danh sách và khóa hn_ts_current_station_v1); requireActor(true) chặn đặt / bán / chuyển vé khi tài khoản thường chưa có trạm; admin gốc (is_root) được miễn việc gán trạm nhưng vé admin bán được ghi trạm hệ thống 'Admin' (ĐÃ KHỚP CODE: getActingStaffStation ở seat-bank.js trả 'Admin' cho admin gốc), nên ticket.selling_station_id LUÔN NOT NULL. DB: bảng station có 1 dòng hệ thống 'Admin' (cần thêm cờ is_system ở station-erd.mmd: không hiện ở ô chọn trạm đi / đến, không có giá). Vé cũ thiếu trạm hiện ở nhóm 'Chưa xác định' trên app (app không còn gán theo trạm người đang xem); khi migrate gán trạm 'Admin' (quy tắc 25b). hn_ts_ticket_stations_v1 chỉ còn để hiện dòng thống kê.
+    %%       ticket.sold_by = NGƯỜI THU TIỀN / BÁN VÉ (chốt): vé đặt (hold) mang tạm người đặt / người chuyển gần nhất; khi vé chuyển sang đã bán (sold) thì sold_by, selling_station_id đổi thành của người bấm bán và doanh thu tính cho người đó; người đặt giữ ở ticket.booked_by (seat.bookedBy). Sửa vé đã bán không đổi người bán (tsStampSeller, ticketstaff.js; Admin > Trung chuyển bán luôn từ ghế trống nên người bán = người đặt). sold_phase và reopen_event_id vẫn chụp một lần lúc tạo vé (không đổi lúc bán).
+    %%       THU BỔ SUNG TRONG RE-OPEN (chốt: vé Re-open phải được lưu và tính vào số liệu sau): vé ĐẶT trước khi khởi hành (đã nằm trong số liệu phơi gốc dưới dạng "chưa thu") mà được THU TIỀN lúc phơi đang Re-open thì ticket.settled_reopen_event_id = lần Re-open đó. Số liệu của lần Re-open đó (tsApplyReopenSettlements, ticketstaff-manifest-core.js): số vé / hành khách / tổng tiền KHÔNG đổi (tránh đếm hai lần); chưa thu giảm và đã thu tăng đúng số tiền; tiền mặt <-> chuyển khoản theo cách thu thật; số vé + doanh thu chuyển từ NGƯỜI ĐẶT + trạm đặt sang NGƯỜI THU + trạm của người thu (nên manifest_sales_total của lần Re-open có thể ÂM ở người đặt / trạm đặt). Chốt cứng vào trip_reopen_event (settled_tickets, settled_amount, các cột *_added) lúc đóng Re-open; Xem phát sinh / Kết ca / Xem phơi cộng các phần nên tổng vẫn đúng. Bảng mệnh giá của Kết ca đưa vé thu bổ sung vào PHẦN Re-open nơi tiền được thu. Đã chạy thử: vé 100.000 đặt tại KDV, thu chuyển khoản tại LDH trong Re-open + 1 vé mới 30.000 -> Re-open: 1 vé / 30.000, đã thu +130.000, chưa thu -100.000, trạm KDV -100.000 / LDH +130.000; tổng sau cùng 3 vé / 180.000, kết ca 1 lần đủ 180.000. Chưa xử lý: hủy vé đã thu bổ sung ngay trong Re-open (số liệu đóng băng cần điều chỉnh tay). Tổng tiền của phơi thống kê theo trạm (stationBreakdown) và theo
+    %%       nhân viên bán (sellerBreakdown) — hai bảng riêng trong manifest / Re-open; bảng chéo (nhân viên × trạm) manifest_sales_total dựng từ ticket khi migrate. Báo cáo kết ca gom theo nhân viên BÁN.
+    %%   (13) Ghế hủy: seat_cancellation là lịch sử ghế khách đã hủy. Vé hủy có thể được chuyển sang ghế khác / phơi khác; bản ghi không xoá mà đánh dấu restored = TRUE kèm nơi đến
+    %%       (restoredToSeat, restoredToTripId, restoredAtIso, restoredBy). Thông tin khách / chặng / giá để TRỐNG nếu vé gốc không có, không điền giá trị mặc định giả.
+    %%       Hủy theo TỪNG GHẾ: mỗi ghế hủy = 1 dòng seat_cancellation, trỏ về vé gốc bằng ticket_id. Dòng ticket KHÔNG bị xoá; ticket.status chuyển cancelled khi mọi ghế của vé đã hủy
+    %%       (vé ghế đôi / vé nhóm chỉ hủy 1 ghế thì vé vẫn active). Mọi thống kê, kết ca, manifest chỉ tính ticket.status = active. Vé hủy được chuyển sang ghế khác = ticket MỚI ở ghế nhận với ticket_no MỚI (cấp từ ticket_no_seq) và trỏ về vé gốc bằng ticket.transferred_from_ticket_id; NGOẠI LỆ duy nhất: đặt lại đúng ghế cũ trong đúng phơi cũ thì dùng lại ticket_no của vé hủy (ĐÃ KHỚP CODE: confirmRestoreFromCancelled); dòng hủy cũ đánh dấu restored (tính duy nhất của mã: quy tắc 14).
+    %%       CHỈ GHẾ ĐÃ ĐẶT MỚI CHUYỂN ĐƯỢC (chốt): seat_cancellation.prev_state = trạng thái ghế lúc hủy (app: prevState). Chỉ prev_state = hold (đã đặt, chưa thu tiền) mới được chuyển sang ghế / phơi khác; ghế ĐÃ BÁN (sold, free, cargo) vẫn HỦY được nhưng vé hủy KHÔNG chuyển được; bản ghi hủy cũ không có prev_state coi như không chuyển được.
+    %%       Vé chuyển ở phơi nhận là vé ĐÃ ĐẶT (hold) và nhận các nhãn sold_by / selling_station / sold_phase / reopen_event_id theo NGƯỜI THAO TÁC MỚI NHẤT lúc chuyển (tsStampSoldPhaseIfNeeded(..., force)). Phơi nhận không bị hủy, không phải phơi mẫu; phơi đã khởi hành chỉ nhận khi đang Re-open (sold_phase = POST_DEPART, reopen_event_id = lần Re-open đang mở). Doanh thu chỉ phát sinh khi vé được BÁN và tính cho người bán vé đó.
+    %%       Doanh thu tính cho người THU TIỀN (chốt, xem quy tắc 12): vé chuyển chỉ mang người thao tác mới nhất tới khi được bán. ĐÃ KHỚP CODE: confirmCancel, startTransferFromCancelled, confirmRestoreFromCancelled.
+    %%   (14) Mã vé ticket_no dạng SGCD-0001 cấp bằng SEQUENCE của DB (ticket_no_seq), KHÔNG dùng bộ đếm ticketSeq của app (ticketSeq reset về 1 mỗi lần tải trang rồi mới kéo theo seat bank nên nhiều máy / tab bán cùng lúc có thể trùng); tiền tố cố định, không sinh ngẫu nhiên.
+    %%       UNIQUE (ticket_no, trip_id) WHERE status = active: mỗi lần chuyển sang ghế khác (cùng phơi hay khác phơi) đều cấp mã MỚI (quy tắc 21), nên mã chỉ trùng trong 1 phơi ở trường hợp đặt lại đúng ghế cũ, khi đó dòng vé hủy cũ (cancelled) và vé mới (active) cùng mã. KHÔNG unique toàn hệ thống vì dữ liệu cũ đã có mã trùng giữa các phơi (trước đây chuyển vé giữ mã cũ). Tra vé theo mã trả mọi dòng cùng mã; dòng được chuyển đi có ticket.transferred_from_ticket_id.
+    %%       Mã ngẫu nhiên của dữ liệu cũ vẫn hợp lệ; mã chỉ dùng để in dự phòng (vé chưa có mã) không được lưu.
+    %%   (15) Đóng băng số liệu do NGƯỜI xác nhận, không đặt thời gian mặc định: sau khi khởi hành, vé của phơi còn sửa được (kể cả do Re-open) và "mệnh giá theo trạm" tính lại từ vé hiện tại (version mới nhất).
+    %%       Ở màn Xem phơi có nút "Đóng băng" (hỏi xác nhận): bấm thì ghi bản chụp vào manifest_denomination, đặt trip_manifest.frozen_at / frozen_by; từ đây bảng mệnh giá chỉ đọc từ bản chụp và phơi KHÔNG Re-open được nữa
+    %%       (vé sau khởi hành chỉ sửa được trong lúc Re-open nên đây cũng là lúc khoá sửa vé). Điều kiện: phơi đã có manifest, chưa đóng băng, KHÔNG có lần Re-open đang OPEN. Bấm một lần, không có nút mở lại.
+    %%       App: manifest.frozenAt / frozenBy / frozenDenom (JSON) trong hn_ts_manifests_v1 — tsCanFreezeManifest / tsFreezeManifest (ticketstaff-manifest-core.js), nút #manifestFreezeBtn (ticketstaff.html), confirmFreezeManifest (ticketstaff-manifest-ui.js).
+    %%       Admin > Phơi xe: tick chọn nhiều phơi đã khởi hành (nút tròn trên thẻ) rồi "Đóng băng" một lần (adminOpenFreezeModal / adminConfirmFreezeTrips, admin-trips.js); mỗi phơi vẫn kiểm đúng điều kiện trên,
+    %%       phơi không đủ điều kiện bị bỏ qua và báo số lượng. Ghi nhật ký hoạt động (FleetStore.log, action = freeze).
+    %%       frozenDenom ánh xạ sang bảng manifest_denomination khi migrate.
+    %%   (16) Dữ liệu demo không migrate: khách / địa chỉ / loại khách ngẫu nhiên trong makeSeat (ticketstaff.js) và tài xế trung chuyển mẫu trong seedDefaultShuttleDriverAssignment (ticketstaff-pickup.js). Cũng không migrate: phơi seed DEFAULT_SGCD_TRIPS / DEFAULT_CDSG_TRIPS / DEFAULT_EXTRA_TEMPLATE_TRIPS (id '1'..'14', kể cả đoạn di trú ngày '2026-07-29' trong loadAllTrips), SEED_STAFF mẫu và seed khoá TX01..TX05 ở seedDefaultDriverVehicleMap.
+    %%   (17) KHÔNG kiểm tra trùng lịch (chốt): tài xế, phụ xe hoặc xe được chỉ định cho nhiều phơi cùng khung giờ vẫn hợp lệ; DB không có ràng buộc loại trừ theo giờ và app không cảnh báo. Ô cảnh báo 'tài xế trùng lịch' (BR-07: driverWarn, checkDriverConflict) ĐÃ GỠ khỏi ticketstaff.js / ticketstaff.html / events.js, cùng dòng nhân viên mẫu 'Lê Minh Tuấn (trùng lịch)' trong fleet-store.js.
+    %%       Phơi trùng tên / trùng giờ đã được phép từ trước (ticketstaff.js: Không ràng buộc trùng tên / trùng giờ phơi nữa).
+    %%   (18) Rước liền và Trung chuyển: khách Rước liền nhập ở modal Rước liền vào hàng chờ pickup_request (app: hn_pickup_passengers_v6, record {id, name, phone, ticketCount, fromStation, fromTransfer, toStation, toTransfer, note, assigned, statusNote, createdAt}); chưa có ghế nên chưa có ticket.
+    %%       Chỉ định xe (pkConfirmAssign -> confirmSellPayment): chọn phơi + ghế trống, bán vé guest_type = Trung chuyển (khách Rước liền về nhà xe coi như khách Trung chuyển: lưu điểm đón ticket.pickup_address và điểm trả ticket.dropoff_address lấy từ fromTransfer / toTransfer của khách; ô để trống thì để trống, không lưu '—'; cả TicketStaff lẫn Admin > Trung chuyển cùng làm vậy): tạo ticket mới (mã SGCD tuần tự) và đặt pickup_request.ticket_id; NULL = còn trong hàng chờ. Ghi chú Phòng vé của khách chờ ở pickup_request.office_note (app: statusNote).
+    %%       Phân công tài xế trung chuyển (shuttle_assignment): app khóa theo SĐT + hậu tố chặng; chặng đón có thể thuộc ticket hoặc pickup_request còn chờ (đúng 1 trong 2 cột), khi Rước liền thành vé thì chuyển dòng sang ticket_id. Mới thấy code ghi chặng đón (_don, pkShuttleDriverLegKey); chặng trả (_tra) chưa thấy nơi ghi.
+    %%       entry.note chỉ có khi status = issue (mặc định 'Không liên lạc được') -> issue_reason; noteImportant = (status = issue) nên suy ra, không lưu.
+    %%       LƯU Ý MIGRATE pickup_request: bản ghi app còn có guestType = 'Rước liền' và isRuocLien (dẫn xuất, không thành cột); fromTransfer / toTransfer có thể là '—' (modal Rước liền lưu '—' khi trống) → đổi thành NULL. App CHƯA ghi created_by (users.user_id) và station_id của trạm nhập khách: cần thêm vào modal Rước liền. p.assigned chỉ có {tripId, seat, seats, price}, không có mã vé, nên pickup_request.ticket_id nối qua (tripId, mã ghế) → trip_seat.ticket_id.
+    %%   (19) PHÂN QUYỀN: chuỗi quyền theo so-do-er-nhan-su-v3.1: users -> employees -> employee_types -> employee_type_permissions -> permissions. Quyền CHỈ đến từ loại nhân viên (không có quyền riêng từng người); admin gốc (users.is_root) có đủ. Mọi thao tác ghi gọi acting_context(user_id, station_id) rồi has_permission(key); station_id ghi vào ticket.selling_station_id (quy tắc 12).
+    %%       Ma trận hành động phơi xe -> khóa quyền (permissions.key, khai báo ở src/auth/permissions.js):
+    %%         Tạo phơi, tạo phơi mẫu, tạo phơi hàng loạt ................ create_trip
+    %%         Sửa phơi (giờ, trạm, loại xe, giá, ghi chú) ............... edit_trip
+    %%         Hủy phơi (1 hoặc hàng loạt) ............................... delete_trip (nhãn hiện là Xóa phơi nhưng nghiệp vụ là HỦY, nên đổi nhãn)
+    %%         In phơi ................................................... print_trip
+    %%         Chỉ định xe / Khởi hành xe / Re-open ...................... assign_depart_reopen (1 khóa cho cả 3 việc; tách ra nếu cần phân biệt)
+    %%         Đặt vé / Bán vé ........................................... book_ticket / sell_ticket
+    %%         Sửa giá vé khi bán, vé 0đ ................................. change_price
+    %%         Trung chuyển: nhận khách rước ............................. transship_pickup
+    %%         Trung chuyển: chỉ định xe, cập nhật trạng thái ............ transship_assign (đã thi hành qua Auth.isShuttleDispatch)
+    %%         In vé trung chuyển ........................................ print_transship_ticket
+    %%         Giá vé (khung giá, station_price) ......................... manage_prices (fare-erd.mmd)
+    %%         Xem dữ liệu mọi trạm ...................................... view_all_stations
+    %%         Xem nhật ký hoạt động ..................................... view_activity_logs
+    %%         Xem doanh thu phơi ở Kế toán .............................. view_revenue_overview, view_ledgers
+    %%       GOM QUYỀN (chốt): KHÔNG thêm khóa mới. Đóng băng, Kết ca, Khách ngoài phơi đi theo assign_depart_reopen; hủy ghế, chuyển vé sang phơi khác đi theo sell_ticket (nhãn trong permissions.js đã cập nhật). Các khóa freeze_trip, close_shift, cancel_ticket, record_violation không dùng.
+    %%       HIỆN TRẠNG: permissions.js ghi rõ chỉ transship_assign và nhóm manage_* (Admin > Trạm xe, Tuyến xe) được thi hành bằng Auth.hasPermission. Các khóa phơi / vé ở trên mới khai báo và gán, KHÔNG được kiểm ở admin-trips.js hay ticketstaff.js (ai vào được trang thì làm được). Auth.hasPermission hiện coi role === 'admin' là admin gốc (chưa dùng users.is_root).
+    %%       Phải thêm kiểm quyền ở tầng service / API (users -> employee_types -> permissions), không chỉ ẩn nút.
+    %%       PHẠM VI DỮ LIỆU (theo v3.1, chưa có trong code phơi; ĐIỂM CẦN CHỦ XÁC NHẬN): người không có view_all_stations chỉ thấy vé và doanh thu thuộc trạm xem được (employee_stations, employee_scope_regions) theo ticket.selling_station_id và manifest_sales_total.station_id;
+    %%       nhóm is_self chỉ thấy dữ liệu do chính mình tạo (ticket.sold_by = tài khoản của mình). Bản thân phơi thuộc hướng, không thuộc trạm, nên danh sách phơi hiện cho mọi người có quyền vào trang.
+    %%   (20) NHẬT KÝ: FleetStore.log của phơi (entity trip: create, update, cancel, freeze, bulk-create; mới thấy ở Admin > Phơi xe và hủy phơi ở TicketStaff) ghi vào activity_logs (so-do-er-nhat-ky-v3.1.mermaid) với entity_type = trip, entity_id = trip_id, changes = trước / sau.
+    %%       CHECK action của activity_logs hiện chưa có cancel, freeze, bulk_create, depart, reopen, reopen_close, shift_close: đề xuất bổ sung ở file nhật ký (chưa sửa file đó).
+
+    %%   (21) CHUYỂN GHẾ / VÉ TRỰC TIẾP (confirmTransfer; mọi ghế sold / hold / free / cargo, khác chuyển từ vé hủy ở quy tắc 13): chuyển sang ghế khác, CÙNG phơi hay KHÁC phơi, đều tạo ticket MỚI với ticket_no MỚI (ghế khác = vé khác), transferred_from_ticket_id trỏ vé gốc; trip_seat nguồn về trống (ticket_id NULL), trip_seat đích trỏ vé mới. Các ghế của CÙNG vé gốc chuyển chung một lần dùng chung một vé mới; vé gốc hết ghế thì ticket.status = transferred, chuyển một phần thì vé gốc vẫn active với số ghế còn lại. Vé giấy khách đang cầm mang mã cũ nên phải in lại vé (app đã nhắc). ĐÃ KHỚP CODE: issueTicketNo trong confirmTransfer, đếm lại count của vé gốc và vé mới.
+    %%       Nhãn bán vé: vé ĐÃ BÁN giữ sold_by, booked_by, selling_station_id, booked_station_id, đại lý (doanh thu thuộc người thu tiền); vé chưa bán (hold, free, cargo) mang người thao tác MỚI NHẤT. Khác phơi thì sold_phase / reopen_event_id tính lại theo phơi đích và settled_reopen_event_id về NULL. Cùng phơi chép nguyên mọi nhãn kể cả địa chỉ đón / trả và ghi chú Phòng vé.
+    %%       Điều kiện: phải đăng nhập và tài khoản có trạm (requireActor(true)); phơi đích không hủy, không mẫu, nếu đã khởi hành thì phải đang Re-open; phơi nguồn không bị khóa bán (tripNotSellable / tsIsSellingLocked). ĐÃ KHỚP CODE: confirmTransfer; confirmAddToGroup (Đặt thêm cho nhóm) cũng requireActor(true).
+    %%   (22) ĐỔI CHỈ ĐỊNH RƯỚC LIỀN (pkConfirmAssign, adminTsConfirmSellPayment khi khách đã có ghế): ghế cũ về trống, KHÔNG ghi seat_cancellation; vé cũ ticket.status = transferred; vé mới cấp ticket_no MỚI, transferred_from_ticket_id trỏ vé cũ; pickup_request.ticket_id luôn là vé mới nhất (lịch sử đi qua transferred_from_ticket_id). Phơi đích kiểm như quy tắc 21. ĐÃ KHỚP CODE: tripNotSellable ở pkConfirmAssign và nhánh pendingPickupAssignSell của confirmSellPayment (bản Admin đã có sẵn); danh sách phơi của modal Chỉ định xe bỏ phơi đã hủy.
+    %%   (23) LOẠI XE - XE: khi gán xe, vehicle.vehicle_type_id phải bằng trip.vehicle_type_id. ĐÃ KHỚP CODE: FleetStore.plateMatchesType kiểm ở updateExistingTrip, saveAssign, adminSaveTrip (biển không còn trong danh sách xe = phơi cũ thì bỏ qua). DB: FK ghép trip(vehicle_id, vehicle_type_id) -> vehicle(vehicle_id, vehicle_type_id), hoặc trigger.
+    %%   (24) ĐIỂM CẦN CHỦ XÁC NHẬN (code CHƯA đổi): (a) VÉ NHIỀU GHẾ: app gom ghế theo ticketNo (groupSeatsByTicket), lấy ghế ĐẠI DIỆN = mã nhỏ nhất để quyết định sold / hold, giá, người bán; tiền vé = giá ghế đại diện x số ghế. 'Đặt thêm cho nhóm' có thể thêm ghế hold vào vé đã sold nhưng cả vé vẫn tính theo đại diện (sold). DB phải chọn: đưa state + đơn giá lên ticket, hoặc cấm ghế khác trạng thái trong cùng vé.
+    %%       (b) GIÁ GHẾ ĐÔI: fare.double (mặc định giá đơn x 2) là giá của MỘT ghế đôi; nếu vé ghế đôi giữ 2 ghế và mỗi ghế mang giá đôi thì tiền bị nhân đôi. Cần chốt ghế đôi = 1 ghế vật lý (count = 1) hay 2 ghế (giá chia đôi), và trip_seat.price là giá mỗi ghế hay mỗi vé.
+
+    %%   (25) RÀ SOÁT LOGIC DB: (a) SỐ GHẾ CỦA VÉ = số trip_seat đang trỏ vào vé (không có cột đếm); vé nhiều ghế đã hủy / chuyển bớt một phần thì tiền vé = đơn giá x số ghế còn lại (khớp groupSeatsByTicket). Vé hết ghế: ghế cuối bị hủy -> cancelled, ghế cuối được chuyển đi -> transferred.
+    %%       (b) ADMIN GỐC VÀ DỮ LIỆU CŨ: người bán và trạm là BẮT BUỘC (NOT NULL) ở ticket, manifest_sales_total, manifest_denomination. Vé admin gốc bán: sold_by = users.user_id của admin gốc, selling_station_id = trạm hệ thống 'Admin'. Vé cũ thiếu người bán / trạm: migrate gán admin gốc + trạm 'Admin' (app vẫn hiển thị 'Không rõ' / 'Chưa xác định' cho dữ liệu chưa migrate).
+    %%       (c) trip_manifest.closed_at / closed_by là lần KẾT CA GẦN NHẤT (phơi Re-open rồi kết ca lại thì ghi đè); lịch sử từng lần nằm ở shift_closing_trip. (d) vehicle cần UNIQUE (vehicle_id, vehicle_type_id) làm đích cho FK ghép của quy tắc 23, và trip.vehicle_id chỉ trỏ xe scope line (CHECK / trigger).
+
+    direction ||--o{ trip : "hướng của phơi (direction_id)"
+    route |o--o{ trip : "tuyến đại diện để hiển thị (route_id); không quyết định phơi hiện ở tuyến nào"
+    station |o--o{ trip : "trạm đi (from_station_id)"
+    station |o--o{ trip : "trạm đến (to_station_id)"
+    vehicle_type ||--o{ trip : "loại xe của phơi"
+    vehicle_type ||--o{ vehicle : "loại xe của xe"
+    vehicle |o--o{ trip : "xe được chỉ định (NULL = Chưa chỉ định)"
+    employees |o--o{ trip : "tài xế tuyến (driver_id)"
+    employees |o--o{ trip : "phụ xe (helper_id)"
+    trip ||--o{ trip_pickup_station : "trạm có thể nhận thêm khách"
+    station ||--o{ trip_pickup_station : ""
+
+    trip ||--o{ trip_seat : "sơ đồ ghế"
+    trip ||--o{ ticket : "vé bán trên phơi"
+    ticket |o--o{ trip_seat : "ghế thuộc vé (ghế đôi = nhiều ghế / vé)"
+    trip ||--o{ seat_cancellation : "ghế đã hủy"
+    trip |o--o{ seat_cancellation : "vé hủy được chuyển sang phơi này (restored_to_trip_id)"
+    ticket |o--o{ seat_cancellation : "vé gốc của ghế đã hủy (ticket_id)"
+
+    agent |o--o{ ticket : "đại lý bán (agent_id)"
+    station ||--o{ ticket : "trạm bán vé (selling_station_id); admin gốc = trạm hệ thống Admin"
+    station |o--o{ ticket : "trạm đặt vé (booked_station_id)"
+    users ||--o{ ticket : "tài khoản bán vé (sold_by); admin gốc bán thì là tài khoản admin"
+    users |o--o{ ticket : "tài khoản đặt vé (booked_by)"
+    station |o--o{ ticket : "trạm đi lúc bán (from_station_id)"
+    station |o--o{ ticket : "trạm đến lúc bán (to_station_id)"
+    trip_reopen_event |o--o{ ticket : "vé tạo trong lần Re-open (reopen_event_id)"
+    trip_reopen_event |o--o{ ticket : "vé đặt trước, thu tiền trong lần Re-open (settled_reopen_event_id)"
+    ticket |o--o{ shuttle_assignment : "chặng đón / trả trung chuyển của vé (không bắt buộc, tối đa 1 dòng mỗi chặng)"
+    pickup_request |o--o{ shuttle_assignment : "chặng đón của khách Rước liền còn trong hàng chờ"
+    pickup_request |o--o| ticket : "vé đã bán khi chỉ định xe (pickup_request.ticket_id)"
+    ticket |o--o{ ticket : "vé được chuyển từ vé gốc (transferred_from_ticket_id)"
+    employees |o--o{ shuttle_assignment : "tài xế trung chuyển"
+    vehicle |o--o{ shuttle_assignment : "xe trung chuyển"
+
+    trip ||--o| trip_manifest : "phơi tạo lúc khởi hành (1-1)"
+    trip_manifest ||--o{ trip_reopen_event : "các lần Re-open"
+    trip_manifest ||--o{ manifest_sales_total : "doanh thu theo nhân viên bán + trạm"
+    trip_reopen_event |o--o{ manifest_sales_total : "NULL = phơi gốc"
+    station ||--o{ manifest_sales_total : ""
+    users ||--o{ manifest_sales_total : "tài khoản bán vé (seller_user_id)"
+    trip_manifest ||--o{ manifest_denomination : "bản chụp mệnh giá theo trạm (khi bấm Đóng băng)"
+    station ||--o{ manifest_denomination : ""
+    trip_manifest ||--o{ manifest_roadside_guest : "khách rước đường"
+    trip_reopen_event |o--o{ manifest_roadside_guest : "NULL = phơi gốc"
+    trip ||--o{ trip_violation : "khách ngoài phơi"
+
+    shift_closing ||--o{ shift_closing_trip : "phơi trong ca"
+    trip ||--o{ shift_closing_trip : "phần của phơi được kết ca (gốc + từng lần Re-open)"
+    trip_reopen_event |o--o{ shift_closing_trip : "NULL = phần gốc, có giá trị = phần của lần Re-open"
+    shift_closing ||--o{ shift_closing_expense : "khoản chi tự điền"
+
+    %% ----- Tài khoản, phân quyền, nhật ký (khung; bảng đầy đủ ở so-do-er-nhan-su-v3.1.mermaid và so-do-er-nhat-ky-v3.1.mermaid) -----
+    employees |o--o| users : "tài khoản đăng nhập (users.employee_id); admin gốc không có nhân viên"
+    employee_types ||--o{ employees : "loại hiện tại"
+    employee_types ||--o{ employee_type_permissions : "quyền của loại (nguồn duy nhất của quyền)"
+    permissions ||--o{ employee_type_permissions : "quyền được cấp cho loại"
+    permission_groups ||--o{ permissions : "nhóm quyền"
+    employees ||--o{ employee_stations : "trạm làm việc (có lịch sử)"
+    station ||--o{ employee_stations : "trạm được gán"
+    users |o--o{ activity_logs : "người thao tác"
+    users |o--o{ trip : "tạo / sửa / hủy phơi"
+    users |o--o{ seat_cancellation : "hủy / chuyển ghế"
+    users |o--o{ trip_manifest : "khởi hành / kết ca / đóng băng"
+    users |o--o{ trip_reopen_event : "mở / đóng Re-open"
+    users |o--o{ trip_violation : "ghi nhận khách ngoài phơi"
+    users |o--o{ pickup_request : "nhập khách Rước liền"
+    users |o--o{ shuttle_assignment : "cập nhật phân công"
+    station |o--o{ pickup_request : "trạm nơi nhập"
+    users ||--o{ shift_closing : "tài khoản kết ca"
+
+    trip {
+        bigint trip_id PK
+        varchar name "tên hiển thị, mặc định = Trạm đi - Trạm đến (giờ)"
+        date trip_date "NOT NULL; phơi mẫu luôn = hôm nay"
+        time departure_time "NOT NULL, giờ xuất bến"
+        bigint direction_id FK "NOT NULL; hướng của phơi (app: trip.directionId; phơi cũ suy từ nhãn tuyến)"
+        bigint route_id FK "nullable; tuyến đại diện chỉ để hiển thị (app lưu nhãn tuyến dạng chuỗi trip.route)"
+        bigint from_station_id FK "trạm đi; thuộc tỉnh đi của hướng (station.region_id = direction.from_region_id)"
+        bigint to_station_id FK "trạm đến; thuộc tỉnh đến của hướng (station.region_id = direction.to_region_id)"
+        bigint vehicle_type_id FK "NOT NULL, loại xe scope line. Giữ ở phơi vì phơi Chưa chỉ định (vehicle_id NULL) vẫn cần loại xe để sinh ghế và tra giá; khi gán xe, vehicle.vehicle_type_id phải bằng giá trị này"
+        int base_price "giá ghế đơn của (trạm đi, trạm đến, loại xe) lấy tự động lúc lưu phơi; cặp chưa có giá thì nhân viên tự nhập; app: trip.price"
+        bigint vehicle_id FK "nullable; NULL = Chưa chỉ định (BẮT BUỘC có giá trị khi khởi hành, quy tắc 4). DB chỉ giữ vehicle_id (app còn lưu chuỗi plate ở 2 nơi: trip.plate và tripSeatBank[tripId].plate)"
+        bigint driver_id FK "nullable, employees.id có crew_role = route_driver (BẮT BUỘC có giá trị khi khởi hành, quy tắc 4); gắn theo phơi, không có mặc định (app đang lưu tên chuỗi ở tripSeatBank[tripId].driver)"
+        bigint helper_id FK "nullable, employees.id có crew_role = helper; gắn theo phơi, không có mặc định (app đang lưu ở tripSeatBank[tripId].helper)"
+        text note
+        varchar status "NOT NULL DEFAULT open; open | cancelled (CHECK); cancelled chỉ đặt qua nút Hủy phơi và chỉ khi phơi trống. App lưu chuỗi: Chưa chỉ định | Đang bán | Khởi hành | Đã hủy (quy tắc 2)"
+        text cancel_reason "bắt buộc khi status = cancelled (lý do gì)"
+        timestamptz cancelled_at "bắt buộc khi status = cancelled (giờ nào); app: trip.cancelledAt"
+        uuid cancelled_by FK "bắt buộc khi status = cancelled, users.user_id (hủy bởi ai); app: trip.cancelledBy = mã nhân viên"
+        boolean is_template "NOT NULL DEFAULT FALSE; TRUE = phơi mẫu để nhân bản, không bán vé"
+        timestamptz created_at
+        uuid created_by FK "users.user_id: tài khoản tạo phơi; NOT NULL với phơi tạo mới, NULL = dữ liệu cũ. App CHƯA ghi (chỉ có createdAt dạng Date.now()): phải thêm vào createNewTrip, adminSaveTrip, adminBulkCreate"
+        timestamptz updated_at
+        uuid updated_by FK "users.user_id: người sửa gần nhất; NULL = chưa sửa hoặc dữ liệu cũ. App CHƯA ghi: thêm vào updateExistingTrip, adminSaveTrip"
+    }
+
+    trip_pickup_station {
+        bigint trip_id PK, FK
+        bigint station_id PK, FK "trạm có thể nhận thêm khách (pickupStations); thuộc tỉnh đi hoặc tỉnh đến của hướng"
+    }
+
+    trip_seat {
+        bigint trip_seat_id PK
+        bigint trip_id FK "NOT NULL, ON DELETE CASCADE"
+        varchar seat_code "A1..An tầng dưới, B1..Bn tầng trên, mã ghế phụ / ghế dư; UNIQUE (trip_id, seat_code). Ghế ẩn của loại xe (vd A3, B3 của Limousine 34) lưu state = hidden (app đang gắn hậu tố _hidden vào mã)"
+        varchar floor_type "NOT NULL; down | up | extra | sub (ghế phụ, chỉ có ghi chú và giá)"
+        varchar state "NOT NULL DEFAULT empty; empty | hold | sold | free | cargo | hidden"
+        int price "giá bán của ghế; free = 0, mặc định DEFAULT_SUB_SEAT_PRICE cho ghế phụ"
+        bigint ticket_id FK "nullable, NULL = ghế trống; ghế liền kề cùng vé trỏ chung 1 ticket_id; FK ghép (ticket_id, trip_id) -> ticket(ticket_id, trip_id) để ghế không trỏ sang vé của phơi khác"
+        boolean locked "NOT NULL DEFAULT FALSE, khoá tạm thời (BR-05). CHƯA CÓ chức năng: app không có nơi nào đặt khoá thật (chỉ ghế demo ở ticketstaff.js); giữ cột nếu sẽ làm BR-05, không thì bỏ"
+        varchar locked_by "nhân viên đang khoá (chưa dùng, như cột locked)"
+        text note "ghi chú của ghế phụ"
+    }
+
+    ticket {
+        bigint ticket_id PK "UNIQUE (ticket_id, trip_id) làm đích cho FK ghép của trip_seat"
+        bigint trip_id FK "NOT NULL"
+        varchar ticket_no "mã vé SGCD-0001 cấp bằng SEQUENCE ticket_no_seq; UNIQUE (ticket_no, trip_id) WHERE status = active, KHÔNG unique toàn hệ thống (quy tắc 14); app gom ghế thành vé theo ticketNo"
+        bigint transferred_from_ticket_id FK "nullable; vé gốc (đã hủy hoặc còn một phần) mà vé này được chuyển từ (quy tắc 13); vé này luôn có ticket_no mới (quy tắc 21, 22), trừ trường hợp đặt lại vé hủy đúng ghế cũ trong đúng phơi cũ thì dùng lại mã vé hủy (quy tắc 13)"
+        varchar status "NOT NULL DEFAULT active; active | cancelled | transferred (CHECK); cancelled khi mọi ghế của vé đã hủy (quy tắc 13); transferred khi vé đã chuyển hết ghế sang vé mới (quy tắc 21, 22); vé cũ trên app suy từ seat_cancellation"
+        varchar customer_name
+        varchar phone "có index; dùng tra lịch sử khách và nối chặng đón trung chuyển"
+        varchar guest_type "NOT NULL DEFAULT Khách trạm; Khách trạm | Trung chuyển | Rước đường. Khách từ hàng chờ Rước liền sau khi chỉ định xe lưu là Trung chuyển (nguồn gốc nối qua pickup_request.ticket_id, quy tắc 18); dữ liệu cũ có thể còn giá trị Rước liền"
+        varchar first_stop "điểm đi (chụp tên trạm / điểm dừng lúc bán)"
+        varchar last_stop "điểm đến"
+        bigint from_station_id FK "nullable; trạm đi lúc bán, dùng tra giá (app: ticket.fromStationId)"
+        bigint to_station_id FK "nullable; trạm đến lúc bán (app: ticket.toStationId)"
+        boolean is_double_seat "NOT NULL DEFAULT FALSE; vé tính giá ghế đôi (app: ticket.isDoubleSeat)"
+        int deposit_amount "NOT NULL DEFAULT 0; tiền cọc, không lớn hơn giá vé"
+        varchar deposit_method "Tiền mặt | Chuyển khoản; có khi deposit_amount > 0"
+        text zero_price_reason "bắt buộc khi giá vé = 0đ"
+        text pickup_address "địa chỉ đón (trung chuyển / rước đường); gộp các field app transshipStation / transship / pickupAddress / fromTransfer"
+        text dropoff_address "địa chỉ trả; gộp các field app arrivalTransfer / dropoffAddress"
+        varchar pickup_time
+        varchar call_state "Chưa gọi | ... (trạng thái gọi khách)"
+        boolean paid "NOT NULL DEFAULT FALSE; thu tiền hay chưa"
+        varchar payment_method "Tiền mặt | Chuyển khoản"
+        boolean has_luggage
+        text luggage_note
+        text note
+        bigint selling_station_id FK "NOT NULL; trạm chính của nhân viên thao tác lúc bán (staff.station), admin gốc = trạm hệ thống Admin (quy tắc 12), chụp 1 lần lúc tạo vé, không chọn tay, không đổi khi sửa (quy tắc 12); app: seat.sellingStation lưu TÊN trạm"
+        varchar sold_phase "NOT NULL; PRE_DEPART | POST_DEPART (bán trước / sau khởi hành)"
+        bigint reopen_event_id FK "nullable, chỉ có khi TẠO vé lúc phơi đang Re-open"
+        bigint booked_station_id FK "nullable; trạm của người ĐẶT vé (app: seat.bookedStation), chụp lúc đặt; vé tạo thẳng ở trạng thái bán thì bằng selling_station_id"
+        bigint settled_reopen_event_id FK "nullable; lần Re-open mà vé ĐẶT từ trước được THU TIỀN (app: seat.settledReopenEventId, đặt trong tsStampSeller). Dùng để ghi doanh thu thu bổ sung vào đúng lần Re-open (quy tắc 5)"
+        bigint agent_id FK "nullable, đại lý (tick Đại lý)"
+        varchar agent_name "chụp tên đại lý lúc đặt, giữ khi đại lý bị xoá"
+        uuid sold_by FK "NOT NULL; users.user_id: tài khoản THU TIỀN / bán vé (admin gốc bán thì là tài khoản admin); vé cũ thiếu người bán migrate = admin gốc; vé đặt (hold) tạm mang người đặt / người chuyển gần nhất, đổi thành người bán khi vé sold; app: seat.staff = mã nhân viên (vé cũ có thể thiếu, hiển thị 'Không rõ'); thống kê theo nhân viên đi qua users.employee_id"
+        uuid booked_by FK "nullable; users.user_id người ĐẶT vé (app: seat.bookedBy); vé cũ thiếu thì lấy theo sold_by"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    seat_cancellation {
+        bigint cancellation_id PK
+        bigint ticket_id FK "nullable (dữ liệu cũ không có mã vé); vé gốc của ghế đã hủy, dòng vé được giữ lại"
+        bigint trip_id FK "NOT NULL"
+        varchar seat_code "NOT NULL, ghế đã hủy"
+        varchar ticket_no "bản chụp mã vé lúc hủy (app lưu ticketNo dạng chuỗi); khi ticket_id có giá trị thì lấy theo vé"
+        varchar customer_name
+        varchar phone
+        varchar first_stop
+        varchar last_stop
+        int price
+        text reason "NOT NULL, lý do hủy bắt buộc"
+        varchar prev_state "trạng thái ghế lúc hủy (app: prevState); hold = ghế đã đặt, được chuyển sang phơi khác; sold / free / cargo = không chuyển được; NULL = bản ghi cũ"
+        timestamptz cancelled_at "app: cancelledAt (ISO); cancelTime chỉ là chuỗi hiển thị"
+        uuid cancelled_by FK "nullable, users.user_id; app: cancelStaff = mã nhân viên"
+        text note
+        boolean restored "NOT NULL DEFAULT FALSE; TRUE = vé hủy đã được chuyển sang ghế khác (app: restored)"
+        bigint restored_to_trip_id FK "nullable, trip.trip_id phơi nhận vé"
+        varchar restored_to_seat_code "nullable, ghế nhận vé"
+        timestamptz restored_at
+        uuid restored_by FK "nullable, users.user_id"
+    }
+
+    shuttle_assignment {
+        bigint assignment_id PK
+        bigint ticket_id FK "nullable; vé đã có ghế (khách Trung chuyển / Rước đường, hoặc khách Rước liền sau khi đã chỉ định xe)"
+        bigint pickup_request_id FK "nullable; khách Rước liền còn trong hàng chờ, chưa có ghế. CHECK đúng 1 trong 2 cột ticket_id / pickup_request_id có giá trị; khi Rước liền thành vé thì chuyển dòng sang ticket_id (quy tắc 18)"
+        varchar leg "NOT NULL; pickup | dropoff (app: hậu tố _don / _tra của khoá sđt). UNIQUE (ticket_id, leg) WHERE ticket_id IS NOT NULL và UNIQUE (pickup_request_id, leg) WHERE pickup_request_id IS NOT NULL. Không bắt buộc: chưa phân tài xế thì không có dòng"
+        bigint driver_id FK "nullable, employees.id có crew_role = shuttle_driver (app: driverName + driverPhone, khớp theo SĐT)"
+        bigint vehicle_id FK "nullable, xe scope shuttle (app: driverPlate + driverVehicleType)"
+        varchar status "NOT NULL DEFAULT waiting; waiting | enroute | onboard | issue"
+        text issue_reason "bắt buộc khi status = issue (app: entry.note, mặc định Không liên lạc được)"
+        text driver_note "ghi chú của tài xế trung chuyển (app: driverNote)"
+        text office_note "ghi chú phòng vé của dòng gắn vé; khách chờ Rước liền dùng pickup_request.office_note"
+        timestamptz updated_at
+        uuid updated_by FK "nullable, users.user_id"
+    }
+
+    trip_manifest {
+        bigint trip_id PK, FK "1-1 với trip, tạo đúng 1 lần lúc Khởi hành xe"
+        varchar status "NOT NULL; DEPARTED | REOPEN | REOPEN_CLOSED | MANIFEST_CLOSED"
+        varchar trip_label "chụp tiêu đề chuyến"
+        date trip_date "chụp ngày"
+        time departure_time "chụp giờ"
+        varchar plate "chụp biển số lúc khởi hành; đổi xe sau KHÔNG cập nhật lại"
+        varchar driver_name "chụp tài xế"
+        varchar helper_name "chụp phụ xe"
+        int advance_amount "NOT NULL DEFAULT 0, tiền ứng"
+        int orig_ticket_count "số liệu phơi GỐC (bán trước khởi hành), đóng băng"
+        int orig_passenger_count
+        int orig_total_amount
+        int orig_cash_amount
+        int orig_transfer_amount
+        int orig_paid_amount "tổng tiền ghế sold"
+        int orig_unpaid_amount "tổng tiền ghế hold / free / cargo"
+        int orig_station_ticket_count "vé Khách trạm + Trung chuyển, đếm theo vé"
+        int orig_roadside_passenger_count "khách Rước đường, đếm theo hành khách"
+        uuid created_by FK "NOT NULL với phơi mới, users.user_id; điều kiện gom vào kết ca (quy tắc 6); NULL = dữ liệu cũ"
+        timestamptz created_at "NOT NULL"
+        timestamptz closed_at "có khi MANIFEST_CLOSED; lần kết ca gần nhất (quy tắc 25c)"
+        uuid closed_by FK "nullable, users.user_id"
+        timestamptz frozen_at "nullable; đặt khi nhân viên bấm Đóng băng ở màn Xem phơi và ghi bản chụp manifest_denomination (quy tắc 15); NOT NULL = phơi đã đóng băng, không Re-open nữa"
+        uuid frozen_by FK "nullable, users.user_id; có khi frozen_at có giá trị"
+    }
+
+    trip_reopen_event {
+        bigint reopen_event_id PK
+        bigint trip_id FK "NOT NULL, trip_manifest.trip_id"
+        int seq "NOT NULL, thứ tự lần Re-open; UNIQUE (trip_id, seq)"
+        varchar status "NOT NULL; OPEN | CLOSED; tối đa 1 OPEN / phơi"
+        text reason "lý do mở Re-open"
+        timestamptz opened_at "NOT NULL"
+        uuid opened_by FK "NOT NULL, users.user_id"
+        timestamptz closed_at
+        uuid closed_by FK "nullable, users.user_id"
+        int tickets_added "đóng băng lúc đóng Re-open"
+        int passengers_added
+        int amount_added
+        int cash_added
+        int transfer_added
+        int paid_added
+        int unpaid_added
+        int station_ticket_added
+        int roadside_passenger_added
+        int settled_tickets "số vé ĐẶT trước được thu tiền trong lần Re-open này (tsApplyReopenSettlements), đóng băng lúc đóng"
+        int settled_amount "tổng tiền các vé thu bổ sung đó; KHÔNG nằm trong tickets_added / amount_added vì vé đã được đếm ở phần gốc / Re-open trước"
+    }
+
+    manifest_sales_total {
+        bigint id PK
+        bigint trip_id FK "NOT NULL"
+        bigint reopen_event_id FK "nullable, NULL = phơi gốc, có giá trị = lần Re-open"
+        bigint station_id FK "NOT NULL, trạm của nhân viên thao tác lúc bán (chụp lúc bán); admin gốc = trạm hệ thống Admin"
+        uuid seller_user_id FK "NOT NULL, users.user_id: tài khoản bán vé (ticket.sold_by); nhân viên của họ là users.employee_id"
+        int tickets "NOT NULL DEFAULT 0; có thể ÂM ở dòng của lần Re-open (thu bổ sung trừ khỏi người đặt / trạm đặt)"
+        int passengers "NOT NULL DEFAULT 0; có thể âm như trên"
+        int amount "NOT NULL DEFAULT 0, có thể âm như trên; chống trùng bằng 2 unique index một phần: (trip_id, station_id, seller_user_id) WHERE reopen_event_id IS NULL và (trip_id, reopen_event_id, station_id, seller_user_id) WHERE reopen_event_id IS NOT NULL (UNIQUE thường không chặn trùng khi cột là NULL)"
+    }
+
+    manifest_denomination {
+        bigint id PK
+        bigint trip_id FK "NOT NULL, trip_manifest.trip_id; chỉ có dòng sau khi trip_manifest.frozen_at được đặt"
+        bigint station_id FK "NOT NULL, trạm bán"
+        varchar kind "NOT NULL; fare (vé có giá) | free (vé 0đ) | roadside (khách Rước đường)"
+        int price "NOT NULL DEFAULT 0; mệnh giá cho kind = fare, 0 cho free / roadside"
+        int ticket_count "NOT NULL DEFAULT 0, đếm theo vé"
+        int amount "NOT NULL DEFAULT 0; UNIQUE (trip_id, station_id, kind, price)"
+    }
+
+    manifest_roadside_guest {
+        bigint id PK
+        bigint trip_id FK "NOT NULL"
+        bigint reopen_event_id FK "nullable, NULL = phơi gốc"
+        varchar customer_name
+        varchar phone
+        varchar first_stop
+        varchar last_stop
+        text pickup_location "điểm rước"
+        int seat_count
+        varchar seat_codes "danh sách mã ghế"
+        int amount
+    }
+
+    trip_violation {
+        bigint violation_id PK
+        bigint trip_id FK "NOT NULL"
+        varchar trip_label
+        varchar driver_name
+        int on_manifest_count "số khách trên phơi"
+        int actual_count "số khách kiểm tra thực tế"
+        int diff_count "CHECK = actual_count - on_manifest_count"
+        varchar checker "NOT NULL, người kiểm tra"
+        uuid recorded_by FK "users.user_id: tài khoản nhập bản ghi (checker là tên người kiểm tra gõ tay, có thể không phải nhân viên); NULL = dữ liệu cũ. App CHƯA ghi cột này (confirmViolation chưa lưu người nhập): cần thêm"
+        timestamptz checked_at "NOT NULL"
+        text note
+        int penalty_amount "NOT NULL DEFAULT 0, tiền phạt"
+        varchar status "NOT NULL DEFAULT Chưa xử lý; CHECK: Chưa xử lý | Đã xử lý | Đã miễn phạt (ô violationStatusSelect). penalty_amount hiện chỉ ghi nhận; chốt sẽ đẩy sang kế toán như một khoản thu riêng (CHƯA làm vì kế toán chưa liên quan tới phơi xe)"
+    }
+
+    shift_closing {
+        bigint shift_closing_id PK
+        uuid user_id FK "NOT NULL, users.user_id: tài khoản kết ca (app: staffId = mã nhân viên)"
+        timestamptz closed_at "NOT NULL"
+        int trip_count
+        int ticket_count
+        int passenger_count
+        int total_amount
+        int advance_amount
+        int cash_amount
+        int transfer_amount
+        int reopen_count
+        int reopen_amount
+        int actual_cash "tiền mặt thực tế khi đối soát"
+        int actual_transfer "chuyển khoản thực tế"
+        int diff_amount "chênh lệch đối soát"
+        jsonb breakdown_json "snapshot doanh thu theo trạm / nhân viên / giờ + danh sách mệnh giá"
+    }
+
+    shift_closing_trip {
+        bigint id PK
+        bigint shift_closing_id FK "NOT NULL"
+        bigint trip_id FK "NOT NULL"
+        bigint reopen_event_id FK "nullable; NULL = phần GỐC của phơi, có giá trị = phần phát sinh của lần Re-open đó. UNIQUE (trip_id) WHERE reopen_event_id IS NULL và UNIQUE (reopen_event_id) WHERE reopen_event_id IS NOT NULL (quy tắc 6)"
+    }
+
+    shift_closing_expense {
+        bigint id PK
+        bigint shift_closing_id FK "NOT NULL"
+        text reason "lý do khoản chi"
+        int amount
+        varchar approver "người duyệt, nhân viên nhập tay"
+    }
+
+    direction {
+        bigint direction_id PK "bảng đầy đủ ở route-erd.mmd"
+    }
+
+    route {
+        bigint route_id PK "bảng đầy đủ ở route-erd.mmd"
+    }
+
+    station {
+        bigint station_id PK "bảng đầy đủ ở station-erd.mmd"
+    }
+
+    vehicle_type {
+        bigint vehicle_type_id PK
+        varchar name "vd: Giường nằm 34 chỗ"
+        int seats "số ghế dùng để sinh trip_seat"
+        varchar scope "line | shuttle"
+    }
+
+    vehicle {
+        bigint vehicle_id PK
+        varchar plate UK "biển số"
+        bigint vehicle_type_id FK
+        varchar scope "line | shuttle"
+        boolean active
+    }
+
+    employees {
+        bigint id PK "bảng đầy đủ ở so-do-er-nhan-su-v3.1.mermaid; mọi nhân viên có hồ sơ, kể cả người không có tài khoản"
+        smallint employee_type_id FK "NOT NULL; loại hiện tại, quyết định quyền và crew_role"
+        text employee_code UK "NV00001; app lưu mã này (STAFF_CODE_MAP) ở các cột người thao tác, migrate đổi sang users.user_id"
+        text full_name
+        text phone_number
+        text status_code FK "working | suspended | left | ...; trạng thái khóa tài khoản thì không đăng nhập được"
+    }
+
+    agent {
+        bigint agent_id PK
+        varchar code UK "DL001, DL002..."
+        varchar name UK
+        varchar phone
+        text note
+    }
+
+    pickup_request {
+        bigint pickup_request_id PK "app: pickupPassengers[].id (Date.now()); hàng chờ Rước liền, chưa có ghế"
+        varchar customer_name "NOT NULL (app: name)"
+        varchar phone "NOT NULL; app có thể gộp nhiều SĐT trong một chuỗi (collectPhoneValues), tách nếu cần"
+        int ticket_count "NOT NULL DEFAULT 1, số vé khách cần (app: ticketCount)"
+        varchar from_place "điểm đi nhập tay hoặc chọn (app: fromStation, mặc định 508 Kinh Dương Vương)"
+        text pickup_address "địa chỉ đón (app: fromTransfer)"
+        varchar to_place "điểm đến (app: toStation)"
+        text dropoff_address "địa chỉ trả (app: toTransfer)"
+        text note "ghi chú lúc nhập"
+        text office_note "ghi chú Phòng vé (app: statusNote)"
+        bigint ticket_id FK "nullable; vé đã bán khi chỉ định xe (ghế = trip_seat.ticket_id); NULL = còn trong hàng chờ. App lưu assigned = {tripId, seat, seats, price}"
+        bigint station_id FK "trạm nơi nhập khách (v3.1: station_id của thao tác)"
+        uuid created_by FK "users.user_id"
+        timestamptz created_at "app: createdAt"
+    }
+
+    users {
+        uuid user_id PK "tài khoản (so-do-er-nhan-su-v3.1); mọi cột người thao tác của sơ đồ này trỏ về đây. Các sơ đồ route / station / fare còn ghi bigint users.user_id, lệch v3.1 (uuid) cần thống nhất"
+        bigint employee_id FK "UK; NULL chỉ khi is_root"
+        boolean is_root "admin gốc: mọi quyền, không có hồ sơ nhân viên"
+        citext username UK
+        boolean is_active
+    }
+
+    employee_types {
+        smallint id PK
+        text code UK
+        text name UK
+        text crew_role "route_driver | shuttle_driver | helper | NULL: loại này được chọn làm tài xế tuyến / trung chuyển / phụ xe; KHÔNG quyết định quyền"
+        boolean is_self "true = chỉ xem dữ liệu của chính mình"
+    }
+
+    employee_type_permissions {
+        smallint employee_type_id PK, FK
+        text permission_key PK, FK "có dòng = loại được cấp quyền; không dòng nào = loại 0 quyền; nguồn duy nhất của quyền người dùng"
+    }
+
+    permissions {
+        text key PK "mã quyền, vd create_trip, edit_trip, delete_trip, assign_depart_reopen (ma trận ở quy tắc 19)"
+        text group_key FK
+        text label
+    }
+
+    permission_groups {
+        text key PK "vd ticket_seat, trip_management, catalog_admin, accounting, hr_system"
+        text label
+    }
+
+    employee_stations {
+        bigint id PK
+        bigint employee_id FK
+        bigint station_id FK
+        boolean is_primary "trạm chính: nguồn của ticket.selling_station_id (quy tắc 12)"
+        timestamptz valid_from
+        timestamptz valid_to "NULL = đang áp dụng"
+    }
+
+    activity_logs {
+        bigint id PK "bảng đầy đủ ở so-do-er-nhat-ky-v3.1.mermaid"
+        timestamptz occurred_at
+        uuid user_id FK "người thao tác"
+        text action "cần bổ sung cancel, freeze, bulk_create, depart, reopen, reopen_close, shift_close (quy tắc 20)"
+        text entity_type "trip, ticket, trip_manifest..."
+        text entity_id
+        jsonb changes "trước / sau"
+    }

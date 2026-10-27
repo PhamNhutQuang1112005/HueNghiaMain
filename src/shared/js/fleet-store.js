@@ -140,7 +140,6 @@
   //  role 'driver'        : <div id="driverDropdownPanel"> (ticketstaff.html) ∪ PK_TS_SAMPLE_DRIVERS
   //  role 'helper'        : <div id="helperDropdownPanel"> (ticketstaff.html)
   //  role 'shuttle_driver': driversPool TX01..TX05 (shuttle.js)
-  // Chuỗi "Lê Minh Tuấn (trùng lịch)" GIỮ NGUYÊN — checkDriverConflict() match bằng .includes('trùng lịch').
   var SEED_STAFF = [
     { code: 'ADM01', name: 'Quản trị viên hệ thống', username: 'quantri01', role: 'admin', station: 'Sài Gòn', phone: '', license: '', active: true },
     { code: 'NV01', name: 'tuyetphuong.huenghia', username: 'tuyetphuong.huenghia', role: 'ticket', phone: '', license: '', active: true },
@@ -148,7 +147,6 @@
     { code: 'NV03', name: 'nguyen.long', username: 'nguyen.long', role: 'ticket', phone: '', license: '', active: true },
     { code: 'NV04', name: 'thi.hoa', username: 'thi.hoa', role: 'ticket', phone: '', license: '', active: true },
     { code: '', name: 'Trần Văn Hùng', username: '', role: 'driver', phone: '0908 111 222', license: '', active: true },
-    { code: '', name: 'Lê Minh Tuấn (trùng lịch)', username: '', role: 'driver', phone: '', license: '', active: true },
     { code: '', name: 'Phạm Quốc Bảo', username: '', role: 'driver', phone: '0937 555 666', license: '', active: true },
     { code: '', name: 'Nguyễn Văn Nam', username: '', role: 'driver', phone: '0918 333 444', license: '', active: true },
     { code: '', name: 'Lê Hoàng Anh', username: '', role: 'driver', phone: '0946 777 888', license: '', active: true },
@@ -1114,6 +1112,13 @@
     return list;
   }
   function setVehicles(a) { writeJSON(HN_VEHICLES_KEY, Array.isArray(a) ? a : []); }
+  // Biển số có thuộc loại xe này không? (ERD: vehicle.vehicle_type_id phải bằng trip.vehicle_type_id). Biển trống / xe không còn
+  // trong danh sách (phơi cũ) coi như hợp lệ để không mất dữ liệu cũ.
+  function plateMatchesType(plate, typeName) {
+    if (!plate) return true;
+    var v = getVehicles({ scope: 'line' }).find(function (x) { return x.plate === plate; });
+    return !v || v.vehicleType === typeName;
+  }
 
   function getStaff(opts) {
     var list = readJSON(HN_STAFF_KEY, null);
@@ -1396,35 +1401,20 @@
   //   - label            = nhãn hướng (hiển thị trong dropdown)
   //   - route            = nhãn tuyến "chính" (tuyến đầu tiên theo order) của hướng — chuỗi lưu vào phơi
   //                        để tương thích getRouteSense() + bộ lọc "Tuyến đi"; rỗng route → dùng nhãn hướng
-  //   - fromStations     = TỔNG HỢP mọi trạm thuộc (các) địa điểm điểm-đi của hướng
-  //   - toStations       = TỔNG HỢP mọi trạm thuộc (các) địa điểm điểm-đến của hướng
-  //   - pickupStations   = hợp "trạm có thể nhận thêm khách" của mọi tuyến con
+  //   - fromStations     = mọi trạm của TỈNH ĐI của hướng (d.fromRegion)
+  //   - toStations       = mọi trạm của TỈNH ĐẾN của hướng (d.toRegion)
+  //   - pickupStations   = "trạm có thể nhận thêm khách" = trạm tỉnh đi + trạm tỉnh đến
   //   - routeLabels      = mọi nhãn tuyến con (suy ngược hướng từ trip.route của phơi cũ)
-  // Địa điểm điểm-đi/điểm-đến suy từ region của trạm trong fromStations/toStations của các tuyến con.
   function buildDirTripCfg() {
-    var regionOf = {}, byRegion = {};
-    getActiveStations().forEach(function (s) {
-      regionOf[s.name] = s.region;
-      (byRegion[s.region] = byRegion[s.region] || []).push(s.name);
-    });
     var uniq = function (arr) { var seen = {}; return arr.filter(function (x) { return seen[x] ? false : (seen[x] = true); }); };
-    var collectRegions = function (regSet) {
-      var out = [];
-      Object.keys(regSet).forEach(function (rk) { (byRegion[rk] || []).forEach(function (n) { out.push(n); }); });
-      return uniq(out);
-    };
     var routes = getRoutes();
     var cfg = {}, fares = priceMap();
     getDirections().slice().sort(byOrder).forEach(function (d) {
       if (d.active === false) return;
       var kids = routes.filter(function (r) { return r.directionId === d.id && r.active !== false; }).sort(byOrder);
-      var fromReg = {}, toReg = {}, pickup = {}, routeLabels = [];
-      kids.forEach(function (r) {
-        routeLabels.push(r.label);
-        (r.fromStations || []).forEach(function (n) { if (regionOf[n] != null) fromReg[regionOf[n]] = true; });
-        (r.toStations || []).forEach(function (n) { if (regionOf[n] != null) toReg[regionOf[n]] = true; });
-        (r.pickupStations || []).forEach(function (n) { pickup[n] = true; });
-      });
+      // Trạm của HƯỚNG lấy theo tỉnh đi/tỉnh đến của hướng — KHÔNG suy từ trạm của các tuyến con.
+      var fromSt = stationNamesOfRegion(d.fromRegion), toSt = stationNamesOfRegion(d.toRegion);
+      var routeLabels = kids.map(function (r) { return r.label; });
       var main = kids[0] || null;
       var mainFare = main ? routeFare(main, fares) : { price: 0, doubleSeatPrice: 0 };
       cfg[d.id] = {
@@ -1433,9 +1423,9 @@
         sense: directionSense(d),
         price: mainFare.price,
         doubleSeatPrice: mainFare.doubleSeatPrice,
-        fromStations: collectRegions(fromReg),
-        toStations: collectRegions(toReg),
-        pickupStations: uniq(Object.keys(pickup)),
+        fromStations: fromSt,
+        toStations: toSt,
+        pickupStations: uniq(fromSt.concat(toSt)),
         routeLabels: uniq(routeLabels),
         // Tuyến con thô để TicketStaff suy ra "tuyến chính" sau khi chọn Trạm đi/Trạm đến,
         // rồi hiện đúng "trạm có thể rước" (pickupStations) của tuyến đó.
@@ -1498,28 +1488,46 @@
     return r ? (r.directionId || null) : null;
   }
 
-  // Danh sách "Trạm có thể nhận thêm khách" khi tạo phơi = TOÀN BỘ trạm ở phía ĐIỂM ĐẾN của hướng.
-  // Quy ước 2 cụm: {An Giang} và {Sài Gòn + Bình Dương}. Hướng kết thúc ở An Giang → mọi trạm An Giang;
-  // hướng kết thúc ở Sài Gòn/Bình Dương → mọi trạm Sài Gòn + Bình Dương. Dùng chung TicketStaff + Admin.
-  function pickupStationsForDirection(dirId) {
-    var stations = getActiveStations();
-    var d = getDirections().find(function (x) { return x.id === dirId; });
-    var toRegions = {};
-    getRoutes()
-      .filter(function (r) { return r.directionId === dirId && r.active !== false; })
-      .forEach(function (r) {
-        (r.toStations || []).forEach(function (n) {
-          var st = stations.find(function (s) { return s.name === n; });
-          if (st && st.region) toRegions[st.region] = true;
-        });
-      });
-    var arrivesAngiang = !!toRegions['angiang'] || (d && d.toRegion === 'angiang') || /-ag$/.test(dirId || '') ||
-      ((d && d.label) ? /-\s*An Giang\s*$/i.test(d.label) : false);
-    var wanted = arrivesAngiang ? { angiang: 1 } : { saigon: 1, binhduong: 1 };
+  // Tên các trạm đang bật của 1 tỉnh (theo thứ tự trên quãng đường), khử trùng tên.
+  function stationNamesOfRegion(key) {
     var seen = {};
-    return stations
-      .filter(function (s) { return s && wanted[s.region] && !seen[s.name] && (seen[s.name] = true); })
-      .map(function (s) { return s.name; });
+    return getActiveStations({ region: key }).map(function (s) { return s.name; })
+      .filter(function (n) { return n && !seen[n] && (seen[n] = true); });
+  }
+
+  // "Trạm có thể nhận thêm khách" khi tạo phơi = trạm của tỉnh ĐI + trạm của tỉnh ĐẾN của hướng.
+  // Dùng chung TicketStaff + Admin.
+  function pickupStationsForDirection(dirId) {
+    var d = getDirections().find(function (x) { return x.id === dirId; });
+    if (!d) return [];
+    var seen = {};
+    return stationNamesOfRegion(d.fromRegion).concat(stationNamesOfRegion(d.toRegion))
+      .filter(function (n) { return !seen[n] && (seen[n] = true); });
+  }
+
+  // Phơi có phục vụ tuyến r không (lọc theo tuyến): trạm đi của phơi thuộc trạm đi của tuyến VÀ (trạm đến
+  // của phơi hoặc 1 trạm nhận thêm) thuộc trạm đến của tuyến — nên phơi SG → Tịnh Biên có tick Châu Đốc
+  // vẫn hiện ở tuyến SG - Châu Đốc. Phơi không có trạm nào (phơi cũ) → so nhãn trip.route. Tuyến chỉ là
+  // bộ lọc, phơi KHÔNG thuộc riêng 1 tuyến.
+  function tripServesRoute(t, r) {
+    if (!t.fromStation && !t.toStation) return t.route === r.label;
+    var has = function (set, names) { return !set.length || names.some(function (n) { return set.indexOf(n) !== -1; }); };
+    var tos = [t.toStation].concat(t.pickupStations || []).filter(Boolean);
+    return (!t.fromStation || has(r.fromStations || [], [t.fromStation])) && (!tos.length || has(r.toStations || [], tos));
+  }
+
+  // Tuyến con khớp (trạm đi, trạm đến): có trạm đi ∈ fromStations VÀ trạm đến ∈ toStations; nhiều tuyến
+  // khớp thì lấy tuyến CỤ THỂ nhất (ít trạm đến nhất → ít trạm nhất → order nhỏ). Không khớp → null.
+  function pickBestRoute(routes, from, to) {
+    var hits = (routes || []).filter(function (r) {
+      return (r.fromStations || []).indexOf(from) !== -1 && (r.toStations || []).indexOf(to) !== -1;
+    });
+    hits.sort(function (a, b) {
+      return (a.toStations || []).length - (b.toStations || []).length ||
+        ((a.fromStations || []).length + (a.toStations || []).length) - ((b.fromStations || []).length + (b.toStations || []).length) ||
+        (a.order || 0) - (b.order || 0);
+    });
+    return hits[0] || null;
   }
 
   function byOrder(a, b) { return (a.order || 0) - (b.order || 0); }
@@ -1736,6 +1744,7 @@
     renameVehicleType: renameVehicleType,
     getVehicles: getVehicles,
     setVehicles: setVehicles,
+    plateMatchesType: plateMatchesType,
     getStaff: getStaff,
     setStaff: setStaff,
     getStaffRoles: getStaffRoles,
@@ -1761,6 +1770,8 @@
     getRouteSense: getRouteSense,
     getRouteDirectionId: getRouteDirectionId,
     pickupStationsForDirection: pickupStationsForDirection,
+    pickBestRoute: pickBestRoute,
+    tripServesRoute: tripServesRoute,
     canDeleteDirection: canDeleteDirection,
     canDeleteRoute: canDeleteRoute,
     canDeleteVehicle: canDeleteVehicle,

@@ -38,13 +38,7 @@ function adminTsDriverPool() {
       .map(function (s) { return { id: s.code || s.name, driverName: s.name, driverPhone: s.phone || '', license: s.license || '' }; });
     if (list.length) return list;
   } catch (e) { /* fallback */ }
-  return [
-    { id: 'TX01', driverName: 'Nguyễn Văn Bình', driverPhone: '0909111222', license: 'D' },
-    { id: 'TX02', driverName: 'Trịnh Công Sơn', driverPhone: '0918222333', license: 'B2' },
-    { id: 'TX03', driverName: 'Lê Hoài Nam', driverPhone: '0927333444', license: 'E' },
-    { id: 'TX04', driverName: 'Phạm Đức Duy', driverPhone: '0936444555', license: 'D' },
-    { id: 'TX05', driverName: 'Trần Văn Hải', driverPhone: '0907222333', license: 'FC' }
-  ];
+  return []; // không còn tài xế mẫu dự phòng: danh sách trống cho tới khi nhập nhân sự tài xế trung chuyển thật
 }
 function adminTsShuttleTypes() {
   try { return FleetStore.getVehicleTypes({ scope: 'shuttle' }).filter(function (v) { return v.active !== false; }).map(function (v) { return v.name; }); }
@@ -565,6 +559,7 @@ function adminTsTripLifecycle(tripId) {
 // trả ghế nguồn cũ, đánh dấu ghế mới đầy đủ (staff/paymentMethod/actionTime/ticketNo + phase stamp),
 // cập nhật p.assigned, lưu seat bank + PickupService (2 trang dùng chung key nên đồng bộ ngay), in vé.
 function adminTsConfirmSellPayment() {
+  if (!requireActor(true)) return;
   var A = ADMIN_ASSIGN;
   if (!A || !A.tripId || !A.seats.length) { adminTsCloseSellPayment(); return; }
   var paymentMethod = (document.querySelector('#atsSellPaymentModal input[name="atsSellPaymentMethod"]:checked') || {}).value || 'Tiền mặt';
@@ -572,6 +567,11 @@ function adminTsConfirmSellPayment() {
   var bank = lsRead(HN_STORAGE_KEY, {});
   var tb = bank[A.tripId];
   if (!tb) { showToast('Phơi này chưa có sơ đồ ghế.'); adminTsCloseSellPayment(); return; }
+  // Phơi đã hủy, hoặc đã khởi hành mà không có Re-open đang mở: không bán thêm (ERD quy tắc 4 — vé sau khởi hành phải gắn reopen_event_id)
+  var sellTripMeta = getTrips().find(function (t) { return t.id === A.tripId; });
+  if (!sellTripMeta || sellTripMeta.status === 'Đã hủy' || sellTripMeta.isTemplate || adminTsTripSellingLocked(A.tripId)) {
+    showToast('Phơi này đã hủy hoặc đã khởi hành (chưa Re-open) — không bán thêm được.'); adminTsCloseSellPayment(); return;
+  }
 
   // 1) Trả (các) ghế nguồn cũ về trống (khi đổi chỉ định) — trừ ghế giữ lại nếu chỉ định lại chính phơi đó.
   var keepSame = {};
@@ -583,17 +583,23 @@ function adminTsConfirmSellPayment() {
         if (s && A.srcSeats.indexOf(s.code) !== -1 && !keepSame[s.code]) {
           s.state = 'empty'; s.customerName = null; s.phone = null; s.ticketNo = null; s.paid = false;
           s.pickupAddress = ''; s.dropoffAddress = ''; s.transshipStation = ''; s.guestType = '';
+          // xoá nhãn lần bán cũ để lần bán sau gắn lại đúng (ERD quy tắc 4)
+          s.soldPhase = null; s.sellingStation = null; s.reopenEventId = null; s.staff = null; s.bookedBy = null; s.bookedStation = null; s.settledReopenEventId = null;
+          s.depositAmount = 0; s.depositMethod = ''; s.agentId = ''; s.agentName = ''; s.actionTime = null; s.count = 1;
         }
       });
     });
   }
 
   // 2) Đánh dấu ghế mới đã bán.
-  var ticketNo = 'RL-' + String(Math.floor(1000 + Math.random() * 9000));
+  var ticketNo = nextTicketNoFromBank(bank); // tuần tự duy nhất, cùng quy ước SGCD-xxxx của TicketStaff
   var nowIso = new Date().toISOString();
-  var staffCode = (window.Session && Session.username && Session.username()) || 'admin';
+  var staffCode = getActingStaffCode();
   var life = adminTsTripLifecycle(A.tripId);
   var soldPhase = life === 'SELLING' ? 'PRE_DEPART' : 'POST_DEPART';
+  var reopenEv = life === 'REOPEN'
+    ? (((lsRead('hn_ts_reopen_events_v1', {})[A.tripId] || []).filter(function (e) { return e.status === 'OPEN'; })[0]) || {}).id || null
+    : null;
   var codes = {}; A.seats.forEach(function (c) { codes[c] = true; });
   var soldSeats = [];
   ['down', 'up', 'subSeats', 'extraSeats'].forEach(function (fld) {
@@ -605,9 +611,9 @@ function adminTsConfirmSellPayment() {
       s.pickupAddress = A.fromTransfer; s.dropoffAddress = A.toTransfer; s.transshipStation = A.fromTransfer;
       s.guestType = 'Trung chuyển';
       s.price = A.price; s.count = A.seats.length;
-      s.ticketNo = ticketNo; s.paid = true; s.staff = staffCode;
+      s.ticketNo = ticketNo; s.paid = true; s.staff = staffCode; s.bookedBy = s.bookedBy || staffCode;
       s.paymentMethod = paymentMethod; s.actionTime = nowIso;
-      if (!s.soldPhase) { s.soldPhase = soldPhase; s.sellingStation = ''; s.reopenEventId = null; }
+      if (!s.soldPhase) { s.soldPhase = soldPhase; s.sellingStation = getActingStaffStation(); s.reopenEventId = reopenEv; }
       soldSeats.push(s);
     });
   });

@@ -9,7 +9,8 @@
 var TRIP_FILTERS = { name: '', date: '', direction: '', route: '', status: '' };
 
 // id HƯỚNG (1 trong 4 hướng cố định) của 1 tuyến — ưu tiên FleetStore, fallback theo sense/tiền tố tên.
-function tripRouteDirectionId(route) {
+function tripRouteDirectionId(route, t) {
+  if (t && t.directionId) return t.directionId; // phơi mới lưu thẳng id hướng; phơi cũ suy từ nhãn tuyến
   var id = FleetStore.getRouteDirectionId ? FleetStore.getRouteDirectionId(route) : null;
   if (id) return id;
   var s = FleetStore.getRouteSense ? FleetStore.getRouteSense(route) : null;
@@ -18,6 +19,7 @@ function tripRouteDirectionId(route) {
 }
 var ADMIN_BULK = { mode: false, ids: [] }; // "Tạo phơi xe hàng loạt" — chọn phơi mẫu (isTemplate) rồi nhân bản theo khoảng ngày
 var ADMIN_TPL_MODE = false; // đang mở modal ở chế độ "Tạo phơi mẫu" (gắn isTemplate cho phơi mới) — xem adminOpenTripModal
+var ADMIN_FREEZE_IDS = []; // id các phơi đang tick chọn để ĐÓNG BĂNG hàng loạt (phơi đã khởi hành; loại trừ với ADMIN_CANCEL_IDS)
 var ADMIN_CANCEL_IDS = []; // id các phơi đang tick chọn (nút tròn trên mỗi thẻ phơi) để hủy 1/nhiều/tất cả cùng lúc
 
 // Phơi còn hủy được: chưa hủy và chưa khởi hành (mọi trạng thái vòng đời sau khi xuất phơi — Khởi hành/
@@ -25,6 +27,15 @@ var ADMIN_CANCEL_IDS = []; // id các phơi đang tick chọn (nút tròn trên 
 function adminTripCancelable(t, bank) {
   var label = adminTripDisplayStatus(t, bank).label;
   return label === 'Đang bán' || label === 'Chưa chỉ định';
+}
+
+// Phơi đóng băng được: chưa hủy, đã có manifest, chưa đóng băng, không có Re-open đang mở (ERD quy tắc 15).
+function adminTripFreezable(t) {
+  return t.status !== 'Đã hủy' && tsCanFreezeManifest(t.id);
+}
+function adminTripFrozen(t) {
+  var m = getManifest(t.id);
+  return !!(m && m.frozenAt);
 }
 
 function fld(label, inner) { return '<div class="filter-field"><label>' + esc(label) + '</label>' + inner + '</div>'; }
@@ -71,8 +82,11 @@ function renderTripsView() {
       if (hay.indexOf(f.name.toLowerCase()) === -1) return false;
     }
     if (f.date && t.date && t.date !== f.date) return false;
-    if (f.direction && tripRouteDirectionId(t.route) !== f.direction) return false;
-    if (f.route && t.route !== f.route) return false;
+    if (f.direction && tripRouteDirectionId(t.route, t) !== f.direction) return false;
+    if (f.route) {
+      var rc = routeOpts.find(function (x) { return x.label === f.route; });
+      if (rc ? !FleetStore.tripServesRoute(t, rc) : t.route !== f.route) return false;
+    }
     // Lọc theo ĐÚNG trạng thái đang hiện trên thẻ (suy từ vòng đời + biển số + vé), không theo t.status.
     if (f.status && adminTripDisplayStatus(t, bk).label !== f.status) return false;
     return true;
@@ -101,7 +115,7 @@ function renderTripsView() {
   }
   // Card hiển thị y hệt TicketStaff (renderTable): biển số & loại xe ưu tiên seat bank, giá vé fallback
   // 280.000đ, tên = t.name || "<tuyến> (<giờ>h)".
-  function cardInner(t, cls, label) {
+  function cardInner(t, cls, label, extra) {
     var bank = seatBank[t.id];
     var timeStr = t.time || '00:00';
     var name = t.name || ((t.route || '') + ' (' + timeStr.replace(':', 'h') + ')');
@@ -115,7 +129,7 @@ function renderTripsView() {
         '</div>' +
         '<span class="status-badge ' + cls + '"><span class="status-dot"></span>' + esc(label) + '</span>' +
       '</div>' +
-      '<div class="phoi-card-name">' + esc(name) + '</div>' +
+      '<div class="phoi-card-name">' + esc(name) + (extra ? ' <span style="font-size:12px;font-weight:600;color:var(--muted,#6b7280);">' + extra + '</span>' : '') + '</div>' +
       '<div class="phoi-card-meta">' +
         '<div class="phoi-card-meta-item"><label>Loại xe</label><span>' + esc(vtype) + '</span></div>' +
         '<div class="phoi-card-meta-item"><label>Ghế trống</label><span>' + seatInfo(t) + '</span></div>' +
@@ -126,6 +140,7 @@ function renderTripsView() {
   // Dọn lựa chọn "hủy" của phơi không còn hiển thị (đổi bộ lọc / vào chế độ tạo hàng loạt).
   var visTripIds = {}; list.forEach(function (t) { visTripIds[t.id] = true; });
   ADMIN_CANCEL_IDS = ADMIN_CANCEL_IDS.filter(function (id) { return visTripIds[id]; });
+  ADMIN_FREEZE_IDS = ADMIN_FREEZE_IDS.filter(function (id) { return visTripIds[id]; });
 
   function tripCard(t) {
     if (ADMIN_BULK.mode) {
@@ -144,13 +159,17 @@ function renderTripsView() {
     // chỉ những thẻ đó mới có nút này.
     var cancelable = adminTripCancelable(t, seatBank[t.id]);
     var picked = cancelable && ADMIN_CANCEL_IDS.indexOf(t.id) !== -1;
+    var freezable = !cancelable && adminTripFreezable(t);
+    var frozenPicked = freezable && ADMIN_FREEZE_IDS.indexOf(t.id) !== -1;
     var checkHtml = cancelable
       ? '<div class="phoi-cancel-check' + (picked ? ' on' : '') + '" data-action="adminToggleCancelSelect" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + (picked ? ICN_CHECK : '') + '</div>'
-      : '';
-    return '<div class="phoi-card status-' + cls + (cancelable ? ' has-cancel-check' : '') + (picked ? ' cancel-picked' : '') + '" data-action="adminOpenTripModal" data-args=\'["' + esc(t.id) + '"]\'>' +
+      : freezable
+        ? '<div class="phoi-cancel-check' + (frozenPicked ? ' on' : '') + '" title="Chọn để đóng băng" data-action="adminToggleFreezeSelect" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + (frozenPicked ? ICN_CHECK : '') + '</div>'
+        : '';
+    return '<div class="phoi-card status-' + cls + ((cancelable || freezable) ? ' has-cancel-check' : '') + ((picked || frozenPicked) ? ' cancel-picked' : '') + '" data-action="adminOpenTripModal" data-args=\'["' + esc(t.id) + '"]\'>' +
       checkHtml +
       '<button type="button" class="phoi-route-btn" title="Xem lộ trình" data-action="adminShowTripRoute" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + ICN_ROUTE + '</button>' +
-      cardInner(t, cls, label) +
+      cardInner(t, cls, label, adminTripFrozen(t) ? 'Đã đóng băng' : '') +
       '<div class="phoi-card-footer">' +
         '<button type="button" class="btn btn-secondary phoi-edit-btn" data-action="adminOpenTripModal" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'>' + ICN_EDIT + 'Chỉnh sửa</button>' +
         '<button type="button" class="btn btn-primary phoi-sell-btn" data-action="adminSellTripTickets" data-stop-propagation="1" data-args=\'["' + esc(t.id) + '"]\'' + (sellDisabled ? ' disabled' : '') + '>' + ICN_SELL + 'Bán vé</button>' +
@@ -167,6 +186,8 @@ function renderTripsView() {
   var allSelected = list.length > 0 && list.every(function (t) { return ADMIN_BULK.ids.indexOf(t.id) !== -1; });
   var cancelableIds = list.filter(function (t) { return adminTripCancelable(t, seatBank[t.id]); }).map(function (t) { return t.id; });
   var allCancelSelected = cancelableIds.length > 0 && cancelableIds.every(function (id) { return ADMIN_CANCEL_IDS.indexOf(id) !== -1; });
+  var freezableIds = list.filter(adminTripFreezable).map(function (t) { return t.id; });
+  var allFreezeSelected = freezableIds.length > 0 && freezableIds.every(function (id) { return ADMIN_FREEZE_IDS.indexOf(id) !== -1; });
   var bulkBar = '';
   if (ADMIN_BULK.mode) {
     bulkBar = '<div class="bulk-bar">' +
@@ -177,6 +198,15 @@ function renderTripsView() {
           '<button class="btn btn-secondary" data-action="adminBulkSelectAll"' + (list.length ? '' : ' disabled') + '>' + (allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả') + '</button>' +
           '<button class="btn btn-secondary" data-action="adminToggleBulkMode">Hủy</button>' +
           '<button class="btn btn-primary" data-action="adminBulkCreate"' + (ADMIN_BULK.ids.length ? '' : ' disabled') + '>Tạo hàng loạt</button>' +
+        '</div>' +
+      '</div>';
+  } else if (ADMIN_FREEZE_IDS.length) {
+    bulkBar = '<div class="bulk-bar">' +
+        '<span class="bulk-bar-hint">Đã chọn ' + ADMIN_FREEZE_IDS.length + ' phơi để đóng băng</span>' +
+        '<div class="bulk-bar-fields">' +
+          '<button class="btn btn-secondary" data-action="adminClearFreezeSel">Hủy</button>' +
+          '<button class="btn btn-secondary" data-action="adminFreezeSelectAll" data-args=\'' + JSON.stringify([freezableIds]) + '\'>' + (allFreezeSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả') + '</button>' +
+          '<button class="btn btn-primary" data-action="adminOpenFreezeModal">Đóng băng</button>' +
         '</div>' +
       '</div>';
   } else if (ADMIN_CANCEL_IDS.length) {
@@ -192,7 +222,7 @@ function renderTripsView() {
   }
 
   // .has-bulk-bar: chừa chỗ dưới lưới cho thanh chọn phơi mẫu / chọn phơi để hủy (position:fixed, dính đáy màn hình).
-  var body = '<div class="phoi-grid-wrap' + ((ADMIN_BULK.mode || ADMIN_CANCEL_IDS.length) ? ' has-bulk-bar' : '') + '">' + grid + '</div>' + bulkBar;
+  var body = '<div class="phoi-grid-wrap' + ((ADMIN_BULK.mode || ADMIN_CANCEL_IDS.length || ADMIN_FREEZE_IDS.length) ? ' has-bulk-bar' : '') + '">' + grid + '</div>' + bulkBar;
 
   $('viewTrips').innerHTML =
     '<div class="filter-toolbar tf-toolbar">' +
@@ -266,7 +296,7 @@ function adminShowTripRoute(id) {
 function adminToggleBulkMode() {
   ADMIN_BULK.mode = !ADMIN_BULK.mode;
   ADMIN_BULK.ids = [];
-  if (ADMIN_BULK.mode) ADMIN_CANCEL_IDS = [];
+  if (ADMIN_BULK.mode) { ADMIN_CANCEL_IDS = []; ADMIN_FREEZE_IDS = []; }
   renderTripsView();
 }
 function adminToggleBulkSelect(id) {
@@ -284,6 +314,7 @@ function adminBulkSelectAll() {
 /* ---- Nút tròn tick trên mỗi thẻ phơi (chỉ phơi chưa khởi hành) — chọn 1/nhiều/tất cả để hủy cùng lúc.
    Không còn "chế độ" riêng: nút tick luôn có sẵn trên thẻ, thanh tác vụ tự hiện khi có ≥1 phơi được chọn. ---- */
 function adminToggleCancelSelect(id) {
+  ADMIN_FREEZE_IDS = [];
   var i = ADMIN_CANCEL_IDS.indexOf(id);
   if (i === -1) ADMIN_CANCEL_IDS.push(id); else ADMIN_CANCEL_IDS.splice(i, 1);
   renderTripsView();
@@ -297,6 +328,51 @@ function adminClearCancelSel() {
   ADMIN_CANCEL_IDS = [];
   renderTripsView();
 }
+/* ---- Đóng băng nhiều phơi (phơi đã khởi hành) — nút tròn tick riêng trên thẻ, thanh tác vụ riêng. ---- */
+function adminToggleFreezeSelect(id) {
+  ADMIN_CANCEL_IDS = [];
+  var i = ADMIN_FREEZE_IDS.indexOf(id);
+  if (i === -1) ADMIN_FREEZE_IDS.push(id); else ADMIN_FREEZE_IDS.splice(i, 1);
+  renderTripsView();
+}
+function adminFreezeSelectAll(ids) {
+  var allSel = ids.length > 0 && ids.every(function (id) { return ADMIN_FREEZE_IDS.indexOf(id) !== -1; });
+  ADMIN_FREEZE_IDS = allSel ? [] : ids.slice();
+  renderTripsView();
+}
+function adminClearFreezeSel() {
+  ADMIN_FREEZE_IDS = [];
+  renderTripsView();
+}
+function adminOpenFreezeModal() {
+  var ids = ADMIN_FREEZE_IDS.slice();
+  if (!ids.length) { showToast('Chưa chọn phơi nào.'); return; }
+  openAdminModal(
+    '<h3>Đóng băng ' + ids.length + ' phơi đã chọn</h3>' +
+    '<form class="admin-form" data-submit-action="adminConfirmFreezeTrips" data-args=\'["__event__",' + JSON.stringify(ids) + ']\'>' +
+      '<p>Sau khi đóng băng, các phơi này không Re-open để sửa vé được nữa và số liệu mệnh giá theo trạm được chốt lại. Không thể mở lại.</p>' +
+      '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Đóng</button><button type="submit" class="btn btn-primary">Xác nhận đóng băng</button></div>' +
+    '</form>'
+  );
+}
+function adminConfirmFreezeTrips(e, ids) {
+  e.preventDefault();
+  var trips = getTrips();
+  var seatBank = lsRead(HN_STORAGE_KEY, {});
+  var done = 0, skipped = 0;
+  ids.forEach(function (id) {
+    var t = trips.find(function (x) { return x.id === id; });
+    if (!t || !adminTripFreezable(t)) { skipped++; return; } // chặn lại phòng dữ liệu đổi giữa chừng (vd vừa Re-open)
+    if (!tsFreezeManifest(id, seatBank[id])) { skipped++; return; }
+    FleetStore.log({ action: 'freeze', entity: 'trip', entityId: id, summary: 'Đóng băng phơi ' + (t.name || id) });
+    done++;
+  });
+  closeAdminModal();
+  ADMIN_FREEZE_IDS = [];
+  showToast('Đã đóng băng ' + done + ' phơi' + (skipped ? ', bỏ qua ' + skipped + ' phơi không đủ điều kiện.' : '.'));
+  renderTripsView();
+}
+
 function adminOpenBulkCancelModal() {
   if (!ADMIN_CANCEL_IDS.length) { showToast('Chưa chọn phơi nào.'); return; }
   adminOpenCancelReasonModal(ADMIN_CANCEL_IDS.slice());
@@ -321,13 +397,15 @@ function adminBulkCreate() {
   dates.forEach(function (d) {
     templates.forEach(function (tpl) {
       var newId = String(Date.now()) + '_' + (n++);
+      var bulkFare = FleetStore.getFare(tpl.fromStation, tpl.toStation, tpl.vehicleType); // tra lại bảng giá hiện hành
+      var bulkPrice = bulkFare ? bulkFare.single : tpl.price;
       trips.push({
         id: newId,
         name: tpl.name || ((tpl.route || '') + ' (' + (tpl.time || '') + ')'),
-        date: d, route: tpl.route, time: tpl.time,
+        date: d, route: tpl.route, directionId: tpl.directionId, time: tpl.time,
         fromStation: tpl.fromStation || '', toStation: tpl.toStation || '',
         pickupStations: Array.isArray(tpl.pickupStations) ? tpl.pickupStations.slice() : [],
-        vehicleType: tpl.vehicleType, price: tpl.price,
+        vehicleType: tpl.vehicleType, price: bulkPrice,
         status: 'Chưa chỉ định', plate: '', note: tpl.note || '', createdAt: Date.now() + n
       });
       created++;
@@ -349,15 +427,21 @@ function adminOpenTripModal(id, asTemplate) {
   ADMIN_TPL_MODE = !!asTemplate && !id;
   var trips = getTrips();
   var t = id ? trips.find(function (x) { return x.id === id; }) : null;
-  var readOnly = !!t && (t.status === 'Khởi hành' || t.status === 'Đã khởi hành' || t.status === 'Đã hủy');
-  var cfg = FleetStore.buildTripDirectionsCfg();               // { [routeId]: {label,route,price,fromStations,toStations,pickupStations,directionLabel} }
+  // Khoá khi đã hủy / đã khởi hành (suy từ manifest, không chỉ từ chuỗi status)
+  var readOnly = !!t && (t.status === 'Khởi hành' || t.status === 'Đã khởi hành' || !adminTripCancelable(t, null));
+  var cfg = FleetStore.buildDirTripCfg();                      // { [dirId]: {label,route,price,fromStations,toStations,pickupStations,routeLabels,routes} }
   var dirKeys = Object.keys(cfg);
-  var curDirKey = t ? (dirKeys.find(function (k) { return cfg[k].route === t.route; }) || '') : '';
+  var curDirKey = t ? ((t.directionId && cfg[t.directionId] && t.directionId) || dirKeys.find(function (k) { return cfg[k].route === t.route || (cfg[k].routeLabels || []).indexOf(t.route) !== -1; }) || '') : '';
   var ro = roDis(readOnly);
+  // Biển số chọn từ danh sách xe tuyến (vehicle_id), không gõ tay
+  var plates = FleetStore.getVehicles({ scope: 'line' }).filter(activeOf).map(function (v) { return v.plate; });
+  var curPlate = t ? (t.plate || '') : '';
+  if (curPlate && plates.indexOf(curPlate) === -1) plates.push(curPlate);
+  var plateOpts = '<option value="">-- Chưa chỉ định --</option>' + plates.map(function (p) { return '<option value="' + esc(p) + '"' + (p === curPlate ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('');
 
-  var dirOpts = '<option value="">-- Chọn hướng tuyến --</option>' +
+  var dirOpts = '<option value="">-- Chọn hướng --</option>' +
     dirKeys.map(function (k) {
-      return '<option value="' + esc(k) + '"' + (k === curDirKey ? ' selected' : '') + '>' + esc(cfg[k].route) + '</option>';
+      return '<option value="' + esc(k) + '"' + (k === curDirKey ? ' selected' : '') + '>' + esc(cfg[k].label) + '</option>';
     }).join('');
 
   var vtypes = FleetStore.getVehicleTypes({ scope: 'line' }).filter(function (v) { return activeOf(v) && v.featuredForTrip; });
@@ -375,9 +459,9 @@ function adminOpenTripModal(id, asTemplate) {
 
       '<div class="fld-row">' +
         '<div class="fld"><label>Trạm đi <span class="req">*</span></label>' +
-          '<select id="ttFrom" ' + ro + ' data-change-action="adminTripNameSuggest"><option value="">-- Chọn hướng đi trước --</option></select></div>' +
+          '<select id="ttFrom" ' + ro + ' data-change-action="adminTripStationChange"><option value="">-- Chọn hướng đi trước --</option></select></div>' +
         '<div class="fld"><label>Trạm đến <span class="req">*</span></label>' +
-          '<select id="ttTo" ' + ro + ' data-change-action="adminTripNameSuggest"><option value="">-- Chọn hướng đi trước --</option></select></div>' +
+          '<select id="ttTo" ' + ro + ' data-change-action="adminTripStationChange"><option value="">-- Chọn hướng đi trước --</option></select></div>' +
       '</div>' +
 
       '<div class="fld-row">' +
@@ -391,10 +475,11 @@ function adminOpenTripModal(id, asTemplate) {
         '<div class="station-pick-group" id="ttPickups"></div></div>' +
 
       '<div class="fld-row">' +
-        '<div class="fld"><label>Giá vé (đ) <span class="req">*</span></label>' +
-          '<input type="number" id="ttPrice" min="0" step="5000" ' + ro + ' placeholder="Lấy theo hướng đi" value="' + (t ? (t.price || '') : '') + '"></div>' +
+        // Ẩn: giá tự lấy theo cặp trạm + loại xe; chỉ hiện (để trống) khi cặp chưa có giá — xem adminTripStationChange.
+        '<div class="fld" id="ttPriceGrp" style="display:none;"><label>Giá vé (đ) <span class="req">*</span></label>' +
+          '<input type="number" id="ttPrice" min="0" step="5000" ' + ro + ' placeholder="Cặp trạm này chưa có giá — nhập giá vé"></div>' +
         '<div class="fld"><label>Loại xe <span class="req">*</span></label>' +
-          '<select id="ttType" ' + ro + '>' +
+          '<select id="ttType" ' + ro + ' data-change-action="adminTripStationChange">' +
             vtypes.map(function (v) { return '<option value="' + esc(v.name) + '"' + (v.name === curType ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') +
           '</select></div>' +
       '</div>' +
@@ -403,10 +488,9 @@ function adminOpenTripModal(id, asTemplate) {
         '<input type="text" id="ttNote" ' + ro + ' placeholder="Thông tin nội bộ xe tăng cường..." value="' + (t ? esc(t.note || '') : '') + '"></div>' +
 
       (t ? '<div class="fld-row">' +
-        '<div class="fld"><label>Trạng thái phơi xe</label><select id="ttStatus" ' + ro + '>' +
-          TRIP_STATUSES.map(function (s) { return '<option value="' + esc(s) + '"' + (s === (t.status || '') ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') +
-        '</select></div>' +
-        '<div class="fld"><label>Biển số xe chỉ định</label><input type="text" id="ttPlate" ' + ro + ' placeholder="VD: 51F-123.45" value="' + esc(t.plate || '') + '"></div>' +
+        // Chỉ hiển thị: trạng thái suy từ biển số / manifest, đổi qua nút Chỉ định xe, Khởi hành, Hủy phơi (ERD quy tắc 2)
+        '<div class="fld"><label>Trạng thái phơi xe</label><input type="text" id="ttStatus" disabled value="' + esc(adminTripDisplayStatus(t, null).label) + '"></div>' +
+        '<div class="fld"><label>Biển số xe chỉ định</label><select id="ttPlate" ' + ro + '>' + plateOpts + '</select></div>' +
       '</div>' : '') +
 
       '<div class="fld"><label>Tên phơi <span class="req">*</span></label>' +
@@ -424,6 +508,7 @@ function adminOpenTripModal(id, asTemplate) {
   if (t) {
     if (t.fromStation) setSelect('ttFrom', t.fromStation);
     if (t.toStation) setSelect('ttTo', t.toStation);
+    adminTripSyncPrice(t.price);
     // tick lại các trạm đón đã lưu — bổ sung pill cho trạm đã lưu không nằm trong cụm điểm đến hiện tại (dữ liệu cũ)
     var saved = Array.isArray(t.pickupStations) ? t.pickupStations : [];
     var pbox = $('ttPickups');
@@ -445,7 +530,6 @@ function adminOpenTripModal(id, asTemplate) {
       if (pill) pill.classList.toggle('checked', cb.checked);
     });
     // giá vé & tên phơi thật của phơi này (đặt SAU adminTripDirChange vì hàm đó vừa set giá mặc định theo hướng)
-    if ($('ttPrice')) $('ttPrice').value = t.price || 280000;
     if ($('ttName')) $('ttName').value = t.name || '';
   }
 }
@@ -458,14 +542,15 @@ function setSelect(id, val) {
 
 // Đổi Hướng đi → dựng lại Trạm đi/Trạm đến + danh sách pill "Trạm có thể nhận thêm khách" + giá vé mặc định.
 function adminTripDirChange() {
-  var cfg = FleetStore.buildTripDirectionsCfg();
+  var cfg = FleetStore.buildDirTripCfg();
   var d = cfg[$('ttDir') ? $('ttDir').value : ''];
-  var fromSel = $('ttFrom'), toSel = $('ttTo'), pickBox = $('ttPickups'), priceEl = $('ttPrice');
+  var fromSel = $('ttFrom'), toSel = $('ttTo'), pickBox = $('ttPickups');
 
   if (!d) {
     if (fromSel) fromSel.innerHTML = '<option value="">-- Chọn hướng đi trước --</option>';
     if (toSel) toSel.innerHTML = '<option value="">-- Chọn hướng đi trước --</option>';
     if (pickBox) pickBox.innerHTML = '<span class="station-pick-empty">Không có trạm dọc đường</span>';
+    adminTripSyncPrice();
     return;
   }
   if (fromSel) fromSel.innerHTML = '<option value="">-- Chọn trạm đi --</option>' +
@@ -473,9 +558,8 @@ function adminTripDirChange() {
   if (toSel) toSel.innerHTML = '<option value="">-- Chọn trạm đến --</option>' +
     (d.toStations || []).map(function (s) { return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
 
-  // "Trạm có thể nhận thêm khách" = TOÀN BỘ trạm phía điểm đến của hướng (giống TicketStaff), không bó
-  // vào riêng pickupStations của tuyến con.
-  var opts = (FleetStore.pickupStationsForDirection ? FleetStore.pickupStationsForDirection(d.directionId) : (d.pickupStations || [])) || [];
+  // "Trạm có thể nhận thêm khách" = trạm tỉnh đi + trạm tỉnh đến của hướng (giống TicketStaff).
+  var opts = d.pickupStations || [];
   if (pickBox) {
     pickBox.innerHTML = opts.length
       ? opts.map(function (s) {
@@ -483,13 +567,31 @@ function adminTripDirChange() {
         }).join('')
       : '<span class="station-pick-empty">Không có trạm dọc đường</span>';
   }
-  if (priceEl) priceEl.value = d.price || '';
+  adminTripSyncPrice();
   adminTripNameSuggest();
 }
 
 function adminTogglePickup(cb) {
   var pill = cb.closest('.station-pick-pill');
   if (pill) pill.classList.toggle('checked', cb.checked);
+}
+
+// Giá vé tự lấy theo (Trạm đi, Trạm đến, Loại xe) trong Quản lý giá nên ô giá ẨN. Cặp CHƯA có giá → hiện ô để
+// TRỐNG cho nhân viên tự nhập (bắt buộc). savedPrice: giá đã lưu của phơi khi sửa.
+function adminTripSyncPrice(savedPrice) {
+  var grp = $('ttPriceGrp'), input = $('ttPrice');
+  if (!grp || !input) return;
+  var from = $('ttFrom').value, to = $('ttTo').value;
+  var manual = !!(from && to) && !FleetStore.getFare(from, to, $('ttType').value);
+  grp.style.display = manual ? '' : 'none';
+  input.required = manual;
+  if (!manual) input.value = '';
+  else if (savedPrice != null && input.value === '') input.value = savedPrice;
+}
+// Đổi Trạm đi / Trạm đến / Loại xe → kiểm tra lại giá rồi gợi ý lại tên phơi.
+function adminTripStationChange() {
+  adminTripSyncPrice();
+  adminTripNameSuggest();
 }
 
 // Tên phơi tự gợi ý "Trạm đi - Trạm đến (giờ)" mỗi khi đổi Trạm đi / Trạm đến / Giờ (nhân viên vẫn gõ đè được).
@@ -510,14 +612,20 @@ function adminCancelTripFromModal(id) {
 function adminSaveTrip(e) {
   e.preventDefault();
   var id = $('ttId').value;
-  var cfg = FleetStore.buildTripDirectionsCfg();
+  var cfg = FleetStore.buildDirTripCfg();
   var d = cfg[$('ttDir').value];
   var from = $('ttFrom').value, to = $('ttTo').value;
   if (!d || !from || !to) { showToast('Vui lòng chọn đầy đủ Hướng đi, Trạm đi và Trạm đến.'); return; }
+  // "tuyến chính" suy từ Trạm đi/Trạm đến (giống TicketStaff); không khớp tuyến con nào → tuyến chính của hướng.
+  var matched = FleetStore.pickBestRoute(d.routes, from, to);
+  var route = (matched && matched.label) || d.route;
   var date = $('ttDate').value, time = $('ttTime').value;
   if (!date || !time) { showToast('Vui lòng nhập Ngày và Giờ khởi hành.'); return; }
-  var price = parseInt($('ttPrice').value, 10) || d.price || 280000;
   var vehicleType = $('ttType').value;
+  // Giá vé: lấy giá ghế đơn của cặp (Trạm đi, Trạm đến, Loại xe) trong Quản lý giá; cặp chưa có giá thì nhân viên tự nhập.
+  var fare = FleetStore.getFare(from, to, vehicleType);
+  if (!fare && $('ttPrice').value === '') { showToast('Cặp trạm + loại xe này chưa có giá trong Quản lý giá — vui lòng nhập Giá vé.'); return; }
+  var price = fare ? fare.single : (parseInt($('ttPrice').value, 10) || 0);
   var name = $('ttName').value.trim() || (from + ' - ' + to);
   var note = $('ttNote').value.trim();
   var pickups = Array.prototype.map.call(
@@ -527,15 +635,19 @@ function adminSaveTrip(e) {
   if (id) {
     var t = trips.find(function (x) { return x.id === id; });
     if (!t) { showToast('Không tìm thấy phơi xe.'); return; }
+    if (tsIsTripEditLocked(t)) { showToast('Phơi đã hủy hoặc đã khởi hành — không sửa được.'); return; }
+    if ($('ttPlate') && !FleetStore.plateMatchesType($('ttPlate').value.trim(), vehicleType)) { showToast('Biển số không thuộc loại xe đã chọn.'); return; }
     var before = JSON.parse(JSON.stringify(t));
     var typeChanged = t.vehicleType !== vehicleType;
+    if (typeChanged && hasSoldSeats(lsRead(HN_STORAGE_KEY, {})[id])) { showToast('Phơi đã có khách — không đổi loại xe ở đây được. Dùng "Chỉ định xe" ở TicketStaff để dồn khách sang sơ đồ xe mới.'); return; }
     if (typeChanged && !confirm('Cảnh báo: Thay đổi loại xe sẽ xoá toàn bộ sơ đồ ghế cũ và sinh lại ghế trống mới. Tiếp tục?')) return;
-    t.route = d.route; t.fromStation = from; t.toStation = to; t.pickupStations = pickups;
+    t.route = route; t.directionId = $('ttDir').value; t.fromStation = from; t.toStation = to; t.pickupStations = pickups;
     t.date = date; t.time = time; t.price = price; t.vehicleType = vehicleType; t.name = name; t.note = note;
-    if ($('ttStatus')) t.status = $('ttStatus').value;
     if ($('ttPlate')) t.plate = $('ttPlate').value.trim();
+    TripService.syncStatus(t);
     setTrips(trips);
     if (typeChanged) regenSeatBankForType(id, vehicleType, price);
+    else if (price !== before.price) syncEmptySeatPrice(id, price); // ghế trống theo giá mới, ghế đã bán giữ giá cũ
     // Đồng bộ biển số / loại xe / tài xế-phụ xe mặc định xuống seat bank — giống updateExistingTrip() của TicketStaff,
     // để header sơ đồ ghế bên TicketStaff luôn hiện đúng biển số của phơi.
     syncTripSeatBankMeta(id, t.plate || '', vehicleType);
@@ -543,7 +655,7 @@ function adminSaveTrip(e) {
   } else {
     var newId = String(Date.now());
     var nt = {
-      id: newId, name: name, date: (ADMIN_TPL_MODE ? todayISO() : date), route: d.route, fromStation: from, toStation: to,
+      id: newId, name: name, date: (ADMIN_TPL_MODE ? todayISO() : date), route: route, directionId: $('ttDir').value, fromStation: from, toStation: to,
       pickupStations: pickups, time: time, vehicleType: vehicleType, price: price,
       note: note, status: 'Chưa chỉ định', plate: '', createdAt: Date.now()
     };
@@ -567,10 +679,6 @@ function syncTripSeatBankMeta(tripId, plate, vehicleType) {
   if (!b) return;
   b.plate = plate;
   b.vehicleType = vehicleType;
-  if (plate) {
-    b.driver = b.driver || 'Phạm Quốc Bảo';
-    b.helper = b.helper || 'Đỗ Văn Sơn';
-  }
   bank[tripId] = b;
   lsWrite(HN_STORAGE_KEY, bank);
 }
@@ -612,13 +720,25 @@ function regenSeatBankForType(tripId, vehicleType, price) {
     down: mk(codes.down), up: mk(codes.up),
     plate: (cur && cur.plate) || '', vehicleType: vehicleType,
     driver: (cur && cur.driver) || '', helper: (cur && cur.helper) || '',
-    cancelledSeats: [], subSeats: [], extraSeats: []
+    cancelledSeats: (cur && cur.cancelledSeats) || [], subSeats: (cur && cur.subSeats) || [], extraSeats: (cur && cur.extraSeats) || []
   };
   lsWrite(HN_STORAGE_KEY, bank);
 }
-function hasSoldSeats(bank) {
-  var chk = function (a) { return (a || []).some(function (s) { return s && (s.state === 'sold' || s.state === 'hold'); }); };
-  return chk(bank.down) || chk(bank.up) || chk(bank.subSeats);
+// Số ghế đang có khách (sold/hold/free/cargo) kể cả ghế phụ và ghế dư — phơi chỉ hủy / đổi loại xe được khi = 0.
+function adminTripBookedCount(bank) {
+  if (!bank) return 0;
+  return [].concat(bank.down || [], bank.up || [], bank.subSeats || [], bank.extraSeats || [])
+    .filter(function (s) { return s && ['sold', 'hold', 'free', 'cargo'].indexOf(s.state) !== -1; }).length;
+}
+function hasSoldSeats(bank) { return adminTripBookedCount(bank) > 0; }
+
+// Đổi giá phơi mà không đổi loại xe: chỉ ghế TRỐNG lấy giá mới.
+function syncEmptySeatPrice(tripId, price) {
+  var bank = lsRead(HN_STORAGE_KEY, {});
+  var b = bank[tripId];
+  if (!b) return;
+  ['down', 'up'].forEach(function (k) { (b[k] || []).forEach(function (s) { if (s && s.state === 'empty') s.price = price; }); });
+  lsWrite(HN_STORAGE_KEY, bank);
 }
 
 function adminCancelTrip(id) {
@@ -635,19 +755,16 @@ function adminOpenCancelReasonModal(ids) {
   if (!targets.length) { showToast('Không có phơi hợp lệ để hủy.'); return; }
 
   var seatBank = lsRead(HN_STORAGE_KEY, {});
-  var bookedTotal = targets.reduce(function (sum, t) {
-    var bank = seatBank[t.id];
-    if (!bank) return sum;
-    var combined = (bank.down || []).concat(bank.up || []);
-    return sum + combined.filter(function (s) { return s && (s.state === 'sold' || s.state === 'hold'); }).length;
-  }, 0);
+  // Chỉ hủy được phơi TRỐNG và CHƯA khởi hành (ERD quy tắc 10) — còn khách thì phải chuyển hết sang phơi khác trước.
+  var blocked = targets.filter(function (t) { return adminTripBookedCount(seatBank[t.id]) > 0 || !adminTripCancelable(t, seatBank[t.id]); });
+  if (blocked.length) {
+    showToast('Chỉ hủy được phơi TRỐNG và chưa khởi hành. Không hủy được: ' + blocked.map(function (t) { return t.name || t.route || t.id; }).join(', ') + ' — chuyển hết khách sang phơi khác rồi mới hủy.');
+    return;
+  }
   var title = targets.length === 1
     ? ('Hủy phơi "' + esc(targets[0].name || targets[0].route || '') + '"')
     : ('Hủy ' + targets.length + ' phơi đã chọn');
-  var warn = bookedTotal
-    ? '<div class="warn-box" style="margin:0 0 14px;">Cảnh báo: đang có ' + bookedTotal + ' ghế đã bán/giữ trong ' +
-      (targets.length === 1 ? 'phơi này' : 'các phơi này') + ' — hủy sẽ cần bồi thường/chuyển khách.</div>'
-    : '';
+  var warn = '';
 
   openAdminModal(
     '<h3>' + title + '</h3>' +
@@ -664,19 +781,16 @@ function adminConfirmCancelTrips(e, ids) {
   var reason = ($('cxReason').value || '').trim();
   if (!reason) { showToast('Vui lòng nhập lý do hủy.'); return; }
   var trips = getTrips();
-  var cancelledCount = 0;
-  ids.forEach(function (id) {
-    var t = trips.find(function (x) { return x.id === id; });
-    if (!t || t.status === 'Đã hủy') return;
-    t.status = 'Đã hủy';
-    t.cancelReason = reason;
-    FleetStore.log({ action: 'cancel', entity: 'trip', entityId: id, summary: 'Huỷ chuyến ' + (t.name || id) + ' — Lý do: ' + reason });
-    cancelledCount++;
-  });
+  var seatBank = lsRead(HN_STORAGE_KEY, {});
+  // MỘT NƠI KIỂM (ERD quy tắc 10): tsCancelTrips kiểm phơi trống + chưa khởi hành, dùng chung với TicketStaff.
+  var staff = (window.Session && Session.username && Session.username()) ? (getStaffCode(Session.username()) || Session.username()) : '';
+  if (!staff) { showToast('Chưa đăng nhập — không hủy được phơi.'); return; }
+  var res = tsCancelTrips(trips, seatBank, ids, reason, staff);
+  var cancelledCount = res.cancelled.length;
   setTrips(trips);
   closeAdminModal();
   ADMIN_CANCEL_IDS = [];
-  showToast('Đã huỷ ' + cancelledCount + ' phơi.');
+  showToast('Đã huỷ ' + cancelledCount + ' phơi' + (res.skipped.length ? ', bỏ qua ' + res.skipped.length + ' phơi không đủ điều kiện.' : '.'));
   renderTripsView();
 }
 

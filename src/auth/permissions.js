@@ -78,9 +78,9 @@ window.PERMISSION_GROUPS = [
     label: 'Vé & ghế',
     items: [
       { key: 'book_ticket', label: 'Đặt vé' },
-      { key: 'sell_ticket', label: 'Bán vé' },
+      { key: 'sell_ticket', label: 'Bán vé / Hủy ghế, chuyển vé' },
       { key: 'change_price', label: 'Đổi giá' },
-      { key: 'assign_depart_reopen', label: 'Chỉ định xe / Khởi hành xe / Reopen' },
+      { key: 'assign_depart_reopen', label: 'Chỉ định xe / Khởi hành xe / Re-open / Đóng băng / Kết ca / Khách ngoài phơi' },
       { key: 'transship_pickup', label: 'Trung chuyển / rước khách' },
       { key: 'transship_assign', label: 'Trung chuyển - chỉ định xe,...' },
       { key: 'print_transship_ticket', label: 'In vé trung chuyển' }

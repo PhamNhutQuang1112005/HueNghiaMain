@@ -323,10 +323,10 @@ function renderPassengerHistoryRowHtml(r, idx) {
   const { firstStopHtml, lastStopHtml } = getHistoryStopsDisplay(r);
   const plate = r.plate || '51F-123.45';
   const vehicleType = r.vehicleType || 'Limousine 24 Phòng';
-  const driver = r.driver || 'Trần Văn Hùng';
-  const helper = r.helper || 'Nguyễn Văn Bình';
-  const bookStaffStr = getStaffCode(r.bookStaff || r.staff) || 'NV01';
-  const sellStaffStr = r.sellStaff ? (getStaffCode(r.sellStaff) || r.sellStaff) : (r.paid ? 'NV05' : '—');
+  const driver = r.driver || '—';
+  const helper = r.helper || '—';
+  const bookStaffStr = getStaffCode(r.bookStaff || r.staff) || '—';
+  const sellStaffStr = r.sellStaff ? (getStaffCode(r.sellStaff) || r.sellStaff) : '—';
   const priceStr = r.price ? r.price.toLocaleString('vi-VN') + 'đ' : '—';
   const seatCount = r.seat ? r.seat.split(',').map(s => s.trim()).filter(Boolean).length : 0;
   // Cột "Thời gian" gộp luôn phần ngày (không còn cột "Ngày" riêng vì trùng thông tin) — lấy cả ngày
@@ -392,10 +392,7 @@ let phCancelledViewActive = false;
 // trước đây callcenter.html không nạp ticketstaff-manifest-core.js (nay callcenter.html đã gộp vào
 // ticketstaff.html, chỗ khai báo vẫn giữ ở đây vì booking.js là code lõi đặt vé dùng chung).
 function getCurrentActionStaffCode() {
-  const user = Session.get();
-  if (user && user.username) return getStaffCode(user.username) || user.username;
-  const nameEl = document.getElementById('userName');
-  return (nameEl && nameEl.textContent.trim()) || 'NV trực';
+  return getActingStaffCode(); // '' khi chưa đăng nhập — không còn giá trị dự phòng (seat-bank.js)
 }
 
 function loadAllCancelledSeats() {
@@ -807,8 +804,8 @@ const CH_GUEST_TAG_CLASS = {
 
 function renderHistorySeatCardHtml(r, custName, custPhone) {
   const { firstStopHtml, lastStopHtml } = getHistoryStopsDisplay(r);
-  const bookStaffStr = getStaffCode(r.bookStaff || r.staff) || 'NV01';
-  const sellStaffStr = r.sellStaff ? (getStaffCode(r.sellStaff) || r.sellStaff) : (r.paid ? 'NV05' : '—');
+  const bookStaffStr = getStaffCode(r.bookStaff || r.staff) || '—';
+  const sellStaffStr = r.sellStaff ? (getStaffCode(r.sellStaff) || r.sellStaff) : '—';
   const stateClass = r.state === 'sold' ? 'sold' : (r.state === 'hold' ? 'hold' : 'sold');
   // Cùng quy ước nhãn nút footer với thẻ ghế bên sơ đồ ghế chính (seatCard() trong callcenter.js/
   // ticketstaff.js) — ghế đã bán hiện "THÔNG TIN" khi hover (mở panel chỉ xem, không sửa được), ghế
@@ -872,8 +869,8 @@ function renderHistoryCardHtml(r, idx, custName, custPhone) {
   const formattedDate = formatHistoryDate(r.date);
   const plate = r.plate || '51F-123.45';
   const vehicleType = r.vehicleType || 'Limousine 24 Phòng';
-  const driver = r.driver || 'Trần Văn Hùng';
-  const helper = r.helper || 'Nguyễn Văn Bình';
+  const driver = r.driver || '—';
+  const helper = r.helper || '—';
 
   return `
     <div class="ch-trip-seatmap-card">

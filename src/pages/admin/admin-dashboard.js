@@ -169,7 +169,7 @@ function renderDashboard() {
   var byStatus = {};
   TRIP_STATUSES.forEach(function (s) { byStatus[s] = 0; });
   trips.forEach(function (t) {
-    var s = (t && t.status) || 'Chưa chỉ định';
+    var s = (t && TripService.syncStatus(t).status) || 'Chưa chỉ định';
     byStatus[s] = (byStatus[s] || 0) + 1;
   });
 

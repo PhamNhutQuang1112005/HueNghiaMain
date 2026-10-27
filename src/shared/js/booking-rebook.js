@@ -328,8 +328,8 @@ function scanTripSeatBankHistory(matchSeatFn) {
           vehicleType: bank.vehicleType || tripMeta.vehicleType,
           driver: bank.driver || '',
           helper: bank.helper || '',
-          bookStaff: getStaffCode(seat.staff) || 'NV01',
-          sellStaff: seat.paid ? (getStaffCode(seat.staff) || 'NV05') : '—',
+          bookStaff: getStaffCode(seat.bookedBy || seat.staff) || '—',
+          sellStaff: seat.paid ? (getStaffCode(seat.staff) || '—') : '—',
           actionTime: seat.actionTime || '',
           isToday: true,
           tripId

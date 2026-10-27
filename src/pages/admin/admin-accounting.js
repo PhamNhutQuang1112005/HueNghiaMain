@@ -1252,8 +1252,8 @@
     var tripRoute = routeName || v0.route || '06:00 - An Giang - Sài Gòn';
     var tripDate = v0.date || todayISO();
     var plate = v0.plate && v0.plate !== 'Chưa xếp xe' ? v0.plate : '51F-123.45';
-    var driver = v0.driver && v0.driver !== 'Chưa phân công' ? v0.driver : 'Phạm Quốc Bảo';
-    var attendant = v0.attendant && v0.attendant !== '—' ? v0.attendant : 'Đỗ Văn Sơn';
+    var driver = v0.driver && v0.driver !== 'Chưa phân công' ? v0.driver : '—';
+    var attendant = v0.attendant && v0.attendant !== '—' ? v0.attendant : '—';
 
     // Tách "Trạm đi" + giờ khởi hành từ chuỗi tripRoute ("06:00 - An Giang - Sài Gòn") để hiển thị đủ
     // cột "Trạm đi" trong bảng Danh sách rước đường (khác cột "Điểm rước" là vị trí đón cụ thể dọc đường).

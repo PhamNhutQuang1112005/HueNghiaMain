@@ -57,8 +57,8 @@ erDiagram
     %%   3) Xoá / đổi tên loại xe (cascade ở trên) mới có ở tầng FleetStore: chưa có màn Admin nào gọi renameVehicleType; setVehicleTypes chỉ được gọi khi
     %%      nhập cấu hình. Danh mục loại xe hiện lấy từ dữ liệu mẫu (SEED_VEHICLE_TYPES) hoặc file nhập.
     %%   Giá không chỉ có ở "điểm đầu - điểm cuối" của tuyến: mọi cặp (A -> B) trong khung đều có giá, kể cả khi A hoặc B là trạm nhận thêm (route_pickup_station)
-    %%   được thêm vào điểm đi/đến của khung. Bán vé tra FleetStore.getFare(phơi.trạm đi, phơi.trạm đến, phơi.loại xe); 2 ô trạm của phơi liệt kê mọi trạm của
-    %%   tỉnh đi / tỉnh đến theo hướng, nên phơi chọn trạm nhận thêm làm trạm đi/đến vẫn ra đúng giá. Cặp chưa có giá thì nhân viên nhập tay (có thông báo).
+    %%   được thêm vào điểm đi/đến của khung. Bán vé tra FleetStore.getFare(trạm đi của VÉ, trạm đến của VÉ, phơi.loại xe) — cặp trạm khách nhập ở panel Đặt vé, không phải cặp trạm của phơi (giá phơi chỉ là giá mặc định); 2 ô trạm của phơi liệt kê mọi trạm của
+    %%   tỉnh đi / tỉnh đến theo hướng, nên phơi chọn trạm nhận thêm làm trạm đi/đến vẫn ra đúng giá. Modal tạo phơi ẩn ô giá: giá phơi lấy tự động theo cặp này; cặp chưa có giá thì ô Giá vé hiện ra để trống và nhân viên tự nhập. Panel Đặt vé cũng vậy: đổi Trạm đi / Trạm đến của khách thì giá vé đổi theo cặp đó, cặp chưa có giá thì giá để trống và nhân viên tự nhập (chưa nhập thì không lưu được vé).
     %%   Ngoài ra màn khách (customer-popular-routes) hiện "giá từ" = FleetStore.routeFare: giá thấp nhất mọi cặp + mọi loại xe trong khung của tuyến; chỉ để hiển thị.
     %%   Màn khách lấy tuyến đang bật theo hướng (sg-ag, ag-sg; tối đa 4 mỗi chiều, tuyến trùng tên gộp 1 thẻ, giá từ = thấp nhất các bản ghi cùng tên), không theo id cố định.
     %%   Tuyến chưa có giá nào (chưa có khung, hoặc khung đã xoá) thì hiện "Liên hệ".
