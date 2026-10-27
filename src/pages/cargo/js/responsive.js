@@ -27,16 +27,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Restore sidebar collapse state from localStorage (desktop)
-  const isCollapsed = localStorage.getItem('hueNghia_sidebar_collapsed') === 'true';
-  if (isCollapsed && appSidebar && window.innerWidth > 768) {
-    appSidebar.classList.add('is-collapsed');
-  }
+  // Mobile (<=768px): drawer đầy đủ chữ, không is-collapsed. Tablet (<=992px): luôn thu gọn lúc tải
+  // để không chiếm chỗ bảng. Desktop: theo lựa chọn đã lưu. Chỉ tính lại khi đổi nhóm màn hình.
+  // matchMedia (không dùng innerWidth) để JS luôn khớp với breakpoint CSS.
+  const isNarrow = (px) => window.matchMedia('(max-width: ' + px + 'px)').matches;
+  const modeOf = () => (isNarrow(768) ? 'm' : isNarrow(992) ? 't' : 'd');
+  let lastMode = null;
+  const syncCollapsed = () => {
+    if (!appSidebar || modeOf() === lastMode) return;
+    lastMode = modeOf();
+    const want = lastMode === 't' || (lastMode === 'd' && localStorage.getItem('hueNghia_sidebar_collapsed') === 'true');
+    appSidebar.classList.toggle('is-collapsed', want);
+  };
+  syncCollapsed();
+  window.addEventListener('resize', syncCollapsed);
 
   // Collapse / Expand toggle logic for entire Sidebar
   if (sidebarToggleBtn && appSidebar) {
     sidebarToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (window.innerWidth <= 768) {
+      if (isNarrow(768)) {
         // Mobile: slide-in/out sidebar
         appSidebar.classList.toggle('mobile-open');
         if (backdrop) backdrop.classList.toggle('active');
@@ -44,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Desktop: collapse/expand sidebar
         appSidebar.classList.toggle('is-collapsed');
         const collapsedNow = appSidebar.classList.contains('is-collapsed');
-        localStorage.setItem('hueNghia_sidebar_collapsed', collapsedNow);
+        if (!isNarrow(992)) localStorage.setItem('hueNghia_sidebar_collapsed', collapsedNow);
       }
     });
   }

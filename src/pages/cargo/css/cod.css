@@ -400,7 +400,7 @@
 .nt-chain { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; color: #334155; }
 .nt-chain small { color: #94a3b8; }
 .nt-empty { color: #94a3b8; font-size: 13px; padding: 12px 0; text-align: center; }
-@media (max-width: 1100px) { .nt-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .nt-grid { grid-template-columns: minmax(0, 1fr); } }
 .nt-total td { font-weight: 800; background: #f8fafc; }
 .nt-adj { font-size: 12px; color: #64748b; margin-top: 6px; }
 .nt-net { margin-top: 10px; font-size: 14px; color: #0f172a; }
@@ -472,7 +472,7 @@
 .nt-net { padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
 .nt-chain { border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
 .nt-actions .secondary-btn { min-height: 38px; }
-@media (max-width: 1100px) { .nt-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .nt-grid { grid-template-columns: minmax(0, 1fr); } }
 .nt-col { overflow-x: auto; }
 .cod-status-badge, .nt-table th { white-space: nowrap; }
 /* fix: cột 1 bị tràn ngang */
@@ -481,7 +481,7 @@
 .nt-table { table-layout: auto; }
 .nt-table th { white-space: normal; padding: 10px 6px; letter-spacing: 0; line-height: 1.25; vertical-align: bottom; }
 .nt-table td { padding: 8px 6px; }
-@media (max-width: 1250px) { .nt-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1250px) { .nt-grid { grid-template-columns: minmax(0, 1fr); } }
 /* fix: nút dài tràn khỏi khung */
 .nt-actions { display: flex; }
 .nt-actions .secondary-btn { max-width: 100%; white-space: normal; height: auto; padding: 10px 14px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }

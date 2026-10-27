@@ -616,22 +616,6 @@
   }
 }
 
-/* ── Tablet (769px – 992px): sidebar luôn hiện nhưng thu gọn ── */
-@media (max-width: 992px) and (min-width: 769px) {
-  .app-sidebar {
-    width: var(--sidebar-collapsed-width);
-  }
-  .app-sidebar .sidebar-section-title,
-  .app-sidebar .sidebar-nav-item span:not(.status-dot-icon),
-  .app-sidebar .sidebar-nav-item .submenu-chevron,
-  .app-sidebar .group-children {
-    display: none !important;
-  }
-  .app-sidebar .sidebar-nav-item {
-    justify-content: center;
-    padding: 10px;
-  }
-}
 /* ── Mobile: Header user-chip chỉ hiện avatar, ẩn tên ── */
 @media (max-width: 768px) {
   /* Ẩn tên trong user-chip, chỉ giữ avatar */
