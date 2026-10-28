@@ -540,6 +540,9 @@ function computeShiftStats(shift, allCargos) {
     const noteVal = document.getElementById('modalNoteText')?.value || '';
 
     shift.submittedCash = parseFloat(submittedVal.replace(/\./g, '').replace(/,/g, '')) || 0;
+    // Chốt số tiền mặt phải nộp tại thời điểm giao ca để admin đối soát (admin-cargo.js đọc 2 trường này).
+    shift.expectedCash = computeShiftStats(shift).cashPaid;
+    shift.diff = shift.submittedCash - shift.expectedCash;
     shift.note = noteVal;
     if (!shift.endTime) shift.endTime = Date.now();
     shift.isHandedOver = true;

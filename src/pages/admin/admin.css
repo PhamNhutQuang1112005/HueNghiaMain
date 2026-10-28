@@ -101,6 +101,7 @@
   border-bottom: 1px solid var(--border-gray);
   z-index: 30;
   display: flex;
+  flex-wrap: nowrap;            /* base.css (dùng chung với Tổng đài) đặt wrap <1200px → chip người dùng rớt hàng, đè nội dung */
   align-items: center;
   gap: 14px;
 }
@@ -4845,3 +4846,151 @@ textarea.acct-input { height: auto; padding: 10px 14px; }
 @media (max-width: 480px) {
   .chip-editor.pf-pick { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 }
+
+/* ---------- Quản lý hàng hóa (admin-cargo.js) ---------- */
+#viewCargoAdmin .cg-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+#viewCargoAdmin .cg-title { margin:0 0 2px; font-size:18px; font-weight:800; }
+#viewCargoAdmin .cg-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:16px; }
+#viewCargoAdmin .cg-card { background:var(--white,#fff); border:1px solid var(--border,#e2e8f0); border-radius:12px; padding:14px 16px; }
+#viewCargoAdmin .cg-card-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-sub); }
+#viewCargoAdmin .cg-card-total { font-size:28px; font-weight:800; line-height:1.2; margin:4px 0 10px; }
+#viewCargoAdmin .cg-card-total span { font-size:13px; font-weight:600; color:var(--text-sub); }
+#viewCargoAdmin .cg-card-split { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding-top:10px; border-top:1px solid var(--border,#e2e8f0); }
+#viewCargoAdmin .cg-card-split span { display:flex; flex-direction:column; font-size:11px; color:var(--text-sub); }
+#viewCargoAdmin .cg-card-split b { font-size:16px; color:var(--text,#0f172a); }
+#viewCargoAdmin .cg-card-total.cg-bad { color:var(--red,#c20d08); }
+#viewCargoAdmin .station-subtabs { margin-bottom:14px; }
+/* chữ đồng nhất: input/button/đơn vị trong trang dùng đúng font + cỡ của trang, không lấy mặc định trình duyệt */
+#viewCargoAdmin input, #viewCargoAdmin button, #viewCargoAdmin select { font-family:inherit; font-size:13.5px; }
+#viewCargoAdmin .cg-unit { font-size:13.5px; font-weight:600; color:var(--text-sub); }
+/* Quản lý hàng hóa — màn hình nhỏ: 5 tab tự xuống dòng, bảng giữ độ rộng tối thiểu để cuộn ngang thay vì bóp chữ */
+#viewCargoAdmin .station-subtabs { flex-wrap:wrap; max-width:100%; }
+#viewCargoAdmin .admin-table { min-width:720px; }
+@media (max-width:640px) {
+  #viewCargoAdmin .cg-grid { grid-template-columns:1fr 1fr; gap:8px; }
+  #viewCargoAdmin .cg-card { padding:12px; }
+  #viewCargoAdmin .cg-card-total { font-size:22px; }
+  #viewCargoAdmin .station-subtab { flex:1 1 auto; text-align:center; }
+}
+
+/* ===== RESPONSIVE KHUNG ADMIN (≤900px): menu thành ngăn kéo, topbar gọn, nội dung sát lề ===== */
+.admin-drawer-backdrop { display:none; }
+@media (max-width: 900px) {
+  .admin-body .topbar { padding:0 10px 0 0; gap:8px; }
+  .brand { width:auto; flex:0 0 auto; padding:0 10px; }
+  .brand-text { display:none; }
+  .topbar-divider { display:none; }
+  .admin-sidebar {
+    position:fixed; top:64px; left:0; bottom:0; z-index:50;
+    width:min(280px, 85vw); flex:none;
+    transform:translateX(-100%); transition:transform .22s ease;
+    box-shadow:none;
+  }
+  body.admin-drawer-open .admin-sidebar { transform:translateX(0); box-shadow:4px 0 24px rgba(15,23,42,.35); }
+  .admin-drawer-backdrop { position:fixed; inset:64px 0 0 0; z-index:40; background:rgba(15,23,42,.45); }
+  body.admin-drawer-open .admin-drawer-backdrop { display:block; }
+  .admin-main { padding:12px 10px 24px; }
+  .admin-view { padding:12px; }
+}
+@media (max-width: 560px) {
+  .admin-breadcrumb { display:none; }
+  #userName { display:none; }
+}
+@media (prefers-reduced-motion: reduce) { .admin-sidebar { transition:none; } }
+
+/* ===== RESPONSIVE CHUNG CHO MỌI TRANG ADMIN (≤900px) =====
+   Lỗi gốc: nhiều khung bọc bảng (.st-col-routes của Tuyến xe, .ref-card:has(.admin-table)...) không cuộn
+   được và ô td/th có `word-break` nên bảng bị ép hẹp, tiêu đề cột vỡ từng ký tự. Cách sửa chung (không phải
+   sửa từng trang): MỌI phần tử trực tiếp chứa .admin-table đều cuộn ngang, bảng giữ độ rộng tối thiểu, tiêu
+   đề không bẻ ký tự. */
+/* bảng: ≤1200px — sidebar 260px làm vùng nội dung chỉ còn ~680px ở tablet 960px nên cũng cần cuộn ngang.
+   Không áp dụng desktop để khỏi đổi hành vi tiêu đề bảng dính (sticky). */
+@media (max-width: 1200px) {
+  .admin-view :has(> table.admin-table),
+  .admin-view .ref-card:has(.admin-table) { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .admin-view table.admin-table { min-width: 680px; }
+  .admin-view .admin-table thead th { white-space: nowrap; word-break: keep-all; overflow-wrap: normal; }
+  .admin-view .admin-table td { overflow-wrap: break-word; word-break: normal; }
+}
+
+@media (max-width: 900px) {
+  /* thanh lọc / công cụ: xuống dòng thay vì bóp ô nhập */
+  .admin-view .filter-toolbar,
+  .admin-view .toolbar { flex-wrap: wrap; }
+  .admin-view .filter-toolbar > .filter-field { flex: 1 1 calc(50% - 8px); min-width: 140px; }
+  /* popup: không bao giờ rộng hơn màn hình */
+  .modal, .admin-modal-box, #adminModalBox { max-width: calc(100vw - 16px) !important; }
+}
+@media (max-width: 560px) {
+  .admin-view .filter-toolbar > .filter-field { flex: 1 1 100%; }
+  .admin-view .btn { min-height: 36px; }
+}
+
+/* Lưới nhiều cột chưa có điểm gãy riêng → điện thoại xếp 1 cột (form, phân quyền, sơ đồ ghế, nhân sự...). */
+@media (max-width: 640px) {
+  .acc-perm-groups,
+  .admin-form .form-toggle-grid, .admin-form .form-toggle-grid.cols-3,
+  .sl-editor-grid, .sl-editor-grid.sl-cols-3,
+  .pnl-grid, .form-grid, .hr-grid-2, .hr-summary,
+  .donut-legend, .ref-db-top-grid, .sp-region .chip-editor { grid-template-columns: minmax(0, 1fr) !important; }
+  /* modal rộng cố định (VD form tuyển dụng 1080px) co theo màn hình, nội dung cuộn trong modal */
+  #adminModal .modal:has(.rc-form-grid) { width: auto; max-width: calc(100vw - 16px); }
+}
+
+/* ===== BẢNG → THẺ trên màn hình nhỏ (≤1100px): không cuộn ngang =====
+   Mỗi hàng là 1 thẻ; mỗi ô 1 dòng "TÊN CỘT: giá trị" (nhãn lấy từ data-label do admin-responsive.js gắn).
+   Dùng padding-left + ::before tuyệt đối (không dùng flex/grid trên td) để ô có nội dung hỗn hợp
+   (tiêu đề đậm + mô tả + thẻ) vẫn xếp đúng, không bị tách thành nhiều cột. */
+@media (max-width: 1100px) {
+  .admin-view table:is(.admin-table, .pax-table) { display: block; min-width: 0 !important; width: 100%; border: 0; }
+  .admin-view :is(.admin-table, .pax-table) thead { display: none; }
+  .admin-view :is(.admin-table, .pax-table) tbody { display: block; }
+  .admin-view :is(.admin-table, .pax-table) tbody tr {
+    display: block; margin: 0 0 10px; padding: 4px 12px;
+    background: #fff; border: 1px solid #CBCDCD; border-radius: 10px;
+  }
+  .admin-view :is(.admin-table, .pax-table) tbody tr:hover { background: #fff; }
+  .admin-view :is(.admin-table, .pax-table) tbody td {
+    display: block; position: relative; box-sizing: border-box;
+    width: auto !important; min-width: 0 !important; max-width: none !important;
+    padding: 8px 0 8px 40%; min-height: 36px;
+    border: 0 !important; border-bottom: 1px dashed #E2E8F0 !important;
+    text-align: left !important; white-space: normal;
+  }
+  .admin-view :is(.admin-table, .pax-table) tbody td:last-child { border-bottom: 0 !important; }
+  .admin-view :is(.admin-table, .pax-table) tbody td[data-label]::before {
+    content: attr(data-label);
+    position: absolute; left: 0; top: 8px; width: 36%;
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+    color: #6B6E70; line-height: 1.3;
+  }
+  /* ô không có nhãn (ô checkbox, dòng "không có dữ liệu" colspan) → chiếm trọn chiều ngang */
+  .admin-view :is(.admin-table, .pax-table) tbody td:not([data-label]) { padding-left: 0; }
+  .admin-view :is(.admin-table, .pax-table) td.row-actions { white-space: normal; }
+  .admin-view :is(.admin-table, .pax-table) td.row-actions .btn { margin: 2px 6px 2px 0; }
+  .admin-view :is(.admin-table, .pax-table) td.col-status { text-align: left !important; }
+  /* khung bọc không còn gì để cuộn */
+  .admin-view :has(> table:is(.admin-table, .pax-table)), .admin-view .ref-card:has(.admin-table) { overflow-x: visible !important; }
+}
+
+/* ===== THANH LỌC trên màn hình nhỏ (≤1100px): ô nào cũng xuống dòng, không bóp chồng nhãn =====
+   Các trang có luật riêng theo id (#viewTicketList > .filter-toolbar { flex-wrap:nowrap }...) mức ưu tiên cao
+   hơn luật chung, nên dùng #adminMain làm tiền tố để thắng — áp dụng cho MỌI view có .filter-toolbar. */
+@media (max-width: 1100px) {
+  #adminMain .admin-view > .filter-toolbar { flex-wrap: wrap !important; gap: 10px; }
+  #adminMain .admin-view > .filter-toolbar > .filter-field,
+  #adminMain .admin-view > .filter-toolbar > .filter-field:first-child,
+  #adminMain .admin-view > .filter-toolbar > .filter-field-date { flex: 1 1 200px !important; min-width: 0 !important; max-width: none !important; }
+  #adminMain .admin-view > .filter-toolbar > .filter-reset { display: flex; flex: 1 1 100%; gap: 8px; flex-wrap: wrap; }
+  #adminMain .admin-view > .filter-toolbar > .filter-reset > .btn { flex: 1 1 auto; }
+}
+
+/* Icon trong nút không khai báo width/height (VD nút "Ghế hủy") sẽ nở theo bề rộng nút khi nút co giãn →
+   cố định 16px, không co giãn. */
+.admin-view .btn > svg:not([width]) { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* Bảng admin: ô/tiêu đề bị bẻ giữa chữ khi cột hẹp (VD bảng Trạm xe: hotline "0908 110 / 020", tiêu đề "TẠ / O").
+   Gốc: .admin-table th/td đặt overflow-wrap:anywhere + word-break:break-word cho MỌI ô → cột nào bị cột dài
+   (Địa chỉ) lấn chỗ sẽ bị bẻ từng ký tự. Tiêu đề chỉ xuống dòng ở dấu cách; ô mono (SĐT, mã) giữ 1 hàng. */
+.admin-table thead th { overflow-wrap: normal; word-break: keep-all; }
+.admin-table td.mono { white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }

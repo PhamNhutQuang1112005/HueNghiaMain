@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="../shared/css/booking-ui/05-passenger-list.css?v=111" />
   <link rel="stylesheet" href="../shared/css/booking-ui/06-grid-table.css?v=109" />
   <link rel="stylesheet" href="../shared/css/booking-ui/07-customer-history.css?v=108" />
-  <link rel="stylesheet" href="admin/admin.css?v=184" />
+  <link rel="stylesheet" href="admin/admin.css?v=191" />
   <link rel="stylesheet" href="admin/admin-ts-modals.css?v=5" />
   <!-- CSS của CKEditor 5 (ô "Nội dung chi tiết" ở modal Thêm/Sửa bài tuyển dụng — admin-recruitment.js).
        File tĩnh TỰ LƯU trong repo (../shared/vendor/ckeditor5/), KHÔNG tải qua CDN — bản CDN ("cloud")
@@ -130,8 +130,10 @@
         <div class="admin-nav-group-wrap" id="navGroupHangHoaWrap">
           <div class="admin-nav-group-inner">
             <div class="admin-nav-group">
+              <button type="button" class="admin-nav-item" data-action="switchAdminView" data-args='["viewCargoAdmin"]'>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>Quản lý hàng hóa</button>
               <button type="button" class="admin-nav-item" data-action="adminGoToCargo">
-                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Quản lý hàng hóa</button>
+                <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>Giao nhận hàng</button>
             </div>
           </div>
         </div>
@@ -252,6 +254,7 @@
         <section class="admin-view" id="viewVehicleSeats" hidden></section>
         <section class="admin-view" id="viewVehicleCategories" hidden></section>
         <section class="admin-view" id="viewVehicles" hidden></section>
+        <section class="admin-view" id="viewCargoAdmin" hidden></section>
 
         <!-- Accounting Views -->
         <section class="admin-view" id="viewAccountingThu" hidden></section>
@@ -437,7 +440,7 @@
   <!-- admin.js (1333 dòng) đã tách theo banner mục 1–8 thành các mảnh liền mạch — NẠP ĐÚNG
        THỨ TỰ (= thứ tự dòng file gốc); admin-settings-boot.js chứa dòng BOOT ở cuối nên phải nạp
        SAU cùng. Biến/hàm vẫn là global top-level như cũ. -->
-  <script src="admin/admin.js?v=40"></script>
+  <script src="admin/admin.js?v=41"></script>
   <script src="admin/admin-dashboard.js?v=4"></script>
   <script src="admin/admin-station-directory.js?v=23"></script>
   <script src="admin/admin-placeholders.js?v=13"></script>
@@ -446,6 +449,8 @@
   <script src="admin/admin-trips.js?v=18"></script>
   <script src="admin/admin-calendar.js?v=1"></script>
   <script src="admin/admin-transship.js?v=26"></script>
+  <script src="admin/admin-cargo.js?v=2"></script>
+  <script src="admin/admin-responsive.js?v=2"></script>
   <script src="admin/admin-tickets.js?v=16"></script>
   <script src="admin/admin-ticket-office.js?v=6"></script>
   <script src="admin/admin-customers.js?v=8"></script>

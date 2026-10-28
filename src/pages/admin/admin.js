@@ -160,6 +160,7 @@ var VIEW_RENDERERS = {
   viewVehicleSeats: function () { renderVehicleSeatsView(); },
   viewVehicleCategories: function () { renderVehicleCategoriesView(); },
   viewVehicles: function () { renderVehiclesView(); },
+  viewCargoAdmin: function () { renderCargoAdminView(); },
   viewAccountingThu: function () { renderAccountingThuView(); },
   viewAccountingChi: function () { renderAccountingChiView(); },
   viewAccountingExpenseRequests: function () { renderAccountingExpenseRequestsView(); },
@@ -231,6 +232,7 @@ var ADMIN_BREADCRUMB_MAP = {
   viewTicketOffice: { group: 'Quản lý vận tải', label: 'Phòng vé' },
   viewCustomers: { group: 'Quản lý vận tải', label: 'Khách hàng' },
   viewVehicles: { group: 'Thiết lập vận tải', label: 'Quản lý xe' },
+  viewCargoAdmin: { group: 'Hàng hóa', label: 'Quản lý hàng hóa' },
   viewVehicleCategories: { group: 'Thiết lập vận tải', label: 'Loại xe' },
   viewSeatLayouts: { group: 'Thiết lập vận tải', label: 'Sơ đồ ghế' },
   viewVehicleSeats: { group: 'Thiết lập vận tải', label: 'Ghế xe' },
@@ -319,13 +321,29 @@ function initAdminNavGroups() {
    trong .sidebar-brand). Nhớ trạng thái qua localStorage như nhóm accordion ở trên. Trạng thái đóng/mở
    riêng từng nhóm (adminToggleNavGroup) vẫn hoạt động bình thường kể cả khi đang thu gọn. */
 var ADMIN_SIDEBAR_COLLAPSE_KEY = 'hn_admin_sidebar_collapsed_v1';
+var ADMIN_MOBILE_MQ = window.matchMedia('(max-width: 900px)');
+function adminCloseDrawer() { document.body.classList.remove('admin-drawer-open'); }
 function adminToggleSidebarCollapse() {
+  // Màn hình nhỏ: menu là ngăn kéo trượt ra từ trái (không đụng chế độ thu gọn icon của desktop).
+  if (ADMIN_MOBILE_MQ.matches) { document.body.classList.toggle('admin-drawer-open'); return; }
   var collapsed = !document.body.classList.contains('admin-sidebar-collapsed');
   document.body.classList.toggle('admin-sidebar-collapsed', collapsed);
   lsWrite(ADMIN_SIDEBAR_COLLAPSE_KEY, collapsed);
 }
 function initAdminSidebarCollapse() {
-  document.body.classList.toggle('admin-sidebar-collapsed', !!lsRead(ADMIN_SIDEBAR_COLLAPSE_KEY, false));
+  // Thu gọn icon chỉ áp dụng desktop; ngăn kéo mobile luôn hiện đủ chữ.
+  function apply() {
+    adminCloseDrawer();
+    document.body.classList.toggle('admin-sidebar-collapsed', !ADMIN_MOBILE_MQ.matches && !!lsRead(ADMIN_SIDEBAR_COLLAPSE_KEY, false));
+  }
+  apply();
+  ADMIN_MOBILE_MQ.addEventListener('change', apply);
+  // Lớp nền mờ bấm để đóng + tự đóng khi chọn 1 mục menu.
+  var bd = document.createElement('div');
+  bd.className = 'admin-drawer-backdrop';
+  bd.addEventListener('click', adminCloseDrawer);
+  document.body.appendChild(bd);
+  $('adminSidebar').addEventListener('click', function (e) { if (e.target.closest('.admin-nav-item')) adminCloseDrawer(); });
 }
 /* Gắn title = đúng nhãn chữ của nút cho MỌI nút nav (kể cả khi sidebar đang mở) — để khi thu gọn còn
    icon, hover vẫn thấy tên qua tooltip trình duyệt mà không cần sửa tay từng nút trong admin.html. */

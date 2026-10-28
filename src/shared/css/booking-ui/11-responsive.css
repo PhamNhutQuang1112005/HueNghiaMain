@@ -136,3 +136,23 @@
     max-width: none !important;
   }
 }
+
+/* Thanh trên Tổng đài (ticketstaff) ≤767px: nhóm tìm kiếm + 5 tab bị chính nội dung đẩy rộng hơn màn hình
+   (đo ở 400px: .topbar-align-group rộng 428px → ô tìm kiếm + nút kính lúp bị cắt 40px). Nguyên nhân:
+   flex item mặc định min-width:auto = min-content của các nút tab (nowrap, padding 18px). Cho nhóm co được
+   (min-width:0) và để hàng tab tự cuộn ngang bên trong thay vì đẩy cả thanh rộng ra. */
+@media (max-width: 767px) {
+  .topbar-align-group { min-width: 0; max-width: 100%; }
+  .search-wrap { min-width: 0; max-width: 100%; }
+  .tab-btn-group { min-width: 0; max-width: 100%; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .tab-btn-group::-webkit-scrollbar { display: none; }
+  .tab-btn-group .pill-btn { flex: 0 0 auto; }
+}
+
+/* Thẻ ghế: nhãn giá "280.000đ" cạnh mã ghế vượt viền thẻ ở màn hình rất hẹp (ghế 2 cột) — thu nhỏ nhãn. */
+@media (max-width: 479px) {
+  .seat-card { padding-left: 8px; padding-right: 8px; }
+  .seat-top { min-width: 0; gap: 3px; }
+  .seat-top-right { gap: 3px; min-width: 0; }
+  .seat-price-tag { font-size: 10.5px; padding: 2px 4px; letter-spacing: -.2px; }
+}

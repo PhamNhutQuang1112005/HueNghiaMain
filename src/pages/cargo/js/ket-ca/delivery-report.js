@@ -549,6 +549,9 @@
     const noteVal = document.getElementById('dlvModalNoteText')?.value || '';
 
     shift.submittedAmount = parseFloat(submittedVal.replace(/\./g, '').replace(/,/g, '')) || 0;
+    // Chốt số tiền mặt phải nộp tại thời điểm giao ca để admin đối soát (admin-cargo.js đọc 2 trường này).
+    shift.expectedCash = computeShiftStats(shift).cashPaid;
+    shift.diff = shift.submittedAmount - shift.expectedCash;
     shift.note = noteVal;
     shift.isHandedOver = true;
 

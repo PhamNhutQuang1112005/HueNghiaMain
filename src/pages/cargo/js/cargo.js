@@ -1046,8 +1046,20 @@ function setFormLockedState(isLocked, manifestName = '', isMoneyLockedOnly = fal
   }
 }
 
+// Admin bật "Khóa sửa/xóa đơn tiền" (trang Quản lý hàng hóa) → nhân viên thường không sửa/xóa được đơn tiền.
+function isMoneyLockedFor(cargo) {
+  if (!cargo || !isMoneyCargo(cargo)) return false;
+  let on = false;
+  try { on = localStorage.getItem('hueNghia_cargoLockMoney') === '1'; } catch (e) {}
+  return on && currentStaff.role !== 'admin';
+}
+
 function openModal(editId = null) {
   if (!bundleModal) return;
+  if (editId != null && isMoneyLockedFor(state.data.find(c => String(c.id) === String(editId)))) {
+    showToast('🔒 Admin đã khóa sửa đơn tiền');
+    return;
+  }
   updateManifestDropdowns();
   const titleEl = document.getElementById('modalTitle');
   const eyebrowEl = document.getElementById('modalEyebrow');
@@ -2531,6 +2543,11 @@ const isCargoTransferred = (c) => c.manifestId != null || c.status === 'in-trans
 function openDeleteCargoModal(idOrIds) {
   let ids = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).map(String);
   let items = state.data.filter(row => ids.includes(String(row.id)));
+  const adminLocked = items.filter(isMoneyLockedFor);
+  if (adminLocked.length) {
+    showToast('🔒 Admin đã khóa xóa đơn tiền');
+    items = items.filter(c => !adminLocked.includes(c));
+  }
   const locked = items.filter(c => isMoneyCargo(c) && isCargoTransferred(c));
   if (locked.length) {
     showToast(`⚠️ ${locked.length} đơn tiền đã chuyển, không thể xóa`);
