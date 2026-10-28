@@ -191,7 +191,8 @@ function syncCargosWithManifests(cargos) {
     } else {
       cargo.stationFrom = cargo.stationFrom || 'Chưa gán';
       cargo.stationTo = cargo.stationTo || 'Chưa gán';
-      if (cargo.status === 'in-transit' || !cargo.status) {
+      // Đơn tiền "Đã chuyển" không qua phơi (moneyTransferred) → giữ nguyên, không reset khi tải lại.
+      if ((cargo.status === 'in-transit' || !cargo.status) && !cargo.moneyTransferred) {
         cargo.status = 'pending';
         cargo.statusText = 'Chưa chuyển';
       }
@@ -885,6 +886,12 @@ function updateBatchTransferButton() {
     // Chọn toàn đơn tiền → nút đổi thành "Chuyển tiền" (xác nhận chuyển nhiều đơn một lần, không cần phơi).
     const allMoney = count > 0 && checkedBoxes.every(cb => isMoneyCargo(state.data.find(c => String(c.id) === cb.dataset.id)));
     batchTransferBtn.innerHTML = `${allMoney ? 'Chuyển tiền' : 'Chuyển phơi'} (<span id="selectedCount">${count}</span>)`;
+    // Xóa nhiều chỉ dành cho đơn tiền.
+    const batchDeleteBtn = document.getElementById('batchDeleteCargoBtn');
+    if (batchDeleteBtn) {
+      batchDeleteBtn.style.display = allMoney ? 'inline-flex' : 'none';
+      batchDeleteBtn.querySelector('span').textContent = count;
+    }
   }
   const batchPrintCargoStickersBtn = document.getElementById('batchPrintCargoStickersBtn');
   if (batchPrintCargoStickersBtn) batchPrintCargoStickersBtn.style.display = count > 0 ? 'inline-flex' : 'none';
@@ -1251,6 +1258,7 @@ function openTransferModal(cargoIds) {
       money.forEach(c => {
         c.status = 'in-transit';
         c.statusText = 'Đã chuyển';
+        c.moneyTransferred = true;
         c.scanned = true;
         c.isScanned = true;
         c.transferredAt = Date.now();
@@ -2297,6 +2305,13 @@ if (batchTransferBtn) {
   });
 }
 
+const batchDeleteCargoBtn = document.getElementById('batchDeleteCargoBtn');
+if (batchDeleteCargoBtn) {
+  batchDeleteCargoBtn.addEventListener('click', () => {
+    openDeleteCargoModal(Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id));
+  });
+}
+
 const batchPrintCargoStickersBtn = document.getElementById('batchPrintCargoStickersBtn');
 if (batchPrintCargoStickersBtn) {
   batchPrintCargoStickersBtn.addEventListener('click', () => {
@@ -2510,11 +2525,21 @@ function saveDeletionHistory(list) {
   } catch (e) {}
 }
 
-function openDeleteCargoModal(id) {
-  const item = state.data.find(row => String(row.id) === String(id));
-  if (!item) return;
+// Đơn tiền đã chuyển thì không được xóa nữa (đã sang Danh sách giao hàng).
+const isCargoTransferred = (c) => c.manifestId != null || c.status === 'in-transit';
 
-  pendingDeleteCargoId = id;
+function openDeleteCargoModal(idOrIds) {
+  let ids = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).map(String);
+  let items = state.data.filter(row => ids.includes(String(row.id)));
+  const locked = items.filter(c => isMoneyCargo(c) && isCargoTransferred(c));
+  if (locked.length) {
+    showToast(`⚠️ ${locked.length} đơn tiền đã chuyển, không thể xóa`);
+    items = items.filter(c => !locked.includes(c));
+  }
+  if (!items.length) return;
+  const item = items[0];
+
+  pendingDeleteCargoId = items.map(c => c.id);
   const targetInfoEl = document.getElementById('deleteCargoTargetInfo');
   const reasonInput = document.getElementById('deleteReasonInput');
   const errorEl = document.getElementById('deleteReasonError');
@@ -2523,7 +2548,12 @@ function openDeleteCargoModal(id) {
   if (reasonInput) reasonInput.value = '';
   if (errorEl) errorEl.style.display = 'none';
 
-  if (targetInfoEl) {
+  if (targetInfoEl && items.length > 1) {
+    targetInfoEl.innerHTML = `
+      <div style="font-weight:800; color:#0f172a; font-size:14px; margin-bottom:6px;">Xóa ${items.length} đơn hàng:</div>
+      ${items.map(c => `<div style="padding:3px 0; border-top:1px dashed #e2e8f0;"><code style="background:#e2e8f0; padding:1px 6px; border-radius:4px;">${c.code || ''}</code> ${c.name || ''} — ${c.sender || '—'} ➔ ${c.receiver || '—'}</div>`).join('')}
+    `;
+  } else if (targetInfoEl) {
     const feeDisplay = item.fee ? Number(item.fee).toLocaleString('vi-VN') + 'đ' : '0đ';
     const codDisplay = item.codAmount ? Number(item.codAmount).toLocaleString('vi-VN') + 'đ' : '0đ';
     targetInfoEl.innerHTML = `
@@ -2561,11 +2591,11 @@ function confirmDeleteCargo() {
   }
   if (errorEl) errorEl.style.display = 'none';
 
-  const item = state.data.find(row => String(row.id) === String(pendingDeleteCargoId));
-  if (item) {
-    const historyList = getDeletionHistory();
+  const delIds = (Array.isArray(pendingDeleteCargoId) ? pendingDeleteCargoId : [pendingDeleteCargoId]).map(String);
+  const historyList = getDeletionHistory();
+  state.data.filter(row => delIds.includes(String(row.id))).forEach((item, n) => {
     const historyEntry = {
-      id: Date.now(),
+      id: Date.now() + n,
       cargoId: item.id,
       code: item.code || '',
       name: item.name || '',
@@ -2582,13 +2612,13 @@ function confirmDeleteCargo() {
       deletedBy: item.staff || 'Nhân viên nhập'
     };
     historyList.unshift(historyEntry);
-    saveDeletionHistory(historyList);
+  });
+  saveDeletionHistory(historyList);
 
-    state.data = state.data.filter(row => String(row.id) !== String(pendingDeleteCargoId));
-    saveCargos(state.data);
-    renderTable();
-    showToast('Đã xóa hàng hóa và lưu lịch sử lý do xóa');
-  }
+  state.data = state.data.filter(row => !delIds.includes(String(row.id)));
+  saveCargos(state.data);
+  renderTable();
+  showToast(`Đã xóa ${delIds.length} hàng hóa và lưu lịch sử lý do xóa`);
 
   closeDeleteCargoModal();
 }
