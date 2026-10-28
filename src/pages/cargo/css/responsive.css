@@ -750,3 +750,72 @@
 @media (max-width: 560px) {
   #deliveryScanModal .modal-card { overflow-x: auto !important; }
 }
+
+/* ── Tablet + điện thoại (<=1280px): mỗi dòng bảng thành 1 thẻ "NHÃN | giá trị", không cuộn ngang ── */
+@media (max-width: 1280px) {
+  .table-scroll { overflow-x: visible !important; }
+  .table-scroll table, table.cargo-table { display: block; width: 100% !important; min-width: 0 !important; }
+  .table-scroll thead, table.cargo-table thead { display: none; }
+  .table-scroll tbody, table.cargo-table tbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .table-scroll tbody tr, table.cargo-table tbody tr {
+    display: block; margin: 0 0 10px; padding: 4px 12px;
+    border: 1px solid #cbd5e1; border-radius: 10px; background: #fff;
+  }
+  .table-scroll tbody td, table.cargo-table tbody td {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 8px 0 !important; border: 0 !important; border-bottom: 1px dashed #e2e8f0 !important;
+    text-align: right !important; width: auto !important; min-width: 0 !important;
+  }
+  .table-scroll tbody td:last-child, table.cargo-table tbody td:last-child { border-bottom: 0 !important; }
+  .table-scroll tbody td::before, table.cargo-table tbody td::before {
+    content: attr(data-label); flex: 0 0 34%; max-width: 34%;
+    font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; text-align: left;
+  }
+  .table-scroll tbody td[data-label=""]::before, .table-scroll tbody td:not([data-label])::before,
+  table.cargo-table tbody td[data-label=""]::before, table.cargo-table tbody td:not([data-label])::before { display: none; }
+  .table-scroll tbody td[data-label=""] { justify-content: flex-end; }
+  .table-scroll .td-val, table.cargo-table .td-val { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .table-scroll tbody td[colspan], table.cargo-table tbody td[colspan] { display: block; text-align: center !important; }
+  .table-scroll tbody td[colspan]::before { display: none; }
+}
+
+/* Gọn hơn: bỏ dòng STT, ô sát nhau, tablet xếp 2 thẻ/hàng */
+@media (max-width: 1280px) {
+  .table-scroll tbody td[data-label="STT"] { display: none; }
+  .table-scroll tbody tr, table.cargo-table tbody tr { margin: 0; padding: 2px 12px; }
+  .table-scroll tbody td, table.cargo-table tbody td { padding: 5px 0 !important; gap: 8px; }
+  .table-scroll .td-val .mini-tag-row { justify-content: flex-end; }
+}
+@media (min-width: 1000px) and (max-width: 1280px) {
+  .table-scroll tbody, table.cargo-table tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+@media (min-width: 1000px) and (max-width: 1280px) {
+  .table-scroll tbody tr:has(td[colspan]), table.cargo-table tbody tr:has(td[colspan]) { grid-column: 1 / -1; }
+}
+
+/* Dòng bị ẩn (phơi con của xe chưa mở, ...) phải vẫn ẩn khi bảng thành thẻ */
+@media (max-width: 1280px) {
+  .table-scroll tbody tr[hidden], table.cargo-table tbody tr[hidden] { display: none !important; }
+}
+/* Màn hình rất hẹp: nhãn nằm trên giá trị, canh trái — không còn chồng chữ */
+@media (max-width: 520px) {
+  .table-scroll tbody td, table.cargo-table tbody td { flex-direction: column; align-items: stretch; gap: 2px; text-align: left !important; }
+  .table-scroll tbody td::before, table.cargo-table tbody td::before { flex: none; max-width: 100%; }
+  .table-scroll .td-val .mini-tag-row { justify-content: flex-start; }
+  .table-scroll tbody td[data-label=""] { align-items: flex-end; }
+}
+
+/* Nhãn/giá trị được phép xuống dòng (một số ô gốc đặt nowrap) */
+@media (max-width: 1280px) {
+  .table-scroll tbody td, table.cargo-table tbody td, .table-scroll tbody td::before, table.cargo-table tbody td::before { white-space: normal !important; }
+}
+
+/* Trên 1280px: bảng tự co cột + xuống dòng để vừa khung, không cuộn ngang */
+@media (min-width: 1281px) {
+  .table-scroll { overflow-x: visible !important; }
+  .table-scroll table { width: 100% !important; min-width: 0 !important; table-layout: auto; }
+  .table-scroll th { min-width: 0 !important; white-space: normal; padding: 8px 6px; }
+  .table-scroll td { padding: 8px 6px; overflow-wrap: anywhere; }
+}
+
+.table-scroll code { white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }

@@ -107,6 +107,11 @@
                           <span>Tiền thường</span>
                         </label>
                         <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Bạn hàng</span>
+                        </label>
+                        <label class="status-option">
                           <input type="radio" name="cargoStateFilter" value="hot" />
                           <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
                           <span>Tiền nóng</span>
@@ -167,6 +172,11 @@
                           <input type="radio" name="deliveryStateFilter" value="cash" />
                           <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
                           <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Bạn hàng</span>
                         </label>
                         <label class="status-option">
                           <input type="radio" name="deliveryStateFilter" value="hot" />
@@ -468,6 +478,12 @@
           <label id="cargoUnitCustomWrap" style="display:none; flex-direction:column; gap:6px; margin-bottom:12px;">
             <span>Nhập đơn vị tính mới <strong style="color:var(--primary);">*</strong></span>
             <input type="text" id="cargoUnitCustom" placeholder="vd: Can, M3, Bó, Chai..." />
+          </label>
+
+          <!-- Hướng đi (FleetStore.buildDirTripCfg, như modal Tạo phơi xe bên đặt vé) — quyết định danh sách Trạm gửi/Trạm nhận bên dưới -->
+          <label style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+            <span>Hướng đi</span>
+            <select name="cargoRoute" id="cargoRoute" style="font-weight:700;"><option value="">-- Chọn hướng đi --</option></select>
           </label>
 
           <!-- Hàng 2: Trạm gửi + Trạm nhận + Phí cước -->

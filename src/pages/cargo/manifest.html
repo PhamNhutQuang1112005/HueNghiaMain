@@ -105,6 +105,11 @@
                           <span>Tiền thường</span>
                         </label>
                         <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Bạn hàng</span>
+                        </label>
+                        <label class="status-option">
                           <input type="radio" name="cargoStateFilter" value="hot" />
                           <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
                           <span>Tiền nóng</span>
@@ -165,6 +170,11 @@
                           <input type="radio" name="deliveryStateFilter" value="cash" />
                           <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
                           <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Bạn hàng</span>
                         </label>
                         <label class="status-option">
                           <input type="radio" name="deliveryStateFilter" value="hot" />
@@ -288,7 +298,7 @@
           </div>
         </section>
 
-        <div style="display:flex; align-items:center; gap:10px; margin:0 0 8px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
           <button type="button" id="batchReceiveAllBtn" class="primary-btn" disabled>Nhận tất cả hàng (<span id="manifestSelCount">0</span> phơi)</button>
           <button type="button" id="batchPrintManifestsBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
         </div>
@@ -300,7 +310,7 @@
                   <th style="width: 40px; text-align: center;"><input type="checkbox" class="select-all-rows" data-body="manifestTableBody" title="Chọn tất cả" /></th>
                   <th style="width: 45px; text-align: center;">STT</th>
                   <th>Biển số xe & Phơi</th>
-                  <th>Tài xế lái xe</th>
+                  <th style="min-width: 110px; white-space: nowrap;">Tài xế lái xe</th>
                   <th>Xe & Phụ xe</th>
                   <th>Nhân viên & Thời gian</th>
                   <th style="width: 120px; text-align: center;">Số đơn hàng</th>
@@ -327,7 +337,7 @@
           </div>
         </section>
 
-        <div style="display:flex; align-items:center; gap:10px; margin:0 0 8px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
           <button type="button" id="batchReceiveVehicleBtn" class="primary-btn" disabled>Nhận xe (<span id="receiveSelCount">0</span> phơi)</button>
           <button type="button" id="batchPrintReceiveBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
         </div>
@@ -1851,8 +1861,7 @@
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
               <strong style="font-size:15px; color:#0f172a;">${row.plate}</strong>
-              <span class="route-text" style="font-size:12.5px; margin-left:4px;">(<strong>${row.from}</strong> <span style="color:var(--primary);">➔</span> <strong>${row.to}</strong>)</span><br>
-              <small style="color:#64748b; font-weight:600;">${row.name}</small>
+              <span class="route-text" style="font-size:12.5px; margin-left:4px;">(<strong>${row.from}</strong> <span style="color:var(--primary);">➔</span> <strong>${row.to}</strong>)</span>
             </td>
             <td>
               <strong>${driverInfo.name}</strong><br>
@@ -2048,12 +2057,8 @@
         }
         if (errEl) errEl.style.display = 'none';
 
-        // 4 điểm Sài Gòn (508 Kinh Dương Vương, 4 Tống Văn Trân, 58 Lê Đại Hành, Sài Gòn) tính là 1 điểm đi:
-        // chọn 1–4 cái vẫn ra 1 phơi/điểm đến, tên "Sài Gòn, Kinh Dương Vương -> Châu Đốc".
-        const SG_GROUP = ['Sài Gòn', '508 Kinh Dương Vương', '4 Tống Văn Trân', '58 Lê Đại Hành'];
-        const sgPicked = selectedDepartures.filter(d => SG_GROUP.includes(d));
-        const departureGroups = selectedDepartures.filter(d => !SG_GROUP.includes(d));
-        if (sgPicked.length) departureGroups.unshift(sgPicked.join(', '));
+        // Mọi trạm đi được chọn gom thành 1 điểm đi: 1 phơi/điểm đến, tên "Châu Đốc, Chi Lăng -> Sài Gòn".
+        const departureGroups = [selectedDepartures.join(', ')];
 
         let count = 0;
         departureGroups.forEach(fromVal => {
@@ -2268,8 +2273,7 @@
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
               <span class="plate-badge">${item.plate}</span>
-              <span class="route-text" style="margin-left:6px;">${item.from} <span style="color:var(--primary);">➔</span> ${item.to}</span><br>
-              <small style="color:var(--text-muted); font-weight:600;">${item.name}</small>
+              <span class="route-text" style="margin-left:6px;">${item.from} <span style="color:var(--primary);">➔</span> ${item.to}</span>
             </td>
             <td>
               <div style="font-weight:600;">${driverInfo.name}</div>

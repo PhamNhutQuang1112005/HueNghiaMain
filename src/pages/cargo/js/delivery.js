@@ -94,7 +94,7 @@ function formatCargoQuantity(cargo) {
   return `${q} ${unit}`;
 }
 
-const CATEGORY_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Tiền thường', hot: 'Tiền nóng', baga: 'Baga' };
+const CATEGORY_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng gửi tiền thường', hot: 'Tiền nóng', baga: 'Baga' };
 
 let allCargos = [];
 let manifestsById = {};
@@ -196,7 +196,8 @@ function getFilteredList() {
 function statusBadgeHtml(cargo) {
   const def = DELIVERY_STATUS_DEFS[cargo.deliveryStatus] || DELIVERY_STATUS_DEFS['cho-giao'];
   // Quét QR giao hàng độc lập với quét QR nhận hàng (isScanned bên manifest).
-  const scan = cargo.deliveryScanned
+  // Hàng tiền (tiền thường/tiền nóng/bạn hàng) không quét mã → không hiện trạng thái quét.
+  const scan = isMoneyCargo(cargo) ? '' : cargo.deliveryScanned
     ? '<div style="font-size:10.5px; color:#15803d; margin-top:3px;">✓ Đã quét QR giao</div>'
     : '<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Chưa quét</div>';
   return `<span class="status-pill ${def.cls}">${def.label}</span>${scan}`;
@@ -247,16 +248,15 @@ function buildRow(cargo, index) {
         ${Number(cargo.codAmount || 0) > 0 ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">COD cần thu: <strong style="color:#0f172a;">${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</strong></div>` : ''}
         ${isDone && Number(cargo.codCollected || 0) > 0 ? `<div style="margin-top:3px;"><span class="mini-tag" style="color:#15803d; border-color:#86efac; background:#f0fdf4;">Đã thu: ${Number(cargo.codCollected).toLocaleString('vi-VN')}đ</span></div>` : ''}
       </td>
-      <td>
-        <div style="font-weight:700; color:#0f172a; font-size:12.5px;">${cargo.deliveryStaff || cargo.staff || 'NV Giao Hàng'}</div>
-        ${cargo.deliveryStaffPhone ? `<small style="color:var(--text-muted);">${cargo.deliveryStaffPhone}</small>` : ''}
-      </td>
       <td style="text-align:center;">
         ${statusBadgeHtml(cargo)}
         ${cargo.deliveryFailReason && (cargo.deliveryStatus === 'that-bai' || cargo.deliveryStatus === 'hen-lai') ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;" title="${cargo.deliveryFailReason}">${cargo.deliveryFailReason}</div>` : ''}
       </td>
       <td style="text-align:center;">
         <div class="action-group">
+          ${isMoneyCargo(cargo) && !isDone ? `<button class="rowicon-btn" onclick="confirmDeliveryScanItem(${cargo.id})" title="Đã giao">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
+          </button>` : ''}
           <button class="rowicon-btn" onclick="openDeliveryDetailModal(${cargo.id})" title="Xem chi tiết">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
@@ -266,17 +266,9 @@ function buildRow(cargo, index) {
           ${canDelete ? `<button class="rowicon-btn rowicon-btn--danger" onclick="deleteDeliveryOrder(${cargo.id})" title="Xóa">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>` : ''}
-          <div class="action-more-wrap">
-            <button class="rowicon-btn" onclick="toggleRowActionMenu(event, ${cargo.id})" title="Thêm">
-              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
-            </button>
-            <div class="action-more-menu" id="actionMenu-${cargo.id}">
-              <button type="button" ${isDone ? '' : 'disabled style="opacity:.45; cursor:not-allowed;"'} onclick="closeAllRowActionMenus(); ${isDone ? `openDeliveryReceiptModal(${cargo.id})` : ''}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                Biên lai giao hàng
-              </button>
-            </div>
-          </div>
+          <button class="rowicon-btn" ${isDone ? `onclick="openDeliveryReceiptModal(${cargo.id})"` : 'disabled style="opacity:.45; cursor:not-allowed;"'} title="Biên lai giao hàng">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </button>
         </div>
       </td>
     </tr>
@@ -297,7 +289,7 @@ function renderTable() {
   const rows = getFilteredList();
   tbody.innerHTML = rows.length
     ? rows.map((c, i) => buildRow(c, i)).join('')
-    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
+    : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
 
   document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBatchAssignButton));
   const selectAll = document.getElementById('selectAllCheckbox');
@@ -518,29 +510,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ---------------------------------------------------------
-   PHÂN CÔNG HÀNG LOẠT (chọn nhiều dòng)
+   GIAO HÀNG LOẠT (chọn nhiều đơn tiền → Đã giao một lần)
    --------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   const batchBtn = document.getElementById('batchAssignBtn');
-  if (batchBtn) {
-    batchBtn.addEventListener('click', () => {
-      const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
-      if (!ids.length) return;
-      const staffName = window.prompt('Nhập tên nhân viên giao hàng để phân công cho ' + ids.length + ' đơn đã chọn:');
-      if (!staffName) return;
-      allCargos.forEach(c => {
-        if (ids.includes(String(c.id))) {
-          c.deliveryStaff = staffName.trim();
-          if ((c.deliveryStatus || 'cho-giao') === 'cho-giao') c.deliveryStatus = 'dang-giao';
-          if (!c.pickedUpAt) c.pickedUpAt = nowStr();
-        }
-      });
-      saveCargos(allCargos);
-      showDeliveryToast(`Đã phân công ${ids.length} đơn cho ${staffName.trim()}`);
-      populateDeliveryStaffFilter();
-      renderTable();
-    });
-  }
+  if (!batchBtn) return;
+  batchBtn.addEventListener('click', () => {
+    const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
+    // Chỉ đơn tiền chưa giao mới giao được hàng loạt; hàng thường vẫn phải quét QR giao.
+    const todo = allCargos.filter(c => ids.includes(String(c.id)) && isMoneyCargo(c) && c.deliveryStatus !== 'da-giao');
+    if (!todo.length) return showDeliveryToast('Chưa chọn đơn tiền nào cần giao');
+    todo.forEach(c => confirmDeliveryScanItem(c.id, true));
+    showDeliveryToast(`Đã giao ${todo.length} đơn tiền${ids.length > todo.length ? ` (bỏ qua ${ids.length - todo.length} đơn khác)` : ''}`);
+  });
 });
 
 /* ---------------------------------------------------------
@@ -568,24 +550,31 @@ window.openDeliveryReceiptModal = function (id) {
   if (!cargo) return;
   const collect = Number(cargo.codCollected || 0);
 
+  // Khung/padding nằm trong chính nội dung để bản in (chép innerHTML) không bị mất.
+  const row = (label, value, strong) => `
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:7px 0; border-bottom:1px dashed #cbd5e1; font-size:13px;">
+      <span style="flex:none; color:#475569;">${label}</span>
+      <span style="text-align:right; word-break:break-word; ${strong ? 'font-weight:800;' : 'font-weight:500;'}">${value}</span>
+    </div>`;
+
   document.getElementById('printableReceiptArea').innerHTML = `
-    <div style="text-align:center; margin-bottom:14px;">
-      <h2 style="margin:0; font-size:18px; font-weight:800; color:var(--primary);">HUỆ NGHĨA EXPRESS</h2>
-      <div style="font-size:13px; font-weight:700; margin-top:4px;">BIÊN LAI XÁC NHẬN ĐÃ GIAO HÀNG</div>
-      <div style="font-size:11.5px; color:#64748b;">(Phiếu xác nhận đã giao hàng thành công cho người nhận)</div>
-    </div>
-    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:10px;">
-      <tr><td style="padding:4px 0; color:#64748b;">Mã hàng</td><td style="padding:4px 0; text-align:right; font-weight:700;">${cargo.code}</td></tr>
-      <tr><td style="padding:4px 0; color:#64748b;">Tên hàng</td><td style="padding:4px 0; text-align:right; font-weight:700;">${cargo.name}</td></tr>
-      <tr><td style="padding:4px 0; color:#64748b;">Người nhận</td><td style="padding:4px 0; text-align:right; font-weight:700;">${cargo.receiver} (${cargo.receiverPhone || ''})</td></tr>
-      <tr><td style="padding:4px 0; color:#64748b;">Cước phí</td><td style="padding:4px 0; text-align:right;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</td></tr>
-      <tr><td style="padding:4px 0; color:#64748b;">Đã thu</td><td style="padding:4px 0; text-align:right; font-weight:800; color:#15803d;">${collect.toLocaleString('vi-VN')}đ</td></tr>
-      <tr><td style="padding:4px 0; color:#64748b;">Nhân viên giao</td><td style="padding:4px 0; text-align:right;">${cargo.deliveryStaff || '—'}</td></tr>
-      <tr><td style="padding:4px 0; color:#64748b;">Thời gian giao</td><td style="padding:4px 0; text-align:right;">${cargo.deliveredAt || '—'}</td></tr>
-    </table>
-    <div style="display:flex; justify-content:space-between; margin-top:24px; font-size:12px; text-align:center;">
-      <div style="flex:1;"><div style="margin-bottom:32px; font-weight:700;">NGƯỜI NHẬN HÀNG</div><div>(Ký, ghi rõ họ tên)</div></div>
-      <div style="flex:1;"><div style="margin-bottom:32px; font-weight:700;">NHÂN VIÊN GIAO HÀNG</div><div>(Ký, ghi rõ họ tên)</div></div>
+    <div style="box-sizing:border-box; max-width:440px; margin:0 auto; padding:24px 28px; border:1px solid #cbd5e1; border-radius:8px; background:#fff;">
+      <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #0f172a; margin-bottom:6px;">
+        <h2 class="receipt-brand-title" style="margin:0; font-size:20px; font-weight:800; letter-spacing:.3px;">HUỆ NGHĨA EXPRESS</h2>
+        <div style="font-size:13px; font-weight:800; margin-top:6px;">BIÊN LAI XÁC NHẬN ĐÃ GIAO HÀNG</div>
+        <div style="font-size:11.5px; margin-top:2px;">(Phiếu xác nhận đã giao hàng thành công cho người nhận)</div>
+      </div>
+      ${row('Mã hàng', cargo.code, true)}
+      ${row('Tên hàng', (cargo.name || '').replace(/🧳/g, '').trim(), true)}
+      ${row('Người nhận', `${cargo.receiver || '—'}${cargo.receiverPhone ? ' - ' + cargo.receiverPhone : ''}`, true)}
+      ${row('Cước phí', Number(cargo.fee || 0).toLocaleString('vi-VN') + 'đ')}
+      ${row('Đã thu', collect.toLocaleString('vi-VN') + 'đ', true)}
+      ${row('Nhân viên giao', cargo.deliveryStaff || '—')}
+      ${row('Thời gian giao', cargo.deliveredAt || '—')}
+      <div style="display:flex; gap:16px; margin-top:22px; font-size:12px; text-align:center;">
+        <div style="flex:1;"><div style="font-weight:800;">NGƯỜI NHẬN HÀNG</div><div style="margin-bottom:56px;">(Ký, ghi rõ họ tên)</div></div>
+        <div style="flex:1;"><div style="font-weight:800;">NHÂN VIÊN GIAO HÀNG</div><div style="margin-bottom:56px;">(Ký, ghi rõ họ tên)</div></div>
+      </div>
     </div>
   `;
   document.getElementById('deliveryReceiptModal').classList.add('open');
@@ -812,7 +801,7 @@ window.processDeliveryQrScanInput = function () {
   setTimeout(() => input.focus(), 100);
 };
 
-window.confirmDeliveryScanItem = function (cargoId) {
+window.confirmDeliveryScanItem = function (cargoId, quiet) {
   const cargo = allCargos.find(c => Number(c.id) === Number(cargoId));
   if (!cargo) return;
 
@@ -835,8 +824,9 @@ window.confirmDeliveryScanItem = function (cargoId) {
   }
 
   saveCargos(allCargos);
-  showDeliveryToast(`Đã xác nhận giao thành công đơn ${cargo.code}!`);
   renderTable();
+  if (quiet) return;
+  showDeliveryToast(`Đã xác nhận giao thành công đơn ${cargo.code}!`);
 
   const container = document.getElementById('deliveryScanResultArea');
   if (container) {

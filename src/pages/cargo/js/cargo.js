@@ -298,13 +298,59 @@ function matchSearchQuery(sourceText, query) {
   return false;
 }
 
+// Chuyển hàng vào phơi — phơi chỉ hiện khi KHỚP đơn (tuyến lấy từ danh mục FleetStore, như trang đặt vé khách):
+//  - đơn có tuyến → phơi cùng tuyến (hoặc cùng hướng); đơn chỉ có hướng → phơi cùng hướng
+//  - đơn có trạm nhận → trạm đó là điểm đến của phơi hoặc nằm trong trạm đến của tuyến phơi
+let transferPickedCargos = [];
+function manifestRouteObj(m) {
+  if (typeof FleetStore === 'undefined') return null;
+  try { return FleetStore.getRoutes().find(r => r && r.label === m.route) || null; } catch (e) { return null; }
+}
+function manifestDirectionId(m) {
+  const r = manifestRouteObj(m);
+  if (r && r.directionId) return r.directionId;
+  const label = String(m.route || '').replace(/\s*[→➔]\s*/g, ' - ').trim();
+  const dir = cargoDirections().find(d => d.label === label);
+  return dir ? dir.id : null;
+}
+function manifestDestination(m) {
+  return String(m.to || (m.route ? String(m.route).split(/[→➔]/)[1] : '') || '').trim();
+}
+function manifestAcceptsStation(m, station) {
+  const norm = (x) => removeVietnameseTones(String(x || '').toLowerCase()).replace(/^(trạm|bến|tram|ben)\s+/, '').replace(/\s+/g, ' ').trim();
+  const want = norm(station);
+  if (norm(manifestDestination(m)) === want) return true;
+  const r = manifestRouteObj(m);
+  return !!r && (r.toStations || []).some(n => norm(n) === want);
+}
+function manifestMatchesCargo(m, c) {
+  const norm = (x) => removeVietnameseTones(String(x || '').toLowerCase()).replace(/\s+/g, ' ').trim();
+  if (c.route) {
+    const same = norm(c.route) === norm(m.route);
+    let dirC = c.direction || null;
+    try { dirC = FleetStore.getRouteDirectionId(c.route) || dirC; } catch (e) { /* giữ hướng đã lưu */ }
+    if (!same && !(dirC && dirC === manifestDirectionId(m))) return false;
+  } else if (c.direction && c.direction !== manifestDirectionId(m)) {
+    return false;
+  }
+  return !c.stationTo || manifestAcceptsStation(m, c.stationTo);
+}
+function manifestMatchesTargets(m) {
+  return transferPickedCargos.every((c) => manifestMatchesCargo(m, c));
+}
+function transferTargetsLabel() {
+  const parts = transferPickedCargos.map(c => c.route || (cargoDirections().find(d => d.id === c.direction) || {}).label || c.stationTo).filter(Boolean);
+  return [...new Set(parts)].join(', ');
+}
+
 function renderManifestCombobox(filterText = '') {
   const dropdownMenu = document.getElementById('targetManifestDropdownMenu');
   const hiddenInput = document.getElementById('targetManifestSelect');
   if (!dropdownMenu) return;
 
   const allManifests = state.manifests || [];
-  const manifests = allManifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe');
+  const receivable = allManifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe');
+  const manifests = receivable.filter(manifestMatchesTargets);
   const query = (filterText || '').trim();
 
   const filtered = manifests.filter(m => {
@@ -314,6 +360,12 @@ function renderManifestCombobox(filterText = '') {
   });
 
   const selectedId = hiddenInput ? String(hiddenInput.value || '') : '';
+
+  if (!manifests.length && receivable.length) {
+    const dests = transferTargetsLabel();
+    dropdownMenu.innerHTML = `<div class="manifest-empty-msg" style="padding:14px; text-align:center; line-height:1.6;">Chưa có phơi nào khớp hướng/tuyến/trạm nhận của đơn${dests ? ` "<strong>${dests.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</strong>"` : ''}.<br><a href="manifest.html?tab=manifests" style="display:inline-block; margin-top:8px; padding:6px 14px; background:#b91c1c; color:white; border-radius:6px; font-weight:700; font-size:12.5px; text-decoration:none;">➕ Click vào đây để Tạo phơi xe mới</a></div>`;
+    return;
+  }
 
   if (!manifests.length) {
     dropdownMenu.innerHTML = allManifests.length
@@ -456,7 +508,7 @@ function updateManifestDropdowns() {
     ${state.manifests.map(m => `<option value="${m.id}">${m.name} (${m.plate})</option>`).join('')}
   `;
 
-  const receivableManifests = state.manifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe');
+  const receivableManifests = state.manifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe').filter(manifestMatchesTargets);
   const transferOptionsHtml = `
     <option value="">-- Chọn phơi nhận hàng --</option>
     ${receivableManifests.length
@@ -488,19 +540,66 @@ const defaultStationsList = [
   'AG (An Giang)'
 ];
 
-function populateCargoStationSelects(selectedFrom = 'Sài Gòn', selectedTo = 'Châu Đốc') {
+// Chọn HƯỚNG ĐI → Trạm gửi/Trạm nhận: giống modal "Tạo phơi xe" bên đặt vé (4 hướng, FleetStore.buildDirTripCfg).
+//  - Hướng đi   = mọi hướng đang bật (cfg[hướng].label)
+//  - Trạm gửi   = cfg[hướng].fromStations; Trạm nhận = cfg[hướng].toStations
+//  - Hướng chưa có trạm nào (chưa có tuyến/tên trạm của tuyến không khớp danh mục) → trạm theo vùng đi/đến của hướng,
+//    rồi cả danh mục trạm; chưa chọn hướng → cả danh mục (để vẫn tạo được hàng)
+function cargoDirections() {
+  if (typeof FleetStore === 'undefined') return [];
+  try {
+    return FleetStore.getDirections().filter(d => d && d.active !== false).sort((x, y) => (x.order || 0) - (y.order || 0));
+  } catch (e) { return []; }
+}
+
+function cargoRouteCfg() {
+  try { return FleetStore.buildDirTripCfg() || {}; } catch (e) { return {}; }
+}
+
+function cargoStationsForRoute(dirId) {
+  const uniq = (arr) => [...new Set((arr || []).filter(Boolean))];
+  let all = [];
+  try { all = FleetStore.getActiveStations(); } catch (e) { /* dùng danh sách mặc định bên dưới */ }
+  const allNames = uniq(all.map(st => st && st.name));
+  if (!allNames.length) return { from: defaultStationsList.slice(), to: defaultStationsList.slice() };
+  const cfg = cargoRouteCfg()[dirId];
+  const dir = cargoDirections().find(d => d.id === dirId);
+  if (!cfg || !dir) return { from: allNames, to: allNames };
+  const inRegion = (region) => uniq(all.filter(st => st && st.region === region).map(st => st.name));
+  const from = uniq(cfg.fromStations).length ? uniq(cfg.fromStations) : inRegion(dir.fromRegion);
+  const to = uniq(cfg.toStations).length ? uniq(cfg.toStations) : inRegion(dir.toRegion);
+  return { from: from.length ? from : allNames, to: to.length ? to : allNames };
+}
+
+// Điền ô Tuyến + Trạm gửi/nhận; giá trị đã lưu (sửa đơn cũ) luôn được giữ lại dù không còn trong danh sách.
+function populateCargoStationSelects(selectedFrom = 'Sài Gòn', selectedTo = 'Châu Đốc', selectedRouteId = '') {
+  const routeEl = document.getElementById('cargoRoute');
   const fromEl = document.getElementById('stationFrom');
   const toEl = document.getElementById('stationTo');
   if (!fromEl || !toEl) return;
 
-  fromEl.innerHTML = defaultStationsList.map(st => `<option value="${st}" ${st === selectedFrom ? 'selected' : ''}>${st}</option>`).join('');
-  toEl.innerHTML = defaultStationsList.map(st => `<option value="${st}" ${st === selectedTo ? 'selected' : ''}>${st}</option>`).join('');
+  const editing = !!(document.getElementById('bundleId') || {}).value;
+  const opts = (list, selected) => {
+    const items = [...new Set(list)];
+    if (editing && selected && !items.includes(selected)) items.unshift(selected);
+    const val = items.includes(selected) ? selected : items[0];
+    return items.map(v => `<option value="${v}" ${v === val ? 'selected' : ''}>${v}</option>`).join('');
+  };
 
-  const dirEl = document.getElementById('cargoDirection');
-  if (dirEl) {
-    const matchVal = `${selectedFrom}|${selectedTo}`;
-    dirEl.value = [...dirEl.options].some(o => o.value === matchVal) ? matchVal : dirEl.options[0].value;
+  if (routeEl) {
+    const cfg = cargoRouteCfg();
+    routeEl.innerHTML = '<option value="">-- Chọn hướng đi --</option>' +
+      Object.keys(cfg).map(k => `<option value="${k}" ${k === selectedRouteId ? 'selected' : ''}>${cfg[k].label}</option>`).join('');
   }
+  const st = cargoStationsForRoute(routeEl ? routeEl.value : '');
+  fromEl.innerHTML = opts(st.from, selectedFrom);
+  toEl.innerHTML = opts(st.to, selectedTo);
+}
+
+// Từ dữ liệu form → hướng + nhãn tuyến để lưu vào đơn (dùng khi lọc phơi)
+function cargoRouteFields(routeId) {
+  const r = cargoRouteCfg()[routeId];
+  return r ? { direction: routeId, route: r.route || '' } : { direction: '', route: '' };
 }
 
 const STATIONS_BY_REGION = {
@@ -614,9 +713,7 @@ function getFilteredData() {
         ? isCargoOverdue(row)
         : state.selectedCategory === 'returned'
           ? (row.status === 'returned' || itemCat === 'returned')
-          : state.selectedCategory === 'cash'
-            ? (itemCat === 'cash' || itemCat === 'partner_cash')
-            : itemCat === state.selectedCategory;
+          : itemCat === state.selectedCategory;
 
     let matchesDirection = true;
     if (dirVal !== 'all' && DIRECTION_MAP[dirVal]) {
@@ -748,6 +845,10 @@ function renderTable() {
             </td>
             <td style="text-align:center;">
               <div class="action-group">
+                ${isMoneyCargo(row) && row.status !== 'in-transit' && !window.location.pathname.includes('delivery.html') ? `
+                <button class="rowicon-btn" data-action="transfer" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'transfer')" title="Chuyển tiền">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>` : ''}
                 <button class="rowicon-btn" data-action="detail" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'detail')" title="Xem chi tiết">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
@@ -779,7 +880,12 @@ function updateBatchTransferButton() {
   if (selectedCountEl) selectedCountEl.textContent = count;
   const selectedPrintCountEl = document.getElementById('selectedPrintCount');
   if (selectedPrintCountEl) selectedPrintCountEl.textContent = count;
-  if (batchTransferBtn) batchTransferBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+  if (batchTransferBtn) {
+    batchTransferBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+    // Chọn toàn đơn tiền → nút đổi thành "Chuyển tiền" (xác nhận chuyển nhiều đơn một lần, không cần phơi).
+    const allMoney = count > 0 && checkedBoxes.every(cb => isMoneyCargo(state.data.find(c => String(c.id) === cb.dataset.id)));
+    batchTransferBtn.innerHTML = `${allMoney ? 'Chuyển tiền' : 'Chuyển phơi'} (<span id="selectedCount">${count}</span>)`;
+  }
   const batchPrintCargoStickersBtn = document.getElementById('batchPrintCargoStickersBtn');
   if (batchPrintCargoStickersBtn) batchPrintCargoStickersBtn.style.display = count > 0 ? 'inline-flex' : 'none';
 }
@@ -957,7 +1063,7 @@ function openModal(editId = null) {
       document.getElementById('cargoName').value = item.name || '';
       document.getElementById('cargoQuantity').value = item.quantity || 1;
       populateUnitDropdown(item.unit || 'cái');
-      populateCargoStationSelects(item.stationFrom || 'Sài Gòn', item.stationTo || 'Châu Đốc');
+      populateCargoStationSelects(item.stationFrom || 'Sài Gòn', item.stationTo || 'Châu Đốc', (cargoRouteCfg()[item.direction] ? item.direction : ''));
       
       const catSelect = document.getElementById('cargoCategorySelect');
       const moneyInput = document.getElementById('cargoMoneyAmount');
@@ -1104,8 +1210,61 @@ function closeModal() {
   document.getElementById('bundleId').value = '';
 }
 
+// Hàng tiền không cần xếp vào phơi: xác nhận "Đã chuyển" là sang thẳng Danh sách giao hàng.
+function showMoneyConfirmPanel(count, onOk) {
+  let panel = document.getElementById('moneyConfirmModal');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'moneyConfirmModal';
+    panel.className = 'modal-overlay';
+    panel.innerHTML = `
+      <div class="modal-card" style="max-width:440px;">
+        <div class="modal-head" style="background:#f8fafc;">
+          <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;">Xác nhận chuyển tiền</h3>
+          <button type="button" class="icon-btn" data-mc="cancel">✕</button>
+        </div>
+        <div style="padding:20px 24px; font-size:14px; color:#334155;" id="moneyConfirmText"></div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; padding:0 24px 20px;">
+          <button type="button" class="secondary-btn" data-mc="cancel">Hủy</button>
+          <button type="button" class="primary-btn" data-mc="ok">Xác nhận</button>
+        </div>
+      </div>`;
+    document.body.appendChild(panel);
+  }
+  panel.querySelector('#moneyConfirmText').innerHTML = `Xác nhận đã chuyển <strong>${count}</strong> đơn tiền?<br>Đơn sẽ hiện bên Danh sách giao hàng.`;
+  panel.onclick = (e) => {
+    const act = e.target.closest('[data-mc]')?.dataset.mc;
+    if (act !== 'ok' && act !== 'cancel' && e.target !== panel) return;
+    panel.classList.remove('open');
+    if (act === 'ok') onOk();
+  };
+  panel.classList.add('open');
+}
+
 function openTransferModal(cargoIds) {
   if (!transferModal) return;
+  const money = state.data.filter(c => cargoIds.map(String).includes(String(c.id)) && isMoneyCargo(c));
+  if (money.length) {
+    const rest = cargoIds.filter(id => !money.some(c => String(c.id) === String(id)));
+    showMoneyConfirmPanel(money.length, () => {
+      const staff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+      money.forEach(c => {
+        c.status = 'in-transit';
+        c.statusText = 'Đã chuyển';
+        c.scanned = true;
+        c.isScanned = true;
+        c.transferredAt = Date.now();
+        if (staff) { c.transferredBy = staff.name; c.transferredByCode = staff.code; }
+      });
+      saveCargos(state.data);
+      renderTable();
+      showToast(`Đã xác nhận chuyển ${money.length} đơn tiền`);
+      if (rest.length) openTransferModal(rest);
+    });
+    return;
+  }
+  const ids = cargoIds.map(String);
+  transferPickedCargos = state.data.filter(c => ids.includes(String(c.id)));
   updateManifestDropdowns();
   document.getElementById('transferCargoIds').value = cargoIds.join(',');
 
@@ -1203,6 +1362,7 @@ if (bundleForm) {
         target.moneyAmount = (formData.get('moneyAmount') || '').replace(/\D/g, '');
         target.stationFrom = stFrom;
         target.stationTo = stTo;
+        Object.assign(target, cargoRouteFields(formData.get('cargoRoute')));
         target.sender = formData.get('senderName');
         target.senderPhone = formData.get('senderPhone');
         target.receiver = formData.get('receiverName');
@@ -1250,6 +1410,7 @@ if (bundleForm) {
         receiverPhone: formData.get('receiverPhone'),
         stationFrom: stFrom,
         stationTo: stTo,
+        ...cargoRouteFields(formData.get('cargoRoute')),
         fee: parseFeeInput(formData.get('fee'), 150000),
         note: formData.get('note') || '',
         length: formData.get('cargoLength') || '',
@@ -1656,14 +1817,10 @@ if (cargoPaidMethodSelect) cargoPaidMethodSelect.addEventListener('change', upda
 const cargoManifestSelect = document.getElementById('cargoManifestSelect');
 if (cargoManifestSelect) cargoManifestSelect.addEventListener('change', updateDisplayStations);
 
-const cargoDirectionSelect = document.getElementById('cargoDirection');
-if (cargoDirectionSelect) {
-  cargoDirectionSelect.addEventListener('change', () => {
-    const [from, to] = cargoDirectionSelect.value.split('|');
-    const fromEl = document.getElementById('stationFrom');
-    const toEl = document.getElementById('stationTo');
-    if (fromEl) fromEl.value = from;
-    if (toEl) toEl.value = to;
+const cargoRouteSelect = document.getElementById('cargoRoute');
+if (cargoRouteSelect) {
+  cargoRouteSelect.addEventListener('change', () => {
+    populateCargoStationSelects('', '', cargoRouteSelect.value);
   });
 }
 

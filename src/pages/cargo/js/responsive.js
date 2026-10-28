@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cập nhật mục cuối breadcrumb theo tên bộ lọc trạng thái đang chọn (Tất cả/Hàng hóa/Tiền
   // thưởng/Tiền nóng/Baga) — giữ nguyên tiêu đề trang mặc định khi đang ở "Tất cả".
-  const FILTER_BC_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', hot: 'Tiền nóng', baga: 'Baga' };
+  const FILTER_BC_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng gửi tiền thường', hot: 'Tiền nóng', baga: 'Baga' };
   const bcCurrentEl = document.querySelector('.page-breadcrumb .bc-current');
   const defaultBcLabel = bcCurrentEl ? bcCurrentEl.textContent : '';
   function updateFilterBreadcrumb(val) {
@@ -260,3 +260,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+/* Bảng dạng thẻ xếp dọc ở <=992px (css/responsive.css): gắn nhãn cột vào từng ô và bọc nội dung ô
+   để CSS xếp "NHÃN | giá trị" mà không phải cuộn ngang. Chạy lại mỗi khi tbody được vẽ lại. */
+(function () {
+  function label(table) {
+    var heads = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) {
+      return th.textContent.replace(/\s+/g, ' ').trim();
+    });
+    table.querySelectorAll('tbody tr').forEach(function (tr) {
+      if (tr.children.length !== heads.length) return; // dòng rỗng (colspan)
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        if (td.dataset.l) return;
+        td.dataset.l = '1';
+        td.setAttribute('data-label', heads[i]);
+        var v = document.createElement('div');
+        v.className = 'td-val';
+        while (td.firstChild) v.appendChild(td.firstChild);
+        td.appendChild(v);
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.table-scroll table, table.cargo-table').forEach(function (t) {
+      label(t);
+      var body = t.querySelector('tbody');
+      if (body) new MutationObserver(function () { label(t); }).observe(body, { childList: true });
+    });
+  });
+})();

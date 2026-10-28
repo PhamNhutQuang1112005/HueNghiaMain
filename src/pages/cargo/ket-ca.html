@@ -15,8 +15,13 @@
        Trạng thái chỉ dùng chữ + viền, không tô nền màu. */
     :root { --k-border:#e2e8f0; --k-text:#0f172a; --k-muted:#64748b; --k-soft:#f8fafc; }
     .app-main-content { flex:1 1 0; min-width:0; width:auto; max-width:1480px; margin:0 auto; box-sizing:border-box; font-variant-numeric:tabular-nums; }
-    .ket-ca-panel { display:block; margin-bottom:40px; }
-    .ket-ca-section-title { margin:0 0 12px; font-size:17px; font-weight:800; color:var(--k-text); }
+    /* Mỗi phần (nhận hàng / giao hàng) là 1 khối riêng: tiêu đề → bộ lọc → thống kê → bảng */
+    .ket-ca-panel { display:block; margin-bottom:20px; background:#fff; border:1px solid var(--k-border); border-radius:14px; padding:16px 18px 18px; }
+    .ket-ca-section-title { display:flex; align-items:center; gap:10px; margin:0 0 12px; font-size:16px; font-weight:800; color:var(--k-text); }
+    .ket-ca-section-title::before { content:''; width:4px; height:18px; border-radius:2px; background:var(--primary,#c20d08); }
+    .ket-ca-panel .report-filter-card { background:var(--k-soft); border-color:transparent; }
+    /* Ẩn thanh thống kê (giữ markup vì receive/delivery-report.js còn ghi số vào các id stat*) */
+    .ket-ca-panel .stat-cards-grid { display:none; }
 
     /* Bộ lọc: 1 hàng gọn */
     .report-filter-card { background:#fff; border:1px solid var(--k-border); border-radius:10px; padding:12px 16px; margin-bottom:14px; width:100%; box-sizing:border-box; }
@@ -65,7 +70,7 @@
     .report-toast.show { opacity:1; transform:translateY(0); }
     .branch-pill-from, .branch-pill-to { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:4px; white-space:nowrap; }
     .staff-cell { display:flex; flex-direction:column; }
-    .modal-card-custom { background:#fff; border-radius:12px; width:min(900px,96vw); max-height:90vh; overflow-y:auto; box-shadow:0 20px 50px rgba(15,23,42,.2); }
+    .modal-card-custom { background:#fff; border-radius:12px; width:min(1400px,96vw); max-height:92vh; overflow-y:auto; box-shadow:0 20px 50px rgba(15,23,42,.2); }
     .modal-header-custom { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--k-border); position:sticky; top:0; background:#fff; z-index:1; }
     .modal-title-box { display:flex; align-items:center; gap:12px; }
     .modal-title-text { font-size:15px; font-weight:800; color:var(--k-text); }
@@ -86,6 +91,35 @@
     .modal-table { width:100%; border-collapse:collapse; font-size:12.5px; }
     .modal-table th, .modal-table td { padding:7px 10px; border:1px solid var(--k-border); }
     .modal-table th { background:var(--k-soft); font-weight:700; color:#475569; font-size:11.5px; }
+    /* Danh sách ca: bỏ khung lồng khung — bảng nằm thẳng trong khối, ngăn bằng 1 đường kẻ */
+    .ket-ca-panel .report-filter-card { padding:12px 14px; border-radius:12px; }
+    .ket-ca-panel .table-container-card { border:0; border-radius:0; margin-top:4px; }
+    .ket-ca-panel .table-header-bar { padding:12px 2px; border-bottom:0; }
+    .ket-ca-panel .table-header-title { font-size:13px; color:var(--k-text); }
+    .ket-ca-panel .cargo-table { border:1px solid var(--k-border); border-radius:10px; border-collapse:separate; border-spacing:0; overflow:hidden; }
+    .ket-ca-panel .cargo-table th { background:var(--k-soft); padding:10px 14px; }
+    .ket-ca-panel .cargo-table td { padding:14px; }
+    .ket-ca-panel .cargo-table tbody tr:hover { background:#fafbfd; }
+    /* trạng thái giao ca dạng nhãn màu: chưa giao = vàng, đã giao = xanh */
+    .ket-ca-panel .status-select-box { height:30px; padding:0 10px; border-radius:15px; font-weight:700; }
+    .ket-ca-panel .status-select-box.handed { color:#15803d; background:#f0fdf4; border-color:#bbf7d0; }
+    .ket-ca-panel .status-select-box.unhanded { color:#b45309; background:#fffbeb; border-color:#fcd34d; }
+
+    /* Popup báo cáo: ô chỉ-đọc hiển thị như thẻ số liệu (không còn là ô nhập xám bị khóa) */
+    .modal-card-custom .summary-form-card { background:#fff; padding:18px 20px; }
+    .modal-card-custom .summary-form-card > div[style*="grid-template-columns"] > div { background:var(--k-soft); border:1px solid var(--k-border); border-radius:10px; padding:10px 14px; }
+    .modal-card-custom .summary-form-card label { font-size:11px !important; font-weight:700 !important; text-transform:uppercase; letter-spacing:.4px; color:var(--k-muted) !important; margin-bottom:2px !important; }
+    .modal-card-custom .summary-form-card input[disabled],
+    .modal-card-custom .summary-form-card textarea[disabled] { border:0 !important; background:transparent !important; padding:2px 0 !important; height:auto; font-size:17px; opacity:1; -webkit-text-fill-color:currentColor; }
+    .modal-card-custom .summary-form-card textarea[disabled] { font-size:12.5px; padding:6px 0 !important; }
+    .modal-card-custom .summary-form-card input[disabled] + span { right:0 !important; }
+    /* ô nhập thật (số tiền nộp, ghi chú) nổi bật để biết chỗ cần điền */
+    .modal-card-custom .summary-form-card input:not([disabled]), .modal-card-custom .summary-form-card textarea:not([disabled]) { background:#fff; border-color:#94a3b8; }
+    .modal-card-custom .modal-table { border:1px solid var(--k-border); border-collapse:separate; border-spacing:0; border-radius:10px; overflow:hidden; }
+    .modal-card-custom .modal-table th, .modal-card-custom .modal-table td { border:0; border-bottom:1px solid #f1f5f9; padding:9px 12px; }
+    .modal-card-custom .modal-table th { background:var(--k-soft); border-bottom:1px solid var(--k-border); letter-spacing:.3px; }
+    .modal-card-custom .modal-table tbody tr:nth-child(even) td { background:#fcfdfe; }
+    .modal-card-custom .modal-table tbody tr:last-child td { border-bottom:0; }
     @media (prefers-reduced-motion:reduce){ * { transition:none !important; animation:none !important; } }
   </style>
 </head>
@@ -221,7 +255,7 @@
             </div>
             <div style="width:100%;overflow-x:auto;">
               <table class="cargo-table" style="width:100%;table-layout:auto;">
-                <thead><tr><th style="width:65px;text-align:center;"><div style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="selectAllShifts"/><span>STT</span></div></th><th style="width:25%;min-width:200px;">THU NGÂN &amp; MÃ CA</th><th style="width:22%;min-width:170px;">THỜI GIAN CA</th><th style="width:22%;min-width:180px;">CƯỜC PHÍ &amp; NỘP</th><th style="width:17%;min-width:130px;">GHI CHÚ</th><th style="width:110px;text-align:center;">TRẠNG THÁI</th><th style="width:120px;text-align:center;">HÀNH ĐỘNG</th></tr></thead>
+                <thead><tr><th style="width:65px;text-align:center;"><div style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="selectAllShifts"/><span>STT</span></div></th><th style="width:25%;min-width:200px;">THU NGÂN &amp; MÃ CA</th><th style="width:22%;min-width:170px;">THỜI GIAN CA</th><th style="width:22%;min-width:180px;">CƯỚC PHÍ &amp; NỘP</th><th style="width:17%;min-width:130px;">GHI CHÚ</th><th style="width:110px;text-align:center;">TRẠNG THÁI</th><th style="width:120px;text-align:center;">HÀNH ĐỘNG</th></tr></thead>
                 <tbody id="shiftsTbody"></tbody>
               </table>
             </div>
@@ -248,7 +282,7 @@
           <div class="table-container-card">
             <div class="table-header-bar">
               <div class="table-header-title"><span>DANH SÁCH THU NGÂN GIAO HÀNG</span><span class="count-chip" id="dlvShiftsCount">0</span></div>
-              <div style="display:flex;gap:8px;align-items:center;"><button type="button" onclick="if(window.dlv_clearAllRealShifts)window.clearAllRealShifts_delivery()" style="height:36px;padding:0 12px;font-size:12px;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-weight:700;cursor:pointer;">Xóa Dữ Liệu</button></div>
+              <div style="display:flex;gap:8px;align-items:center;"><button type="button" onclick="if(window.dlv_clearAllRealShifts)window.dlv_clearAllRealShifts()" style="height:36px;padding:0 12px;font-size:12px;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-weight:700;cursor:pointer;">Xóa Dữ Liệu</button></div>
             </div>
             <div style="width:100%;overflow-x:auto;">
               <table class="cargo-table" style="width:100%;table-layout:auto;">
@@ -289,7 +323,6 @@
         <div class="summary-form-card">
           <div style="font-weight:800; font-size:15px; color:#0f172a; margin-bottom:16px; text-transform:uppercase; display:flex; align-items:center; justify-content:space-between;">
             <span>THÔNG TIN GIAO CA & NỘP TIỀN</span>
-            <span class="modal-status-tag tag-warning" id="modalShiftStatusPill">( CHƯA GIAO CA )</span>
           </div>
 
           <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:16px;">
@@ -499,7 +532,6 @@
         <div class="summary-form-card">
           <div style="font-weight:800; font-size:15px; color:#0f172a; margin-bottom:16px; text-transform:uppercase; display:flex; align-items:center; justify-content:space-between;">
             <span>THÔNG TIN GIAO CA & NỘP TIỀN GIAO HÀNG</span>
-            <span class="modal-status-tag tag-warning" id="dlvModalShiftStatusPill">( CHƯA GIAO CA )</span>
           </div>
 
           <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:16px;">
