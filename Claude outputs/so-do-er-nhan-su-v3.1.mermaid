@@ -87,8 +87,8 @@ erDiagram
     %%   p. TẠO TÀI KHOẢN: chỉ cho nhân viên đang working (status không khóa), chưa có tài khoản; người tạo có manage_accounts (admin gốc không cần);
     %%      nhân viên thuộc nhóm HR chỉ admin gốc tạo, ở tab Tài khoản nhân sự; người tạo không tự tạo cho mình. Không bắt buộc trạm (xem thay đổi (4)).
     %% ----------
-    %% DANH MỤC QUYỀN TRONG DỮ LIỆU KHỞI TẠO (auth/permissions.js; sau khi bỏ nhóm ca còn 30 key):
-    %%   Nhóm ticket_seat "Vé & ghế": book_ticket, sell_ticket, change_price, assign_depart_reopen, transship_pickup, transship_assign, print_transship_ticket.
+    %% DANH MỤC QUYỀN TRONG DỮ LIỆU KHỞI TẠO (auth/permissions.js; sau khi bỏ nhóm ca còn 30 key; thêm 3 key của đặt vé 28/10/2026 thành 33 key):
+    %%   Nhóm ticket_seat "Vé & ghế": book_ticket, sell_ticket, change_price, assign_depart_reopen, transship_pickup, transship_assign, print_transship_ticket, view_tickets (xem Admin > Danh sách vé), view_customers (xem Admin > Khách hàng), edit_after_departure (sửa / hủy / hoàn vé sau khi xe khởi hành, ngoại lệ khóa B12 của dat-ve-erd; admin gốc luôn có).
     %%   Nhóm trip_management "Chuyến / phơi xe": create_trip, print_trip, edit_trip, delete_trip.
     %%   Nhóm catalog_admin "Quản lý danh mục (Admin)": manage_stations, manage_routes, manage_prices, manage_schedule, manage_vehicles, manage_vehicle_types,
     %%     manage_seat_layouts, manage_vehicle_seats.

@@ -55,7 +55,7 @@ erDiagram
     %%       ĐÃ KHỚP CODE: openReopenModal (ticketstaff-manifest-ui.js); tsOpenReopen (ticketstaff-manifest-core.js) kiểm lại ở service: đã có manifest, chưa đóng băng, không có lần OPEN. DB: trigger BEFORE INSERT ON trip_reopen_event kiểm manifest tồn tại, frozen_at IS NULL, trip.status <> cancelled.
     %%       Số liệu phát sinh của từng lần Re-open (vé thêm, tiền thêm, thu bổ sung) và vé gắn với lần Re-open là của giai đoạn booking: sau này thêm cột vào trip_reopen_event và ticket.reopen_event_id.
     %%   (6) Đóng băng do NGƯỜI xác nhận, không đặt thời gian mặc định. Ở màn Xem phơi có nút "Đóng băng" (hỏi xác nhận): bấm thì đặt trip_manifest.frozen_at / frozen_by; từ đây phơi KHÔNG Re-open được nữa
-    %%       (khi có booking, đây cũng là lúc khoá sửa vé sau khởi hành). Điều kiện: phơi đã có manifest, chưa đóng băng, KHÔNG có lần Re-open đang OPEN. Bấm một lần, không có nút mở lại.
+    %%       (ĐÃ CHỐT khi làm booking: vé bị khóa ghi ngay từ lúc khởi hành, không đợi đóng băng, xem dat-ve-erd.mmd B12; đóng băng chỉ chặn mở Re-open). Điều kiện: phơi đã có manifest, chưa đóng băng, KHÔNG có lần Re-open đang OPEN. Bấm một lần, không có nút mở lại.
     %%       Bản chụp mệnh giá theo trạm (manifest_denomination) ghi lúc đóng băng là của giai đoạn booking, không có trong bản này; ở đây đóng băng chỉ là khoá trạng thái.
     %%       App: manifest.frozenAt / frozenBy (hn_ts_manifests_v1) — tsCanFreezeManifest / tsFreezeManifest (ticketstaff-manifest-core.js), nút #manifestFreezeBtn (ticketstaff.html), confirmFreezeManifest (ticketstaff-manifest-ui.js); manifest.frozenDenom bỏ qua khi migrate bản này.
     %%       Admin > Phơi xe: tick chọn nhiều phơi đã khởi hành rồi "Đóng băng" một lần (adminOpenFreezeModal / adminConfirmFreezeTrips, admin-trips.js); mỗi phơi vẫn kiểm đúng điều kiện trên,
@@ -107,7 +107,7 @@ erDiagram
     %% ĐỂ SAU (GIAI ĐOẠN BOOKING) — những gì bị cắt khỏi bản này và điểm móc để gắn lại, để lúc làm booking không phải sửa lại bảng phơi:
     %%   Bảng làm sau: ticket, seat_cancellation, shuttle_assignment, pickup_request, agent, manifest_sales_total, manifest_denomination, manifest_roadside_guest, trip_violation, shift_closing, shift_closing_trip, shift_closing_expense, employee_stations.
     %%   Cột / quan hệ sẽ thêm vào bảng của bản này:
-    %%     trip_seat ........... state (empty | hold | sold | free | cargo | hidden thay cho is_hidden nếu muốn), ticket_id (FK ghép (ticket_id, trip_id) -> ticket(ticket_id, trip_id)), locked / locked_by (BR-05, chưa có chức năng nên chưa tạo).
+    %%     trip_seat ........... [KHÔNG thêm state: ĐÃ CHỐT ở dat-ve-erd.mmd C5; trống / hold / sold suy từ ticket_id + ticket.status, ghế ẩn giữ is_hidden], ticket_id (FK ghép (ticket_id, trip_id) -> ticket(ticket_id, trip_id)), locked / locked_by (BR-05, chưa có chức năng nên chưa tạo).
     %%     trip_manifest ....... orig_ticket_count, orig_passenger_count, orig_total_amount, orig_cash_amount, orig_transfer_amount, orig_paid_amount, orig_unpaid_amount, orig_station_ticket_count, orig_roadside_passenger_count (số liệu gốc đóng băng lúc khởi hành),
     %%                           advance_amount (tiền ứng), closed_at / closed_by (lần kết ca gần nhất), và giá trị manifest.status = MANIFEST_CLOSED (kết ca); khi đó Re-open cho phép mở từ cả MANIFEST_CLOSED.
     %%     trip_reopen_event ... tickets_added, passengers_added, amount_added, cash_added, transfer_added, paid_added, unpaid_added, station_ticket_added, roadside_passenger_added, settled_tickets, settled_amount.

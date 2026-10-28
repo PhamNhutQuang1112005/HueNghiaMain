@@ -400,7 +400,7 @@ function updateRebookPricePreview() {
   if (!priceEl) return;
   const trip = rebookSelectedTripId ? (allTripsMeta || []).find(t => t.id === rebookSelectedTripId) : null;
   rebookUnitPrice = trip ? (trip.price || 280000) : 280000;
-  priceEl.contentEditable = 'true';
+  priceEl.contentEditable = (typeof tsPriceLocked === 'function' && tsPriceLocked('rbPrice')) ? 'false' : 'true'; // ERD B16: change_price
   refreshRebookPriceDisplay();
   if (typeof updateZeroPriceReasonVisibility === 'function') updateZeroPriceReasonVisibility('rbPrice');
   // Ô tick "Ghế đôi" — cùng logic với panel Đặt vé chính (xem resolveDoubleSeatPricing() ở ticketstaff.js).
@@ -599,8 +599,8 @@ function updateTransferHint() {
     }
   }
   // Nút "Đặt thêm cho nhóm" (chỉ có ở ticketstaff) — hiện khi đang chọn ghế kiểu "chuyển ghế", nguồn là
-  // ĐÚNG 1 ghế đã đặt thuộc 1 VÉ NHÓM (>=2 ghế cùng số vé) ở đúng chuyến đang xem, và đã chọn >=1 ghế
-  // trống. Bấm nút này copy thông tin khách của ghế nhóm sang các ghế trống, giữ chung số vé.
+  // ĐÚNG 1 ghế đã đặt / đã bán (vé có thể chỉ 1 ghế — ERD B8) ở đúng chuyến đang xem, và đã chọn >=1 ghế
+  // trống. Bấm nút này copy thông tin khách sang các ghế trống thành MỘT VÉ MỚI nối với vé gốc (groupTicketNo).
   const groupAddBtn = document.getElementById('stickyGroupAddBtn');
   if (groupAddBtn) {
     let canGroupAdd = false;
@@ -610,8 +610,7 @@ function updateTransferHint() {
         && (transferTargetTripId || currentTripId) === currentTripId) {
       const src = findSeatInTrip(currentTripId, selectedSourceSeats[0]);
       if (src && src.ticketNo && OCCUPIED_STATES.includes(src.state)) {
-        const groupPool = [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats];
-        canGroupAdd = groupPool.filter(s => s.ticketNo === src.ticketNo).length >= 2;
+        canGroupAdd = true; // ERD B8: vé nguồn chỉ 1 ghế vẫn đặt thêm được
       }
     }
     groupAddBtn.style.display = canGroupAdd ? '' : 'none';

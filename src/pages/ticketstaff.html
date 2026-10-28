@@ -1181,6 +1181,7 @@
               <label for="pkAssignTripPrice" style="font-weight:700; color:var(--text-sub); text-transform:none; margin:0; font-size:12px;">Giá vé:</label>
               <input type="number" id="pkAssignTripPrice" min="0" step="5000" style="width:90px; border:1px solid var(--border-gray); border-radius:6px; padding:2px 6px; font-weight:700; color:var(--text-main); font-size:13px; outline:none; text-align:right;" data-input-action="pkOnAssignPriceChange" data-args='["__this_value__"]'>
               <span style="font-weight:600; color:var(--text-sub); font-size:12px;">đ</span>
+              <input type="text" id="pkAssignZeroReason" placeholder="Lý do giá 0đ" maxlength="120" style="display:none; width:140px; border:1px solid var(--border-gray); border-radius:6px; padding:2px 6px; font-size:12px; outline:none;">
               <label class="ts-double-seat-toggle" style="display:none;">
                 <input type="checkbox" id="pkAssignPriceDoubleSeat">
                 Ghế đôi
@@ -1483,6 +1484,22 @@
 </div>
 
 
+<!-- ===== MODAL: LÝ DO CHUYỂN VÉ ĐÃ BÁN SANG PHƠI KHÁC (ERD B10, C7) ===== -->
+<div class="modal-overlay" id="transferReasonModal">
+  <div class="modal">
+    <h3>Lý do chuyển vé</h3>
+    <p style="margin:0 0 8px;color:var(--text-sub);font-size:13px;">Vé đã bán chuyển sang phơi khác phải ghi lý do (lưu vào nhật ký hoạt động).</p>
+    <div class="form-field">
+      <label>Lý do <span style="color:var(--red);">*</span></label>
+      <textarea id="transferReasonInput" rows="3" placeholder="VD: Khách đổi giờ đi theo yêu cầu"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-action="closeTransferReasonModal">Đóng</button>
+      <button class="btn btn-primary" data-action="submitTransferReason">Xác nhận chuyển</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: XÁC NHẬN PHƯƠNG THỨC THANH TOÁN KHI BÁN VÉ ===== -->
 <div class="modal-overlay" id="sellPaymentModal">
   <div class="modal">
@@ -1517,6 +1534,16 @@
     <div class="form-field">
       <label>Lý do hủy <span style="color:var(--red);">*</span></label>
       <textarea id="cancelReason" placeholder="Nhập lý do hủy vé..." data-input-action="checkCancelReason"></textarea>
+    </div>
+    <!-- Hoàn tiền khi hủy (ERD B6, B9, B23, C1): chỉ hiện khi vé đã thu tiền; nhân viên tự nhập số hoàn, 0 = không hoàn -->
+    <div class="form-field" id="cancelRefundBlock" style="display:none;">
+      <label>Số tiền hoàn cho khách (đ)</label>
+      <input type="number" id="cancelRefundAmount" min="0" step="1000" inputmode="numeric" data-input-action="checkCancelReason">
+      <select id="cancelRefundMethod" style="margin-top:6px;">
+        <option value="Tiền mặt">Hoàn bằng tiền mặt</option>
+        <option value="Chuyển khoản">Hoàn bằng chuyển khoản</option>
+      </select>
+      <div id="cancelRefundHint" style="font-size:12.5px; margin-top:6px; color:var(--text-sub);"></div>
     </div>
     <div class="warn-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
@@ -1930,6 +1957,15 @@
             </label>
             <span id="rbDepositHint" class="rebook-deposit-hint"></span>
           </div>
+          <div class="deposit-block agent-block">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="rbAgentEnabled" data-change-action="onAgentToggle">
+              Đại lý
+            </label>
+            <select id="rbAgentId" class="agent-select" style="display:none;">
+              <option value="">-- Chọn đại lý --</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -2187,37 +2223,37 @@
 <div class="seat-menu" id="seatMenu"></div>
 <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="m5 13 4 4L19 7"/></svg><span id="toastText"></span></div>
 
-<script src="../shared/js/storage-keys.js?v=14"></script>
+<script src="../shared/js/storage-keys.js?v=16"></script>
 <script src="../shared/js/format.js?v=9"></script>
 <script src="../shared/js/constants.js?v=5"></script>
 <script src="../data/sample-seat-pool.js?v=3"></script>
 <script src="../data/sample-customer-history.js?v=3"></script>
 <script src="../data/sample-trip-templates.js?v=7"></script>
-<script src="../shared/js/seat-bank.js?v=5"></script>
+<script src="../shared/js/seat-bank.js?v=8"></script>
 <script src="../auth/session.js?v=2"></script>
 <script src="../auth/auth-log.js?v=1"></script>
-<script src="../auth/permissions.js?v=6"></script>
+<script src="../auth/permissions.js?v=7"></script>
 <script src="../shared/js/fleet-store.js?v=25"></script>
 <script src="../shared/js/agent-store.js?v=1"></script>
 <script src="../services/trip-service.js?v=2"></script>
 <script src="../services/pickup-service.js?v=2"></script>
 <script src="../services/shuttle-driver-service.js?v=1"></script>
-<script src="../shared/js/ui.js?v=18"></script>
+<script src="../shared/js/ui.js?v=19"></script>
 <!-- booking.js (2028 dòng) tách theo banner: history → combobox → rebook+misc.
      NẠP ĐÚNG THỨ TỰ; các mảnh dùng chung biến/hàm global như khi còn 1 file.
      Xem ../shared/js/README-booking.md. -->
-<script src="../shared/js/booking.js?v=61"></script>
-<script src="../shared/js/booking-combobox.js?v=6"></script>
-<script src="../shared/js/booking-rebook.js?v=15"></script>
+<script src="../shared/js/booking.js?v=62"></script>
+<script src="../shared/js/booking-combobox.js?v=9"></script>
+<script src="../shared/js/booking-rebook.js?v=17"></script>
 <!-- ticketstaff.js (5264 dòng) tách theo banner: phần chính (đặt vé/ghế/phơi) →
      tài khoản+tìm lịch sử → rước liền. NẠP ĐÚNG THỨ TỰ, TRƯỚC manifest-*.js.
      Xem ticketstaff/README.md. Chỉ cắt được ≥ dòng 3543 (lệnh top-level 980–985
      gọi hàm định nghĩa tận 1939 & 3543 nhờ hoisting). -->
-<script src="ticketstaff/ticketstaff.js?v=166"></script>
-<script src="ticketstaff/ticketstaff-account.js?v=6"></script>
-<script src="ticketstaff/ticketstaff-pickup.js?v=23"></script>
+<script src="ticketstaff/ticketstaff.js?v=173"></script>
+<script src="ticketstaff/ticketstaff-account.js?v=9"></script>
+<script src="ticketstaff/ticketstaff-pickup.js?v=26"></script>
 <script src="ticketstaff/ticketstaff-manifest-core.js?v=13"></script>
-<script src="ticketstaff/ticketstaff-manifest-ui.js?v=49"></script>
+<script src="ticketstaff/ticketstaff-manifest-ui.js?v=52"></script>
 <script src="../shared/js/events.js?v=3"></script>
 <script>
   // Cho phép mở thẳng 1 tab cụ thể qua query string (?view=booking|pickup|history|phoi) — dùng khi

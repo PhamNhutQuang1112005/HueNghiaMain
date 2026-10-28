@@ -599,6 +599,7 @@ function closeSeatMenu() { document.getElementById('seatMenu').classList.remove(
 function startTransferMode(sourceCode) {
   const seat = findSeat(sourceCode);
   if (!seat) return;
+  if (typeof requireTicketTouchPermission === 'function' && !requireTicketTouchPermission([seat])) return; // ERD B16
   multiSelectMode = true;
   selectionMode = 'transfer';
   selectedSourceSeats = [sourceCode];

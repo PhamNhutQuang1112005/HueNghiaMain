@@ -134,6 +134,55 @@
     }
   }
 
+  // Cộng một khoản tiền đã thu vào các nhóm doanh thu của phơi (vé lẻ tiền mặt hoặc vé đặt trước). Hoa hồng đại lý KHÔNG tính ở đây:
+  // tính theo TỔNG TIỀN VÉ của vé còn hiệu lực ở acctTripCollectionSummary (ERD B24, quyết định 19).
+  function acctAddCollected(res, amount, cashSold) {
+    if (!(amount > 0)) return;
+    if (cashSold) {
+      res.veLeAmt += amount;
+    } else {
+      res.veDatTruocAmt += amount;
+    }
+  }
+
+  // Tổng hợp tiền của 1 phơi từ seat bank thật { down, up, extraSeats, subSeats, cancelledSeats } (ERD B1, B6, B23, F29).
+  // Đã thu ròng của vé = (vé đã bán) ? tiền vé : LEAST(cọc, tiền vé). Vé hủy: chỉ tính phần phí giữ lại = đã thu có thể hoàn - tiền đã hoàn.
+  function acctTripCollectionSummary(bankObj, trip) {
+    var res = { bookedSeatsCount: 0, totalTripRevenue: 0, paidTripRevenue: 0, veLeAmt: 0, veDatTruocAmt: 0, hoaHongAmt: 0 };
+    bankObj = bankObj || {};
+    var seats = [].concat(bankObj.down || [], bankObj.up || [], bankObj.extraSeats || [], bankObj.subSeats || [])
+      .filter(function (s) { return s && (s.state === 'hold' || s.state === 'sold'); });
+    var tickets = {};
+    seats.forEach(function (s) {
+      var key = s.ticketNo || ('T-' + s.code);
+      var tk = tickets[key] || (tickets[key] = { seats: 0, priceTotal: 0, deposit: 0, sold: s.state === 'sold', method: '', agentId: s.agentId || '', rate: s.agentCommissionRate });
+      tk.seats++;
+      tk.priceTotal += Number(s.price) || 0;
+      tk.deposit = Math.max(tk.deposit, Number(s.depositAmount) || 0);
+      if (s.state === 'sold' && s.paymentMethod) tk.method = s.paymentMethod;
+    });
+    Object.keys(tickets).forEach(function (k) {
+      var tk = tickets[k];
+      var net = tk.sold ? tk.priceTotal : Math.min(tk.deposit, tk.priceTotal);
+      res.bookedSeatsCount += tk.seats;
+      res.totalTripRevenue += tk.priceTotal;
+      res.paidTripRevenue += net;
+      // Hoa hồng = tỷ lệ % ĐÃ CHỤP TRÊN VÉ x TỔNG TIỀN VÉ (đơn giá x số ghế) của vé đại lý còn hiệu lực (hold / sold), không phụ thuộc đã thu bao nhiêu.
+      // Vé đại lý cũ chưa có tỷ lệ (null) coi 0, kế toán xử lý tay. Phần đã thu còn lại sau hoa hồng vào "vé đặt trước".
+      var comm = tk.agentId ? Math.round(tk.priceTotal * (Number(tk.rate) || 0) / 100) : 0;
+      res.hoaHongAmt += comm;
+      acctAddCollected(res, Math.max(0, net - comm), !tk.agentId && tk.sold && tk.method === 'Tiền mặt');
+    });
+    (bankObj.cancelledSeats || []).forEach(function (c) {
+      var kept = Math.max(0, (Number(c.collectedAtCancel) || 0) - (Number(c.refundAmount) || 0));
+      if (kept <= 0) return;
+      res.totalTripRevenue += kept;
+      res.paidTripRevenue += kept;
+      acctAddCollected(res, kept, false); // phí giữ lại của vé đã hủy: doanh thu nhà xe, KHÔNG có hoa hồng đại lý (ERD B24, C16)
+    });
+    return res;
+  }
+
   // Read helpers — Tự động đồng bộ dữ liệu THẬT từ Tổng đài (Trips, SeatBank) & FleetStore (Vehicles, Staff)
   function getVouchers() {
     var storedVouchers = lsRead(HN_ACCOUNTING_VOUCHERS_KEY, []);
@@ -147,37 +196,12 @@
         var tripId = trip.id || trip.tripId || trip.code;
         if (!tripId) return;
 
-        var seatsObj = seatBank[tripId] || {};
-        var bookedSeatsCount = 0;
-        var totalTripRevenue = 0;
-        var paidTripRevenue = 0;
-        var veLeAmt = 0, veDatTruocAmt = 0, hoaHongAmt = 0;
-
-        Object.keys(seatsObj).forEach(function (sKey) {
-          var seat = seatsObj[sKey];
-          if (seat && (seat.status === 'sold' || seat.status === 'booked' || seat.paxName || seat.price)) {
-            bookedSeatsCount++;
-            var price = Number(seat.price) || Number(trip.price) || 160000;
-            totalTripRevenue += price;
-
-            var isAgency = seat.agent || seat.agency || seat.isAgency || (seat.note && seat.note.indexOf('Đại lý') !== -1);
-            var isWalkIn = seat.paymentMethod === 'Tiền mặt' || seat.isWalkIn || seat.channel === 'bến' || seat.channel === 'trực tiếp';
-
-            if (isAgency) {
-              var comm = Math.round(price * 0.15);
-              hoaHongAmt += comm;
-              veDatTruocAmt += (price - comm);
-            } else if (isWalkIn) {
-              veLeAmt += price;
-            } else {
-              veDatTruocAmt += price;
-            }
-
-            if (seat.paid || seat.paymentStatus === 'Đã thanh toán' || seat.status === 'sold') {
-              paidTripRevenue += price;
-            }
-          }
-        });
+        // F29: gom tiền theo VÉ từ seat bank THẬT (down / up / extraSeats / subSeats / cancelledSeats), hoa hồng theo TỔNG TIỀN VÉ còn hiệu lực (ERD B24).
+        var tripSummary = acctTripCollectionSummary(seatBank[tripId], trip);
+        var bookedSeatsCount = tripSummary.bookedSeatsCount;
+        var totalTripRevenue = tripSummary.totalTripRevenue;
+        var paidTripRevenue = tripSummary.paidTripRevenue;
+        var veLeAmt = tripSummary.veLeAmt, veDatTruocAmt = tripSummary.veDatTruocAmt, hoaHongAmt = tripSummary.hoaHongAmt;
 
         if (bookedSeatsCount > 0 || totalTripRevenue > 0) {
           var baseRoute = trip.route || trip.routeName || (trip.from ? trip.from + ' - ' + trip.to : 'Tuyến chính');
@@ -740,18 +764,11 @@
       } else {
         trips.forEach(function (t) {
           var tripId = t.id || t.tripId || t.code;
-          var seats = seatBank[tripId] || {};
-          var bookedCount = 0;
-          var rev = 0;
           var totalSeats = t.seatCount || t.seats || 34;
-
-          Object.keys(seats).forEach(function (sk) {
-            var s = seats[sk];
-            if (s && (s.status === 'sold' || s.status === 'booked' || s.paxName || s.price)) {
-              bookedCount++;
-              rev += Number(s.price) || Number(t.price) || 160000;
-            }
-          });
+          // F29: đọc seat bank THẬT; doanh thu = tiền ĐÃ THU RÒNG của các vé (không phải tổng giá ghế)
+          var tripSum = acctTripCollectionSummary(seatBank[tripId], t);
+          var bookedCount = tripSum.bookedSeatsCount;
+          var rev = tripSum.paidTripRevenue;
 
           var cost = Math.round(rev * 0.35) || 4500000; // estimated operational trip cost
           var net = rev - cost;
@@ -1275,32 +1292,27 @@
     var paxDetails = [];
 
     // Group real seat bookings
-    var seatKeys = Object.keys(tripSeats);
-    var bookedSeats = [];
-    seatKeys.forEach(function(sKey) {
-      var s = tripSeats[sKey];
-      if (s && (s.status === 'sold' || s.status === 'booked' || s.paxName || s.price)) {
-        bookedSeats.push(s);
-      }
-    });
+    // F29: ghế thật nằm trong down / up / extraSeats / subSeats, đang có khách khi state = hold | sold
+    var bookedSeats = [].concat(tripSeats.down || [], tripSeats.up || [], tripSeats.extraSeats || [], tripSeats.subSeats || [])
+      .filter(function (s) { return s && (s.state === 'hold' || s.state === 'sold'); });
 
     if (bookedSeats.length > 0) {
       // Map real booked seats to paxDetails
       var paxMap = {};
       bookedSeats.forEach(function(s) {
-        var pName = s.paxName || s.name || 'Khách lẻ';
+        var pName = s.customerName || s.paxName || s.name || 'Khách lẻ';
         var pPhone = s.phone || s.paxPhone || '—';
         var key = pName + '_' + pPhone;
-        var pPrice = Number(s.price) || 160000;
-        var isPaid = (s.paid || s.paymentStatus === 'Đã thanh toán' || s.status === 'sold');
+        var pPrice = Number(s.price) || 0;
+        var isPaid = (s.state === 'sold' || s.paid || s.paymentStatus === 'Đã thanh toán');
 
         if (!paxMap[key]) {
           paxMap[key] = {
             id: s.ticketId || s.code || ('TK-' + key),
             paxName: pName,
             phone: pPhone,
-            from: s.pickupLoc || s.from || 'Sài Gòn',
-            to: s.dropLoc || s.to || 'Trạm Bến',
+            from: s.firstStop || s.pickupLoc || s.from || 'Sài Gòn',
+            to: s.lastStop || s.dropLoc || s.to || 'Trạm Bến',
             count: 0,
             seats: [],
             amount: 0,
@@ -1309,7 +1321,7 @@
           };
         }
         paxMap[key].count += 1;
-        paxMap[key].seats.push(s.code || sKey);
+        paxMap[key].seats.push(s.code);
         paxMap[key].amount += pPrice;
         if (!isPaid) paxMap[key].status = 'Chưa thu';
       });

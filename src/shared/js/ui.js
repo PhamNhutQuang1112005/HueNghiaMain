@@ -13,6 +13,10 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 /* ---- Zone 4: Panel đặt vé ---- */
 function openBookingPanel(seats, options = {}) {
+  // ERD B16: mở panel đặt vé mới / sửa vé giữ chỗ cần book_ticket (hoặc sell_ticket). Vé đã bán chỉ xem nên không chặn.
+  if (typeof requirePermission === 'function' && seats && seats[0] && !(options.mode === 'edit' && seats[0].state === 'sold')) {
+    if (!requirePermission(BOOK_KEYS)) return;
+  }
   const depositModalEl = document.getElementById('depositModal');
   if (depositModalEl) depositModalEl.classList.remove('open');
   const mode = options.mode || 'booking';
@@ -33,7 +37,7 @@ function openBookingPanel(seats, options = {}) {
   const reprintBtn = document.getElementById('reprintPanelBtn');
   const depositBlockEl = document.querySelector('.deposit-block');
   if (saveBtn) saveBtn.style.display = (isReadOnly || isSubSeatBooking) ? 'none' : '';
-  if (sellBtn) sellBtn.style.display = isReadOnly ? 'none' : '';
+  if (sellBtn) sellBtn.style.display = (isReadOnly || (typeof hasTicketPermission === 'function' && !hasTicketPermission(SELL_KEYS))) ? 'none' : ''; // ERD B16: nút Bán cần sell_ticket
   if (depositBlockEl) depositBlockEl.style.display = isSubSeatBooking ? 'none' : '';
   // Vé đã bán không tự động in lại (VD: sau khi chuyển ghế) — chỉ hiện nút này để nhân viên chủ động
   // bấm in khi cần (chỉ có ở ticketstaff, callcenter không có #reprintPanelBtn/chức năng in).
@@ -138,6 +142,7 @@ function openBookingPanel(seats, options = {}) {
   refreshTicket();
   document.getElementById('bookingOverlay').classList.add('open');
   document.getElementById('savePanelBtnText').textContent = mode === 'edit' ? 'Lưu thay đổi' : 'Đặt vé';
+  if (typeof tsApplyPriceLock === 'function') tsApplyPriceLock('t_price'); // ERD B16: khóa ô giá nếu thiếu change_price và giá lấy từ bảng giá
 }
 
 function closePanel() {

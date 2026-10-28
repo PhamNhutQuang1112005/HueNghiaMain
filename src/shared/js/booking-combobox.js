@@ -331,6 +331,7 @@ function openEditFromHistory(idx) {
 // trang đó gồm cả vé quá khứ đã kết thúc, không còn ghế sống để "sửa" nên tạo vé đặt lại mới thay vì mở
 // panel sửa (khác với view "Tìm kiếm vé khách hàng", chỉ vé trong ngày, dùng openEditFromHistory).
 function openRebookFromHistory(idx) {
+  if (!requirePermission(BOOK_KEYS)) return; // ERD B16: Đặt lại vé từ lịch sử cần book_ticket (hoặc sell_ticket)
   try {
     // idx là vị trí trong mảng kết quả lịch sử (window._historyResults) — mỗi thẻ lịch sử render trực
     // tiếp từ mảng này (renderHistoryCardHtml), nên idx của mỗi thẻ trùng đúng vị trí trong mảng.
@@ -370,6 +371,8 @@ function openRebookFromHistory(idx) {
     const depositAmountEl = document.getElementById('f_deposit_amount');
     if (depositAmountEl) depositAmountEl.value = '';
     if (typeof updateRebookDepositHint === 'function') updateRebookDepositHint();
+    // Ô Đại lý của modal Đặt lại vé (ERD B22): mỗi lần mở lại là đặt lại về trống, tránh mang đại lý của lần trước.
+    if (typeof setAgentFormState === 'function') setAgentFormState('', 'rbAgentEnabled', 'rbAgentId');
 
     const zeroReasonEl = document.getElementById('rbZeroPriceReason');
     if (zeroReasonEl) zeroReasonEl.value = '';
@@ -429,7 +432,7 @@ function renderCancelledSeats() {
 
   // Danh sách rút gọn cuối Zone 3 chỉ hiện vé hủy CHƯA được chuyển ghế (còn cần xử lý) — vé đã chuyển
   // vẫn còn nguyên trong cancelledSeats và vẫn hiện đủ ở tab "Ghế hủy" (Zone 2) để lưu vết lịch sử.
-  const activeCancelled = (cancelledSeats || []).filter(c => !c.restored);
+  const activeCancelled = (cancelledSeats || []).slice(); // đặt lại không giới hạn số lần (ERD quyết định 27): không ẩn vé hủy đã đặt lại
   if (activeCancelled.length === 0) {
     section.style.display = 'none';
     list.innerHTML = '';
@@ -487,6 +490,7 @@ function confirmRestoreFromCancelled() {
   const targetTripId = transferTargetTripId || currentTripId;
   if (record.prevState !== 'hold') { showToast('Vé của ghế đã bán không chuyển sang phơi khác được'); return; }
   if (!requireActor(true)) return;
+  if (!requirePermission(BOOK_KEYS)) return; // ERD B16: Đặt lại vé hủy tạo vé hold mới = book_ticket (hoặc sell_ticket)
   const targetTripMeta = allTripsMeta.find(t => t.id === targetTripId);
   if (!targetTripMeta || targetTripMeta.status === 'Đã hủy' || targetTripMeta.isTemplate) {
     showToast('Phơi đích không nhận vé được (đã hủy hoặc là phơi mẫu)');
@@ -504,6 +508,22 @@ function confirmRestoreFromCancelled() {
     return;
   }
 
+  // Mã vé (ERD B3, B9, quyết định 27): đặt lại vé hủy LUÔN cấp mã MỚI, không dùng lại mã vé hủy.
+  // Nhóm (ERD B9, B27): chỉ gom nhóm khi đặt lại CÙNG phơi với vé hủy (nhóm không vượt phơi).
+  //  (a) vé gốc còn ghế hiệu lực -> vào nhóm của vé gốc; (b) vé gốc đã hủy hẳn nhưng nhóm của nó còn vé hiệu lực -> vào nhóm đó;
+  //  (c) còn lại, hoặc đặt lại sang phơi khác -> vé đứng riêng (groupTicketNo = null).
+  const srcBank = tripSeatBank[transferSourceTripId];
+  const srcPool = srcBank ? [].concat(srcBank.down || [], srcBank.up || [], srcBank.extraSeats || [], srcBank.subSeats || []).filter(s => s && OCCUPIED_STATES.includes(s.state)) : [];
+  const srcStillActive = !!(record.ticketNo && srcPool.some(s => s.ticketNo === record.ticketNo));
+  const groupRoot = record.groupTicketNo || null;
+  const groupStillActive = !!(groupRoot && srcPool.some(s => s.ticketNo === groupRoot || s.groupTicketNo === groupRoot));
+  let restoredGroupNo = null;
+  if (targetTripId === transferSourceTripId) {
+    if (srcStillActive) restoredGroupNo = groupRoot || record.ticketNo;
+    else if (groupStillActive) restoredGroupNo = groupRoot;
+  }
+  // Sao chép ĐẦY ĐỦ từ vé gốc (khách, chặng, điểm đón / trả, đơn giá, đại lý, hành lý, ghi chú; KHÔNG chép cọc, ERD C2) — bản ghi hủy cũ
+  // (trước khi có ảnh chụp đầy đủ) thiếu các trường này thì rơi về giá trị rỗng như trước.
   Object.assign(targetSeat, {
     state: 'hold',
     customerName: record.customerName,
@@ -511,22 +531,38 @@ function confirmRestoreFromCancelled() {
     firstStop: record.firstStop,
     lastStop: record.lastStop,
     price: record.price,
-    note: record.note,
-    // Mã vé: giữ mã cũ CHỈ khi đặt lại đúng ghế cũ trong đúng phơi cũ; sang ghế / phơi khác thì cấp mã mới (ERD quy tắc 13, 14).
-    ticketNo: (targetTripId === transferSourceTripId && targetCode === record.code) ? record.ticketNo : issueTicketNo(),
+    note: record.rawNote != null ? record.rawNote : record.note,
+    zeroPriceReason: record.zeroPriceReason || '',
+    guestType: record.guestType || null,
+    transshipStation: record.transshipStation || '',
+    transship: record.transshipStation || '',
+    pickupAddress: record.pickupAddress || record.transshipStation || '',
+    arrivalTransfer: record.arrivalTransfer || '',
+    dropoffAddress: record.dropoffAddress || record.arrivalTransfer || '',
+    hasLuggage: !!record.hasLuggage,
+    luggageNote: record.luggageNote || '',
+    agentId: record.agentId || '',
+    agentName: record.agentName || '',
+    agentCommissionRate: record.agentCommissionRate != null ? record.agentCommissionRate : null,
+    depositAmount: 0, // cọc của vé hủy đã hoàn cho khách; đặt lại cần cọc thì thu lại (ERD B9, C2)
+    depositMethod: '',
+    fromStationId: record.fromStationId || null,
+    toStationId: record.toStationId || null,
+    isDoubleSeat: !!record.isDoubleSeat,
+    groupTicketNo: restoredGroupNo,
+    ticketNo: issueTicketNo(),
     paid: false,
     count: 1
   });
   // Vé chuyển (ghế đã đặt) gắn cho NGƯỜI THAO TÁC MỚI NHẤT: người, trạm, giai đoạn bán, lần Re-open (ERD quy tắc 13)
   tsStampSoldPhaseIfNeeded(targetSeat, targetTripId, true);
-  // Không xoá record khỏi cancelledSeats — giữ lại để lưu vết theo yêu cầu nghiệp vụ (tab "Ghế hủy"
-  // vẫn hiện đủ mọi bản ghi). Chỉ đánh dấu "restored" để danh sách rút gọn cuối Zone 3 (nơi để bấm
-  // chuyển ghế) ẩn bớt các vé đã xử lý xong, tránh chuyển nhầm lần 2 vào cùng 1 vé hủy.
+  // Không xoá record khỏi cancelledSeats — giữ lại để lưu vết. Một vé hủy được đặt lại VÔ SỐ LẦN (ERD quyết định 27), nên
+  // KHÔNG còn cờ "restored" ẩn bản ghi; các trường restoredTo* chỉ nhớ lần đặt lại GẦN NHẤT.
   const trip = allTripsMeta.find(t => t.id === targetTripId);
-  record.restored = true;
   record.restoredToSeat = targetCode;
   record.restoredToTripLabel = trip ? trip.time : '';
   record.restoredToTripId = targetTripId;
+  record.restoredTicketNo = targetSeat.ticketNo;
   record.restoredAtIso = new Date().toISOString();
   record.restoredBy = getCurrentActionStaffCode();
   record.restoredAt = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN');

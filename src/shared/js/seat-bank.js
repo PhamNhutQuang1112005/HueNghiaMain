@@ -112,6 +112,21 @@ function getActingStaffCode() {
   } catch (e) { return ''; }
 }
 
+// ===== Giá + trạm theo trạm KHÁCH chọn (ERD B5) — dùng chung Rước liền (ticketstaff) và Admin > Trung chuyển =====
+// '—' = chưa nhập. Trả null khi thiếu trạm / chưa có giá trong Admin > Quản lý giá (khi đó nhân viên nhập tay).
+function hnCleanPlaceName(v) { v = (v == null ? '' : String(v).trim()); return v === '\u2014' ? '' : v; }
+function fareForCustomerStations(fromName, toName, vehicleType) {
+  const f = hnCleanPlaceName(fromName), t = hnCleanPlaceName(toName);
+  if (!f || !t || !window.FleetStore) return null;
+  return FleetStore.getFare(f, t, vehicleType) || null;
+}
+function stationIdsForCustomer(fromName, toName) {
+  const f = hnCleanPlaceName(fromName), t = hnCleanPlaceName(toName);
+  const a = (f && window.FleetStore) ? FleetStore.stationByRef(f) : null;
+  const b = (t && window.FleetStore) ? FleetStore.stationByRef(t) : null;
+  return { fromStationId: a ? a.id : null, toStationId: b ? b.id : null };
+}
+
 // Chặn thao tác ghi dữ liệu khi chưa đăng nhập; needStation = true thì tài khoản thường còn phải có trạm
 // (admin gốc không gắn trạm nên được miễn). Trả về true nếu được phép tiếp tục.
 function requireActor(needStation) {
@@ -122,4 +137,55 @@ function requireActor(needStation) {
     return false;
   }
   return true;
+}
+
+/* ===== KIỂM QUYỀN VÉ (ERD đặt vé B16) =====
+   sell_ticket BAO GỒM book_ticket: người có sell_ticket cũng đặt được vé; vẫn có người chỉ có book_ticket
+   (chỉ giữ chỗ, không bán). Quyền do nhân sự cấp theo loại nhân viên (không seed mặc định) nên kiểm quyền chỉ
+   chạy khi cờ HN_ENFORCE_TICKET_PERMS_KEY = '1' (Admin > Cấu hình nhân sự > Tham số); tắt thì mọi thao tác qua.
+   Admin gốc luôn có đủ quyền (Auth.hasPermission). Đây mới là kiểm ở giao diện; lên DB phải kiểm lại ở tầng service. */
+const BOOK_KEYS = ['book_ticket', 'sell_ticket'];
+const SELL_KEYS = ['sell_ticket'];
+function ticketPermsEnforced() {
+  try { return localStorage.getItem(HN_ENFORCE_TICKET_PERMS_KEY) === '1'; } catch (e) { return false; }
+}
+// Có (ít nhất) một trong các khóa `keys` không — không báo lỗi, dùng để ẩn / làm mờ nút.
+function hasTicketPermission(keys) {
+  if (!ticketPermsEnforced()) return true;
+  const list = Array.isArray(keys) ? keys : [keys];
+  return !!(window.Auth && Auth.hasAnyPermission && Auth.hasAnyPermission(list));
+}
+// Chặn thao tác nếu thiếu quyền và báo lý do. Trả về true nếu được phép tiếp tục.
+function requirePermission(keys, msg) {
+  if (hasTicketPermission(keys)) return true;
+  const first = Array.isArray(keys) ? keys[0] : keys;
+  const SHORT = { book_ticket: 'Đặt vé', sell_ticket: 'Bán vé', change_price: 'Đổi giá', transship_pickup: 'Nhận khách Rước liền', view_tickets: 'Xem danh sách vé', view_customers: 'Xem khách hàng' };
+  const text = msg || ('Bạn không có quyền ' + (SHORT[first] || 'thực hiện thao tác này') + '.');
+  if (typeof showToast === 'function') showToast(text); else alert(text);
+  return false;
+}
+/* ===== THÔNG TIN KHÁCH BẮT BUỘC (ERD đặt vé B4, B29) =====
+   SĐT chính: mặc định BẮT BUỘC. Tên khách: mặc định KHÔNG bắt buộc. Cả hai chỉnh được bằng cài đặt (Admin > Cấu hình nhân sự > Tham số).
+   Chỉ kiểm khi TẠO vé mới; khi SỬA vé cũ mà ô đó vốn đã trống (dữ liệu cũ không có) thì không đòi, để vé cũ không bị khóa vì luật mới. */
+function ticketRequiresPhone() {
+  try { return localStorage.getItem(HN_TICKET_REQUIRE_PHONE_KEY) !== '0'; } catch (e) { return true; }
+}
+function ticketRequiresName() {
+  try { return localStorage.getItem(HN_TICKET_REQUIRE_NAME_KEY) === '1'; } catch (e) { return false; }
+}
+// phone: chuỗi 'a, b' (số đầu là SĐT chính). prevSeat: ghế đang sửa (null khi tạo vé mới). Trả true nếu hợp lệ; báo lỗi và trả false nếu thiếu.
+function validateCustomerContact(name, phone, prevSeat) {
+  const say = m => { if (typeof showToast === 'function') showToast(m); else alert(m); };
+  const firstPhone = String(phone || '').split(/[,;\/]/)[0].replace(/[\s.\-]/g, '');
+  if (ticketRequiresPhone() && !firstPhone && !(prevSeat && !String(prevSeat.phone || '').trim())) { say('Vui lòng nhập số điện thoại khách'); return false; }
+  if (ticketRequiresName() && !String(name || '').trim() && !(prevSeat && !String(prevSeat.customerName || '').trim())) { say('Vui lòng nhập tên khách'); return false; }
+  return true;
+}
+// Khóa cần cho một thao tác sửa / hủy / chuyển trên các ghế nguồn: có ghế đã bán (sold) -> sell_ticket,
+// toàn ghế giữ chỗ (hold) -> book_ticket hoặc sell_ticket (ERD B16 mục 2).
+function ticketTouchKeys(seats) {
+  return (seats || []).some(function (s) { return s && s.state === 'sold'; }) ? SELL_KEYS : BOOK_KEYS;
+}
+function requireTicketTouchPermission(seats) {
+  return requirePermission(ticketTouchKeys(seats));
 }

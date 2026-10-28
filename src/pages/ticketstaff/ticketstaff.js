@@ -1833,6 +1833,7 @@ function onSeatClick(ev, code) {
   // kể cả sang phơi khác) với ghế thường thay vì mở riêng modal — cùng nhánh OCCUPIED_STATES bên dưới,
   // vì ghế dư luôn ở 1 trong các trạng thái sold/hold/free/cargo giống ghế thường.
   if (!multiSelectMode && OCCUPIED_STATES.includes(seat.state)) {
+    if (!requireTicketTouchPermission([seat])) return; // ERD B16: chọn ghế có khách để chuyển / hủy / bán
     multiSelectMode = true;
     selectionMode = 'transfer';
     selectedSourceSeats = [seat.code];
@@ -1912,6 +1913,38 @@ function tripNotSellable(tripId) {
   return !t || t.status === 'Đã hủy' || !!t.isTemplate || (typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(tripId));
 }
 
+// Nhật ký thao tác vé (ERD B18): entity = ticket, entityId = mã vé (hoặc nhiều mã phân cách bằng dấu phẩy), changes = trước / sau.
+function tsLogTicket(action, ticketNo, summary, changes) {
+  try {
+    if (window.FleetStore && typeof FleetStore.log === 'function') {
+      FleetStore.log({ action: action, entity: 'ticket', entityId: String(ticketNo || ''), summary: summary || '', changes: changes });
+    }
+  } catch (e) { /* nhật ký lỗi không được làm hỏng thao tác */ }
+}
+
+// Lý do chuyển vé đã bán sang phơi khác (ERD B10, C7) — nhập ở #transferReasonModal, dùng một lần cho lần confirmTransfer kế tiếp.
+let transferReasonText = '';
+function openTransferReasonModal() {
+  const input = document.getElementById('transferReasonInput');
+  if (input) input.value = '';
+  const modal = document.getElementById('transferReasonModal');
+  if (modal) modal.classList.add('open');
+  if (input) input.focus();
+}
+function closeTransferReasonModal() {
+  transferReasonText = '';
+  const modal = document.getElementById('transferReasonModal');
+  if (modal) modal.classList.remove('open');
+}
+function submitTransferReason() {
+  const v = ((document.getElementById('transferReasonInput') || {}).value || '').trim();
+  if (!v) { showToast('Vui lòng nhập lý do chuyển vé'); return; }
+  transferReasonText = v;
+  const modal = document.getElementById('transferReasonModal');
+  if (modal) modal.classList.remove('open');
+  confirmTransfer();
+}
+
 function confirmTransfer() {
   if (!multiSelectMode || !selectedSourceSeats.length || !selectedTargetSeats.length) {
     showToast('Vui lòng chọn ít nhất 1 ghế đã đặt và 1 ghế trống');
@@ -1923,21 +1956,45 @@ function confirmTransfer() {
   const sourceTripId = transferSourceTripId || currentTripId;
   const targetTripId = transferTargetTripId || currentTripId;
   if (!requireActor(true)) return;
+  if (!requireTicketTouchPermission(selectedSourceSeats.map(c => findSeatInTrip(sourceTripId, c)).filter(Boolean))) return; // ERD B16: chuyển theo trạng thái ghế nguồn
   if (tripNotSellable(targetTripId) || (typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(sourceTripId))) {
     showToast('Phơi nguồn hoặc phơi đích đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không chuyển được'); return;
   }
+  // ERD B10, C7: chuyển vé ĐÃ BÁN sang phơi KHÁC bắt buộc nhập lý do (hỏi qua #transferReasonModal rồi gọi lại hàm này).
+  const needTransferReason = sourceTripId !== targetTripId && selectedSourceSeats.slice(0, pairCount).some(c => { const s = findSeatInTrip(sourceTripId, c); return s && s.state === 'sold'; });
+  if (needTransferReason && !transferReasonText) { openTransferReasonModal(); return; }
+  const transferReason = needTransferReason ? transferReasonText : '';
+  transferReasonText = '';
 
   let extraSeatsChanged = false;
   // Ghế đích của các ghế NGUỒN đã bán (state 'sold') — in lại vé cho đúng mã ghế/chuyến mới sau khi
   // chuyển, vì vé giấy khách đang cầm giờ ghi sai mã ghế/chuyến cũ.
   const reprintSeats = [];
   const newNoByOld = {}; // ghế khác = vé khác: các ghế của CÙNG vé gốc chuyển chung một lần dùng chung một mã mới (ERD quy tắc 21)
+  // Cọc chia theo tỷ lệ số ghế khi chỉ chuyển MỘT PHẦN ghế của vé (ERD B6, B10, F4): ghi lại số ghế + cọc của vé gốc TRƯỚC khi chuyển.
+  const preTransfer = {};
+  (function () {
+    const sb = tripSeatBank[sourceTripId];
+    const pool = sb ? [].concat(sb.down || [], sb.up || [], sb.extraSeats || [], sb.subSeats || []) : [];
+    selectedSourceSeats.slice(0, pairCount).forEach(code => {
+      const s0 = findSeatInTrip(sourceTripId, code);
+      if (!s0 || !s0.ticketNo || preTransfer[s0.ticketNo]) return;
+      const all = pool.filter(s => s && s.ticketNo === s0.ticketNo && OCCUPIED_STATES.includes(s.state));
+      preTransfer[s0.ticketNo] = {
+        seats: all.length,
+        deposit: Math.max(0, ...all.map(s => s.depositAmount || 0)),
+        method: (all.find(s => s.depositMethod) || {}).depositMethod || ''
+      };
+    });
+  })();
+  let movedCount = 0; // số ghế thực sự chuyển được (ghế đích không còn trống thì bỏ qua)
   for (let i = 0; i < pairCount; i++) {
     const sourceSeat = findSeatInTrip(sourceTripId, selectedSourceSeats[i]);
     const targetSeat = findSeatInTrip(targetTripId, selectedTargetSeats[i]);
     if (!sourceSeat || !OCCUPIED_STATES.includes(sourceSeat.state) || !targetSeat || targetSeat.state !== 'empty') continue;
 
     const wasSold = sourceSeat.state === 'sold';
+    movedCount++;
 
     Object.assign(targetSeat, {
       state: sourceSeat.state,
@@ -1962,12 +2019,13 @@ function confirmTransfer() {
       zeroPriceReason: sourceSeat.zeroPriceReason,
       depositAmount: sourceSeat.depositAmount,
       depositMethod: sourceSeat.depositMethod,
-      paymentMethod: sourceSeat.paymentMethod
+      paymentMethod: sourceSeat.paymentMethod,
+      transferredFromTicketNo: sourceSeat.ticketNo || null // ERD ticket.transferred_from_ticket_id: ghi vết vé nguồn
     });
 
     // Giữ nhãn bán vé (ERD quy tắc 21): cùng phơi chép nguyên; khác phơi thì giai đoạn bán / Re-open tính lại theo phơi đích.
     // Vé ĐÃ BÁN giữ người bán + trạm (doanh thu thuộc người thu tiền); vé chưa bán mang người thao tác mới nhất.
-    ['staff', 'bookedBy', 'bookedStation', 'sellingStation', 'agentId', 'agentName', 'actionTime', 'callState', 'transship',
+    ['staff', 'bookedBy', 'bookedStation', 'sellingStation', 'agentId', 'agentName', 'agentCommissionRate', 'actionTime', 'callState', 'transship',
      'pickupAddress', 'dropoffAddress', 'transshipPickupNote', 'transshipDropoffNote', 'soldPhase', 'reopenEventId', 'settledReopenEventId']
       .forEach(k => { targetSeat[k] = sourceSeat[k]; });
     if (sourceTripId !== targetTripId) {
@@ -1975,6 +2033,12 @@ function confirmTransfer() {
       targetSeat.settledReopenEventId = null;
       tsStampSoldPhaseIfNeeded(targetSeat, targetTripId, true);
       if (wasSold) Object.assign(targetSeat, seller);
+    } else if (!wasSold) {
+      // Cùng phơi, vé ĐÃ ĐẶT: mang người thao tác MỚI NHẤT (ERD B10); giai đoạn bán / Re-open giữ nguyên.
+      const actor = getCurrentActionStaffCode();
+      const actorStation = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
+      targetSeat.staff = actor; targetSeat.bookedBy = actor;
+      targetSeat.sellingStation = actorStation; targetSeat.bookedStation = actorStation;
     }
 
     if (wasSold) reprintSeats.push(targetSeat);
@@ -1991,6 +2055,12 @@ function confirmTransfer() {
     }
   }
 
+  if (!movedCount) { showToast('Ghế đích không còn trống — không chuyển được'); return; }
+  if (transferReason) {
+    tsLogTicket('transfer', Object.keys(newNoByOld).join(', '), 'Chuyển vé đã bán sang phơi khác (phơi ' + sourceTripId + ' -> ' + targetTripId + '): ' + transferReason,
+      { reason: transferReason, from_trip: sourceTripId, to_trip: targetTripId, new_ticket_no: Object.keys(newNoByOld).map(o => newNoByOld[o]).join(', ') });
+  }
+
   // Đếm lại số ghế của vé gốc (còn lại ở phơi nguồn) và của vé mới (ở phơi đích) sau khi tách.
   const recountTicket = (tripId, no) => {
     const b = tripSeatBank[tripId];
@@ -1998,6 +2068,18 @@ function confirmTransfer() {
     const grp = [].concat(b.down || [], b.up || [], b.extraSeats || [], b.subSeats || []).filter(s => s && s.ticketNo === no && OCCUPIED_STATES.includes(s.state));
     grp.forEach(s => { s.count = grp.length; });
   };
+  Object.keys(newNoByOld).forEach(oldNo => {
+    const pre = preTransfer[oldNo];
+    const inTrip = (b, no) => b ? [].concat(b.down || [], b.up || [], b.extraSeats || [], b.subSeats || []).filter(s => s && s.ticketNo === no && OCCUPIED_STATES.includes(s.state)) : [];
+    const moved = inTrip(tripSeatBank[targetTripId], newNoByOld[oldNo]);
+    const left = inTrip(tripSeatBank[sourceTripId], oldNo);
+    if (pre && pre.seats > 0 && moved.length && left.length) { // chỉ chuyển một phần: chia cọc, không nhân đôi
+      const movedDep = Math.floor(pre.deposit * moved.length / pre.seats);
+      const leftDep = pre.deposit - movedDep;
+      moved.forEach(s => { s.depositAmount = movedDep; s.depositMethod = movedDep > 0 ? pre.method : ''; });
+      left.forEach(s => { s.depositAmount = leftDep; s.depositMethod = leftDep > 0 ? pre.method : ''; });
+    }
+  });
   Object.keys(newNoByOld).forEach(oldNo => { recountTicket(sourceTripId, oldNo); recountTicket(targetTripId, newNoByOld[oldNo]); });
 
   renderSeats();
@@ -2008,58 +2090,52 @@ function confirmTransfer() {
   // trong panel xem thông tin ghế đó khi cần (xem reprintCurrentPanelTicket()).
   if (reprintSeats.length) {
     const codes = reprintSeats.map(s => s.code).join(', ');
-    showToast(`Đã chuyển ${pairCount} ghế thành công — ghế ${codes} đã bán, mở lại ghế để bấm "In lại vé" cho khách`);
+    showToast(`Đã chuyển ${movedCount} ghế thành công — ghế ${codes} đã bán, mở lại ghế để bấm "In lại vé" cho khách`);
   } else {
-    showToast(`Đã chuyển ${pairCount} ghế thành công`);
+    showToast(`Đã chuyển ${movedCount} ghế thành công`);
   }
 }
 
-/* ---- Đặt thêm vé cho 1 VÉ NHÓM đã có ----
-   Luồng: bấm 1 ghế thuộc vé nhóm (vào chế độ chọn ghế như "chuyển ghế") -> bấm thêm 1..n ghế trống
-   trong cùng chuyến -> bấm nút "Đặt thêm cho nhóm" trên thanh chọn ghế.
-   Mỗi ghế trống được COPY nguyên thông tin khách của ghế nhóm (tên/SĐT/chặng/giá/ghi chú/loại khách/
-   trung chuyển/baga...) và GIỮ CHUNG số vé (ticketNo) với nhóm. Khác "Chuyển ghế": KHÔNG đụng tới ghế
-   nguồn. Ghế mới luôn ở trạng thái 'hold' + chưa thanh toán (đây là "đặt thêm", chưa bán/chưa thu tiền)
-   dù nhóm gốc đã bán — nhân viên bán riêng sau bằng luồng bán vé thường.
-   Cuối cùng đồng bộ lại count cho MỌI ghế cùng số vé. */
+/* ---- Đặt thêm cho nhóm (ERD B8) ----
+   Luồng: bấm 1 ghế đã đặt / đã bán (vé có thể chỉ 1 ghế) -> chế độ chọn ghế như "chuyển ghế" -> bấm thêm 1..n ghế
+   trống trong cùng chuyến -> "Đặt thêm cho nhóm". MỖI LẦN đặt thêm tạo MỘT VÉ MỚI (mã vé mới, hold, cọc 0) cho các ghế
+   vừa chọn, sao chép khách / chặng / điểm đón trả / đơn giá / đại lý / cờ ghế đôi từ vé nguồn, và nối với vé gốc của
+   nhóm bằng groupTicketNo (ERD ticket.group_ticket_id: luôn là vé gốc, không bao giờ trỏ vào vé con). Nhờ đó mọi ghế
+   của 1 vé luôn cùng trạng thái / đơn giá / cọc. KHÔNG đụng tới ghế nguồn. Người đặt = người thao tác hiện tại. */
 function confirmAddToGroup() {
   if (!requireActor(true)) return;
+  if (!requirePermission(BOOK_KEYS)) return; // ERD B16: Đặt thêm cho nhóm tạo vé hold mới = book_ticket
   if (!multiSelectMode || selectionMode !== 'transfer' || transferSourceCancelId) {
-    showToast('Vui lòng chọn 1 ghế trong vé nhóm và ít nhất 1 ghế trống');
+    showToast('Vui lòng chọn 1 ghế đã đặt / đã bán và ít nhất 1 ghế trống');
     return;
   }
   if (selectedSourceSeats.length !== 1) {
-    showToast('Chỉ chọn đúng 1 ghế trong vé nhóm để đặt thêm');
+    showToast('Chỉ chọn đúng 1 ghế của vé để đặt thêm');
     return;
   }
   if (!selectedTargetSeats.length) {
-    showToast('Vui lòng chọn ít nhất 1 ghế trống để đặt thêm cho nhóm');
+    showToast('Vui lòng chọn ít nhất 1 ghế trống để đặt thêm');
     return;
   }
   const tripId = transferSourceTripId || currentTripId;
   if ((transferTargetTripId || currentTripId) !== tripId) {
-    showToast('Chỉ đặt thêm cho nhóm trên cùng 1 chuyến — chọn ghế trống trong chuyến của vé nhóm');
+    showToast('Chỉ đặt thêm trên cùng 1 chuyến — chọn ghế trống trong chuyến của vé');
     return;
   }
+  if (tripNotSellable(tripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không đặt thêm được'); return; } // ERD B4
   const src = findSeatInTrip(tripId, selectedSourceSeats[0]);
   if (!src || !OCCUPIED_STATES.includes(src.state) || !src.ticketNo) {
-    showToast('Ghế nguồn không hợp lệ để đặt thêm cho nhóm');
+    showToast('Ghế nguồn không hợp lệ để đặt thêm');
     return;
   }
 
-  const bank = tripSeatBank[tripId];
-  const pool = bank
-    ? [...bank.down, ...bank.up, ...(bank.extraSeats || []), ...(bank.subSeats || [])]
-    : [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats];
-  if (pool.filter(s => s.ticketNo === src.ticketNo).length < 2) {
-    showToast('Ghế đang chọn không thuộc vé nhóm nào — dùng "Sửa vé" để đặt lại thông tin');
-    return;
-  }
-
+  const rootNo = src.groupTicketNo || src.ticketNo; // vé gốc của nhóm
+  let newNo = null;
   const addedSeats = [];
   selectedTargetSeats.forEach(code => {
     const tgt = findSeatInTrip(tripId, code);
     if (!tgt || tgt.state !== 'empty') return;
+    if (!newNo) newNo = issueTicketNo();
     Object.assign(tgt, {
       state: 'hold',
       paid: false,
@@ -2070,9 +2146,13 @@ function confirmAddToGroup() {
       phone: src.phone,
       note: src.note,
       customerName: src.customerName,
-      staff: src.staff,
+      staff: getCurrentActionStaffCode(), // người đặt = người thao tác, không phải staff của vé nguồn
       pickupTime: src.pickupTime,
-      ticketNo: src.ticketNo,
+      ticketNo: newNo,
+      groupTicketNo: rootNo,
+      agentId: src.agentId || '',
+      agentName: src.agentName || '',
+      agentCommissionRate: src.agentCommissionRate != null ? src.agentCommissionRate : null,
       hasLuggage: src.hasLuggage,
       luggageNote: src.luggageNote,
       guestType: src.guestType,
@@ -2095,19 +2175,18 @@ function confirmAddToGroup() {
   });
 
   if (!addedSeats.length) {
-    showToast('Không có ghế trống hợp lệ để đặt thêm cho nhóm');
+    showToast('Không có ghế trống hợp lệ để đặt thêm');
     return;
   }
 
-  // Đồng bộ count cho MỌI ghế cùng số vé (kể cả ghế nhóm cũ) để sơ đồ ghế và danh sách hành khách khớp.
-  const groupSeats = pool.filter(s => s.ticketNo === src.ticketNo);
-  groupSeats.forEach(s => { s.count = groupSeats.length; });
+  // Vé mới chỉ gồm các ghế vừa đặt thêm; vé nguồn giữ nguyên.
+  addedSeats.forEach(s => { s.count = addedSeats.length; });
 
   renderSeats();
   saveSeatBank();
   if (document.getElementById('zone3Passengers').style.display !== 'none') renderPassengerList();
   exitMultiSelectMode();
-  showToast(`Đã đặt thêm ${addedSeats.length} vé cho nhóm ${src.ticketNo} (${addedSeats.map(s => s.code).join(', ')}) — tổng ${groupSeats.length} ghế`);
+  showToast(`Đã đặt thêm ${addedSeats.length} ghế (${addedSeats.map(s => s.code).join(', ')}) thành vé mới ${newNo}, cùng nhóm với vé ${rootNo}`);
 }
 
 /* Đưa ghế về trạng thái trống hoàn toàn — không giữ lại bất kỳ thông tin khách nào */
@@ -2117,11 +2196,13 @@ function clearSeatToEmpty(seat) {
     lastStop: null, note: null, staff: null, callState: null, pickupTime: null,
     ticketNo: null, paid: false, hasLuggage: false, guestType: null,
     transshipStation: null, arrivalTransfer: null, zeroPriceReason: null,
+    transship: null, pickupAddress: '', dropoffAddress: '', groupTicketNo: null,
     fromStationId: null, toStationId: null, isDoubleSeat: false,
     luggageNote: null, paymentMethod: null,
     // Nhãn của lần bán cũ — phải xoá để lần bán sau gắn lại đúng giai đoạn / Re-open / trạm (ERD quy tắc 4)
     soldPhase: null, sellingStation: null, reopenEventId: null, bookedBy: null, bookedStation: null, settledReopenEventId: null,
-    depositAmount: 0, depositMethod: '', agentId: '', agentName: '', actionTime: null
+    depositAmount: 0, depositMethod: '', agentId: '', agentName: '', agentCommissionRate: null, actionTime: null,
+    transferredFromTicketNo: null
   });
 }
 
@@ -2158,6 +2239,7 @@ function syncTicketFareFromStations() {
   if (depositBlockEl) depositBlockEl.classList.toggle('has-double-toggle', !!pricing);
   if (price == null) showToast(`${from} → ${to} chưa có giá trong Quản lý giá — bấm vào giá vé để nhập`);
   else updateZeroPriceReasonVisibility();
+  tsApplyPriceLock('t_price');
 }
 
 function refreshTicket() {
@@ -2278,9 +2360,9 @@ function cancelDepositModal() {
 
 // Ô "Đại lý" dưới "Đặt cọc": tick thì hiện select chọn đại lý (danh sách từ AgentStore, Admin > Đại lý).
 // Đại lý lưu trên ghế ở seat.agentId + seat.agentName (tên chụp lúc đặt) để Admin thống kê vé/doanh thu.
-function setAgentFormState(agentId) {
-  const enabledEl = document.getElementById('f_agent_enabled');
-  const selectEl = document.getElementById('f_agent_id');
+function setAgentFormState(agentId, enabledId = 'f_agent_enabled', selectId = 'f_agent_id') {
+  const enabledEl = document.getElementById(enabledId);
+  const selectEl = document.getElementById(selectId);
   if (!enabledEl || !selectEl) return;
   const agents = window.AgentStore ? AgentStore.getAll() : [];
   const known = agents.some(a => a.id === agentId);
@@ -2294,21 +2376,33 @@ function setAgentFormState(agentId) {
 }
 
 function onAgentToggle() {
+  const isRebook = this.id === 'rbAgentEnabled'; // cùng ô Đại lý ở modal Đặt lại vé (ERD B22)
+  const enabledId = isRebook ? 'rbAgentEnabled' : 'f_agent_enabled';
+  const selectId = isRebook ? 'rbAgentId' : 'f_agent_id';
   const checked = this.checked;
-  setAgentFormState('');
+  setAgentFormState('', enabledId, selectId);
   this.checked = checked;
-  const selectEl = document.getElementById('f_agent_id');
+  const selectEl = document.getElementById(selectId);
   selectEl.style.display = checked ? '' : 'none';
   selectEl.closest('.agent-block')?.classList.toggle('agent-checked', checked);
   if (checked) selectEl.focus();
 }
 
-// { agentId, agentName } của form hiện tại; {} nếu không tick. null = tick nhưng chưa chọn đại lý (form lỗi).
-function readAgentFromForm() {
-  if (!document.getElementById('f_agent_enabled')?.checked) return { agentId: '', agentName: '' };
-  const selectEl = document.getElementById('f_agent_id');
+// { agentId, agentName, agentCommissionRate } của form hiện tại; agentId rỗng nếu không tick. null = tick nhưng chưa chọn đại lý (form lỗi).
+// agentCommissionRate = % hoa hồng của đại lý TẠI THỜI ĐIỂM này (ERD B24: vé chụp tỷ lệ lúc bán, đổi tỷ lệ về sau không đổi vé cũ).
+function readAgentFromForm(enabledId = 'f_agent_enabled', selectId = 'f_agent_id') {
+  if (!document.getElementById(enabledId)?.checked) return { agentId: '', agentName: '', agentCommissionRate: null };
+  const selectEl = document.getElementById(selectId);
   if (!selectEl.value) return null;
-  return { agentId: selectEl.value, agentName: selectEl.options[selectEl.selectedIndex].textContent };
+  const rate = window.AgentStore ? AgentStore.getRate(selectEl.value) : null;
+  return { agentId: selectEl.value, agentName: selectEl.options[selectEl.selectedIndex].textContent, agentCommissionRate: rate };
+}
+
+// Chụp tỷ lệ hoa hồng lên ghế. GỌI TRƯỚC khi gán seat.agentId mới: sửa vé mà không đổi đại lý thì GIỮ tỷ lệ đã chụp (ERD B24).
+function tsCaptureAgentRate(seat, agentInfo) {
+  if (!agentInfo || !agentInfo.agentId) { seat.agentCommissionRate = null; return; }
+  if (seat.agentId === agentInfo.agentId && seat.agentCommissionRate != null) return;
+  seat.agentCommissionRate = agentInfo.agentCommissionRate != null ? agentInfo.agentCommissionRate : null;
 }
 
 function buildScannableQRText() {
@@ -2561,9 +2655,50 @@ function reprintCurrentPanelTicket() {
 // Cả 3 hàm dưới đây dùng chung cho giá vé panel đặt vé chính (#t_price, gọi không truyền tham số) lẫn
 // giá vé modal "Đặt lại vé" (#rbPrice, gọi kèm 'rbPrice') — xem readAndValidateRebookDeposit()/
 // confirmRebook() ở ticketstaff-account.js.
+// ===== change_price (ERD B16): người có change_price sửa MỌI giá, kể cả giá bảng; người không có chỉ sửa được khi cặp
+// trạm CHƯA có giá trong Quản lý giá (phải nhập tay, ERD B4). Giá 0đ luôn cần change_price (tsAllowZeroPrice).
+function tsPriceFareExists(priceElId) {
+  if (!window.FleetStore) return false;
+  if (priceElId === 'rbPrice') {
+    const trip = rebookSelectedTripId ? (allTripsMeta || []).find(t => t.id === rebookSelectedTripId) : null;
+    return !!(trip && resolveDoubleSeatPricing(trip));
+  }
+  const trip = (allTripsMeta || []).find(t => t.id === currentTripId) || null;
+  const from = (typeof getStationValue === 'function' ? getStationValue() : '').trim();
+  const to = ((document.getElementById('f_destination') || {}).value || '').trim();
+  if (from && to && FleetStore.stationByRef(from) && FleetStore.stationByRef(to)) {
+    return !!FleetStore.getFare(from, to, trip && trip.vehicleType);
+  }
+  return !!(trip && resolveDoubleSeatPricing(trip));
+}
+function tsPriceLocked(priceElId) {
+  if (hasTicketPermission('change_price')) return false;
+  return tsPriceFareExists(priceElId || 't_price');
+}
+// Khóa / mở ô giá (contenteditable) theo quyền; gọi lại mỗi khi giá điền sẵn đổi (mở panel, đổi trạm, chọn phơi đặt lại).
+function tsApplyPriceLock(priceElId) {
+  const el = document.getElementById(priceElId || 't_price');
+  if (!el) return;
+  const locked = tsPriceLocked(priceElId);
+  el.contentEditable = locked ? 'false' : 'true';
+  el.style.cursor = locked ? 'not-allowed' : 'pointer';
+  el.title = locked ? 'Cần quyền Đổi giá để sửa giá này' : 'Nhấp để sửa giá';
+}
+function tsAllowZeroPrice(price) {
+  if (price !== 0) return true;
+  if (currentPanelMode === 'edit' && currentPanelSeat && currentPanelSeat.price === 0) return true; // vé đã 0đ từ trước, không phải đổi giá
+  return requirePermission('change_price');
+}
+
 function focusPriceEdit(priceElId) {
   const el = document.getElementById(priceElId || 't_price');
   if (!el) return;
+  if (tsPriceLocked(priceElId)) {
+    tsApplyPriceLock(priceElId);
+    if (typeof el.blur === 'function') el.blur();
+    showToast('Bạn không có quyền Đổi giá — giá này lấy theo Quản lý giá.');
+    return;
+  }
   el.contentEditable = "true";
   el.focus();
   try {
@@ -2605,6 +2740,59 @@ function getEditedPrice(priceElId) {
 // chỉ nhận đúng 1 ghế đó (không phải cả nhóm) — nếu không đồng bộ, ghế còn lại cùng vé vẫn giữ
 // depositAmount cũ, khiến cột "Đã thu"/"Còn nợ" (đọc từ ghế đại diện đầu nhóm, xem groupSeatsByTicket)
 // hiện sai/không đổi khi sửa đúng ghế không phải ghế đại diện đó.
+// Số ghế của VÉ đang thao tác trong panel (ERD B4): đặt mới = số ghế đang chọn; sửa vé = mọi ghế cùng mã vé.
+function tsPanelTicketSeatCount() {
+  const seats = currentPanelSeats.length ? currentPanelSeats : (currentPanelSeat ? [currentPanelSeat] : []);
+  let n = seats.length;
+  if (currentPanelMode === 'edit' && currentPanelSeat && currentPanelSeat.ticketNo) {
+    const pool = [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats];
+    n = Math.max(n, pool.filter(s => s && s.ticketNo === currentPanelSeat.ticketNo && OCCUPIED_STATES.includes(s.state)).length);
+  }
+  return Math.max(1, n);
+}
+
+/* ===== NHÓM VÉ + CHỈ SỬA VÉ CHƯA BÁN (ERD B4, B8, B30) =====
+   Nhóm = các vé cùng KHÓA NHÓM (seat.groupTicketNo || seat.ticketNo) trong 1 phơi. Không phân biệt vé gốc và vé đặt thêm:
+   vé nào cũng là một vé bình thường, nhóm chỉ để gom hiển thị và để sửa chung. Vé đã BÁN thì không bao giờ sửa. */
+function tsIsHoldState(state) { return state === 'hold' || state === 'cargo'; }
+function tsGroupKey(seat) { return seat && seat.ticketNo ? (seat.groupTicketNo || seat.ticketNo) : null; }
+function tsTripSeatPool() { return [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats].filter(Boolean); }
+// Các ghế CÒN ĐẶT (chưa bán) của một vé.
+function tsHoldSeatsOfTicket(ticketNo) {
+  if (!ticketNo) return [];
+  return tsTripSeatPool().filter(s => s.ticketNo === ticketNo && tsIsHoldState(s.state));
+}
+// Phần thông tin khách / chuyến dùng CHUNG cả nhóm. KHÔNG gồm tiền (giá, ghế đôi, lý do 0đ, cọc): mỗi vé giữ tiền riêng của nó.
+function tsApplySharedTicketInfo(seat, agentInfo) {
+  const first = getStationValue().trim(), last = document.getElementById('f_destination').value.trim();
+  seat.customerName = document.getElementById('f_name').value.trim();
+  seat.phone = collectPhoneValues('f_phone', 'f_phone_extra');
+  seat.guestType = document.getElementById('f_type').value;
+  seat.firstStop = first || seat.firstStop;
+  seat.lastStop = last || seat.lastStop;
+  seat.transshipStation = document.getElementById('f_transship').value.trim();
+  seat.arrivalTransfer = document.getElementById('f_arrival_transfer').value.trim();
+  tsSyncPlaceFields(seat);
+  seat.hasLuggage = document.getElementById('f_luggage').checked;
+  seat.luggageNote = seat.hasLuggage ? document.getElementById('f_luggage_note').value.trim() : '';
+  seat.note = document.getElementById('f_note').value.trim();
+  const fare = tsFareSnapshot(currentTripId, null, first, last);
+  seat.fromStationId = fare.fromStationId;
+  seat.toStationId = fare.toStationId;
+  tsCaptureAgentRate(seat, agentInfo);
+  seat.agentId = agentInfo.agentId;
+  seat.agentName = agentInfo.agentName;
+  seat.actionTime = new Date().toISOString();
+}
+// Sửa 1 vé chưa bán -> áp thông tin chung cho các vé CHƯA BÁN khác cùng nhóm (kể cả vé gốc). Trả về danh sách mã vé được sửa theo.
+function tsPropagateEditToGroup(anchor, agentInfo) {
+  const key = tsGroupKey(anchor);
+  if (!key) return [];
+  const sibs = tsTripSeatPool().filter(s => tsIsHoldState(s.state) && s.ticketNo && s.ticketNo !== anchor.ticketNo && tsGroupKey(s) === key);
+  sibs.forEach(s => tsApplySharedTicketInfo(s, agentInfo));
+  return Array.from(new Set(sibs.map(s => s.ticketNo)));
+}
+
 function syncDepositToTicketGroup(seat) {
   if (!seat.ticketNo) return;
   [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats].forEach(s => {
@@ -2617,7 +2805,20 @@ function syncDepositToTicketGroup(seat) {
 
 function saveTicket() {
   if (!requireActor(true)) return;
+  // ERD B4: chỉ đặt / sửa trên phơi thật (không hủy, không mẫu, chưa khởi hành hoặc đang Re-open).
+  if (tripNotSellable(currentTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không đặt hoặc sửa vé được'); return; }
+  // ERD B16: đặt vé mới = book_ticket (hoặc sell_ticket); sửa vé = theo trạng thái ghế (hold: book/sell, sold: sell).
+  if (currentPanelMode === 'edit') { if (!requireTicketTouchPermission(currentPanelSeats.length ? currentPanelSeats : [currentPanelSeat])) return; }
+  else if (!requirePermission(BOOK_KEYS)) return;
+  // ERD B4, quyết định 20: vé đã bán chỉ đọc, chặn cả ở hàm (không chỉ ẩn nút).
+  if (currentPanelMode === 'edit' && currentPanelSeat && !tsIsHoldState(currentPanelSeat.state)) { showToast('Vé đã bán — không sửa được. Nhập sai thì hủy ghế rồi đặt lại.'); return; }
+  // ERD B4: ghế phụ chỉ BÁN thẳng, không giữ chỗ / không cọc (nút Đặt đã ẩn ở ui.js; chặn thêm ở hàm). Nhóm lẫn ghế thường và ghế phụ vẫn đi luồng vé thường.
+  if (currentPanelMode !== 'edit' && typeof isSubSeatCode === 'function') {
+    const seatsNew = currentPanelSeats.length ? currentPanelSeats : (currentPanelSeat ? [currentPanelSeat] : []);
+    if (seatsNew.length && seatsNew.every(s => isSubSeatCode(s.code))) { showToast('Ghế phụ chỉ bán trực tiếp, không giữ chỗ — bấm "Bán vé"'); return; }
+  }
   const type = document.getElementById('f_type').value;
+  if (!validateCustomerContact(document.getElementById('f_name').value, collectPhoneValues('f_phone', 'f_phone_extra'), currentPanelMode === 'edit' ? currentPanelSeat : null)) return; // ERD B4, B29
 
   if (type === 'Trung chuyển' && !document.getElementById('f_transship').value.trim()) {
     showToast('Vui lòng nhập trạm trung chuyển');
@@ -2641,6 +2842,7 @@ function saveTicket() {
     return;
   }
   const editedPrice = getEditedPrice();
+  if (!tsAllowZeroPrice(editedPrice)) return; // ERD B16: giá 0đ cần change_price
   if (editedPrice === 0 && !document.getElementById('f_zero_price_reason').value.trim()) {
     showToast('Vui lòng nhập lý do khi giá vé 0đ');
     return;
@@ -2651,8 +2853,9 @@ function saveTicket() {
     showToast('Vui lòng nhập số tiền cọc');
     return;
   }
-  if (depositEnabled && depositAmountRaw > editedPrice) {
-    showToast('Số tiền cọc không được lớn hơn giá vé');
+  const ticketTotal = editedPrice * tsPanelTicketSeatCount(); // ERD B4: cọc <= tiền vé = đơn giá x số ghế của vé
+  if (depositEnabled && depositAmountRaw > ticketTotal) {
+    showToast('Số tiền cọc không được lớn hơn tiền vé (' + ticketTotal.toLocaleString('vi-VN') + 'đ)');
     return;
   }
   const agentInfo = readAgentFromForm();
@@ -2669,6 +2872,7 @@ function saveTicket() {
     seat.lastStop = document.getElementById('f_destination').value.trim() || seat.lastStop;
     seat.transshipStation = document.getElementById('f_transship').value.trim();
     seat.arrivalTransfer = document.getElementById('f_arrival_transfer').value.trim();
+    tsSyncPlaceFields(seat);
     seat.hasLuggage = document.getElementById('f_luggage').checked;
     seat.luggageNote = seat.hasLuggage ? document.getElementById('f_luggage_note').value.trim() : '';
     seat.price = editedPrice;
@@ -2679,6 +2883,7 @@ function saveTicket() {
     seat.zeroPriceReason = editedPrice === 0 ? document.getElementById('f_zero_price_reason').value.trim() : '';
     seat.depositAmount = depositEnabled ? depositAmountRaw : 0;
     seat.depositMethod = depositEnabled ? (document.querySelector('input[name="f_deposit_method"]:checked')?.value || 'Tiền mặt') : '';
+    tsCaptureAgentRate(seat, agentInfo);
     seat.agentId = agentInfo.agentId;
     seat.agentName = agentInfo.agentName;
     // Mốc giờ nhân viên thao tác — hiện ở cột "Thời gian" bảng Lịch sử (xem formatActionTime trong
@@ -2696,24 +2901,33 @@ function saveTicket() {
 
   if (currentPanelMode === 'edit' && currentPanelSeat) {
     const anchor = currentPanelSeat;
-    // Sửa 1 vé thuộc VÉ NHÓM → áp dụng thông tin form cho MỌI ghế cùng số vé (ticketNo), không chỉ ghế
-    // đang mở. Giữ nguyên field riêng của từng ghế (mã ghế / trạng thái / khoá — applyFormToSeat không
-    // đụng tới). Vé lẻ (ticketNo rỗng hoặc chỉ 1 ghế mang số vé đó) → chỉ sửa đúng ghế đó.
-    const pool = [...seatPlanDown, ...seatPlanUp, ...extraLeftoverSeats, ...subSeats];
-    const groupSeats = anchor.ticketNo ? pool.filter(s => s.ticketNo === anchor.ticketNo) : [];
+    // Sửa 1 vé → áp dụng form cho MỌI ghế CÒN ĐẶT của vé đó (ticketNo), không chỉ ghế đang mở; ghế đã bán (dữ liệu cũ lẫn lộn) không đụng tới.
+    // Sau đó thông tin khách / chuyến áp thêm cho các vé CHƯA BÁN khác cùng nhóm (ERD B30); tiền và cọc của vé khác giữ nguyên.
+    const groupSeats = anchor.ticketNo ? tsHoldSeatsOfTicket(anchor.ticketNo) : [];
     const targets = groupSeats.length ? groupSeats : [anchor];
+    const oldDeposit = Math.max(0, ...targets.map(s => s.depositAmount || 0));
     targets.forEach(s => { applyFormToSeat(s); s.count = targets.length; });
+    const groupEdited = tsPropagateEditToGroup(anchor, agentInfo);
+    if (groupEdited.length) tsLogTicket('edit', anchor.ticketNo, 'Sửa vé, áp dụng thêm cho vé chưa bán cùng nhóm: ' + groupEdited.join(', '), { group_tickets: groupEdited.join(', ') });
+    // ERD B4 [SỬA 28/10/2026]: tăng cọc = thêm dòng deposit, giảm cọc = một dòng refund 'Điều chỉnh cọc khi sửa vé' (nhật ký giữ số liệu để migrate).
+    const newDeposit = depositEnabled ? depositAmountRaw : 0;
+    if (newDeposit !== oldDeposit) {
+      tsLogTicket(newDeposit < oldDeposit ? 'refund' : 'edit', anchor.ticketNo,
+        (newDeposit < oldDeposit ? 'Điều chỉnh cọc khi sửa vé (giảm ' : 'Sửa vé: tăng cọc (') + Math.abs(newDeposit - oldDeposit).toLocaleString('vi-VN') + 'đ)',
+        { deposit_before: oldDeposit, deposit_after: newDeposit, reason: 'Điều chỉnh cọc khi sửa vé' });
+    }
     renderSeats();
     saveSeatBank();
     if (document.getElementById('zone3Passengers').style.display !== 'none') renderPassengerList();
     closePanel();
-    showToast(targets.length > 1
-      ? `Đã cập nhật ${targets.length} vé trong nhóm (${targets.map(s => s.code).join(', ')})`
-      : `Đã cập nhật thông tin ghế ${anchor.code}`);
+    showToast((targets.length > 1
+      ? `Đã cập nhật ${targets.length} ghế của vé (${targets.map(s => s.code).join(', ')})`
+      : `Đã cập nhật thông tin ghế ${anchor.code}`)
+      + (groupEdited.length ? ` · sửa theo ${groupEdited.length} vé chưa bán cùng nhóm (${groupEdited.join(', ')})` : ''));
     return;
   }
 
-  const groupTicketNo = "SGCD-" + String(ticketSeq++).padStart(4, '0');
+  const groupTicketNo = issueTicketNo(); // reseed từ seat bank trước khi cấp (ERD F10)
   seatsTarget.forEach(seat => {
     applyFormToSeat(seat);
     seat.ticketNo = groupTicketNo;
@@ -2738,7 +2952,11 @@ function saveTicket() {
 /* ---- Bán vé trực tiếp: xác nhận bán và chuyển ghế sang trạng thái đã bán (màu đỏ) ---- */
 function sellTicket() {
   if (!requireActor(true)) return;
+  if (tripNotSellable(currentTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không bán vé được'); return; } // ERD B4: chỉ phơi thật
+  if (!requirePermission(SELL_KEYS)) return; // ERD B16: bán vé = sell_ticket
+  if (currentPanelMode === 'edit' && currentPanelSeat && !tsIsHoldState(currentPanelSeat.state)) { showToast('Vé này đã bán rồi'); return; }
   const type = document.getElementById('f_type').value;
+  if (!validateCustomerContact(document.getElementById('f_name').value, collectPhoneValues('f_phone', 'f_phone_extra'), currentPanelMode === 'edit' ? currentPanelSeat : null)) return; // ERD B4, B29
 
   if (type === 'Trung chuyển' && !document.getElementById('f_transship').value.trim()) {
     showToast('Vui lòng nhập trạm trung chuyển');
@@ -2762,6 +2980,7 @@ function sellTicket() {
     return;
   }
   const editedPrice = getEditedPrice();
+  if (!tsAllowZeroPrice(editedPrice)) return; // ERD B16: giá 0đ cần change_price
   if (editedPrice === 0 && !document.getElementById('f_zero_price_reason').value.trim()) {
     showToast('Vui lòng nhập lý do khi giá vé 0đ');
     return;
@@ -2772,8 +2991,9 @@ function sellTicket() {
     showToast('Vui lòng nhập số tiền cọc');
     return;
   }
-  if (depositEnabled && depositAmountRaw > editedPrice) {
-    showToast('Số tiền cọc không được lớn hơn giá vé');
+  const ticketTotal = editedPrice * tsPanelTicketSeatCount(); // ERD B4: cọc <= tiền vé = đơn giá x số ghế của vé
+  if (depositEnabled && depositAmountRaw > ticketTotal) {
+    showToast('Số tiền cọc không được lớn hơn tiền vé (' + ticketTotal.toLocaleString('vi-VN') + 'đ)');
     return;
   }
   const agentInfo = readAgentFromForm();
@@ -2831,17 +3051,65 @@ function tsStampSoldPhaseIfNeeded(seat, tripId, force) {
   seat.sellingStation = (typeof getCurrentStation === 'function') ? getCurrentStation() : '';
   seat.bookedStation = seat.sellingStation; // trạm lúc ĐẶT vé (ticket.booked_station_id), để chuyển doanh thu sang trạm người bán
   const tripStatus = (typeof getTripLifecycleStatus === 'function') ? getTripLifecycleStatus(tripId) : 'SELLING';
-  seat.soldPhase = tripStatus === 'SELLING' ? 'PRE_DEPART' : 'POST_DEPART';
   seat.reopenEventId = (tripStatus === 'REOPEN' && typeof getActiveReopenEvent === 'function')
     ? ((getActiveReopenEvent(tripId) || {}).id || null)
     : null;
+  // ERD B7: POST_DEPART khi và chỉ khi có reopen_event_id. Admin thao tác sau khởi hành mà không có Re-open mở (ERD B12) -> PRE_DEPART, reopenEventId NULL.
+  seat.soldPhase = seat.reopenEventId ? 'POST_DEPART' : 'PRE_DEPART';
 }
 
 // Địa chỉ đón / trả nhập ở modal Rước liền: ô trống được lưu là '—' (hiển thị), không coi là địa chỉ thật.
 function tsCleanPlace(v) { v = (v == null ? '' : String(v).trim()); return v === '—' ? '' : v; }
 
+// Đồng bộ 4 tên cũ của điểm đón / trả về 2 cột ERD (ticket.pickup_address / dropoff_address) mỗi lần lưu form, để sửa
+// vé không để lại giá trị cũ ở transship / pickupAddress / dropoffAddress. Khách trạm không có điểm đón / trả.
+function tsSyncPlaceFields(seat) {
+  const own = seat.guestType && seat.guestType !== 'Khách trạm';
+  const pickup = own ? String(seat.transshipStation || '').trim() : '';
+  const dropoff = own ? String(seat.arrivalTransfer || '').trim() : '';
+  seat.transship = pickup;
+  seat.pickupAddress = pickup;
+  seat.dropoffAddress = dropoff;
+}
+
+// BÁN MỘT PHẦN GHẾ CỦA VÉ ĐANG HOLD -> TÁCH VÉ (ERD B21). Gọi SAU khi các ghế đã chuyển sang 'sold'. Với mỗi vé gốc còn
+// ghế chưa bán: các ghế vừa bán chuyển sang VÉ MỚI (mã mới, groupTicketNo = vé gốc của nhóm), cọc chia theo tỷ lệ số ghế
+// (làm tròn xuống cho vé mới, phần dư ở vé gốc). Bán đủ mọi ghế còn lại của vé thì không tách. Luôn cập nhật count.
+function tsSplitPartialSale(soldSeats, tripId) {
+  const bank = tripSeatBank[tripId];
+  if (!bank || !soldSeats || !soldSeats.length) return;
+  const pool = [].concat(bank.down || [], bank.up || [], bank.extraSeats || [], bank.subSeats || [])
+    .filter(s => s && OCCUPIED_STATES.includes(s.state));
+  const byNo = new Map();
+  soldSeats.forEach(s => {
+    if (!s.ticketNo) return;
+    if (!byNo.has(s.ticketNo)) byNo.set(s.ticketNo, []);
+    byNo.get(s.ticketNo).push(s);
+  });
+  byNo.forEach((mine, oldNo) => {
+    const all = pool.filter(s => s.ticketNo === oldNo);
+    const rest = all.filter(s => mine.indexOf(s) === -1);
+    if (!rest.some(s => s.state !== 'sold')) { all.forEach(s => { s.count = all.length; }); return; }
+    const total = Math.max(0, ...all.map(s => s.depositAmount || 0));
+    const method = (all.find(s => s.depositMethod) || {}).depositMethod || '';
+    const rootNo = (rest.find(s => s.groupTicketNo) || {}).groupTicketNo || oldNo;
+    const newNo = issueTicketNo();
+    const soldDep = Math.floor(total * mine.length / all.length);
+    const restDep = total - soldDep;
+    mine.forEach(s => {
+      s.ticketNo = newNo; s.groupTicketNo = rootNo; s.count = mine.length;
+      s.depositAmount = soldDep; s.depositMethod = soldDep > 0 ? method : '';
+    });
+    rest.forEach(s => {
+      s.count = rest.length;
+      s.depositAmount = restDep; s.depositMethod = restDep > 0 ? method : '';
+    });
+  });
+}
+
 function confirmSellPayment() {
   if (!requireActor(true)) return;
+  if (!requirePermission(SELL_KEYS)) return; // ERD B16: mọi nhánh bán (panel, thanh chọn ghế, Đặt lại vé, Chỉ định xe) = sell_ticket
   const paymentMethod = document.querySelector('input[name="sellPaymentMethod"]:checked')?.value || 'Tiền mặt';
 
   // "Bán vé" từ modal "Đặt lại vé" (confirmRebookAndSell() ở ticketstaff-account.js) — chuyến đích có
@@ -2869,6 +3137,12 @@ function confirmSellPayment() {
         transshipStation: ctx.form.transship,
         lastStop: ctx.form.lastStop,
         arrivalTransfer: ctx.form.arrivalTransfer,
+        transship: ctx.form.transship,
+        pickupAddress: ctx.form.transship,
+        dropoffAddress: ctx.form.arrivalTransfer,
+        agentId: ctx.form.agent ? ctx.form.agent.agentId : '',
+        agentName: ctx.form.agent ? ctx.form.agent.agentName : '',
+        agentCommissionRate: (ctx.form.agent && ctx.form.agent.agentCommissionRate != null) ? ctx.form.agent.agentCommissionRate : null,
         note: ctx.form.note,
         hasLuggage: ctx.form.hasLuggage,
         ticketNo: newTicketNo,
@@ -2883,6 +3157,7 @@ function confirmSellPayment() {
         depositMethod: ctx.deposit.depositMethod,
         actionTime: new Date().toISOString()
       });
+      tsSyncPlaceFields(seat); // Khách trạm không có điểm đón / trả (ERD B22 b)
       tsStampSoldPhaseIfNeeded(seat, ctx.tripId);
       soldSeats.push(seat);
     });
@@ -2896,6 +3171,7 @@ function confirmSellPayment() {
     }
     closeSellPaymentModal();
     closeRebookModal();
+    tsLogTicket('rebook', newTicketNo, 'Đặt lại vé và bán (phơi ' + ctx.tripId + ', ' + soldSeats.length + ' ghế)', { trip_id: ctx.tripId, seats: ctx.seatCodes.join(', ') });
     showToast(`Đã bán vé thành công ${soldSeats.length} ghế cho ${ctx.form.name}`);
     printTicketsSeparately(soldSeats);
     refreshHistoryViewsAfterBooking(ctx.form.phone);
@@ -2916,13 +3192,28 @@ function confirmSellPayment() {
     // Nếu khách đang đổi chỉ định từ 1 hoặc nhiều ghế/phơi xe khác thì trả ghế cũ về trạng thái trống —
     // chỉ làm lúc xác nhận thanh toán xong (không phải lúc mở modal), tránh mất ghế cũ nếu người dùng
     // bấm "Đóng" thay vì xác nhận.
+    // Đổi chỉ định: phơi CŨ cũng phải còn mở bán (ERD B10, B11, B12) — trả ghế ở phơi đã khởi hành là ghi lên phơi đã khóa.
+    if (pax.assigned && pax.assigned.tripId && typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(pax.assigned.tripId)) {
+      showToast('Phơi cũ của khách đã khởi hành (chưa Re-open) — không đổi chỉ định được'); closeSellPaymentModal(); return;
+    }
+    // Ghế đích phải còn TRỐNG (ERD B11, B19). Kiểm TRƯỚC khi dọn ghế cũ để thất bại thì không mất ghế cũ; ghế cũ của chính khách này
+    // (cùng phơi, sắp được trả về trống) coi như trống.
+    const oldCodesSameTrip = (pax.assigned && pax.assigned.tripId === ctx.tripId)
+      ? (pax.assigned.seats || (pax.assigned.seat ? pax.assigned.seat.split(',').map(s => s.trim()).filter(Boolean) : [])) : [];
+    const notFree = ctx.seatCodes.filter(code => {
+      const s = allSeats.find(x => x.code === code);
+      return !s || (s.state !== 'empty' && oldCodesSameTrip.indexOf(code) === -1);
+    });
+    if (notFree.length) { showToast('Ghế ' + notFree.join(', ') + ' không còn trống — chọn ghế khác'); closeSellPaymentModal(); return; }
+    // Mã vé cũ giữ lại để ghi vết (ERD B11: vé mới transferred_from_ticket_id = vé cũ, vé cũ status = transferred).
+    let prevTicketNo = (pax.assigned && pax.assigned.ticketNo) || '';
     if (pax.assigned) {
       const oldBank = tripSeatBank[pax.assigned.tripId];
       if (oldBank) {
         const oldSeatsList = pax.assigned.seats || (pax.assigned.seat ? pax.assigned.seat.split(',').map(s => s.trim()).filter(Boolean) : []);
         oldSeatsList.forEach(code => {
           const oldSeat = [...oldBank.down, ...oldBank.up].find(s => s.code === code);
-          if (oldSeat) clearSeatToEmpty(oldSeat);
+          if (oldSeat) { if (!prevTicketNo && oldSeat.ticketNo) prevTicketNo = oldSeat.ticketNo; clearSeatToEmpty(oldSeat); }
         });
       }
     }
@@ -2946,9 +3237,11 @@ function confirmSellPayment() {
         arrivalTransfer: tsCleanPlace(pax.toTransfer),
         price: ctx.unitPrice,
         ...ctx.fare,
+        zeroPriceReason: ctx.unitPrice === 0 ? (ctx.zeroPriceReason || '') : '', // ERD B4: giá 0đ phải có lý do
         paid: true,
         count: ctx.seatCodes.length,
         ticketNo: ctx.ticketNo,
+        transferredFromTicketNo: prevTicketNo || null,
         staff: staffCode,
         paymentMethod,
         actionTime: new Date().toISOString()
@@ -2958,7 +3251,8 @@ function confirmSellPayment() {
     });
     if (!soldSeats.length) { showToast('Không thể bán ghế đã chọn'); closeSellPaymentModal(); return; }
 
-    pax.assigned = { tripId: ctx.tripId, seat: ctx.seatCodes.join(', '), seats: [...ctx.seatCodes], price: ctx.unitPrice };
+    pax.assigned = { tripId: ctx.tripId, seat: ctx.seatCodes.join(', '), seats: [...ctx.seatCodes], price: ctx.unitPrice, ticketNo: ctx.ticketNo };
+    if (prevTicketNo) pax.assigned.prevTicketNo = prevTicketNo; // vé cũ của lần chỉ định trước (ERD B11)
 
     saveSeatBank();
     savePickupPassengers();
@@ -2983,6 +3277,7 @@ function confirmSellPayment() {
   if (sellFromTransferBarSeats && sellFromTransferBarSeats.length) {
     const seats = sellFromTransferBarSeats;
     sellFromTransferBarSeats = null;
+    if (tripNotSellable(currentTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không bán vé được'); closeSellPaymentModal(); return; } // ERD B4
     seats.forEach(seat => {
       tsStampSeller(seat, currentTripId);
       seat.paid = true;
@@ -2990,6 +3285,7 @@ function confirmSellPayment() {
       seat.paymentMethod = paymentMethod;
       seat.actionTime = new Date().toISOString();
     });
+    tsSplitPartialSale(seats, currentTripId); // bán một phần ghế của vé hold -> tách vé mới (ERD B21)
     renderSeats();
     saveSeatBank();
     if (document.getElementById('zone3Passengers').style.display !== 'none') renderPassengerList();
@@ -3001,6 +3297,8 @@ function confirmSellPayment() {
     return;
   }
 
+  // ERD B4: chỉ bán trên phơi thật (chặn thêm ở đây phòng panel mở từ trước khi phơi bị hủy / khóa).
+  if (tripNotSellable(currentTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không bán vé được'); closeSellPaymentModal(); return; }
   const type = document.getElementById('f_type').value;
   const editedPrice = getEditedPrice();
   const depositEnabled = document.getElementById('f_deposit_enabled').checked;
@@ -3015,6 +3313,7 @@ function confirmSellPayment() {
     seat.lastStop = document.getElementById('f_destination').value.trim() || seat.lastStop;
     seat.transshipStation = document.getElementById('f_transship').value.trim();
     seat.arrivalTransfer = document.getElementById('f_arrival_transfer').value.trim();
+    tsSyncPlaceFields(seat);
     seat.hasLuggage = document.getElementById('f_luggage').checked;
     seat.luggageNote = seat.hasLuggage ? document.getElementById('f_luggage_note').value.trim() : '';
     seat.price = editedPrice;
@@ -3025,6 +3324,7 @@ function confirmSellPayment() {
     seat.zeroPriceReason = editedPrice === 0 ? document.getElementById('f_zero_price_reason').value.trim() : '';
     seat.depositAmount = depositEnabled ? depositAmountRaw : 0;
     seat.depositMethod = depositEnabled ? (document.querySelector('input[name="f_deposit_method"]:checked')?.value || 'Tiền mặt') : '';
+    tsCaptureAgentRate(seat, agentInfo);
     seat.agentId = agentInfo.agentId;
     seat.agentName = agentInfo.agentName;
     seat.paymentMethod = paymentMethod;
@@ -3041,7 +3341,17 @@ function confirmSellPayment() {
 
   const groupTicketNo = (currentPanelMode === 'edit' && currentPanelSeat && currentPanelSeat.ticketNo)
     ? currentPanelSeat.ticketNo
-    : ("SGCD-" + String(ticketSeq++).padStart(4, '0'));
+    : issueTicketNo();
+
+  // SỬA + BÁN từ panel của vé còn đặt (ERD B21, B30): form áp cho MỌI ghế còn đặt của vé này (không chỉ ghế được bán) TRƯỚC khi tách,
+  // để vé mới và vé gốc cùng thông tin; thông tin khách / chuyến áp thêm cho các vé chưa bán khác cùng nhóm.
+  if (currentPanelMode === 'edit' && currentPanelSeat && currentPanelSeat.ticketNo) {
+    tsHoldSeatsOfTicket(currentPanelSeat.ticketNo).forEach(s => {
+      if (seatsToSell.indexOf(s) === -1) { applyFormToSeat(s); s.paymentMethod = null; }
+    });
+    const groupEdited = tsPropagateEditToGroup(currentPanelSeat, agentInfo);
+    if (groupEdited.length) tsLogTicket('edit', currentPanelSeat.ticketNo, 'Sửa khi bán vé, áp dụng thêm cho vé chưa bán cùng nhóm: ' + groupEdited.join(', '), { group_tickets: groupEdited.join(', ') });
+  }
 
   seatsToSell.forEach(seat => {
     applyFormToSeat(seat);
@@ -3052,6 +3362,7 @@ function confirmSellPayment() {
     seat.state = 'sold'; // Bán vé -> ghế chuyển sang màu đỏ (đã bán)
     syncDepositToTicketGroup(seat);
   });
+  tsSplitPartialSale(seatsToSell, currentTripId); // bán một phần ghế của vé hold -> tách vé mới (ERD B21)
 
   renderSeats();
   saveSeatBank();
@@ -3097,6 +3408,8 @@ function printTicketsSeparately(seats) {
    của từng ghế. Chỉ khả dụng khi tất cả ghế đó chưa bán và đang ở đúng chuyến hiện xem (xem điều kiện
    hiện nút trong updateTransferHint() ở js/shared/booking.js). */
 function sellFromTransferBar() {
+  if (!requirePermission(SELL_KEYS)) return; // ERD B16
+  if (tripNotSellable(currentTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — không bán vé được'); return; } // ERD B4
   if (transferSourceCancelId || !selectedSourceSeats.length || transferSourceTripId !== currentTripId) return;
   const seats = selectedSourceSeats.map(code => findSeatInTrip(transferSourceTripId, code)).filter(Boolean);
   if (!seats.length || seats.some(s => s.state === 'sold')) {
@@ -3225,6 +3538,7 @@ function openCancelModal(code) {
    (xem cancelSelectedFromTransferBar bên dưới) khi đang chọn nhiều ghế đã đặt/đã bán làm nguồn. */
 function openCancelModalForCodes(codes) {
   if (!codes || !codes.length) return;
+  if (!requireTicketTouchPermission(codes.map(c => findSeat(c)).filter(Boolean))) return; // ERD B16
   currentCancelSeatCodes = codes;
   const codeEl = document.getElementById('cancelSeatCode');
   const reasonEl = document.getElementById('cancelReason');
@@ -3232,6 +3546,7 @@ function openCancelModalForCodes(codes) {
   if (codeEl) codeEl.textContent = codes.join(', ');
   if (reasonEl) reasonEl.value = '';
   if (btn) btn.disabled = true;
+  tsRefreshCancelRefundUI();
   const modal = document.getElementById('cancelModal');
   if (modal) modal.classList.add('open');
 }
@@ -3251,26 +3566,181 @@ function checkCancelReason() {
   const reasonEl = document.getElementById('cancelReason');
   const btn = document.getElementById('confirmCancelBtn');
   if (reasonEl && btn) {
-    btn.disabled = !reasonEl.value.trim();
+    btn.disabled = !reasonEl.value.trim() || !tsCancelRefundInputValid();
   }
+}
+
+/* ===================== HOÀN TIỀN KHI HỦY VÉ (ERD B6, B9, B23, C1; sửa F28) =====================
+   Nhân viên TỰ NHẬP số tiền hoàn cho khách (không có công thức phí). Mặc định điền đủ phần có thể hoàn; nhập 0 = không hoàn.
+   Phần đã thu mà không hoàn coi là phí giữ lại. Lưu trên bản ghi hủy: collectedAtCancel / refundAmount / refundMethod / refundBy / refundAt
+   (khi lên DB: refundAmount > 0 -> 1 dòng ticket_payment kind = refund). */
+function tsCancelPoolOf(tripId) {
+  const bk = tripSeatBank[tripId];
+  if (!bk) return [];
+  return [].concat(bk.down || [], bk.up || [], bk.extraSeats || [], bk.subSeats || []).filter(s => s && OCCUPIED_STATES.includes(s.state));
+}
+
+// Chuyển cọc của vé hủy HẾT ghế sang vé còn lại trong nhóm (ERD B9 mục 4, C11). tickets: { [ticketNo]: { deposit, method, root, record } }.
+// apply = false: chỉ mô phỏng (excludeCodes = các ghế sắp hủy, loại khỏi pool vì chưa dọn); apply = true: ghi thật. Trả về { [ticketNo]: { pick, moved, method } }.
+function tsPlanDepositMoves(tripId, tickets, excludeCodes, apply) {
+  const moves = {};
+  const ex = new Set(excludeCodes || []);
+  const pool = tsCancelPoolOf(tripId).filter(s => !ex.has(s.code));
+  const overlay = {}; // vé nhận -> cọc đã cập nhật (nhiều vé hủy cùng lúc cùng dồn vào một vé)
+  Object.keys(tickets).forEach(no => {
+    const ct = tickets[no];
+    if (!ct.deposit || pool.some(s => s.ticketNo === no)) return; // không có cọc, hoặc vé còn ghế (hủy một phần: cọc nằm lại)
+    // Vé đã SOLD đã thu đủ (còn nợ 0) nên không nhận cọc; vé hold chỉ nhận tối đa SỐ CÒN NỢ = tiền vé - cọc hiện có (ERD B9 mục 4, F35).
+    const peers = pool.filter(s => s.ticketNo && s.ticketNo !== no && s.state !== 'sold' && (s.groupTicketNo === ct.root || s.ticketNo === ct.root));
+    if (!peers.length) return; // không còn vé nào trong nhóm còn nợ
+    const byNo = {};
+    peers.forEach(s => { (byNo[s.ticketNo] = byNo[s.ticketNo] || []).push(s); });
+    const dueOf = n => {
+      const ss = byNo[n];
+      const capN = (ss[0].price || 0) * ss.length;
+      const curN = overlay[n] != null ? overlay[n] : Math.max(0, ...ss.map(x => x.depositAmount || 0));
+      return capN - curN;
+    };
+    const pick = Object.keys(byNo).filter(n => dueOf(n) > 0).sort((a, b) => {
+      const ra = a === ct.root ? 0 : 1, rb = b === ct.root ? 0 : 1;
+      if (ra !== rb) return ra - rb;
+      const ta = Math.min(...byNo[a].map(s => Date.parse(s.actionTime || '') || Infinity)), tb = Math.min(...byNo[b].map(s => Date.parse(s.actionTime || '') || Infinity));
+      return ta !== tb ? ta - tb : a.localeCompare(b);
+    })[0];
+    if (!pick) return; // mọi vé còn lại trong nhóm đã đủ tiền: toàn bộ số thu thuộc phần hoàn
+    const seats = byNo[pick];
+    const cap = (seats[0].price || 0) * seats.length;
+    const cur = overlay[pick] != null ? overlay[pick] : Math.max(0, ...seats.map(s => s.depositAmount || 0));
+    const newDep = Math.min(cap, cur + ct.deposit);
+    const moved = newDep - cur;
+    if (moved <= 0) return;
+    const method = cur > 0 ? (seats.find(s => s.depositMethod) || {}).depositMethod || ct.method : ct.method;
+    overlay[pick] = newDep;
+    moves[no] = { pick, moved, method: method || '' };
+    if (apply) {
+      seats.forEach(s => { s.depositAmount = newDep; s.depositMethod = method || ''; });
+      if (ct.record) { ct.record.depositMovedTo = pick; ct.record.depositMovedAmount = moved; }
+    }
+  });
+  return moves;
+}
+
+// Kế hoạch hủy: mỗi vé bị đụng tới có bao nhiêu tiền đã thu CÓ THỂ hoàn (refundable). Không ghi gì.
+//  - Hủy hẳn vé: đã thu - phần cọc chuyển sang vé khác trong nhóm.
+//  - Hủy một phần ghế: chỉ phần đã thu vượt tiền vé của các ghế còn lại (vé đã bán: đúng giá các ghế bị hủy).
+function tsCancelPlan(tripId, codes) {
+  const plan = { tickets: [], refundable: 0 };
+  const pool = tsCancelPoolOf(tripId);
+  const byKey = {}, order = [];
+  (codes || []).forEach(code => {
+    const s = pool.find(x => x.code === code);
+    if (!s) return;
+    const key = s.ticketNo || ('T-' + s.code);
+    if (!byKey[key]) { byKey[key] = { key, ticketNo: s.ticketNo || '', cancelling: [] }; order.push(key); }
+    byKey[key].cancelling.push(s);
+  });
+  const full = {};
+  order.forEach(key => {
+    const t = byKey[key];
+    const all = t.ticketNo ? pool.filter(s => s.ticketNo === t.ticketNo) : t.cancelling.slice();
+    const remaining = all.filter(s => t.cancelling.indexOf(s) === -1);
+    const sum = list => list.reduce((a, s) => a + (Number(s.price) || 0), 0);
+    const deposit = Math.max(0, ...all.map(s => s.depositAmount || 0));
+    t.sold = t.cancelling[0].state === 'sold';
+    t.paid = t.sold ? sum(all) : Math.min(deposit, sum(all));
+    t.deposit = deposit;
+    t.remainingCount = remaining.length;
+    t.moved = 0;
+    if (remaining.length) {
+      t.refundable = Math.max(0, t.paid - sum(remaining));
+    } else {
+      t.refundable = t.paid;
+      if (t.ticketNo) full[t.ticketNo] = { deposit, method: (all.find(s => s.depositMethod) || {}).depositMethod || '', root: t.cancelling[0].groupTicketNo || t.ticketNo, record: null };
+    }
+  });
+  const moves = tsPlanDepositMoves(tripId, full, codes, false);
+  order.forEach(key => {
+    const t = byKey[key];
+    if (t.ticketNo && moves[t.ticketNo]) { t.moved = moves[t.ticketNo].moved; t.refundable = Math.max(0, t.paid - t.moved); }
+    plan.tickets.push(t);
+    plan.refundable += t.refundable;
+  });
+  return plan;
+}
+
+function tsRefreshCancelRefundUI() {
+  const wrap = document.getElementById('cancelRefundBlock');
+  const amountEl = document.getElementById('cancelRefundAmount');
+  const hintEl = document.getElementById('cancelRefundHint');
+  if (!wrap || !amountEl) return;
+  const plan = tsCancelPlan(currentTripId, currentCancelSeatCodes);
+  wrap.dataset.max = String(plan.refundable);
+  wrap.style.display = plan.refundable > 0 ? '' : 'none';
+  amountEl.max = String(plan.refundable);
+  amountEl.value = plan.refundable > 0 ? String(plan.refundable) : '';
+  if (hintEl) {
+    hintEl.style.color = '';
+    hintEl.textContent = plan.refundable > 0
+      ? 'Tối đa hoàn được ' + plan.refundable.toLocaleString('vi-VN') + 'đ (số khách đã thu). Nhập 0 nếu không hoàn; phần không hoàn coi là phí giữ lại.'
+      : '';
+  }
+}
+
+function tsCancelRefundInputValid() {
+  const wrap = document.getElementById('cancelRefundBlock');
+  const amountEl = document.getElementById('cancelRefundAmount');
+  const hintEl = document.getElementById('cancelRefundHint');
+  if (!wrap || !amountEl || wrap.style.display === 'none') return true;
+  const max = Number(wrap.dataset.max) || 0;
+  const raw = amountEl.value.trim();
+  const n = raw === '' ? 0 : Number(raw);
+  const ok = Number.isInteger(n) && n >= 0 && n <= max;
+  if (hintEl) {
+    hintEl.style.color = ok ? '' : 'var(--red)';
+    hintEl.textContent = ok
+      ? 'Tối đa hoàn được ' + max.toLocaleString('vi-VN') + 'đ (số khách đã thu). Nhập 0 nếu không hoàn; phần không hoàn coi là phí giữ lại.'
+      : 'Số tiền hoàn phải là số nguyên từ 0 đến ' + max.toLocaleString('vi-VN') + 'đ.';
+  }
+  return ok;
 }
 
 function confirmCancel() {
   if (!requireActor(false)) return;
   const codes = currentCancelSeatCodes;
   if (!codes || !codes.length) return;
+  if (!requireTicketTouchPermission(codes.map(c => findSeat(c)).filter(Boolean))) return; // ERD B16: hủy theo trạng thái ghế
   const reasonEl = document.getElementById('cancelReason');
   const reason = reasonEl ? reasonEl.value.trim() : '';
   if (!reason) return;
 
   const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN');
 
+  // Hoàn tiền (F28): kiểm số nhân viên nhập TRƯỚC khi dọn ghế, sai thì dừng, không mất dữ liệu.
+  const cancelPlan = tsCancelPlan(currentTripId, codes);
+  let refundTotal = 0, refundMethod = 'Tiền mặt';
+  if (cancelPlan.refundable > 0) {
+    const rawRefund = (document.getElementById('cancelRefundAmount')?.value || '').trim();
+    refundTotal = rawRefund === '' ? 0 : Number(rawRefund);
+    if (!Number.isInteger(refundTotal) || refundTotal < 0 || refundTotal > cancelPlan.refundable) {
+      showToast('Số tiền hoàn phải từ 0 đến ' + cancelPlan.refundable.toLocaleString('vi-VN') + 'đ');
+      return;
+    }
+    refundMethod = document.getElementById('cancelRefundMethod')?.value || 'Tiền mặt';
+  }
+  const firstRecordByKey = {}; // khóa vé -> bản ghi hủy đầu tiên của vé đó (nơi ghi tiền hoàn)
+
   if (!cancelledSeats) cancelledSeats = [];
   const cancelledCodes = [];
+  const cancelledTickets = {}; // ticketNo -> { deposit, method, root, record }: chụp cọc + nhóm TRƯỚC khi dọn ghế (ERD B9, C11)
   codes.forEach(code => {
     const seat = findSeat(code);
     if (!seat) return;
+    if (seat.ticketNo && !cancelledTickets[seat.ticketNo]) {
+      cancelledTickets[seat.ticketNo] = { deposit: seat.depositAmount || 0, method: seat.depositMethod || '', root: seat.groupTicketNo || seat.ticketNo, record: null };
+    }
 
+    // Ảnh chụp ĐẦY ĐỦ của vé lúc hủy để "Đặt lại vé hủy" sao chép (ERD B9). KHÔNG mang cọc theo: cọc của vé hủy hẳn đã hoàn
+    // cho khách, đặt lại cần cọc thì thu lại; hủy một phần ghế thì cọc vẫn nằm ở vé còn ghế khác (ERD B6, B9, C2).
     const cancelledRecord = {
       id: 'CANCEL_' + Date.now() + '_' + code,
       code: seat.code,
@@ -3286,9 +3756,34 @@ function confirmCancel() {
       ticketNo: seat.ticketNo || '',
       note: seatNoteWithReason(seat) || '',
       // Trạng thái ghế LÚC HỦY: chỉ vé của ghế ĐÃ ĐẶT ('hold') mới được chuyển sang phơi khác (booking-combobox.js)
-      prevState: seat.state || ''
+      prevState: seat.state || '',
+      rawNote: seat.note || '',
+      guestType: seat.guestType || null,
+      transshipStation: seat.transshipStation || '',
+      pickupAddress: seat.pickupAddress || '',
+      arrivalTransfer: seat.arrivalTransfer || '',
+      dropoffAddress: seat.dropoffAddress || '',
+      hasLuggage: !!seat.hasLuggage,
+      luggageNote: seat.luggageNote || '',
+      agentId: seat.agentId || '',
+      agentName: seat.agentName || '',
+      agentCommissionRate: seat.agentCommissionRate != null ? seat.agentCommissionRate : null,
+      fromStationId: seat.fromStationId || null,
+      toStationId: seat.toStationId || null,
+      isDoubleSeat: !!seat.isDoubleSeat,
+      zeroPriceReason: seat.zeroPriceReason || '',
+      groupTicketNo: seat.groupTicketNo || null,
+      // Tiền khi hủy (ERD B6, C1): collectedAtCancel = số đã thu CÓ THỂ hoàn của vé này, refundAmount = số nhân viên đã hoàn; phần chênh = phí giữ lại
+      collectedAtCancel: 0,
+      refundAmount: 0,
+      refundMethod: '',
+      refundBy: '',
+      refundAt: ''
     };
+    const recKey = seat.ticketNo || ('T-' + seat.code);
+    if (!firstRecordByKey[recKey]) firstRecordByKey[recKey] = cancelledRecord;
     cancelledSeats.unshift(cancelledRecord);
+    if (seat.ticketNo && cancelledTickets[seat.ticketNo] && !cancelledTickets[seat.ticketNo].record) cancelledTickets[seat.ticketNo].record = cancelledRecord;
     cancelledCodes.push(seat.code);
 
     // Reset trạng thái ghế về trống
@@ -3296,6 +3791,54 @@ function confirmCancel() {
   });
 
   if (!cancelledCodes.length) return;
+
+  // Cọc của vé hủy HẾT ghế: nếu vé thuộc một nhóm (vé gốc + các vé đặt thêm) còn vé khác hiệu lực thì cọc CHUYỂN sang vé còn lại để
+  // "giữ nguyên" (ERD B9, C11); ưu tiên vé gốc, rồi vé đặt thêm sớm nhất; tổng cọc không vượt tiền vé nhận. Phần còn lại là tiền có thể hoàn.
+  let depositMoveNote = '';
+  (function () {
+    const moves = tsPlanDepositMoves(currentTripId, cancelledTickets, [], true);
+    Object.keys(moves).forEach(no => {
+      depositMoveNote += ` Cọc ${moves[no].moved.toLocaleString('vi-VN')}đ của vé ${no} được giữ lại sang vé ${moves[no].pick} trong nhóm.`;
+    });
+  })();
+
+  // Ghi tiền hoàn lên bản ghi hủy (ERD B6, B23, C1): chia số nhân viên nhập lần lượt cho từng vé, mỗi vé tối đa bằng phần có thể hoàn.
+  let refundNote = '';
+  (function () {
+    let left = refundTotal;
+    const actor = getCurrentActionStaffCode();
+    const nowIso = new Date().toISOString();
+    const refundedNos = [];
+    cancelPlan.tickets.forEach(t => {
+      const r = Math.min(left, t.refundable);
+      left -= r;
+      const rec = firstRecordByKey[t.key];
+      if (rec) {
+        rec.collectedAtCancel = t.refundable;
+        rec.refundAmount = r;
+        if (r > 0) { rec.refundMethod = refundMethod; rec.refundBy = actor; rec.refundAt = nowIso; }
+      }
+      if (r > 0) {
+        refundedNos.push(t.ticketNo || t.key);
+        // Hủy một phần ghế của vé GIỮ CHỖ mà hoàn phần cọc vượt tiền vé còn lại: trừ cọc của các ghế còn lại cho khớp (đã thu ròng giảm đúng số hoàn).
+        if (!t.sold && t.remainingCount > 0 && t.ticketNo) {
+          const remainSeats = tsCancelPoolOf(currentTripId).filter(s => s.ticketNo === t.ticketNo);
+          const newDep = Math.max(0, t.deposit - r);
+          remainSeats.forEach(s => { s.depositAmount = newDep; if (newDep === 0) s.depositMethod = ''; });
+        }
+      }
+    });
+    if (refundTotal > 0) {
+      refundNote = ` Đã hoàn ${refundTotal.toLocaleString('vi-VN')}đ (${refundMethod}).`;
+      try {
+        if (window.FleetStore && typeof FleetStore.log === 'function') {
+          FleetStore.log({ action: 'refund', entity: 'ticket', entityId: refundedNos.join(', '), summary: `Hoàn ${refundTotal.toLocaleString('vi-VN')}đ (${refundMethod}) khi hủy ghế ${cancelledCodes.join(', ')}, phơi ${currentTripId}. Lý do hủy: ${reason}` });
+        }
+      } catch (e) { /* nhật ký lỗi không được làm hỏng việc hủy */ }
+    }
+    const kept = cancelPlan.refundable - refundTotal;
+    if (cancelPlan.refundable > 0 && kept > 0) refundNote += ` Giữ lại ${kept.toLocaleString('vi-VN')}đ.`;
+  })();
 
   if (tripSeatBank[currentTripId]) {
     tripSeatBank[currentTripId].cancelledSeats = cancelledSeats;
@@ -3311,7 +3854,7 @@ function confirmCancel() {
   }
   updateTripStats();
   updatePassengerTabCount();
-  showToast(`Đã hủy ghế ${cancelledCodes.join(', ')}. Lý do: ${reason}`);
+  showToast(`Đã hủy ghế ${cancelledCodes.join(', ')}. Lý do: ${reason}.${depositMoveNote}${refundNote}`);
   currentCancelSeatCodes = [];
 }
 
@@ -5166,7 +5709,7 @@ function confirmBulkFromTemplates() {
 // Dùng để tô màu danh sách phơi Zone 1 (đỏ = đã khoá; xanh = còn bán được, kể cả khi đang Re-open) và
 // để sắp xếp (xem renderZone1TripList bên dưới).
 function zone1IsTripSellingLocked(tripId) {
-  if (typeof tsIsSellingLocked === 'function') return tsIsSellingLocked(tripId);
+  if (typeof tsIsLifecycleLocked === 'function') return tsIsLifecycleLocked(tripId); // chỉ để TÔ MÀU: admin vẫn thấy phơi đỏ dù được phép thao tác (ERD B12)
   if (typeof getTripLifecycleStatus !== 'function') return false;
   const st = getTripLifecycleStatus(tripId);
   return st === TRIP_LIFECYCLE_STATUS.DEPARTED

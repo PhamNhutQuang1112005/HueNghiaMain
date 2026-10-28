@@ -46,6 +46,9 @@ const HN_VEHICLE_TYPES_KEY = 'hn_vehicle_types_v1';
 const HN_VEHICLES_KEY = 'hn_vehicles_v1';
 const HN_STAFF_KEY = 'hn_staff_v1';
 const HN_STAFF_ROLES_KEY = 'hn_staff_roles_v1';
+const HN_ENFORCE_TICKET_PERMS_KEY = 'hn_enforce_ticket_perms_v1'; // '1' = bật kiểm quyền vé (book_ticket / sell_ticket / change_price...), mặc định tắt — ERD đặt vé B16
+const HN_TICKET_REQUIRE_PHONE_KEY = 'hn_ticket_require_phone_v1'; // '0' = KHÔNG bắt buộc SĐT khi đặt / bán vé; mặc định BẮT BUỘC — ERD đặt vé B4, B29
+const HN_TICKET_REQUIRE_NAME_KEY = 'hn_ticket_require_name_v1'; // '1' = BẮT BUỘC tên khách khi đặt / bán vé; mặc định KHÔNG bắt buộc — ERD đặt vé B4, B29
 const HN_AGENTS_KEY = 'hn_agents_v1'; // Danh sách Đại lý — xem shared/js/agent-store.js
 const HN_ADMIN_ACTIVITY_KEY ='hn_admin_activity_v1';
 // ===== Nhân sự v3.1: trạng thái làm việc =====

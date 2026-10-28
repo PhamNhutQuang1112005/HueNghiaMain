@@ -106,14 +106,31 @@ function readRebookForm() {
     phone: getVal('rbPhone'),
     guestType,
     firstStop: document.getElementById('rbFirstStop').value,
+    // Điểm đón chỉ có ý nghĩa với Trung chuyển / Rước đường; Khách trạm không có (ô ẩn có thể còn giá trị cũ).
     transship: guestType === 'Rước đường'
       ? (document.getElementById('rbTransshipSelect')?.value || '')
-      : (document.getElementById('rbTransshipInput')?.value?.trim() || ''),
+      : (guestType === 'Trung chuyển' ? (document.getElementById('rbTransshipInput')?.value?.trim() || '') : ''),
     lastStop: document.getElementById('rbLastStop').value,
     arrivalTransfer: getVal('rbArrivalTransfer'),
     note: getVal('rbNote'),
-    hasLuggage: document.getElementById('rbLuggage')?.checked || false
+    hasLuggage: document.getElementById('rbLuggage')?.checked || false,
+    // { agentId, agentName } ({} khi không tick); null = tick Đại lý nhưng chưa chọn (ERD B22 a)
+    agent: readAgentFromForm('rbAgentEnabled', 'rbAgentId')
   };
+}
+
+// Bộ kiểm hợp lệ dùng chung cho "Đặt vé" và "Bán vé" trong modal Đặt lại vé — cùng quy tắc với panel Đặt vé
+// (ERD B4, B22 c): trạm đến, điểm trung chuyển / rước đường, đại lý, phơi không hủy / mẫu / khóa.
+function validateRebookInput(form) {
+  if (!validateCustomerContact(form.name, form.phone, null)) return false; // SĐT bắt buộc, tên theo cài đặt (ERD B4, B29)
+  if (!rebookSelectedTripId || !rebookSelectedSeats.length) { showToast('Vui lòng chọn chuyến và ghế', 'error'); return false; }
+  if (tripNotSellable(rebookSelectedTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — chọn phơi khác', 'error'); return false; }
+  if (!form.lastStop) { showToast('Vui lòng chọn trạm đến', 'error'); return false; }
+  if (form.guestType === 'Trung chuyển' && !form.transship) { showToast('Vui lòng nhập trạm trung chuyển', 'error'); return false; }
+  if (form.guestType === 'Rước đường' && !form.transship) { showToast('Vui lòng chọn địa điểm rước', 'error'); return false; }
+  if (form.guestType === 'Rước đường' && !form.firstStop) { showToast('Vui lòng chọn trạm đi cho khách rước đường', 'error'); return false; }
+  if (form.agent === null) { showToast('Vui lòng chọn đại lý', 'error'); return false; }
+  return true;
 }
 
 // Đọc + validate giá vé đã sửa ở ô #rbPrice (0đ bắt buộc phải có lý do, giống hệt getEditedPrice()/
@@ -123,13 +140,19 @@ function readRebookForm() {
 // `total` giữ nguyên để so với tiền cọc (readAndValidateRebookDeposit).
 function readAndValidateRebookPrice() {
   const total = (typeof getEditedPrice === 'function') ? getEditedPrice('rbPrice') : 280000;
+  if (total === 0 && !requirePermission('change_price')) return null; // ERD B16: giá 0đ cần change_price
   const zeroReasonEl = document.getElementById('rbZeroPriceReason');
   if (total === 0 && !(zeroReasonEl?.value.trim())) {
     showToast('Vui lòng nhập lý do khi giá vé 0đ', 'error');
     return null;
   }
   const count = Math.max(1, rebookSelectedSeats.length);
-  const price = Math.round(total / count);
+  // ERD B5, F9: DB chỉ lưu đơn giá nguyên / ghế nên tổng phải chia hết cho số ghế, nếu không tiền vé lệch vài đồng.
+  if (total % count !== 0) {
+    showToast(`Tổng giá vé ${total.toLocaleString('vi-VN')}đ không chia hết cho ${count} ghế — nhập tổng chia hết cho số ghế`, 'error');
+    return null;
+  }
+  const price = total / count;
   return { price, total, zeroPriceReason: total === 0 ? zeroReasonEl.value.trim() : '' };
 }
 
@@ -152,9 +175,9 @@ function readAndValidateRebookDeposit(referencePrice) {
 
 function confirmRebook() {
   if (!requireActor(true)) return;
+  if (!requirePermission(BOOK_KEYS)) return; // ERD B16: Đặt lại vé nút "Đặt" = book_ticket (hoặc sell_ticket)
   const form = readRebookForm();
-  if (!form.name || !form.phone) { showToast('Vui lòng nhập họ tên và SĐT', 'error'); return; }
-  if (!rebookSelectedTripId || !rebookSelectedSeats.length) { showToast('Vui lòng chọn chuyến và ghế', 'error'); return; }
+  if (!validateRebookInput(form)) return;
 
   const bank = tripSeatBank[rebookSelectedTripId];
   if (!bank) { showToast('Lỗi dữ liệu chuyến', 'error'); return; }
@@ -184,6 +207,12 @@ function confirmRebook() {
       transshipStation: form.transship,
       lastStop: form.lastStop,
       arrivalTransfer: form.arrivalTransfer,
+      transship: form.transship,
+      pickupAddress: form.transship,
+      dropoffAddress: form.arrivalTransfer,
+      agentId: form.agent ? form.agent.agentId : '',
+      agentName: form.agent ? form.agent.agentName : '',
+      agentCommissionRate: (form.agent && form.agent.agentCommissionRate != null) ? form.agent.agentCommissionRate : null,
       note: form.note,
       hasLuggage: form.hasLuggage,
       ticketNo: newTicketNo,
@@ -191,12 +220,13 @@ function confirmRebook() {
       count: targetSeats.length,
       staff: staffCode,
       price: priceInfo.price,
-      ...tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat'),
+      ...tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat', form.firstStop, form.lastStop), // trạm KHÁCH chọn (ERD B5)
       zeroPriceReason: priceInfo.zeroPriceReason,
       depositAmount: deposit.depositAmount,
       depositMethod: deposit.depositMethod,
       actionTime: new Date().toISOString()
     });
+    tsSyncPlaceFields(seat); // Khách trạm không có điểm đón / trả: xóa điểm trả còn sót trong ô ẩn (ERD B22 b)
     // Nhãn trạm bán / giai đoạn bán / lần Re-open chụp 1 lần lúc tạo vé đặt (ERD quy tắc 4, 12)
     tsStampSoldPhaseIfNeeded(seat, rebookSelectedTripId);
   });
@@ -209,6 +239,7 @@ function confirmRebook() {
   }
   showToast(`Đặt lại thành công ${targetSeats.length} ghế cho ${form.name}`);
   closeRebookModal();
+  tsLogTicket('rebook', newTicketNo, 'Đặt lại vé (giữ chỗ, phơi ' + rebookSelectedTripId + ', ' + targetSeats.length + ' ghế)', { trip_id: rebookSelectedTripId, seats: targetSeats.map(s => s.code).join(', ') });
   refreshHistoryViewsAfterBooking(form.phone);
 }
 
@@ -217,9 +248,9 @@ function confirmRebook() {
 // pendingRebookSell trong confirmSellPayment() (ticketstaff.js).
 function confirmRebookAndSell() {
   if (!requireActor(true)) return;
+  if (!requirePermission(SELL_KEYS)) return; // ERD B16: Đặt lại vé nút "Bán" = sell_ticket
   const form = readRebookForm();
-  if (!form.name || !form.phone) { showToast('Vui lòng nhập họ tên và SĐT', 'error'); return; }
-  if (!rebookSelectedTripId || !rebookSelectedSeats.length) { showToast('Vui lòng chọn chuyến và ghế', 'error'); return; }
+  if (!validateRebookInput(form)) return;
 
   const bank = tripSeatBank[rebookSelectedTripId];
   if (!bank) { showToast('Lỗi dữ liệu chuyến', 'error'); return; }
@@ -239,7 +270,7 @@ function confirmRebookAndSell() {
     seatCodes: rebookSelectedSeats.slice(),
     form,
     priceInfo,
-    fare: tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat'),
+    fare: tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat', form.firstStop, form.lastStop), // trạm KHÁCH chọn (ERD B5)
     deposit
   };
 

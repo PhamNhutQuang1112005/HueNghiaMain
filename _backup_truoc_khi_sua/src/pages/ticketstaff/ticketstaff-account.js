@@ -1,0 +1,364 @@
+/* ===================== TÀI KHOẢN / ĐĂNG XUẤT ===================== */
+(function initUserMenu() {
+  const menu = document.getElementById('userMenu');
+  const chipBtn = document.getElementById('userChipBtn');
+  const dropdown = document.getElementById('userDropdown');
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (!menu || !chipBtn || !dropdown || !logoutBtn) return;
+
+  // Hiển thị thông tin người dùng từ phiên đăng nhập (nếu có)
+  const user = Session.get();
+  if (user) {
+    const nameEl = document.getElementById('userName');
+    const avatarEl = document.getElementById('userAvatar');
+    const roleEl = document.getElementById('userRoleLabel');
+    const userEl = document.getElementById('userUsername');
+    const display = user.username || 'Nhân viên';
+    if (nameEl) nameEl.textContent = display;
+    if (avatarEl) avatarEl.textContent = display.charAt(0).toUpperCase();
+    if (roleEl) roleEl.textContent = user.roleLabel || 'Nhân viên tổng đài';
+    if (userEl) userEl.textContent = user.username || '';
+  }
+
+  // Đăng nhập ticketstaff bằng tài khoản role 'admin' (Auth.isAdmin(), auth/permissions.js) → hiện nút
+  // "Quản trị hệ thống" cạnh user-chip để quay lại admin.html; tài khoản thường (nhân viên) không thấy.
+  const adminBtn = document.getElementById('btnGoToAdmin');
+  if (adminBtn) adminBtn.style.display = (typeof Auth !== 'undefined' && Auth.isAdmin()) ? 'inline-flex' : 'none';
+
+  function closeMenu() {
+    menu.classList.remove('open');
+    chipBtn.setAttribute('aria-expanded', 'false');
+    dropdown.hidden = true;
+  }
+  function openMenu() {
+    menu.classList.add('open');
+    chipBtn.setAttribute('aria-expanded', 'true');
+    dropdown.hidden = false;
+  }
+
+  chipBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (menu.classList.contains('open')) closeMenu();
+    else openMenu();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target)) closeMenu();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    Session.clear();
+    window.location.href = 'index.html';
+  });
+})();
+
+// Nút "Quản trị hệ thống" trên header (#btnGoToAdmin, chỉ hiện với role 'admin' — xem initUserMenu() ở
+// trên) — cùng thư mục với ticketstaff.html nên chỉ cần đường dẫn tương đối, giữ nguyên phiên đăng nhập
+// (admin.html tự đọc lại Session, không cần đăng nhập lại).
+function goToAdminPanel() {
+  window.location.href = 'admin.html';
+}
+
+/* ===================== CUSTOMER HISTORY SEARCH ===================== */
+
+let customerHistoryActive = false;
+let currentSearchPhone = '';
+let rebookSelectedSeats = [];
+let rebookSelectedTripId = null;
+// Giá vé/ghế đang áp dụng — ô "Giá vé" (#rbPrice) hiện TỔNG = rebookUnitPrice × số ghế đang chọn,
+// thay cho ô "Tổng cộng" riêng trước đây. Xem refreshRebookPriceDisplay()/updateRebookPricePreview()
+// ở shared/js/booking-rebook.js và onPriceEdit() ở ticketstaff.js.
+let rebookUnitPrice = 0;
+let _historyResults = [];
+let _rawHistoryResults = [];
+let historyColumnFilters = {};
+let activePopoverColKey = null;
+
+window.addEventListener('popstate', function (e) {
+  const s = e.state;
+  if (s?.view === 'customerHistory' && s.phone) {
+    openCustomerHistory(s.phone, false);
+  } else if (s?.view === 'trip' && s.tripId) {
+    if (customerHistoryActive) closeCustomerHistory();
+    const card = document.querySelector(`.trip-card[data-trip="${s.tripId}"]`);
+    if (card) {
+      const tripMeta = allTripsMeta?.find(t => t.id === s.tripId);
+      selectTrip(card, tripMeta?.time, tripMeta?.route);
+    }
+  } else if (customerHistoryActive) {
+    closeCustomerHistory();
+  }
+});
+
+// Đọc chung các trường form của modal "Đặt lại vé" — dùng cho cả "Đặt vé" (confirmRebook, giữ chỗ chưa
+// thanh toán) lẫn "Bán vé" (confirmRebookAndSell, thanh toán ngay). Trước đây confirmRebookAndSell() đọc
+// thẳng các biến name/phone/guestType/... không hề tồn tại trong scope của nó (lỗi ReferenceError, bấm
+// "Bán vé" ở modal này luôn crash) — gom lại 1 hàm đọc form duy nhất để không lặp lại lỗi đó.
+function readRebookForm() {
+  const getVal = id => document.getElementById(id)?.value?.trim() || '';
+  const guestType = document.getElementById('rbGuestType')?.value || 'Khách trạm';
+  return {
+    name: getVal('rbName'),
+    phone: getVal('rbPhone'),
+    guestType,
+    firstStop: document.getElementById('rbFirstStop').value,
+    // Điểm đón chỉ có ý nghĩa với Trung chuyển / Rước đường; Khách trạm không có (ô ẩn có thể còn giá trị cũ).
+    transship: guestType === 'Rước đường'
+      ? (document.getElementById('rbTransshipSelect')?.value || '')
+      : (guestType === 'Trung chuyển' ? (document.getElementById('rbTransshipInput')?.value?.trim() || '') : ''),
+    lastStop: document.getElementById('rbLastStop').value,
+    arrivalTransfer: getVal('rbArrivalTransfer'),
+    note: getVal('rbNote'),
+    hasLuggage: document.getElementById('rbLuggage')?.checked || false,
+    // { agentId, agentName } ({} khi không tick); null = tick Đại lý nhưng chưa chọn (ERD B22 a)
+    agent: readAgentFromForm('rbAgentEnabled', 'rbAgentId')
+  };
+}
+
+// Bộ kiểm hợp lệ dùng chung cho "Đặt vé" và "Bán vé" trong modal Đặt lại vé — cùng quy tắc với panel Đặt vé
+// (ERD B4, B22 c): trạm đến, điểm trung chuyển / rước đường, đại lý, phơi không hủy / mẫu / khóa.
+function validateRebookInput(form) {
+  if (!form.name || !form.phone) { showToast('Vui lòng nhập họ tên và SĐT', 'error'); return false; }
+  if (!rebookSelectedTripId || !rebookSelectedSeats.length) { showToast('Vui lòng chọn chuyến và ghế', 'error'); return false; }
+  if (tripNotSellable(rebookSelectedTripId)) { showToast('Phơi này đã hủy / là phơi mẫu / đã khởi hành (chưa Re-open) — chọn phơi khác', 'error'); return false; }
+  if (!form.lastStop) { showToast('Vui lòng chọn trạm đến', 'error'); return false; }
+  if (form.guestType === 'Trung chuyển' && !form.transship) { showToast('Vui lòng nhập trạm trung chuyển', 'error'); return false; }
+  if (form.guestType === 'Rước đường' && !form.transship) { showToast('Vui lòng chọn địa điểm rước', 'error'); return false; }
+  if (form.guestType === 'Rước đường' && !form.firstStop) { showToast('Vui lòng chọn trạm đi cho khách rước đường', 'error'); return false; }
+  if (form.agent === null) { showToast('Vui lòng chọn đại lý', 'error'); return false; }
+  return true;
+}
+
+// Đọc + validate giá vé đã sửa ở ô #rbPrice (0đ bắt buộc phải có lý do, giống hệt getEditedPrice()/
+// sellTicket() ở ticketstaff.js) — dùng chung cho cả "Đặt vé" lẫn "Bán vé" trong modal Đặt lại vé.
+// #rbPrice hiện TỔNG cho cả nhóm ghế (xem refreshRebookPriceDisplay() ở booking-rebook.js) nên chia
+// lại cho số ghế để ra `price` (giá/ghế) lưu vào từng ghế — xem confirmRebook()/confirmRebookAndSell().
+// `total` giữ nguyên để so với tiền cọc (readAndValidateRebookDeposit).
+function readAndValidateRebookPrice() {
+  const total = (typeof getEditedPrice === 'function') ? getEditedPrice('rbPrice') : 280000;
+  const zeroReasonEl = document.getElementById('rbZeroPriceReason');
+  if (total === 0 && !(zeroReasonEl?.value.trim())) {
+    showToast('Vui lòng nhập lý do khi giá vé 0đ', 'error');
+    return null;
+  }
+  const count = Math.max(1, rebookSelectedSeats.length);
+  // ERD B5, F9: DB chỉ lưu đơn giá nguyên / ghế nên tổng phải chia hết cho số ghế, nếu không tiền vé lệch vài đồng.
+  if (total % count !== 0) {
+    showToast(`Tổng giá vé ${total.toLocaleString('vi-VN')}đ không chia hết cho ${count} ghế — nhập tổng chia hết cho số ghế`, 'error');
+    return null;
+  }
+  const price = total / count;
+  return { price, total, zeroPriceReason: total === 0 ? zeroReasonEl.value.trim() : '' };
+}
+
+// Cọc áp dụng chung cho cả nhóm ghế đang đặt lại/bán lại — kiểm tra hợp lệ so với TỔNG giá vé của cả
+// nhóm (ô "Giá vé" đã gộp luôn phần "Tổng cộng" trước đây, xem readAndValidateRebookPrice ở trên).
+function readAndValidateRebookDeposit(referencePrice) {
+  const depositEnabled = document.getElementById('rbDepositEnabled')?.checked || false;
+  const depositAmountRaw = parseInt(document.getElementById('f_deposit_amount').value, 10) || 0;
+  if (depositEnabled && depositAmountRaw <= 0) {
+    showToast('Vui lòng nhập số tiền cọc', 'error');
+    return null;
+  }
+  if (depositEnabled && depositAmountRaw > referencePrice) {
+    showToast('Số tiền cọc không được lớn hơn giá vé', 'error');
+    return null;
+  }
+  const depositMethod = depositEnabled ? (document.querySelector('input[name="f_deposit_method"]:checked')?.value || 'Tiền mặt') : '';
+  return { depositEnabled, depositAmount: depositEnabled ? depositAmountRaw : 0, depositMethod };
+}
+
+function confirmRebook() {
+  if (!requireActor(true)) return;
+  const form = readRebookForm();
+  if (!validateRebookInput(form)) return;
+
+  const bank = tripSeatBank[rebookSelectedTripId];
+  if (!bank) { showToast('Lỗi dữ liệu chuyến', 'error'); return; }
+
+  const allSeats = [...(bank.down || []), ...(bank.up || [])];
+  const targetSeats = rebookSelectedSeats.map(code => allSeats.find(s => s.code === code)).filter(s => s && s.state === 'empty');
+  if (!targetSeats.length) { showToast('Không thể đặt ghế đã chọn', 'error'); return; }
+
+  const priceInfo = readAndValidateRebookPrice();
+  if (!priceInfo) return;
+
+  const deposit = readAndValidateRebookDeposit(priceInfo.total);
+  if (!deposit) return;
+
+  const tripMeta = allTripsMeta.find(t => t.id === rebookSelectedTripId);
+  reseedTicketSeqFromBank();
+  const newTicketNo = 'SGCD-' + String(ticketSeq++).padStart(4, '0'); // tuần tự, duy nhất — cùng quy ước luồng bán chính
+  const staffCode = getCurrentActionStaffCode();
+
+  targetSeats.forEach(seat => {
+    Object.assign(seat, {
+      state: 'hold',
+      customerName: form.name,
+      phone: form.phone,
+      guestType: form.guestType,
+      firstStop: form.firstStop,
+      transshipStation: form.transship,
+      lastStop: form.lastStop,
+      arrivalTransfer: form.arrivalTransfer,
+      transship: form.transship,
+      pickupAddress: form.transship,
+      dropoffAddress: form.arrivalTransfer,
+      agentId: form.agent ? form.agent.agentId : '',
+      agentName: form.agent ? form.agent.agentName : '',
+      note: form.note,
+      hasLuggage: form.hasLuggage,
+      ticketNo: newTicketNo,
+      paid: false,
+      count: targetSeats.length,
+      staff: staffCode,
+      price: priceInfo.price,
+      ...tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat', form.firstStop, form.lastStop), // trạm KHÁCH chọn (ERD B5)
+      zeroPriceReason: priceInfo.zeroPriceReason,
+      depositAmount: deposit.depositAmount,
+      depositMethod: deposit.depositMethod,
+      actionTime: new Date().toISOString()
+    });
+    // Nhãn trạm bán / giai đoạn bán / lần Re-open chụp 1 lần lúc tạo vé đặt (ERD quy tắc 4, 12)
+    tsStampSoldPhaseIfNeeded(seat, rebookSelectedTripId);
+  });
+
+  saveSeatBank();
+  if (currentTripId === rebookSelectedTripId) {
+    seatPlanDown = bank.down;
+    seatPlanUp = bank.up;
+    renderSeats();
+  }
+  showToast(`Đặt lại thành công ${targetSeats.length} ghế cho ${form.name}`);
+  closeRebookModal();
+  refreshHistoryViewsAfterBooking(form.phone);
+}
+
+// "Bán vé" trong modal Đặt lại vé — validate xong thì KHÔNG bán ngay, mở modal xác nhận phương thức
+// thanh toán (#sellPaymentModal, y chang panel đặt vé chính) trước; việc bán thật sự chuyển sang nhánh
+// pendingRebookSell trong confirmSellPayment() (ticketstaff.js).
+function confirmRebookAndSell() {
+  if (!requireActor(true)) return;
+  const form = readRebookForm();
+  if (!validateRebookInput(form)) return;
+
+  const bank = tripSeatBank[rebookSelectedTripId];
+  if (!bank) { showToast('Lỗi dữ liệu chuyến', 'error'); return; }
+
+  const allSeats = [...(bank.down || []), ...(bank.up || [])];
+  const targetSeats = rebookSelectedSeats.map(code => allSeats.find(s => s.code === code)).filter(s => s && s.state === 'empty');
+  if (!targetSeats.length) { showToast('Không thể bán ghế đã chọn', 'error'); return; }
+
+  const priceInfo = readAndValidateRebookPrice();
+  if (!priceInfo) return;
+
+  const deposit = readAndValidateRebookDeposit(priceInfo.total);
+  if (!deposit) return;
+
+  pendingRebookSell = {
+    tripId: rebookSelectedTripId,
+    seatCodes: rebookSelectedSeats.slice(),
+    form,
+    priceInfo,
+    fare: tsFareSnapshot(rebookSelectedTripId, 'rbPriceDoubleSeat', form.firstStop, form.lastStop), // trạm KHÁCH chọn (ERD B5)
+    deposit
+  };
+
+  document.querySelectorAll('input[name="sellPaymentMethod"]').forEach(r => { r.checked = r.value === 'Tiền mặt'; });
+  document.getElementById('sellPaymentModal').classList.add('open');
+}
+
+// Hook into search input
+(function () {
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.querySelector('.search-btn');
+
+  function handlePhoneSearch() {
+    if (!searchInput) return;
+    const raw = searchInput.value.trim();
+    if (raw.length > 0) {
+      openCustomerHistory(raw);
+    } else {
+      showToast('Vui lòng nhập số điện thoại, tên hoặc mã vé để tìm kiếm', 'warning');
+    }
+  }
+
+  if (searchInput) {
+    let liveSearchDebounceTimer = null;
+    searchInput.addEventListener('input', function () {
+      const val = this.value;
+      // Tab "Rước liền"/"Lịch sử" đang mở: ô tìm kiếm chung trên header lọc luôn danh sách đang xem
+      // (tên/SĐT) thay vì tra cứu lịch sử khách theo SĐT — đồng bộ giá trị sang đúng ô tìm kiếm riêng
+      // của view đó rồi gọi lại đúng hàm lọc debounce sẵn có (pkOnSearchInput/phOnSearchInput), để 2 ô
+      // luôn hiện cùng 1 giá trị thay vì mỗi ô 1 trạng thái riêng.
+      if (typeof currentView !== 'undefined' && currentView === 'pickup') {
+        const pkField = document.getElementById('pkSearchInput');
+        if (pkField) pkField.value = val;
+        pkOnSearchInput(val);
+        return;
+      }
+      if (typeof currentView !== 'undefined' && currentView === 'history') {
+        const phField = document.getElementById('phSearchInput');
+        if (phField) phField.value = val;
+        phOnSearchInput(val);
+        return;
+      }
+      if (typeof currentView !== 'undefined' && currentView === 'phoi') {
+        const nameField = document.getElementById('filterName');
+        if (nameField) nameField.value = val;
+        clearTimeout(phoiFilterDebounceTimer);
+        phoiFilterDebounceTimer = setTimeout(applyFilters, 300);
+        return;
+      }
+      clearTimeout(liveSearchDebounceTimer);
+      liveSearchDebounceTimer = setTimeout(() => renderLiveSearchResults(val), 300);
+    });
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        if (typeof currentView !== 'undefined' && (currentView === 'pickup' || currentView === 'history' || currentView === 'phoi')) return;
+        e.preventDefault();
+        handlePhoneSearch();
+      }
+    });
+  }
+  if (searchBtn) {
+    searchBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      handlePhoneSearch();
+    });
+  }
+})();
+
+window.addEventListener('storage', (e) => {
+  if (!e.key || e.key === HN_PICKUP_PAX_KEY) {
+    pickupPassengers = loadPickupPassengers();
+    if (currentView === 'pickup') pkRenderPaxTable();
+  }
+});
+
+// Tài xế vừa được gán ở trang shuttle.html (tab khác) -> render lại ngay cột "Tài xế" nếu đang mở tab
+// Trung chuyển, không cần tải lại trang.
+window.addEventListener('storage', (e) => {
+  if (e.key === HN_SHUTTLE_DRIVER_KEY) {
+    renderTransshipTables();
+    // Tài xế trung chuyển vừa đổi ở tab khác / trang shuttle.html -> chỉ render lại để cột "Trung chuyển"
+    // khớp giá trị mới. KHÔNG đổi thứ tự dòng khách (vị trí giữ nguyên); thông báo đầu bảng cho thay đổi
+    // phát từ trang này đã đồng bộ sẵn qua HN_PK_PHONGVE_NOTICES_KEY.
+    if (currentView === 'pickup') pkRenderPaxTable();
+  }
+});
+
+// Thông báo "vừa cập nhật ghi chú Phòng vé" hoặc vạch "in rước" vừa thêm/đóng ở 1 phiên đăng nhập khác
+// (role bán vé và role trung chuyển thường là 2 tài khoản/2 tab khác nhau) -> render lại ngay để phiên
+// này cũng thấy, không cần tải lại trang. Xem pkNotifyPhongVeUpdate/pkSavePrintRuoc trong
+// ticketstaff-pickup.js.
+window.addEventListener('storage', (e) => {
+  if (e.key === HN_PK_PHONGVE_NOTICES_KEY || e.key === HN_PK_PRINT_RUOC_KEY) {
+    if (currentView === 'pickup') pkRenderPaxTable();
+  }
+});
+

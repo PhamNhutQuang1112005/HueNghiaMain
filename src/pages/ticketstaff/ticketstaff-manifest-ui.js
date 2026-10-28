@@ -98,9 +98,28 @@ function tsBuildLifecycleButtonsHtml(status) {
   }
 }
 
-function tsIsSellingLocked(tripId) {
+// Vòng đời phơi đã khóa bán (DEPARTED / REOPEN_CLOSED / MANIFEST_CLOSED), KHÔNG xét người dùng. Dùng để tô màu / sắp xếp danh sách phơi.
+function tsIsLifecycleLocked(tripId) {
   const status = getTripLifecycleStatus(tripId);
   return status === TRIP_LIFECYCLE_STATUS.DEPARTED || status === TRIP_LIFECYCLE_STATUS.REOPEN_CLOSED || status === TRIP_LIFECYCLE_STATUS.MANIFEST_CLOSED;
+}
+
+// Có chặn người dùng hiện tại thao tác vé / ghế trên phơi này không? ADMIN LUÔN ĐƯỢC (ERD B12 ngoại lệ admin, C13): sau khi xe chạy
+// chỉ admin còn sửa / hủy / hoàn được; mọi tài khoản khác vẫn bị khóa như cũ.
+function tsIsSellingLocked(tripId) {
+  if (window.Auth && typeof Auth.canEditAfterDeparture === 'function' && Auth.canEditAfterDeparture()) return false;
+  return tsIsLifecycleLocked(tripId);
+}
+
+// Ghi nhật ký (activity_logs) khi admin thao tác vé trên phơi đã khóa (ERD B12: bắt buộc truy vết).
+function tsLogAdminAfterDeparture(tripId, action, summary) {
+  try {
+    if (!(window.Auth && typeof Auth.canEditAfterDeparture === 'function' && Auth.canEditAfterDeparture())) return;
+    if (!tsIsLifecycleLocked(tripId)) return;
+    if (window.FleetStore && typeof FleetStore.log === 'function') {
+      FleetStore.log({ action: action, entity: 'ticket', entityId: String(tripId), summary: 'Admin thao tác sau khởi hành (phơi ' + tripId + '): ' + summary });
+    }
+  } catch (e) { /* nhật ký lỗi không được làm hỏng thao tác */ }
 }
 
 /* ===================== 2. KHỞI HÀNH XE → TỔNG HỢP VÉ → TẠO PHƠI ===================== */
@@ -293,7 +312,7 @@ function tsRenderRoadsideListTableHtml(list) {
       <td class="ts-rlist-stop">${tsEsc(r.firstStop || '—')}</td>
       <td class="ts-rlist-stop">${tsEsc(r.lastStop || '—')}</td>
       <td class="ts-rlist-pickup">${tsEsc(r.pickupLoc || '—')}</td>
-      <td class="mono ts-rlist-count" style="text-align:center;">1</td>
+      <td class="mono ts-rlist-count" style="text-align:center;">${r.seatCount || (r.seatCodes || []).length || 1}</td>
       <td class="mono ts-rlist-seats" style="text-align:center;">${tsEsc((r.seatCodes || []).join(', ')) || '—'}</td>
       <td class="ts-rlist-amount" style="text-align:right;">${tsFormatMoney(r.amount || 0)}</td>
     </tr>`).join('');
@@ -567,7 +586,7 @@ function buildManifestPrintHtml(tripId, opts) {
             <td>${tsEsc(r.firstStop || 'Chưa rõ')}</td>
             <td>${tsEsc(r.lastStop || 'Chưa rõ')}</td>
             <td>${tsEsc(r.pickupLoc || 'Chưa rõ')}</td>
-            <td>1</td>
+            <td>${r.seatCount || (r.seatCodes || []).length || 1}</td>
             <td>${tsEsc((r.seatCodes || []).join(', ')) || 'Chưa rõ'}</td>
             <td>${tsFormatMoney(r.amount || 0)}</td>
           </tr>`).join('')}</tbody>
@@ -1195,6 +1214,15 @@ function tsEsc(str) {
     };
   }
 
+  // Đặt vé / Sửa vé (saveTicket) cũng ghi lên vé và ghế — khóa như bán (ERD B12), phòng panel đã mở trước lúc bấm Khởi hành.
+  const originalSaveTicket = window.saveTicket;
+  if (typeof originalSaveTicket === 'function') {
+    window.saveTicket = function () {
+      if (tsIsSellingLocked(currentTripId)) { showToast(lockMsg); return; }
+      return originalSaveTicket();
+    };
+  }
+
   const originalSellTicket = window.sellTicket;
   if (typeof originalSellTicket === 'function') {
     window.sellTicket = function () {
@@ -1206,7 +1234,14 @@ function tsEsc(str) {
   const originalConfirmSellPayment = window.confirmSellPayment;
   if (typeof originalConfirmSellPayment === 'function') {
     window.confirmSellPayment = function () {
-      if (tsIsSellingLocked(currentTripId)) { showToast(lockMsg); return; }
+      // Nhánh Đặt lại vé / Chỉ định Rước liền bán sang phơi KHÁC phơi đang xem: khóa theo phơi đích, không theo currentTripId.
+      var lockTripId = (typeof pendingRebookSell !== 'undefined' && pendingRebookSell) ? pendingRebookSell.tripId
+        : ((typeof pendingPickupAssignSell !== 'undefined' && pendingPickupAssignSell) ? pendingPickupAssignSell.tripId : currentTripId);
+      if (tsIsSellingLocked(lockTripId)) {
+        showToast(lockMsg);
+        if (typeof closeSellPaymentModal === 'function') closeSellPaymentModal(); // dọn ngữ cảnh chờ, tránh treo sang lần sau
+        return;
+      }
       return originalConfirmSellPayment();
     };
   }
@@ -1256,6 +1291,42 @@ function tsEsc(str) {
       return originalConfirmRebookAndSell();
     };
   }
+})();
+
+// Bọc các thao tác ghi vé: nếu admin làm trên phơi đã khóa và dữ liệu phơi thực sự đổi thì ghi nhật ký (ERD B12).
+(function () {
+  // action / label có thể là hàm: đánh giá TRƯỚC khi gọi hàm gốc (hàm gốc có thể xoá ngữ cảnh chờ như pendingRebookSell).
+  const wrapLog = (fnName, actionOrFn, labelOrFn, tripIdFn) => {
+    const original = window[fnName];
+    if (typeof original !== 'function') return;
+    window[fnName] = function () {
+      let tripId = null, before = null, action = actionOrFn, label = labelOrFn;
+      try {
+        tripId = tripIdFn();
+        if (typeof actionOrFn === 'function') action = actionOrFn();
+        if (typeof labelOrFn === 'function') label = labelOrFn();
+        if (tripId && window.Auth && Auth.canEditAfterDeparture && Auth.canEditAfterDeparture() && tsIsLifecycleLocked(tripId)) before = JSON.stringify(tripSeatBank[tripId] || null);
+      } catch (e) { before = null; }
+      const result = original.apply(this, arguments);
+      try {
+        if (before !== null && JSON.stringify(tripSeatBank[tripId] || null) !== before) tsLogAdminAfterDeparture(tripId, action, label);
+      } catch (e) { /* bỏ qua */ }
+      return result;
+    };
+  };
+  const cur = () => currentTripId;
+  wrapLog('saveTicket', 'edit', 'đặt / sửa vé', cur);
+  // confirmSellPayment bán qua nhiều nhánh: phơi và loại thao tác phụ thuộc ngữ cảnh chờ (ERD B12, B18, F31).
+  wrapLog('confirmSellPayment',
+    () => (typeof pendingRebookSell !== 'undefined' && pendingRebookSell) ? 'rebook' : (typeof pendingPickupAssignSell !== 'undefined' && pendingPickupAssignSell) ? 'assign_pickup' : 'sell',
+    () => (typeof pendingRebookSell !== 'undefined' && pendingRebookSell) ? 'đặt lại vé và bán' : (typeof pendingPickupAssignSell !== 'undefined' && pendingPickupAssignSell) ? 'chỉ định xe Rước liền' : 'bán vé',
+    () => (typeof pendingRebookSell !== 'undefined' && pendingRebookSell) ? pendingRebookSell.tripId : (typeof pendingPickupAssignSell !== 'undefined' && pendingPickupAssignSell) ? pendingPickupAssignSell.tripId : currentTripId);
+  wrapLog('confirmRebook', 'rebook', 'đặt lại vé', () => rebookSelectedTripId);
+  wrapLog('confirmRestoreFromCancelled', 'restore', 'đặt lại vé hủy', () => transferTargetTripId || currentTripId);
+  wrapLog('confirmCancel', 'cancel_seat', 'hủy ghế', cur);
+  wrapLog('confirmSelectionAction', 'transfer', 'chuyển / đặt ghế', cur);
+  wrapLog('confirmAddToGroup', 'add_group', 'đặt thêm cho nhóm', cur);
+  wrapLog('sellFromTransferBar', 'split_sell', 'bán nhanh từ thanh chọn ghế', cur);
 })();
 
 // Thêm view "shiftClosing" (trang Kết ca) vào cùng cơ chế switchView('booking'/'pickup'/'history') có

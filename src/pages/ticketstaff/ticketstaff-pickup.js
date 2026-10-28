@@ -711,6 +711,7 @@ function openPickupModal() {
   modal.classList.add('open');
 }
 function savePickupInfo() {
+  if (!requirePermission('transship_pickup')) return; // ERD B16: nhập khách Rước liền = transship_pickup
   const name = document.getElementById('pickupCustomerName').value.trim();
   const phone = collectPhoneValues('pickupPhone', 'pickup_phone_extra');
   const count = parseInt(document.getElementById('pickupTicketCount').value) || 1;
@@ -746,7 +747,15 @@ function savePickupInfo() {
     guestType: 'Rước liền',
     isRuocLien: true,
     // Cột "Thời gian" trang Rước liền — mốc lúc thông tin khách được nhập từ modal "Rước liền" này.
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    // ERD pickup_request: ngày rước (mặc định ngày đang chọn ở danh sách Rước liền, khớp cách Admin ghi), giờ in, ghi chú
+    // Phòng vé, người nhập + trạm nhập.
+    date: (function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })(
+      (typeof pkSelectedDate !== 'undefined' && pkSelectedDate) ? pkSelectedDate : new Date()),
+    printedAt: '',
+    statusNote: '',
+    createdBy: (typeof getActingStaffCode === 'function') ? getActingStaffCode() : '',
+    createdStation: (typeof getActingStaffStation === 'function') ? getActingStaffStation() : ''
   };
 
   paxList.unshift(newPax);
@@ -1441,9 +1450,11 @@ function pkOpenAssignModal(paxId) {
   }
 
   const trip = allTripsMeta.find(t => t.id === pkActiveTripId);
-  pkCustomAssignPrice = pax.assigned && pax.assigned.price ? pax.assigned.price : (trip ? (trip.price || 280000) : 280000);
+  pkCustomAssignPrice = pax.assigned && pax.assigned.price ? pax.assigned.price : pkDefaultAssignPrice(trip);
   const priceInput = document.getElementById('pkAssignTripPrice');
   if (priceInput) priceInput.value = pkCustomAssignPrice;
+  const zeroReasonInput = document.getElementById('pkAssignZeroReason');
+  if (zeroReasonInput) zeroReasonInput.value = '';
   pkWireAssignPriceDoubleToggle(trip);
 
   pkTripSearchKeyword = '';
@@ -1499,7 +1510,7 @@ function pkSelectTrip(tripId) {
   pkSelectedSeats = [];
 
   const trip = allTripsMeta.find(t => t.id === pkActiveTripId);
-  pkCustomAssignPrice = trip ? (trip.price || 280000) : 280000;
+  pkCustomAssignPrice = pkDefaultAssignPrice(trip);
   const priceInput = document.getElementById('pkAssignTripPrice');
   if (priceInput) priceInput.value = pkCustomAssignPrice;
   pkWireAssignPriceDoubleToggle(trip);
@@ -1516,9 +1527,27 @@ function pkOnAssignPriceChange(val) {
 
 // Ô tick "Ghế đôi" cạnh giá vé của modal — cùng logic với panel Đặt vé chính/Đặt lại vé (xem
 // resolveDoubleSeatPricing() ở ticketstaff.js).
+// Giá ghế đơn / đôi theo cặp trạm của KHÁCH Rước liền + loại xe của phơi (ERD B5) — KHÔNG theo cặp trạm của phơi.
+// null = thiếu trạm hoặc cặp chưa có giá trong Quản lý giá → nhân viên nhập giá tay.
+function pkAssignPricing(trip) {
+  const pax = pickupPassengers.find(p => p.id === pkActivePaxId);
+  const fare = pax ? fareForCustomerStations(pax.fromStation, pax.toStation, trip && trip.vehicleType) : null;
+  return fare ? { single: fare.single, double: fare.double } : null;
+}
+// Giá điền sẵn: giá bảng theo trạm khách; chưa có thì giá niêm yết của phơi (nhân viên sửa được), không còn mặc định cứng 280.000đ.
+function pkDefaultAssignPrice(trip) {
+  const pricing = pkAssignPricing(trip);
+  if (pricing) return pricing.single;
+  if (typeof showToast === 'function') showToast('Cặp trạm của khách chưa có giá trong Quản lý giá — kiểm tra / nhập giá vé');
+  return trip ? (trip.price || 0) : 0;
+}
+
 function pkWireAssignPriceDoubleToggle(trip) {
-  if (typeof resolveDoubleSeatPricing !== 'function' || typeof wireDoubleSeatToggle !== 'function') return;
-  const doublePricing = resolveDoubleSeatPricing(trip);
+  if (typeof wireDoubleSeatToggle !== 'function') return;
+  const doublePricing = pkAssignPricing(trip);
+  // ERD B16 change_price: thiếu quyền thì ô giá chỉ đọc khi cặp trạm của khách đã có giá trong Quản lý giá (chưa có giá thì vẫn nhập tay).
+  const pkPriceInput = document.getElementById('pkAssignTripPrice');
+  if (pkPriceInput) pkPriceInput.readOnly = !!doublePricing && !hasTicketPermission('change_price');
   wireDoubleSeatToggle(document.getElementById('pkAssignPriceDoubleSeat'), doublePricing, pkCustomAssignPrice, (amount) => {
     const priceInput = document.getElementById('pkAssignTripPrice');
     if (priceInput) priceInput.value = amount;
@@ -1587,7 +1616,7 @@ function pkSelectSeat(code) {
 
 // Đơn giá áp dụng: ưu tiên giá tuỳ chỉnh trong modal, nếu không thì lấy giá của phơi xe (mặc định 280000)
 function pkGetUnitPrice(trip) {
-  return (pkCustomAssignPrice !== null && !isNaN(pkCustomAssignPrice)) ? pkCustomAssignPrice : (trip ? (trip.price || 280000) : 280000);
+  return (pkCustomAssignPrice !== null && !isNaN(pkCustomAssignPrice)) ? pkCustomAssignPrice : pkDefaultAssignPrice(trip);
 }
 
 function pkUpdateConfirmState() {
@@ -1601,6 +1630,8 @@ function pkUpdateConfirmState() {
   const totalPrice = unitPrice * pkSelectedSeats.length;
 
   if (totalEl) totalEl.textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
+  const zeroReasonEl = document.getElementById('pkAssignZeroReason'); // ERD B4: giá 0đ bắt buộc lý do
+  if (zeroReasonEl) zeroReasonEl.style.display = unitPrice === 0 ? '' : 'none';
 
   if (pkActiveTripId && pkSelectedSeats.length > 0) {
     btn.disabled = false;
@@ -1617,6 +1648,7 @@ function pkUpdateConfirmState() {
 // chuyển khoản, y chang panel đặt vé chính) trước; việc bán thật sự chuyển sang nhánh
 // pendingPickupAssignSell trong confirmSellPayment() (ticketstaff.js).
 function pkConfirmAssign() {
+  if (!requirePermission(SELL_KEYS)) return; // ERD B11, B16: Chỉ định xe Rước liền (kết quả là bán vé) = sell_ticket
   if (!pkActivePaxId || !pkActiveTripId || pkSelectedSeats.length === 0) return;
   const pax = pickupPassengers.find(p => p.id === pkActivePaxId);
   if (!pax) return;
@@ -1625,19 +1657,30 @@ function pkConfirmAssign() {
   if (!tripPlan) return;
 
   if (tripNotSellable(pkActiveTripId)) { showToast('Phơi này đã hủy hoặc đã khởi hành (chưa Re-open) — chọn phơi khác'); return; }
+  // Đổi chỉ định: phơi cũ cũng phải còn mở bán (ERD B10, B11, B12).
+  if (pax.assigned && pax.assigned.tripId && typeof tsIsSellingLocked === 'function' && tsIsSellingLocked(pax.assigned.tripId)) {
+    showToast('Phơi cũ của khách đã khởi hành (chưa Re-open) — không đổi chỉ định được'); return;
+  }
 
   // Việc trả ghế cũ về trống (nếu khách đang đổi chỉ định) chỉ thực hiện lúc XÁC NHẬN thanh toán xong
   // (nhánh pendingPickupAssignSell trong confirmSellPayment(), ticketstaff.js) — làm ngay ở đây rồi lỡ
   // người dùng bấm "Đóng" ở modal thanh toán thay vì xác nhận sẽ mất luôn cả ghế cũ lẫn ghế mới.
   const trip = allTripsMeta.find(t => t.id === pkActiveTripId);
   const unitPrice = pkGetUnitPrice(trip);
+  const zeroPriceReason = unitPrice === 0 ? ((document.getElementById('pkAssignZeroReason') || {}).value || '').trim() : '';
+  if (unitPrice === 0 && !requirePermission('change_price')) return; // ERD B16: giá 0đ cần change_price
+  if (unitPrice === 0 && !zeroPriceReason) { showToast('Vui lòng nhập lý do khi giá vé 0đ'); return; }
 
   pendingPickupAssignSell = {
     paxId: pkActivePaxId,
     tripId: pkActiveTripId,
     seatCodes: pkSelectedSeats.slice(),
     unitPrice,
-    fare: tsFareSnapshot(pkActiveTripId, 'pkAssignPriceDoubleSeat'),
+    zeroPriceReason,
+    // Tra trạm theo điểm đi / đến của KHÁCH Rước liền (ERD B5); '—' = chưa nhập thì rơi về cặp trạm của phơi.
+    fare: tsFareSnapshot(pkActiveTripId, 'pkAssignPriceDoubleSeat',
+      (pax.fromStation && pax.fromStation !== '—') ? pax.fromStation : '',
+      (pax.toStation && pax.toStation !== '—') ? pax.toStation : ''),
     ticketNo: (reseedTicketSeqFromBank(), 'SGCD-' + String(ticketSeq++).padStart(4, '0')) // tuần tự, duy nhất
   };
 

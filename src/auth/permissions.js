@@ -58,6 +58,9 @@
     // Tài khoản hiện tại có quyền `key` (khai báo ở PERMISSION_GROUPS) không. Admin gốc luôn có đủ.
     // Quyền gán theo LOẠI nhân viên (role), không gán riêng từng người.
     hasPermission: hasPermission,
+    // Được thao tác vé / ghế / tiền SAU KHI XE KHỞI HÀNH (ERD B12, B26): khóa edit_after_departure do admin / HR cấp; admin gốc luôn có.
+    // KHÔNG phụ thuộc cờ HN_ENFORCE_TICKET_PERMS: cờ tắt thì chỉ admin gốc được miễn khóa, không ai khác.
+    canEditAfterDeparture: function () { return hasPermission('edit_after_departure'); },
     // Có ít nhất 1 trong các quyền `keys` không.
     hasAnyPermission: function (keys) {
       return (keys || []).some(hasPermission);
@@ -77,12 +80,15 @@ window.PERMISSION_GROUPS = [
     key: 'ticket_seat',
     label: 'Vé & ghế',
     items: [
-      { key: 'book_ticket', label: 'Đặt vé' },
-      { key: 'sell_ticket', label: 'Bán vé / Hủy ghế, chuyển vé' },
-      { key: 'change_price', label: 'Đổi giá' },
+      { key: 'book_ticket', label: 'Đặt vé (giữ chỗ) / sửa, hủy, chuyển vé giữ chỗ / Đặt thêm cho nhóm' },
+      { key: 'sell_ticket', label: 'Bán vé / Hủy ghế đã bán, chuyển vé, Đặt lại vé nút Bán, Chỉ định xe Rước liền, hoàn tiền (gồm cả quyền Đặt vé)' },
+      { key: 'change_price', label: 'Đổi giá (sửa mọi giá vé, kể cả giá bảng; giá 0đ)' },
+      { key: 'view_tickets', label: 'Xem Admin > Danh sách vé' },
+      { key: 'view_customers', label: 'Xem Admin > Khách hàng' },
+      { key: 'edit_after_departure', label: 'Sửa / hủy / hoàn vé sau khi xe đã khởi hành (ngoại lệ khóa sau khởi hành; ghi nhật ký)' },
       { key: 'assign_depart_reopen', label: 'Chỉ định xe / Khởi hành xe / Re-open / Đóng băng / Kết ca / Khách ngoài phơi' },
       { key: 'transship_pickup', label: 'Trung chuyển / rước khách' },
-      { key: 'transship_assign', label: 'Trung chuyển - chỉ định xe,...' },
+      { key: 'transship_assign', label: 'Trung chuyển - chế độ điều hành (gán tài xế, cập nhật chặng)' },
       { key: 'print_transship_ticket', label: 'In vé trung chuyển' }
     ]
   },

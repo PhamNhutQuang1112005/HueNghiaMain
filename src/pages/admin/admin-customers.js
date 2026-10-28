@@ -19,20 +19,29 @@ var HN_ADMIN_CUSTOMER_CODES_KEY = 'hn_admin_customer_codes_v1';
 var CUST_TAB = 'list';
 var CUST_FILTERS = { list: '' };
 
-/* ---------- Gộp toàn bộ vé (adminScanTicketRows, admin-tickets.js) theo SĐT ---------- */
+/* Chuẩn hoá SĐT chính (ERD B14): lấy số ĐẦU của chuỗi 'a, b', bỏ khoảng trắng . -, +84 đầu -> 0 (giống searchCustomerByPhone).
+   Khách chỉ trùng người khi trùng SĐT chính đã chuẩn hoá. */
+function custNormPhone(raw) {
+  var first = String(raw || '').split(/[,;\/]/)[0];
+  return first.replace(/[\s.\-]/g, '').replace(/^\+84/, '0');
+}
+
+/* ---------- Gộp toàn bộ vé (adminScanTicketRows, admin-tickets.js) theo SĐT chính đã chuẩn hoá ---------- */
 function custBuildCustomers() {
   var rows = adminScanTicketRows();
   var byPhone = {};
 
   rows.forEach(function (r) {
-    var phone = String(r.phone || '').trim();
+    var phone = custNormPhone(r.phone);
     if (!phone || phone === '—') return;
 
     var c = byPhone[phone];
-    if (!c) c = byPhone[phone] = { phone: phone, name: r.name, tripCount: 0, routeCounts: {}, firstSeenTime: '', lastSeenTime: '' };
+    if (!c) c = byPhone[phone] = { phone: phone, name: '', nameTime: '', tripCount: 0, routeCounts: {}, firstSeenTime: '', lastSeenTime: '' };
 
     c.tripCount++;
-    if (r.name && r.name !== '—') c.name = r.name;
+    // Tên khách = tên khác rỗng GẦN NHẤT (ERD B14). rows sắp mới nhất trước nên không thể cứ gán đè — so theo actionTime.
+    var rowTime = r.actionTime || '';
+    if (r.name && r.name !== '—' && (!c.name || rowTime >= c.nameTime)) { c.name = r.name; c.nameTime = rowTime; }
 
     var routeKey = (r.firstStop || '—') + '|' + (r.lastStop || '—');
     c.routeCounts[routeKey] = (c.routeCounts[routeKey] || 0) + 1;
@@ -47,7 +56,7 @@ function custBuildCustomers() {
     var bestRouteKey = Object.keys(c.routeCounts).sort(function (a, b) { return c.routeCounts[b] - c.routeCounts[a]; })[0] || '—|—';
     var parts = bestRouteKey.split('|');
     return {
-      phone: phone, name: c.name, tripCount: c.tripCount,
+      phone: phone, name: c.name || '—', tripCount: c.tripCount,
       firstStop: parts[0], lastStop: parts[1],
       firstSeenTime: c.firstSeenTime, lastSeenTime: c.lastSeenTime
     };
@@ -58,11 +67,23 @@ function custBuildCustomers() {
 
 /* Sinh mã KH mới cho các SĐT chưa có mã (theo thứ tự xuất hiện sớm nhất), KHÔNG đổi mã đã cấp trước đó. */
 function custAssignCodes(customers) {
-  var map = lsRead(HN_ADMIN_CUSTOMER_CODES_KEY, {});
+  var rawMap = lsRead(HN_ADMIN_CUSTOMER_CODES_KEY, {});
   var maxNum = 0;
-  Object.keys(map).forEach(function (p) {
-    var n = parseInt(String(map[p]).replace(/\D/g, ''), 10) || 0;
-    if (n > maxNum) maxNum = n;
+  var map = {};
+  var migrated = false;
+  Object.keys(rawMap).forEach(function (p) {
+    var n = parseInt(String(rawMap[p]).replace(/\D/g, ''), 10) || 0;
+    if (n > maxNum) maxNum = n; // mã đã cấp không bao giờ cấp lại, kể cả mã bị bỏ khi gộp khoá
+    // Khoá cũ là chuỗi SĐT thô (có thể 'a, b', +84, dấu cách) -> gộp về SĐT chính chuẩn hoá, giữ mã nhỏ nhất (ERD B14).
+    var key = custNormPhone(p);
+    if (!key) return;
+    if (key !== p) migrated = true;
+    if (!map[key]) map[key] = rawMap[p];
+    else {
+      migrated = true;
+      var cur = parseInt(String(map[key]).replace(/\D/g, ''), 10) || 0;
+      if (n && n < cur) map[key] = rawMap[p];
+    }
   });
 
   var missing = customers.filter(function (c) { return !map[c.phone]; });
@@ -71,7 +92,7 @@ function custAssignCodes(customers) {
     maxNum++;
     map[c.phone] = 'KH' + ('0000' + maxNum).slice(-4);
   });
-  if (missing.length) lsWrite(HN_ADMIN_CUSTOMER_CODES_KEY, map);
+  if (missing.length || migrated) lsWrite(HN_ADMIN_CUSTOMER_CODES_KEY, map);
 
   customers.forEach(function (c) { c.code = map[c.phone] || '—'; });
   return customers;

@@ -448,7 +448,53 @@ function scRenderParamsTab() {
     '<form class="admin-form" data-submit-action="scSaveParams" data-args=\'["__event__"]\'>' +
       '<div class="hr-grid-2">' + fields + '</div>' +
       '<div class="modal-actions"><button type="submit" class="btn btn-primary">Lưu tham số</button></div>' +
-    '</form></div></div>';
+    '</form></div></div>' + scTicketPermsBlockHtml() + scTicketContactBlockHtml();
+}
+// Cờ bật kiểm quyền vé (ERD đặt vé B16): quyền do nhân sự cấp theo loại nhân viên, không seed mặc định, nên kiểm quyền
+// mặc định TẮT. Bật khi đã cấp book_ticket / sell_ticket cho các loại nhân viên cần dùng, nếu không sẽ khóa nhân viên vé.
+function scTicketPermsOn() {
+  try { return localStorage.getItem(HN_ENFORCE_TICKET_PERMS_KEY) === '1'; } catch (e) { return false; }
+}
+function scTicketPermsBlockHtml() {
+  var roles = FleetStore.getStaffRoles().filter(function (r) { return r.active; });
+  var has = function (r) { return (r.permissions || []).some(function (p) { return p === 'book_ticket' || p === 'sell_ticket'; }); };
+  var granted = roles.filter(has).map(function (r) { return esc(r.label); });
+  return '<div class="sd-blocks"><div class="sd-section-block"><div class="sd-section-head">Kiểm quyền vé (Đặt vé / Bán vé / Đổi giá)</div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sp_enforceTicketPerms"' + (scTicketPermsOn() ? ' checked' : '') +
+      ' data-change-action="scToggleTicketPerms" data-args=\'["__this__"]\'> Bật kiểm quyền các thao tác vé</label>' +
+    '<span class="hint-inline">Tắt: ai vào được trang vé cũng thao tác được như trước. Bật: mỗi thao tác kiểm khóa book_ticket / sell_ticket / change_price của loại nhân viên (admin gốc luôn có đủ). ' +
+    (granted.length ? 'Loại đã được cấp quyền đặt / bán vé: <b>' + granted.join(', ') + '</b>.' : '<b>Chưa loại nhân viên nào được cấp quyền đặt / bán vé</b> — cấp ở tab Loại nhân viên trước khi bật.') + '</span></div></div>';
+}
+// Thông tin khách bắt buộc khi đặt / bán vé (ERD đặt vé B4, B29): SĐT mặc định bắt buộc, tên mặc định không. Chỉ kiểm khi tạo vé mới; vé cũ thiếu thông tin vẫn dùng bình thường.
+function scTicketContactBlockHtml() {
+  var phoneOn = ticketRequiresPhone(), nameOn = ticketRequiresName();
+  return '<div class="sd-blocks"><div class="sd-section-block"><div class="sd-section-head">Thông tin khách khi đặt / bán vé</div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sp_requireTicketPhone"' + (phoneOn ? ' checked' : '') +
+      ' data-change-action="scToggleTicketRequirePhone" data-args=\'["__this__"]\'> Bắt buộc nhập số điện thoại</label>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-top:6px;"><input type="checkbox" id="sp_requireTicketName"' + (nameOn ? ' checked' : '') +
+      ' data-change-action="scToggleTicketRequireName" data-args=\'["__this__"]\'> Bắt buộc nhập tên khách</label>' +
+    '<span class="hint-inline">Áp dụng khi đặt / bán vé mới và Đặt lại vé. Vé đã có từ trước mà thiếu SĐT hoặc tên vẫn xem, bán, hủy bình thường; chỉ khi sửa vé đó mà ô vốn đã trống thì không bị đòi nhập.</span></div></div>';
+}
+function scSetTicketRequire(el, key, label, on) {
+  if (!hrRequireRoot()) { el.checked = !on; return; }
+  var before = { value: on ? 0 : 1 };
+  try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) { showToast('Không lưu được cài đặt.'); el.checked = !on; return; }
+  hrLog('update', 'app_settings', key === HN_TICKET_REQUIRE_PHONE_KEY ? 'ticket_require_phone' : 'ticket_require_name', (on ? 'Bật' : 'Tắt') + ' bắt buộc ' + label + ' khi đặt / bán vé', hrDiff(before, { value: on ? 1 : 0 }, ['value']));
+  showToast((on ? 'Đã bật' : 'Đã tắt') + ' bắt buộc ' + label + '.');
+}
+function scToggleTicketRequirePhone(el) { scSetTicketRequire(el, HN_TICKET_REQUIRE_PHONE_KEY, 'số điện thoại', !!el.checked); }
+function scToggleTicketRequireName(el) { scSetTicketRequire(el, HN_TICKET_REQUIRE_NAME_KEY, 'tên khách', !!el.checked); }
+function scToggleTicketPerms(el) {
+  var on = !!el.checked;
+  if (!hrRequireRoot()) { el.checked = !on; return; }
+  if (on) {
+    var any = FleetStore.getStaffRoles().some(function (r) { return r.active && (r.permissions || []).some(function (p) { return p === 'book_ticket' || p === 'sell_ticket'; }); });
+    if (!any) { el.checked = false; showToast('Chưa loại nhân viên nào có quyền đặt / bán vé — cấp quyền ở tab Loại nhân viên trước, nếu không toàn bộ nhân viên vé sẽ bị khóa.'); return; }
+  }
+  var before = { enforce: scTicketPermsOn() ? 1 : 0 };
+  try { localStorage.setItem(HN_ENFORCE_TICKET_PERMS_KEY, on ? '1' : '0'); } catch (e) { showToast('Không lưu được cài đặt.'); el.checked = !on; return; }
+  hrLog('update', 'app_settings', 'enforce_ticket_perms', (on ? 'Bật' : 'Tắt') + ' kiểm quyền thao tác vé', hrDiff(before, { enforce: on ? 1 : 0 }, ['enforce']));
+  showToast(on ? 'Đã bật kiểm quyền vé.' : 'Đã tắt kiểm quyền vé.');
 }
 function scSaveParams(e) {
   e.preventDefault();

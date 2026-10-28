@@ -29,13 +29,14 @@ function renderAgentSetupView() {
       '<td class="mono" style="font-weight:700;">' + esc(a.code) + '</td>' +
       '<td><b>' + esc(a.name) + '</b></td>' +
       '<td class="mono">' + esc(a.phone || '—') + '</td>' +
+      '<td class="num">' + esc(String(Number(a.commissionRate) || 0)) + '%</td>' +
       '<td>' + esc(a.note || '—') + '</td>' +
       '<td class="row-actions">' +
         '<button type="button" class="btn btn-sm" data-action="adminOpenAgentModal" data-args=\'["' + esc(a.id) + '"]\'>Sửa</button> ' +
         '<button type="button" class="btn btn-sm" style="color:var(--red);" data-action="adminDeleteAgent" data-args=\'["' + esc(a.id) + '"]\'>Xoá</button>' +
       '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="6" class="empty-state">Chưa có đại lý nào.</td></tr>';
+  }).join('') : '<tr><td colspan="7" class="empty-state">Chưa có đại lý nào.</td></tr>';
 
   $('viewAgentSetup').innerHTML =
     '<div class="sd-toolbar">' +
@@ -51,7 +52,7 @@ function renderAgentSetupView() {
         '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">' + list.length + ' đại lý</span>' +
       '</div>' +
       '<div class="sd-table-wrap"><table class="admin-table">' +
-        '<thead><tr><th class="num">STT</th><th>Mã</th><th>Tên đại lý</th><th>SĐT</th><th>Ghi chú</th><th class="th-actions">Thao tác</th></tr></thead>' +
+        '<thead><tr><th class="num">STT</th><th>Mã</th><th>Tên đại lý</th><th>SĐT</th><th class="num">Hoa hồng</th><th>Ghi chú</th><th class="th-actions">Thao tác</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table></div>' +
     '</div></div>';
 }
@@ -68,6 +69,7 @@ function adminOpenAgentModal(id) {
     '<form class="admin-form" data-submit-action="adminSaveAgent" data-args=\'["__event__"' + (a ? ',"' + esc(a.id) + '"' : '') + ']\'>' +
       '<div class="fld"><label>Tên đại lý <span class="req">*</span></label><input id="agName" required value="' + (a ? esc(a.name) : '') + '" placeholder="VD: Đại lý Thanh Hà"></div>' +
       '<div class="fld"><label>Số điện thoại</label><input id="agPhone" value="' + (a ? esc(a.phone) : '') + '"></div>' +
+      '<div class="fld"><label>Hoa hồng (%)</label><input id="agCommission" type="number" min="0" max="100" step="0.1" value="' + (a ? esc(String(Number(a.commissionRate) || 0)) : '0') + '" placeholder="VD: 10"></div>' +
       '<div class="fld"><label>Ghi chú</label><input id="agNote" value="' + (a ? esc(a.note) : '') + '"></div>' +
       '<div class="modal-actions">' +
         '<button type="button" class="btn" data-action="closeAdminModal">Huỷ</button>' +
@@ -79,10 +81,10 @@ function adminOpenAgentModal(id) {
 
 function adminSaveAgent(e, id) {
   e.preventDefault();
-  var fields = { name: $('agName').value, phone: $('agPhone').value, note: $('agNote').value };
+  var fields = { name: $('agName').value, phone: $('agPhone').value, note: $('agNote').value, commissionRate: $('agCommission').value };
   var res = id ? AgentStore.update(id, fields) : AgentStore.add(fields);
   if (!res.ok) { showToast(res.reason); return; }
-  FleetStore.log({ action: id ? 'update' : 'create', entity: 'agent', entityId: res.item.id, summary: (id ? 'Sửa' : 'Thêm') + ' đại lý "' + res.item.name + '"' });
+  FleetStore.log({ action: id ? 'update' : 'create', entity: 'agent', entityId: res.item.id, summary: (id ? 'Sửa' : 'Thêm') + ' đại lý "' + res.item.name + '" (hoa hồng ' + (res.item.commissionRate || 0) + '%)' });
   closeAdminModal();
   showToast(id ? 'Đã lưu đại lý.' : 'Đã thêm đại lý.');
   renderAgentSetupView();

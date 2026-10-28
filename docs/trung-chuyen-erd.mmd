@@ -1,0 +1,152 @@
+erDiagram
+    %% TRUNG CHUYỂN / RƯỚC LIỀN (GIAI ĐOẠN 2) — tách ra từ docs/dat-ve-erd.mmd ngày 28/10/2026 (quyết định 21). Bản đặt + bán vé (giai đoạn 1) ở dat-ve-erd.mmd.
+    %% BẢNG: pickup_request (hàng chờ khách Rước liền), shuttle_assignment (chặng đón / trả của vé hoặc của khách đang chờ). ticket, station, users, employees, vehicle chỉ là KHUNG để vẽ quan hệ.
+    %% ĐIỀU KIỆN BẮT BUỘC TỪ GIAI ĐOẠN 1: chép lại bên dưới ở mục ĐIỂM NỐI (B28 trong dat-ve-erd.mmd). Vé sinh từ Rước liền phải đi qua đúng luật đặt / bán vé.
+
+    pickup_request |o--o| ticket : "vé đã bán khi chỉ định xe (pickup_request.ticket_id); NULL = còn trong hàng chờ"
+    users |o--o{ pickup_request : "người nhập khách Rước liền"
+    station |o--o{ pickup_request : "trạm nơi nhập khách"
+    ticket |o--o{ shuttle_assignment : "chặng đón / trả của vé (tối đa 1 dòng mỗi chặng)"
+    pickup_request |o--o{ shuttle_assignment : "chặng đón của khách Rước liền còn trong hàng chờ"
+    employees |o--o{ shuttle_assignment : "tài xế trung chuyển (crew_role = shuttle_driver)"
+    vehicle |o--o{ shuttle_assignment : "xe trung chuyển (scope shuttle)"
+    users |o--o{ shuttle_assignment : "người cập nhật"
+    ticket |o--o{ ticket : "vé mới khi đổi chỉ định (transferred_from_ticket_id); pickup_request.ticket_id luôn trỏ vé mới nhất"
+    station ||--o{ ticket : "trạm bán / chịu doanh số (selling_station_id)"
+    users ||--o{ ticket : "người bán / chịu doanh số (sold_by)"
+    employee_types ||--o{ employee_type_permissions : "cấp quyền cho loại (có thể 0 dòng)"
+    permissions ||--o{ employee_type_permissions : "khóa được cấp cho loại"
+    employee_types ||--o{ employees : "loại nhân viên -> quyền trung chuyển"
+
+    pickup_request {
+        bigint pickup_request_id PK "GIAI ĐOẠN 2 (trung chuyển, quyết định 18); app: pickupPassengers[].id"
+        varchar customer_name "NOT NULL; app: name"
+        varchar phone "NOT NULL; SĐT chính chuẩn hoá (số đầu của collectPhoneValues)"
+        text phone_extra "SĐT phụ (text[]); modal Rước liền cho nhập nhiều số, chuyển sang ticket.phone_extra khi chỉ định xe"
+        int ticket_count "NOT NULL DEFAULT 1; app: ticketCount"
+        varchar from_place "app: fromStation"
+        text pickup_address "app: fromTransfer; '—' -> NULL"
+        varchar to_place "app: toStation"
+        text dropoff_address "app: toTransfer; '—' -> NULL"
+        text note "app: note"
+        bigint ticket_id FK "vé đã bán khi chỉ định xe; NULL = đang chờ; app: assigned"
+        bigint station_id FK "trạm nhập khách"
+        uuid created_by FK "users.user_id; ghi cả khi nhập từ Admin > Trung chuyển"
+        date pickup_date "NOT NULL; ngày rước; app: date (Admin ghi, modal ticketstaff không ghi); mặc định ngày đang chọn ở danh sách Rước liền"
+        timestamptz printed_at "giờ in danh sách Rước; app: printedAt (tính năng in chưa làm)"
+        timestamptz created_at "app: createdAt"
+    }
+
+    shuttle_assignment {
+        bigint assignment_id PK "GIAI ĐOẠN 2 (trung chuyển, quyết định 18); app: hn_shuttle_driver_assign_v1"
+        bigint ticket_id FK "đúng 1 trong ticket_id / pickup_request_id (CHECK num_nonnulls = 1); UNIQUE (ticket_id, leg) khi ticket_id có giá trị (B27)"
+        bigint pickup_request_id FK "khách Rước liền còn chờ; UNIQUE (pickup_request_id, leg) khi có giá trị (B27)"
+        varchar leg "NOT NULL; pickup | dropoff; app: hậu tố _don / _tra"
+        bigint driver_id FK "employees, crew_role = shuttle_driver; app: driverName / driverPhone"
+        bigint vehicle_id FK "xe scope shuttle; app: driverPlate"
+        varchar status "NOT NULL DEFAULT waiting; waiting | enroute | onboard | issue"
+        text issue_reason "bắt buộc khi issue; app: note"
+        text driver_note "app: driverNote"
+        text office_note "app: transshipPickupNote / transshipDropoffNote"
+        timestamptz updated_at "NOT NULL"
+        uuid updated_by FK "users.user_id"
+    }
+
+    ticket {
+        bigint ticket_id PK "KHUNG, đầy đủ ở dat-ve-erd.mmd"
+        bigint trip_id FK "phơi của vé"
+        varchar ticket_no "SGCD-0001 từ ticket_no_seq"
+        varchar status "hold | sold | cancelled | transferred; vé từ Rước liền sinh ra là sold"
+        varchar channel "counter | pickup; Rước liền chỉ định xe = pickup"
+        varchar guest_type "Rước liền chỉ định xe = Trung chuyển"
+        varchar first_stop "trạm đi của KHÁCH"
+        varchar last_stop "trạm đến của KHÁCH"
+        bigint from_station_id FK "tra giá theo trạm khách"
+        bigint to_station_id FK "tra giá theo trạm khách"
+        text pickup_address "channel = pickup được để trống"
+        text dropoff_address "channel = pickup được để trống"
+        int unit_price "giá 1 ghế; 0đ cần change_price + lý do"
+        bigint transferred_from_ticket_id FK "vé cũ khi đổi chỉ định"
+        bigint selling_station_id FK "NOT NULL"
+        uuid sold_by FK "NOT NULL"
+    }
+
+    station {
+        bigint station_id PK "KHUNG"
+    }
+
+    users {
+        uuid user_id PK "KHUNG"
+    }
+
+    employees {
+        bigint id PK "KHUNG; tài xế trung chuyển = crew_role shuttle_driver"
+    }
+
+    vehicle {
+        bigint vehicle_id PK "KHUNG; xe scope shuttle"
+    }
+
+    employee_types {
+        smallint id PK "KHUNG, so-do-er-nhan-su-v3.1"
+    }
+
+    employee_type_permissions {
+        smallint employee_type_id PK, FK "KHUNG"
+        text permission_key PK, FK "transship_pickup, transship_assign, print_transship_ticket, sell_ticket (chỉ định xe); do HR cấp, không seed"
+    }
+
+    permissions {
+        text key PK "KHUNG"
+    }
+
+    %% ===================== GHI CHÚ VÀ QUY TẮC (chuyển từ dat-ve-erd.mmd, đánh số giữ nguyên để đối chiếu) =====================
+    %% ĐIỂM NỐI VỚI ĐẶT / BÁN VÉ (B28 của dat-ve-erd.mmd, ĐÃ CHỐT 28/10/2026):
+    %%   (a) ticket có sẵn channel = pickup, guest_type = Trung chuyển, transferred_from_ticket_id. (b) fn_assign_pickup gọi CÙNG hàm lõi tạo vé sold với fn_sell_ticket nên cùng kiểm: ghế trống (B19), giá theo trạm khách (B5), 0đ cần change_price + lý do (B4), khóa phơi cũ và mới (B12), mã vé từ ticket_no_seq (B3), dòng payment (B23), nhật ký assign_pickup (B18).
+    %%   (c) Ngoại lệ CHECK duy nhất: channel = pickup được để trống điểm đón / trả. (d) fn_transfer_seats chuyển dòng shuttle_assignment sang vé mới. (e) B12 không khóa shuttle_assignment / pickup_request nhưng khóa vé được sinh. (f) migrate pickup_request và shuttle_assignment SAU ticket.
+    %% .
+    %% KHÓA QUYỀN: transship_pickup (nhập khách Rước liền, cả Phòng vé lẫn Admin > Trung chuyển), sell_ticket (chỉ định xe = bán vé), transship_assign (chỉ chế độ điều hành: gán tài xế, cập nhật chặng), print_transship_ticket. Cấp theo loại nhân viên, không seed.
+    %% .
+    %% HÀM THEO CHỨC NĂNG (cùng nguyên tắc B26 của dat-ve-erd.mmd: client không ghi thẳng, hàm tự kiểm khóa quyền):
+    %%       fn_save_pickup_request .... transship_pickup .................. ghi: pickup_request (cả ticketstaff lẫn Admin > Trung chuyển, F36)
+    %%       fn_assign_pickup .......... sell_ticket ....................... ghi: ticket (sold, channel = pickup), trip_seat, pickup_request.ticket_id, shuttle_assignment (chuyển sang vé), ticket_payment (payment)
+    %%       fn_update_shuttle ......... transship_assign (điều hành: driver_id, vehicle_id, status, driver_note); office_note do người KHÔNG có transship_assign sửa ... ghi: shuttle_assignment
+    %% .
+    %% ÁNH XẠ DỮ LIỆU APP -> BẢNG:
+    %%   hn_pickup_passengers_v6                                                  -> pickup_request
+    %%   hn_shuttle_driver_assign_v1                                              -> shuttle_assignment
+    %%   hn_pk_phongve_notices_v1, hn_pk_print_ruoc_dividers_v1, hn_shuttle_driver_vehicle_v1 -> không thành bảng: dữ liệu giao diện (thông báo suy từ shuttle_assignment.updated_at; xe mặc định của tài xế là tiện ích nhập liệu)
+    %%   transshipPickupNote / transshipDropoffNote -> shuttle_assignment.office_note của chặng pickup / dropoff
+    %%   pickup_request (hn_pickup_passengers_v6): id -> pickup_request_id | name -> customer_name | phone -> phone + phone_extra | ticketCount -> ticket_count | fromStation / toStation -> from_place / to_place | fromTransfer / toTransfer -> pickup_address / dropoff_address ('—' -> NULL) | date -> pickup_date | printedAt -> printed_at | createdAt -> created_at | createdBy -> created_by (mã NV -> users.user_id) | createdStation -> station_id | statusNote -> shuttle_assignment.office_note (chặng pickup) | assigned.ticketNo -> ticket_id (vé hiện tại) | assigned.prevTicketNo -> ticket.transferred_from_ticket_id của vé hiện tại | BỎ guestType = 'Rước liền' và isRuocLien (thành ticket.channel = pickup khi có vé)
+    %%   shuttle (hn_shuttle_driver_assign_v1, khóa 'sđt_don|tra'): driverName / driverPhone -> driver_id (khớp employees theo SĐT) | driverPlate -> vehicle_id | driverVehicleType -> BỎ (suy từ vehicle) | driverNote -> driver_note | status / note (lý do Không đón được) -> status / issue_reason
+    %% .
+    %%   (B11) [GIAI ĐOẠN 2] RƯỚC LIỀN. Khách Rước liền nhập ở modal Rước liền vào hàng chờ pickup_request (chưa có ghế, chưa có vé). Chỉ định xe (pkConfirmAssign): chọn phơi + ghế trống, bán vé (status = sold, channel = pickup, guest_type = Trung chuyển, pickup_address / dropoff_address lấy từ khách, để trống nếu khách để trống; không lưu '—'), gán pickup_request.ticket_id = vé mới.
+    %%       Số ghế chọn KHÔNG bắt buộc bằng ticket_count của khách (code không kiểm), nên ticket_count chỉ là số vé khách ĐỀ NGHỊ. Đổi chỉ định (chọn lại phơi / ghế): phơi CŨ cũng phải còn mở bán (B12, code đã kiểm ở cả hai nơi), ghế cũ về trống sạch, KHÔNG ghi seat_cancellation, vé cũ status = transferred, vé mới mã mới, transferred_from_ticket_id = vé cũ, pickup_request.ticket_id luôn là vé mới nhất.
+    %%       Phơi đích kiểm như B10. Quyền: transship_pickup để nhập khách; sell_ticket để chỉ định xe (kết quả là bán vé, nút ghi "Bán vé"; ĐÃ CHỐT, B16). transship_assign KHÔNG dùng cho việc này: nó chỉ bật chế độ điều hành (gán tài xế, cập nhật chặng), còn nút Chỉ định thuộc chế độ phòng vé. Hàng chờ còn thiếu created_by + station_id: modal Rước liền phải ghi thêm khi lên DB.
+    %%       Dữ liệu cũ: fromTransfer / toTransfer '—' -> NULL; guestType 'Rước liền' / isRuocLien không thành cột (channel = pickup). p.assigned dữ liệu cũ chỉ có {tripId, seat, seats, price}, nối vé qua (tripId, mã ghế) -> trip_seat.ticket_id; bản mới thêm ticketNo (vé hiện tại) và prevTicketNo (vé của lần chỉ định trước) để migrate transferred_from_ticket_id.
+    %%       CHỈ ĐỊNH XE + BÁN VÉ có HAI nơi: pkConfirmAssign -> confirmSellPayment (ticketstaff) và adminTsConfirmSellPayment (Admin > Trung chuyển; còn dùng để đổi ghế cho vé Trung chuyển đã bán, kind = ts, xem C9). Cả hai theo cùng quy tắc: giá + from/to_station_id tra theo trạm KHÁCH (B5), giá 0đ bắt buộc lý do (B4), khóa phơi cũ + mới (B12), dọn ghế cũ sạch, không lưu '—', bán trên ghế còn trống. pickup_request.pickup_date: app mặc định lấy pkSelectedDate khởi tạo từ hằng demo PK_DEMO_TODAY (2026-07-18), khi lên DB phải là ngày thật (F22).
+    %%       ĐÃ CHỐT (C9): Admin > Trung chuyển đổi ghế / phơi cho vé Trung chuyển ĐÃ CÓ VÉ (kind = ts) là CHUYỂN VÉ theo B10, không phải bán mới: vé mới giữ nguyên status (hold | sold), unit_price, cọc, đại lý, hành lý, ghi chú, người bán + trạm (vé sold) hoặc người thao tác mới nhất (vé hold), ghế cũ về trống, vé cũ status = transferred, transferred_from_ticket_id = vé cũ, KHÔNG hỏi thu tiền lại, KHÔNG tra lại bảng giá. Chỉ khách Rước liền chưa có vé (kind = pk) mới đi qua bước bán + thu tiền. Admin chuyển CẢ VÉ (số ghế chọn phải bằng số ghế của vé); chuyển một phần ghế chỉ làm ở Phòng vé (C10). Code đã theo: adminTsTransferExisting, xem F23.
+    %%       Nguồn nhập khách có HAI nơi: modal Rước liền (savePickupInfo) và Admin > Trung chuyển (adminSavePickup); created_by + station_id phải ghi ở cả hai. Admin còn ghi thêm date (ngày rước), printedAt, statusNote; modal ticketstaff không ghi date nên khách không có date hiện ở MỌI ngày (pkRenderPaxTable). DB: pickup_request.pickup_date NOT NULL; modal Rước liền nay ghi date = ngày đang chọn ở danh sách Rước liền (khớp Admin), dữ liệu cũ thiếu date lấy ngày của createdAt; printed_at NULL cho tới khi làm tính năng in; statusNote -> shuttle_assignment.office_note (chặng pickup, qua pickup_request_id).
+    %%   (B15) [GIAI ĐOẠN 2] TRUNG CHUYỂN: CHẶNG ĐÓN / TRẢ. shuttle_assignment là 1 dòng / (vé hoặc khách chờ Rước liền) / chặng, KHÔNG bắt buộc (chưa phân tài xế và chưa có ghi chú thì không có dòng). Một vé CẦN chặng đón khi guest_type IN (Trung chuyển, Rước đường) hoặc pickup_address có giá trị; CẦN chặng trả khi guest_type = Trung chuyển hoặc dropoff_address có giá trị (đúng như renderTransshipTables lọc).
+    %%       App khóa phân công theo 'sđt_don' / 'sđt_tra' KHÔNG kèm phơi nên cùng 1 SĐT ở 2 phơi dùng chung 1 dòng: khi migrate TÁCH theo vé (mỗi vé còn hiệu lực có SĐT đó sinh 1 dòng riêng). Chặng trả (_tra) chưa thấy nơi nào ghi, chỉ chặng đón được ghi (kể cả Admin: adminTsDriverLegKey cũng chỉ _don).
+    %%       status: waiting (Chờ điều phối) | enroute (Đang trung chuyển) | onboard (Đã đón) | issue (Không đón được); issue_reason bắt buộc khi status = issue (mặc định 'Không liên lạc được'); noteImportant = (status = issue) nên suy ra, không lưu. driver_id là nhân viên crew_role = shuttle_driver (khớp theo SĐT), vehicle_id là xe scope shuttle.
+    %%       Ghi chú Phòng vé (role bán vé sửa) ở office_note, ghi chú của tài xế (role trung chuyển sửa) ở driver_note: hai role mỗi bên chỉ sửa cột của mình. Phòng vé của khách còn chờ Rước liền cũng nằm ở shuttle_assignment (pickup_request_id) nên bỏ cột pickup_request.office_note của bản cũ; khi khách thành vé, dòng chuyển sang ticket_id.
+    %%       Chuyển vé (B10) sang vé mới thì chuyển luôn các dòng chặng của vé cũ sang vé mới (cùng khách, cùng tài xế).
+    %% .
+    %% RÀNG BUỘC (từ B27 của dat-ve-erd.mmd):
+    %%   (d) shuttle_assignment: CHECK num_nonnulls(ticket_id, pickup_request_id) = 1; UNIQUE (ticket_id, leg) WHERE ticket_id IS NOT NULL; UNIQUE (pickup_request_id, leg) WHERE pickup_request_id IS NOT NULL; CHECK status <> issue OR issue_reason IS NOT NULL. (e) pickup_request: created_by, station_id nullable vì dữ liệu cũ thiếu (quan hệ vẽ tùy chọn); ticket_id NULL = hàng chờ.
+    %% .
+    %% PHÁT HIỆN / ĐIỂM CẦN XÁC NHẬN LIÊN QUAN TRUNG CHUYỂN (đánh số giữ nguyên từ dat-ve-erd.mmd):
+    %%   (F7) renderTransshipTables suy trạng thái chặng TRẢ từ g.main.paid ('Đã trả' nếu đã thanh toán) và chặng đón từ việc có hay không entry trong map tài xế; không phải trạng thái giao khách thật. -> shuttle_assignment.status theo từng chặng (B15).
+    %%   (F8) Map tài xế trung chuyển khóa theo SĐT, không theo phơi: cùng khách đi 2 phơi thì dùng chung tài xế / trạng thái. -> tách theo vé (B15).
+    %%   (F15) [ĐÃ SỬA TRONG CODE] pkConfirmAssign (Chỉ định Rước liền): tsFareSnapshot cũng lấy cặp trạm của phơi, không phải trạm khách (fromStation / toStation của pickup_request); lần sửa đầu chỉ sửa id trạm, giá điền sẵn vẫn là trip.price || 280000 và ô ghế đôi vẫn tra theo cặp trạm của phơi. Nay giá + ghế đôi cũng tra theo trạm khách (pkAssignPricing), thiếu giá thì lấy giá niêm yết của phơi rồi để nhân viên sửa, giá 0đ bắt buộc lý do. -> B4, B5.
+    %%   (F16) [ĐÃ SỬA TRONG CODE] Admin > Trung chuyển (adminSavePickup) cũng tạo khách Rước liền và ghi thêm date, printedAt, statusNote; modal ticketstaff không ghi date nên khách không có date hiện ở mọi ngày. -> B11.
+    %%   (F17) [ĐÃ SỬA TRONG CODE] Admin > Trung chuyển (adminTsConfirmSellPayment) là đường tạo vé thứ HAI cho Chỉ định xe: không ghi from/to_station_id, is_double_seat; không ghi booked_station; giá = trip.price || 280000 và không có lý do 0đ; dọn ghế cũ thiếu trường (groupTicketNo, trạm, hành lý, zeroPriceReason...) và không kiểm khóa phơi cũ; lưu '—' vào điểm đón / trả; không kiểm ghế đích còn trống. -> B4, B5, B7, B11.
+    %%   (F22) [CHƯA SỬA] pkSelectedDate mặc định PK_DEMO_TODAY = 2026-07-18 (hằng demo của lịch Rước liền) nên pickup_request.date mặc định là ngày demo. Lịch demo còn phụ thuộc hằng này, khi lên DB phải lấy ngày thật. -> B11.
+    %%   (F23) [ĐÃ SỬA TRONG CODE: adminTsTransferExisting, nút đổi thành "Chuyển vé", ô giá bị khóa; Admin chuyển cả vé] Admin > Trung chuyển đổi ghế cho vé đã có (adminTsConfirmSellPayment, kind = ts): (a) xóa vé cũ rồi BÁN MỚI chỉ chép khách, hai trạm, điểm đón / trả, giá; mất cọc, đại lý, hành lý, ghi chú, lý do 0đ; (b) giá bị TÍNH LẠI theo bảng giá vì r.assigned = true nên không đọc được giá vé cũ (vi phạm B5); (c) danh sách ts gồm cả vé hold và vé Rước đường có điểm đón nên bị ép thành sold + guestType Trung chuyển; (d) hỏi thu tiền lại, sold_by / selling_station đổi sang người thao tác (trái B10). Nay đi qua cùng quy tắc với confirmTransfer của Phòng vé; adminTsConfirmSellPayment chỉ còn dùng cho khách Rước liền chưa có vé (kind = pk). -> B10, B11, C9.
+    %%   (F24) [ĐÃ SỬA TRONG CODE: kiểm ghế trống TRƯỚC khi dọn ghế cũ, thất bại thì không mất ghế cũ] Chỉ định Rước liền ở Phòng vé (nhánh pendingPickupAssignSell trong confirmSellPayment, ticketstaff.js) không kiểm ghế đích còn trống (state = empty), bản Admin có kiểm. Hai người cùng bấm một ghế có thể đè nhau; DB phải chặn bằng B19. -> B11, B19.
+    %%   (F33) [ĐÃ SỬA TRONG ERD] B11 / B16 cũ ghi chỉ định xe Rước liền cần transship_assign; trong code transship_assign chỉ bật chế độ điều hành, còn pkConfirmAssign thuộc chế độ phòng vé (người KHÔNG có transship_assign). -> B11, B16.
+    %%   (F36) [CHƯA SỬA] adminSavePickup (Admin > Trung chuyển) không kiểm transship_pickup như savePickupInfo. Còn nối ghi nhận F32. -> B11, B26.
+    %%   (F39) [CHƯA SỬA] savePickupInfo tự điền mặc định "508 Kinh Dương Vương" (điểm đi) và "Trạm Châu Đốc" (điểm đến) khi để trống, nên pickup_request.from_place / to_place cũ không đáng tin; và chỉ nó đọc key cũ hn_pickup_passengers_v4 / v5, Admin thì không. -> B11, B20.
+    %%   (C9) [ĐÃ CHỐT, CODE ĐÃ THEO] Admin > Trung chuyển đổi ghế cho vé đã bán / đã giữ chỗ: dùng quy tắc chuyển vé B10 (giữ đủ giá, cọc, đại lý, hành lý, ghi chú, người bán; không thu tiền lại), ghi ở B11. Xem F23.
+    %%   (C10) [ĐÃ CHỐT, CODE ĐÃ THEO] Admin > Trung chuyển chỉ chuyển CẢ VÉ (chọn đúng số ghế của vé). Chuyển một phần ghế làm ở Phòng vé (nút Chuyển ghế, chia cọc theo tỷ lệ).
