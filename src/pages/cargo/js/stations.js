@@ -37,6 +37,13 @@ const DEFAULT_STATIONS = [
 const STATIONS_STORAGE_KEY = 'hueNghia_stations';
 
 function getStations() {
+  // Ưu tiên danh mục trạm quản lý ở admin (Trạm xe) — có Tiền Giang, Vĩnh Long, Đồng Tháp...
+  try {
+    if (typeof FleetStore !== 'undefined') {
+      const names = [...new Set(FleetStore.getActiveStations().map(s => s && s.name).filter(Boolean))];
+      if (names.length) return names;
+    }
+  } catch (e) { /* dùng danh sách bên dưới */ }
   const saved = localStorage.getItem(STATIONS_STORAGE_KEY);
   if (saved) {
     try {

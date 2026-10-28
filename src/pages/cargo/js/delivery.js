@@ -618,6 +618,12 @@ document.addEventListener('DOMContentLoaded', () => {
     categorySelect.value = savedCategory;
   }
 
+  // Trạm nhận lấy chung danh mục trạm với form tạo phơi hàng
+  const stationToEl = document.getElementById('filterStationTo');
+  if (stationToEl && window.HueNghiaStations) {
+    window.HueNghiaStations.populateStationDropdowns(stationToEl, 'all', true, 'Tất cả trạm nhận');
+  }
+
   renderTable();
 
   const filterIds = ['filterDeliveryDate', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory'];

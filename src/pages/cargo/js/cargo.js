@@ -312,7 +312,14 @@ function manifestDirectionId(m) {
   if (r && r.directionId) return r.directionId;
   const label = String(m.route || '').replace(/\s*[→➔]\s*/g, ' - ').trim();
   const dir = cargoDirections().find(d => d.label === label);
-  return dir ? dir.id : null;
+  if (dir) return dir.id;
+  // Phơi gom nhiều trạm đi ("Châu Đốc, Chi Lăng → Sài Gòn"): thử từng trạm đi với điểm đến
+  const to = manifestDestination(m);
+  for (const f of String(m.from || '').split(',').map(s => s.trim()).filter(Boolean)) {
+    const d = cargoDirections().find(x => x.label === `${f} - ${to}`);
+    if (d) return d.id;
+  }
+  return null;
 }
 function manifestDestination(m) {
   return String(m.to || (m.route ? String(m.route).split(/[→➔]/)[1] : '') || '').trim();
@@ -320,9 +327,11 @@ function manifestDestination(m) {
 function manifestAcceptsStation(m, station) {
   const norm = (x) => removeVietnameseTones(String(x || '').toLowerCase()).replace(/^(trạm|bến|tram|ben)\s+/, '').replace(/\s+/g, ' ').trim();
   const want = norm(station);
-  if (norm(manifestDestination(m)) === want) return true;
+  // Phơi có thể gom nhiều trạm đến ("A, B"); thêm trạm đến theo tuyến và theo hướng của phơi
   const r = manifestRouteObj(m);
-  return !!r && (r.toStations || []).some(n => norm(n) === want);
+  const dirCfg = cargoRouteCfg()[manifestDirectionId(m)];
+  const dests = [...manifestDestination(m).split(','), ...((r && r.toStations) || []), ...((dirCfg && dirCfg.toStations) || [])];
+  return dests.some(n => norm(n) === want);
 }
 function manifestMatchesCargo(m, c) {
   const norm = (x) => removeVietnameseTones(String(x || '').toLowerCase()).replace(/\s+/g, ' ').trim();
@@ -330,9 +339,11 @@ function manifestMatchesCargo(m, c) {
     const same = norm(c.route) === norm(m.route);
     let dirC = c.direction || null;
     try { dirC = FleetStore.getRouteDirectionId(c.route) || dirC; } catch (e) { /* giữ hướng đã lưu */ }
-    if (!same && !(dirC && dirC === manifestDirectionId(m))) return false;
-  } else if (c.direction && c.direction !== manifestDirectionId(m)) {
-    return false;
+    const dirM = manifestDirectionId(m); // null = phơi không suy ra được hướng (vd. điểm đến "Trạm An Giang") → xét theo trạm nhận
+    if (!same && dirM && !(dirC && dirC === dirM)) return false;
+  } else if (c.direction) {
+    const dirM = manifestDirectionId(m);
+    if (dirM && c.direction !== dirM) return false;
   }
   return !c.stationTo || manifestAcceptsStation(m, c.stationTo);
 }

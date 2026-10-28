@@ -130,6 +130,14 @@
                     </div>
                   </a>
 
+                  <a class="sidebar-nav-item" href="manifest.html?tab=missing" id="missingNavItem" title="Hàng thiếu trong danh sách chuyến xe đi">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                      <span>Hàng thiếu</span>
+                    </div>
+                    <span id="missingBadgeCount" style="margin-left:auto; background:#d97706; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+                  </a>
+
                 </div>
               </div>
 
@@ -401,8 +409,8 @@
         <section class="toolbar">
           <div class="toolbar-head">
             <div>
-              <p class="eyebrow" style="color:#d97706;">Vận chuyển & Hàng chưa nhận</p>
-              <h1>Danh sách hàng chưa giao</h1>
+              <p class="eyebrow" style="color:#d97706;" id="unreceivedEyebrow">Vận chuyển & Hàng chưa nhận</p>
+              <h1 id="unreceivedTitle">Danh sách hàng chưa giao</h1>
               <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Danh sách các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn <strong>"Bổ sung & Nhận hàng"</strong> khi đơn hàng cập bến sau.</p>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -785,10 +793,10 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="js/stations.js"></script>
   <script src="../../shared/js/storage-keys.js"></script>
-  <script src="../../auth/session.js"></script>
   <script src="../../shared/js/fleet-store.js"></script>
+  <script src="js/stations.js?v=2"></script>
+  <script src="../../auth/session.js"></script>
   <script src="js/auth-bridge.js"></script>
   <script src="js/responsive.js"></script>
   <script>
@@ -834,6 +842,10 @@
     }
 
     // Cứ đã gán vào phơi mà chưa quét QR là tính "chưa giao" ngay, không cần đợi bấm Nhận xe/Xác nhận.
+    // Thiếu hàng = đã gán vào phơi xe đi nhưng chưa quét lên xe
+    function isCargoMissing(c) {
+      return !!c.manifestId && isCargoUnreceived(c);
+    }
     function isCargoUnreceived(c) {
       return !c.isScanned && c.status !== 'delivered' && c.status !== 'returned';
     }
@@ -1010,7 +1022,7 @@
           if (document.getElementById('manifestRoute')) document.getElementById('manifestRoute').value = item.route;
           if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = item.plate;
           // Điểm đi edit: chỉ hiển thị 1 trạm, lock readonly
-          renderDepartureCheckboxes([item.from], true);
+          renderDepartureCheckboxes(String(item.from).split(',').map(s => s.trim()), true);
           const driverInfo = parseDriverDetails(item.driver);
           if (document.getElementById('manifestDriverName')) document.getElementById('manifestDriverName').value = driverInfo.name === '—' ? '' : driverInfo.name;
           if (document.getElementById('manifestDriverPhone')) document.getElementById('manifestDriverPhone').value = driverInfo.phone || '';
@@ -2163,6 +2175,8 @@
         segs = ['Hệ thống điều hành', 'Danh sách giao hàng'];
       } else if (tabName === 'unreceived') {
         segs = ['Hệ thống điều hành', 'Giao hàng', 'Hàng chưa giao'];
+      } else if (tabName === 'missing') {
+        segs = ['Hệ thống điều hành', 'Nhận hàng', 'Hàng thiếu'];
       } else if (typeof manifestsEntryGrouped !== 'undefined' && manifestsEntryGrouped) {
         segs = ['Hệ thống điều hành', 'Nhận hàng', 'Danh sách chuyến xe đi'];
       } else {
@@ -2203,14 +2217,14 @@
       if (secManifests) secManifests.style.display = tabName === 'manifests' ? 'block' : 'none';
       if (secReceive) secReceive.style.display = tabName === 'receive' ? 'block' : 'none';
       if (secDelivery) secDelivery.style.display = tabName === 'delivery' ? 'block' : 'none';
-      if (secUnreceived) secUnreceived.style.display = tabName === 'unreceived' ? 'block' : 'none';
+      if (secUnreceived) secUnreceived.style.display = (tabName === 'unreceived' || tabName === 'missing') ? 'block' : 'none';
 
       updateTabBadges();
 
       if (tabName === 'manifests') renderManifestTable();
       if (tabName === 'receive') renderReceiveTable();
       if (tabName === 'delivery') renderDeliveryTable();
-      if (tabName === 'unreceived') renderUnreceivedTable();
+      if (tabName === 'unreceived' || tabName === 'missing') renderUnreceivedTable();
 
       renderManifestBreadcrumb(tabName);
     };
@@ -2227,6 +2241,12 @@
       }).length;
 
       const unreceivedCount = cargos.filter(isCargoUnreceived).length;
+      const mBadge = document.getElementById('missingBadgeCount');
+      if (mBadge) {
+        const n = cargos.filter(isCargoMissing).length;
+        mBadge.textContent = n;
+        mBadge.style.display = n > 0 ? 'inline-block' : 'none';
+      }
 
       const rBadge = document.getElementById('receiveBadge');
       const dBadge = document.getElementById('deliveryBadge');
@@ -2585,7 +2605,12 @@
 
       if (!tbody) return;
 
-      let filtered = cargos.filter(isCargoUnreceived);
+      const missing = currentManifestTab === 'missing';
+      const setText = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+      setText('unreceivedTitle', missing ? 'Hàng thiếu trong danh sách chuyến xe đi' : 'Danh sách hàng chưa giao');
+      setText('unreceivedEyebrow', missing ? 'Chuyến xe đi & Thiếu hàng' : 'Vận chuyển & Hàng chưa nhận');
+
+      let filtered = cargos.filter(missing ? isCargoMissing : isCargoUnreceived);
 
       if (query) {
         filtered = filtered.filter(c => 
@@ -3204,7 +3229,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab');
     const manifestsEntryGrouped = initialTab === 'manifests';
-    if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests' || initialTab === 'unreceived')) {
+    if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests' || initialTab === 'unreceived' || initialTab === 'missing')) {
       switchManifestTab(initialTab);
     } else {
       renderManifestTable();
@@ -3217,6 +3242,9 @@
     } else if (initialTab === 'unreceived') {
       document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
       document.getElementById('unreceivedNavItem')?.classList.add('active');
+    } else if (initialTab === 'missing') {
+      document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
+      document.getElementById('missingNavItem')?.classList.add('active');
     } else if (initialTab === 'manifests' || !initialTab) {
       document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
       document.getElementById('outboundTripsNavItem')?.classList.add('active');
