@@ -1,0 +1,272 @@
+/* =========================================================
+   4. QUẢN LÝ XE
+   ========================================================= */
+var VEHICLE_FILTERS = { search: '', scope: '', status: '' };
+var VEHICLE_SEL = {}; // biển số xe đang tick chọn (bảng Xe) — dùng cho hành động "Xoá các xe đã chọn"
+
+function renderVehiclesView() {
+  var all = FleetStore.getVehicles();
+  var f = VEHICLE_FILTERS;
+
+  var totalCount = all.length;
+  var lineCount = all.filter(function (v) { return v.scope !== 'shuttle'; }).length;
+  var shuttleCount = all.filter(function (v) { return v.scope === 'shuttle'; }).length;
+  var activeCount = all.filter(activeOf).length;
+
+  var filtered = all.filter(function (v) {
+    if (f.search) {
+      var kw = f.search.toLowerCase();
+      var matchPlate = (v.plate || '').toLowerCase().indexOf(kw) !== -1;
+      var matchType = (v.vehicleType || '').toLowerCase().indexOf(kw) !== -1;
+      var matchNote = (v.note || '').toLowerCase().indexOf(kw) !== -1;
+      if (!matchPlate && !matchType && !matchNote) return false;
+    }
+    if (f.scope && v.scope !== f.scope) return false;
+    if (f.status === 'active' && !activeOf(v)) return false;
+    if (f.status === 'inactive' && activeOf(v)) return false;
+    return true;
+  });
+
+  // Dọn lựa chọn của xe không còn hiển thị (đổi bộ lọc) — tránh xoá nhầm xe đã ẩn khỏi danh sách.
+  var visPlates = {}; filtered.forEach(function (v) { visPlates[v.plate] = true; });
+  Object.keys(VEHICLE_SEL).forEach(function (p) { if (!visPlates[p]) delete VEHICLE_SEL[p]; });
+
+  var rows = filtered.length ? filtered.map(function (v, i) {
+    var originalIdx = all.indexOf(v);
+    var scopeBadge = v.scope === 'shuttle'
+      ? '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#E0F2FE;color:#0369A1;font-size:11.5px;font-weight:700;">Trung chuyển</span>'
+      : '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:var(--red-light);color:var(--red);font-size:11.5px;font-weight:700;">Xe tuyến</span>';
+    var sel = !!VEHICLE_SEL[v.plate];
+
+    return '<tr data-row-key="' + esc(v.plate) + '" class="' + (sel ? 'selected-row' : '') + '">' +
+      '<td class="col-stt">' + (i + 1) + '</td>' +
+      '<td><span class="trip-plate-inline" style="font-size:13px;padding:3px 10px;">' + esc(v.plate) + '</span></td>' +
+      '<td style="font-weight:800;color:var(--black);font-size:14px;">' + esc(v.vehicleType || '—') + '</td>' +
+      '<td style="text-align:center;font-weight:800;font-size:14px;color:var(--black);">' + (v.seats || 0) + '</td>' +
+      '<td>' + scopeBadge + '</td>' +
+      '<td class="col-status" style="text-align:center;">' + activeTag(activeOf(v)) + '</td>' +
+      '<td style="color:var(--text-sub);">' + (v.note ? esc(v.note) : '—') + '</td>' +
+      '<td class="row-actions">' +
+        '<button type="button" class="btn btn-sm row-menu-btn" data-action="adminVehicleRowMenu" data-args=\'["__this__",' + originalIdx + ']\'>Cập nhật <span class="row-menu-caret">▾</span></button>' +
+      '</td>' +
+      '<td class="col-check"><input type="checkbox"' + (sel ? ' checked' : '') + ' data-change-action="adminVehicleToggleRow" data-args=\'["' + esc(v.plate) + '","__this__"]\'></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="9" class="empty-state">Không tìm thấy xe phù hợp.</td></tr>';
+
+  var allChecked = filtered.length && filtered.every(function (v) { return VEHICLE_SEL[v.plate]; });
+
+  $('viewVehicles').innerHTML =
+    '<div class="sd-toolbar">' +
+      '<div class="filter-field sd-field-search">' +
+        '<label>Tìm kiếm xe</label>' +
+        '<input type="text" value="' + esc(f.search) + '" placeholder="Biển số, loại xe..." data-input-action="adminVehicleFilterInput" data-args=\'["search","__this_value__"]\'>' +
+      '</div>' +
+      '<div class="filter-field sd-field-region">' +
+        '<label>Nhóm xe</label>' +
+        '<select data-change-action="adminVehicleFilterInput" data-args=\'["scope","__this_value__"]\'>' +
+          '<option value="">Tất cả nhóm</option>' +
+          '<option value="line"' + (f.scope === 'line' ? ' selected' : '') + '>Xe tuyến</option>' +
+          '<option value="shuttle"' + (f.scope === 'shuttle' ? ' selected' : '') + '>Xe trung chuyển</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="filter-field sd-field-region">' +
+        '<label>Trạng thái</label>' +
+        '<select data-change-action="adminVehicleFilterInput" data-args=\'["status","__this_value__"]\'>' +
+          '<option value="">Tất cả trạng thái</option>' +
+          '<option value="active"' + (f.status === 'active' ? ' selected' : '') + '>Đang hoạt động</option>' +
+          '<option value="inactive"' + (f.status === 'inactive' ? ' selected' : '') + '>Tạm ngưng</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="sd-toolbar-actions">' +
+        '<button type="button" class="btn btn-primary sd-btn" data-action="adminOpenVehicleModal" data-args=\'[-1]\'>Thêm xe mới</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="sd-blocks"><div class="sd-section-block">' +
+      '<div class="sd-section-head" style="display:flex; align-items:center; justify-content:space-between;">' +
+        '<span>Danh sách phương tiện bãi xe</span>' +
+        '<span style="font-weight:700; color:var(--text-sub); font-size:12.5px;">Hiển thị ' + filtered.length + ' / ' + totalCount + ' xe</span>' +
+      '</div>' +
+      '<div class="sd-table-wrap">' +
+        '<table class="admin-table veh-table">' +
+          '<thead><tr>' +
+            '<th class="col-stt">STT</th>' +
+            '<th>Biển số</th>' +
+            '<th>Loại xe</th>' +
+            '<th style="text-align:center;">Số ghế</th>' +
+            '<th>Nhóm phơi</th>' +
+            '<th class="col-status" style="text-align:center;">Trạng thái</th>' +
+            '<th>Ghi chú</th>' +
+            '<th class="th-actions">Thao tác</th>' +
+            '<th class="col-check"><input type="checkbox" id="vehCheckAll"' + (allChecked ? ' checked' : '') + ' data-action="adminVehicleToggleAll" data-args=\'["__this__"]\'></th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div></div>' +
+
+    '<div class="bulk-bar" id="vehActionBar" style="display:none;">' +
+      '<span class="bulk-bar-hint" id="vehActionHint">Đã chọn 0 xe</span>' +
+      '<div class="bulk-bar-fields">' +
+        '<button type="button" class="btn btn-secondary" data-action="adminVehicleClearSel">Hủy</button>' +
+        '<button type="button" class="btn btn-danger" data-action="adminVehicleDeleteSelected">Xoá các xe đã chọn</button>' +
+      '</div>' +
+    '</div>';
+  adminVehicleSyncBar();
+}
+
+/* ---- Chọn nhiều dòng trong bảng Xe (checkbox cuối bảng) để xoá hàng loạt ---- */
+function adminVehicleSyncBar() {
+  var bar = $('vehActionBar');
+  if (!bar) return;
+  var plates = Object.keys(VEHICLE_SEL);
+  if (!plates.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var hint = $('vehActionHint'); if (hint) hint.textContent = 'Đã chọn ' + plates.length + ' xe';
+}
+function adminVehicleToggleRow(plate, cb) {
+  if (cb.checked) VEHICLE_SEL[plate] = true; else delete VEHICLE_SEL[plate];
+  var tr = document.querySelector('#viewVehicles tr[data-row-key="' + (window.CSS && CSS.escape ? CSS.escape(plate) : plate) + '"]');
+  if (tr) tr.classList.toggle('selected-row', !!cb.checked);
+  var all = $('vehCheckAll');
+  if (all) all.checked = document.querySelectorAll('#viewVehicles td.col-check input[type="checkbox"]:not(:checked)').length === 0;
+  adminVehicleSyncBar();
+}
+function adminVehicleToggleAll(cb) {
+  var boxes = document.querySelectorAll('#viewVehicles tbody td.col-check input[type="checkbox"]');
+  Array.prototype.forEach.call(boxes, function (b) {
+    var plate = null;
+    try { plate = JSON.parse(b.getAttribute('data-args') || '[]')[0]; } catch (e) { /* ignore */ }
+    if (!plate) return;
+    if (cb.checked) VEHICLE_SEL[plate] = true; else delete VEHICLE_SEL[plate];
+  });
+  renderVehiclesView();
+}
+function adminVehicleClearSel() { VEHICLE_SEL = {}; renderVehiclesView(); }
+function adminVehicleDeleteSelected() {
+  var plates = Object.keys(VEHICLE_SEL);
+  if (!plates.length) return;
+  var all = FleetStore.getVehicles();
+  var deletable = [], blocked = [];
+  plates.forEach(function (plate) {
+    var chk = FleetStore.canDeleteVehicle(plate);
+    if (chk.ok) deletable.push(plate); else blocked.push(plate + ' (' + chk.reason + ')');
+  });
+  if (!deletable.length) { showToast('Không thể xoá: tất cả xe đã chọn đang được dùng.'); return; }
+  var msg = 'Xoá ' + deletable.length + ' xe đã chọn?' + (blocked.length ? '\nBỏ qua ' + blocked.length + ' xe đang được dùng: ' + blocked.join(', ') : '');
+  if (!confirm(msg)) return;
+  var deletableSet = {}; deletable.forEach(function (plate) { deletableSet[plate] = true; });
+  var list = all.filter(function (v) { return !deletableSet[v.plate]; });
+  FleetStore.setVehicles(list);
+  deletable.forEach(function (plate) {
+    FleetStore.log({ action: 'delete', entity: 'vehicle', entityId: plate, summary: 'Xoá xe ' + plate });
+    delete VEHICLE_SEL[plate];
+  });
+  showToast('Đã xoá ' + deletable.length + ' xe.' + (blocked.length ? ' Bỏ qua ' + blocked.length + ' xe đang dùng.' : ''));
+  renderVehiclesView();
+}
+
+// Cột "Thao tác" — dropdown nổi giống bên Trạm Xe (dùng chung adminOpenRowMenu ở admin-station-directory.js).
+function adminVehicleRowMenu(btn, idx) {
+  adminOpenRowMenu(btn, 'vehicle:' + idx,
+    '<button type="button" class="admin-row-menu-item" data-action="adminOpenVehicleModal" data-args=\'[' + idx + ']\'>Sửa</button>' +
+    '<button type="button" class="admin-row-menu-item danger" data-action="adminDeleteVehicle" data-args=\'[' + idx + ']\'>Xoá</button>');
+}
+
+function adminVehicleFilterInput(field, val) {
+  if (field in VEHICLE_FILTERS) {
+    VEHICLE_FILTERS[field] = val || '';
+    renderVehiclesView();
+  }
+}
+
+function adminOpenVehicleModal(idx) {
+  var all = FleetStore.getVehicles();
+  var v = idx >= 0 ? all[idx] : null;
+  var typeScope = v ? v.scope : 'line';
+  var typeOpts = function (scope) {
+    return FleetStore.getVehicleTypes({ scope: scope }).filter(activeOf).map(function (x) {
+      return '<option value="' + esc(x.name) + '" data-seats="' + (x.seats || 0) + '"' + (v && v.vehicleType === x.name ? ' selected' : '') + '>' + esc(x.name) + ' (' + (x.seats || 0) + ' ghế)</option>';
+    }).join('');
+  };
+  openAdminModal(
+    '<h3>' + (v ? 'Sửa thông tin xe' : 'Thêm xe mới') + '</h3>' +
+    '<form class="admin-form" data-submit-action="adminSaveVehicle" data-args=\'["__event__"]\'>' +
+      '<input type="hidden" id="vmIdx" value="' + idx + '">' +
+      '<div class="fld-row">' +
+        '<div class="fld"><label>Biển số xe *</label><input id="vmPlate" required value="' + (v ? esc(v.plate) : '') + '" placeholder="VD: 51B-123.45"></div>' +
+        '<div class="fld"><label>Nhóm phơi *</label><select id="vmScope" data-change-action="adminVehicleScopeChange"><option value="line"' + (typeScope === 'line' ? ' selected' : '') + '>Tuyến cố định</option><option value="shuttle"' + (typeScope === 'shuttle' ? ' selected' : '') + '>Trung chuyển</option></select></div>' +
+      '</div>' +
+      '<div class="fld"><label>Loại xe</label><select id="vmType" data-change-action="adminVehicleTypeChange">' +
+        '<option value="">-- Chọn loại xe --</option>' + typeOpts(typeScope) + '</select></div>' +
+      '<div class="fld-row">' +
+        '<div class="fld"><label>Số ghế</label><input type="number" id="vmSeats" min="0" value="' + (v ? (v.seats || 0) : 0) + '"></div>' +
+        '<div class="fld" style="justify-content:flex-end;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="vmActive" ' + (!v || activeOf(v) ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Sẵn sàng hoạt động</label></div>' +
+      '</div>' +
+      '<div class="fld"><label>Ghi chú</label><input id="vmNote" value="' + (v ? esc(v.note || '') : '') + '" placeholder="Ghi chú phương tiện..."></div>' +
+      '<div class="form-section-label" style="margin-top:4px;">Ghế tài xế (trên sơ đồ ghế)</div>' +
+      '<div class="fld-row">' +
+        '<div class="fld"><label>Tên hiển thị</label><input id="vmDriverSeatName" value="' + (v ? esc(v.driverSeatName || '') : '') + '" placeholder="VD: Tài xế, Trần Văn Hùng..."></div>' +
+        '<div class="fld" style="justify-content:flex-end;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="vmDriverSeatHidden" ' + (v && v.driverSeatHidden ? 'checked' : '') + ' style="min-width:auto;height:auto;"> Ẩn ghế tài xế trên sơ đồ</label></div>' +
+      '</div>' +
+      '<div class="modal-actions"><button type="button" class="btn" data-action="closeAdminModal">Huỷ</button><button type="submit" class="btn btn-primary">Lưu thông tin</button></div>' +
+    '</form>'
+  );
+}
+
+function adminVehicleScopeChange() {
+  var scope = $('vmScope').value;
+  var sel = $('vmType');
+  sel.innerHTML = '<option value="">-- Chọn loại xe --</option>' + FleetStore.getVehicleTypes({ scope: scope }).filter(activeOf).map(function (x) {
+    return '<option value="' + esc(x.name) + '" data-seats="' + (x.seats || 0) + '">' + esc(x.name) + ' (' + (x.seats || 0) + ' ghế)</option>';
+  }).join('');
+}
+
+function adminVehicleTypeChange() {
+  var opt = $('vmType').selectedOptions[0];
+  if (opt && opt.dataset.seats) $('vmSeats').value = opt.dataset.seats;
+}
+
+function adminSaveVehicle(e) {
+  e.preventDefault();
+  var idx = parseInt($('vmIdx').value, 10);
+  var all = FleetStore.getVehicles();
+  var plate = $('vmPlate').value.trim();
+  if (!plate) { showToast('Nhập biển số.'); return; }
+  if (all.some(function (x, i) { return x.plate === plate && i !== idx; })) { showToast('Biển số đã tồn tại.'); return; }
+  var rec = {
+    plate: plate, scope: $('vmScope').value, vehicleType: $('vmType').value,
+    seats: parseInt($('vmSeats').value, 10) || 0, active: $('vmActive').checked,
+    note: $('vmNote').value.trim(),
+    driverDefault: (idx >= 0 && all[idx] && all[idx].driverDefault) || '',
+    helperDefault: (idx >= 0 && all[idx] && all[idx].helperDefault) || '',
+    driverSeatName: $('vmDriverSeatName').value.trim() || 'Tài xế',
+    driverSeatHidden: $('vmDriverSeatHidden').checked
+  };
+  if (idx >= 0) {
+    var before = all[idx];
+    all[idx] = rec;
+    FleetStore.log({ action: 'update', entity: 'vehicle', entityId: plate, summary: 'Sửa xe ' + plate, before: before, after: rec });
+  } else {
+    all.push(rec);
+    FleetStore.log({ action: 'create', entity: 'vehicle', entityId: plate, summary: 'Thêm xe ' + plate, after: rec });
+  }
+  FleetStore.setVehicles(all);
+  closeAdminModal();
+  showToast('Đã lưu xe.');
+  renderVehiclesView();
+}
+
+function adminDeleteVehicle(idx) {
+  var all = FleetStore.getVehicles();
+  var v = all[idx];
+  if (!v) return;
+  var chk = FleetStore.canDeleteVehicle(v.plate);
+  if (!chk.ok) { showToast('Không thể xoá: ' + chk.reason); return; }
+  if (!confirm('Xoá xe ' + v.plate + '?')) return;
+  all.splice(idx, 1);
+  FleetStore.setVehicles(all);
+  FleetStore.log({ action: 'delete', entity: 'vehicle', entityId: v.plate, summary: 'Xoá xe ' + v.plate });
+  showToast('Đã xoá xe.');
+  renderVehiclesView();
+}

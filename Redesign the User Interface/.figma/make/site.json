@@ -1,0 +1,10 @@
+{
+  "description": "A redesigned interface that helps users navigate the app more clearly and complete tasks with greater ease.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

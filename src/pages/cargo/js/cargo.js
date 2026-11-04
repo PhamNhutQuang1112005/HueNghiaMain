@@ -758,6 +758,9 @@ function getFilteredData() {
   });
 }
 
+// Icon vuông cột Hàng hóa (giao diện redesign) — chỉ trang trí
+const RD_BOX_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg>';
+
 /* Render bang gop 8 cot thong tin tinh te & sach se */
 function renderTable() {
   if (!cargoTableBody) return;
@@ -817,30 +820,31 @@ function renderTable() {
               <code>${row.code}</code>
             </td>
             <td>
-              <strong class="cargo-name">${(row.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:13px; font-weight:600; color:#64748b;">(${formatCargoQuantity(row)})</span>
-              ${manifestInfo}
-              ${dimBadge}
-              ${row.delayReason ? `<div style="margin-top:3px;"><span style="display:inline-block; font-size:13px; color:#be123c; font-weight:600; background:#fff1f2; border:1px solid #fecdd3; padding:2px 7px; border-radius:4px;" title="${row.delayReason}">Lý do hoãn: ${row.delayReason}</span></div>` : ''}
-            </td>
-            <td>
-              <div style="font-weight:700; color:#0f172a; font-size:13px;">${fromSt} ➔ ${toSt}</div>
-              <div style="font-size:13px; color:#64748b; margin-top:3px;">${row.transferTime || 'Vừa tạo'} • NV: ${row.staff || 'Nhiên'}</div>
-            </td>
-            <td>
-              <div style="line-height:1.45; font-size:13px;">
-                <span style="color:#64748b; font-weight:500;">Gửi:</span> <strong style="color:#0f172a;">${row.sender}</strong> (${row.senderPhone})<br>
-                <span style="color:#64748b; font-weight:500;">Nhận:</span> <strong style="color:#0f172a;">${row.receiver}</strong> (${row.receiverPhone})
+              <div class="rd-item">
+                <span class="rd-item-icon">${RD_BOX_ICON}</span>
+                <div class="rd-item-body">
+                  <strong class="cargo-name">${(row.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:13px; font-weight:600; color:#64748b;">(${formatCargoQuantity(row)})</span>
+                  ${manifestInfo}
+                  ${dimBadge}
+                  ${row.delayReason ? `<div style="margin-top:3px;"><span style="display:inline-block; font-size:13px; color:#be123c; font-weight:600; background:#fff1f2; border:1px solid #fecdd3; padding:2px 7px; border-radius:4px;" title="${row.delayReason}">Lý do hoãn: ${row.delayReason}</span></div>` : ''}
+                </div>
               </div>
             </td>
             <td>
-              <div style="font-weight:700; color:#0f172a; font-size:13px;">${Number(row.fee || 0).toLocaleString('vi-VN')}đ</div>
-              ${row.paymentStatus === 'free' ? `<div style="font-size:13px; color:#0f172a; font-weight:600; margin-top:2px;">Không thu phí</div>` : (row.paymentStatus === 'paid' ? `<div style="font-size:13px; color:#0f172a; font-weight:600; margin-top:2px;">Tiền rồi (${row.paidMethod === 'transfer' ? (row.transferCode || 'CK') : 'Tiền mặt'})</div>` : '<div style="font-size:13px; color:#C20D08; font-weight:600; margin-top:2px;">Chưa tiền</div>')}
-              ${(row.codAmount && Number(row.codAmount) > 0) || (row.baga && row.baga.code && !row.code.includes(row.baga.code)) ? `
-                <div class="mini-tag-row" style="margin-top:3px;">
-                  ${row.codAmount && Number(row.codAmount) > 0 ? `<span class="mini-tag" style="font-size:13px;">COD: ${Number(row.codAmount).toLocaleString('vi-VN')}đ</span>` : ''}
-                  ${row.baga && row.baga.code && !row.code.includes(row.baga.code) ? `<span class="mini-tag" style="font-size:13px;">Baga: ${row.baga.code}</span>` : ''}
-                </div>
-              ` : ''}
+              <div class="rd-route"><strong>${fromSt}</strong><span class="rd-route-arrow">➔</span><strong>${toSt}</strong></div>
+              <div style="font-size:13px; color:#64748b; margin-top:3px;">${row.transferTime || 'Vừa tạo'} • NV: ${row.staff || 'Nhiên'}</div>
+            </td>
+            <td>
+              <div class="rd-people">
+                <span><i title="Người gửi">G</i><strong>${row.sender}</strong> (${row.senderPhone})</span>
+                <span><i title="Người nhận">N</i><strong>${row.receiver}</strong> (${row.receiverPhone})</span>
+              </div>
+            </td>
+            <td>
+              <div class="rd-fee">${Number(row.fee || 0).toLocaleString('vi-VN')}đ</div>
+              <div class="rd-fee-sub">COD: ${Number(row.codAmount || 0).toLocaleString('vi-VN')}đ</div>
+              <div class="rd-fee-sub">${row.paymentStatus === 'free' ? 'Không thu phí' : (row.paymentStatus === 'paid' ? `Tiền rồi (${row.paidMethod === 'transfer' ? (row.transferCode || 'CK') : 'Tiền mặt'})` : '<span style="color:#C20D08;">Chưa tiền</span>')}</div>
+              ${row.baga && row.baga.code && !row.code.includes(row.baga.code) ? `<div class="mini-tag-row" style="margin-top:3px;"><span class="mini-tag" style="font-size:12px;">Baga: ${row.baga.code}</span></div>` : ''}
             </td>
             <td style="text-align:center;">
               ${window.location.pathname.includes('delivery.html') ? `

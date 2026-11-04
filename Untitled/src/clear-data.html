@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Xóa dữ liệu test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 60px auto; padding: 20px; }
+    h2 { color: #dc2626; }
+    .btn { display: block; width: 100%; padding: 12px; margin: 8px 0; font-size: 15px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-red { background: #dc2626; color: #fff; }
+    .btn-red:hover { background: #b91c1c; }
+    .btn-orange { background: #ea580c; color: #fff; }
+    .btn-orange:hover { background: #c2410c; }
+    .btn-gray { background: #6b7280; color: #fff; }
+    .btn-gray:hover { background: #4b5563; }
+    #log { margin-top: 20px; padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>🗑 Xóa dữ liệu test</h2>
+  <p style="color:#6b7280;font-size:14px;">Chọn nhóm dữ liệu muốn xóa. Sau khi xóa hãy tải lại trang ticketstaff / admin.</p>
+
+  <button class="btn btn-red" onclick="clearTripAndSeats()">Xóa phơi xe + ghế đã đặt (test vé)</button>
+  <button class="btn btn-orange" onclick="clearPickupAndTransship()">Xóa danh sách rước liền + trung chuyển</button>
+  <button class="btn btn-gray" onclick="clearAll()">Xóa TẤT CẢ dữ liệu app</button>
+
+  <div id="log">Chưa có thao tác nào.</div>
+
+  <script>
+    const KEYS = {
+      seatBank:     'hn_trip_seat_bank_v12',
+      trips:        'hn_trips_meta_v9',
+      pickupPax:    'hn_pickup_passengers_v6',
+      manifests:    'hn_ts_manifests_v1',
+      shuttleDrv:   'hn_shuttle_driver_assign_v1',
+      pkNotices:    'hn_pk_phongve_notices_v1',
+      pkPrintRuoc:  'hn_pk_print_ruoc_dividers_v1',
+      accounting:   'hn_accounting_vouchers_v1',
+      fuelLogs:     'hn_accounting_fuel_logs_v1',
+      activity:     'hn_admin_activity_v1',
+      currentUser:  'hn_current_user',
+    };
+
+    function log(msg) {
+      document.getElementById('log').textContent = msg;
+    }
+
+    function clearTripAndSeats() {
+      if (!confirm('Xóa toàn bộ phơi xe và ghế đã đặt?')) return;
+      const removed = [];
+      [KEYS.seatBank, KEYS.trips, KEYS.manifests].forEach(k => {
+        if (localStorage.getItem(k) !== null) { localStorage.removeItem(k); removed.push(k); }
+      });
+      log('✅ Đã xóa:\n' + (removed.length ? removed.join('\n') : '(không có dữ liệu cần xóa)') + '\n\n→ Hãy tải lại trang ticketstaff.html / admin.html');
+    }
+
+    function clearPickupAndTransship() {
+      if (!confirm('Xóa danh sách rước liền + trung chuyển?')) return;
+      const removed = [];
+      [KEYS.pickupPax, KEYS.shuttleDrv, KEYS.pkNotices, KEYS.pkPrintRuoc].forEach(k => {
+        if (localStorage.getItem(k) !== null) { localStorage.removeItem(k); removed.push(k); }
+      });
+      log('✅ Đã xóa:\n' + (removed.length ? removed.join('\n') : '(không có dữ liệu cần xóa)') + '\n\n→ Hãy tải lại trang ticketstaff.html');
+    }
+
+    function clearAll() {
+      if (!confirm('⚠️ Xóa TẤT CẢ dữ liệu app (phơi, ghế, cấu hình xe, nhân viên, kế toán...)?\nThao tác này không thể hoàn tác!')) return;
+      if (!confirm('Xác nhận lần 2: Bạn chắc chắn muốn xóa hết?')) return;
+      const all = Object.keys(localStorage).filter(k => k.startsWith('hn_') || k.startsWith('callcenter.'));
+      all.forEach(k => localStorage.removeItem(k));
+      log('✅ Đã xóa ' + all.length + ' key:\n' + all.join('\n') + '\n\n→ Hãy tải lại trang ticketstaff.html / admin.html');
+    }
+  </script>
+</body>
+</html>

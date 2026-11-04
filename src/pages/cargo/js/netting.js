@@ -113,35 +113,47 @@
     });
     if (perStation) perStation = '<table class="nt-table"><thead><tr><th>Trạm</th><th>Tổng nợ</th><th>Đã trả</th><th>Thiếu</th></tr></thead><tbody>' + perStation + '</tbody></table>';
 
-    var col1 = '<div class="nt-col"><h3>1. Trạm đang đối soát</h3>' +
-      '<select id="ntMe" aria-label="Trạm đang đối soát"><option value="">— Chọn trạm —</option>' +
-      all.map(function (s) { return '<option' + (s === me ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
-      (me ? sourceTable(breakdown(cargos, me), 'Nợ các trạm', 'Các trạm nợ', [toPay - totalDebt, toGet - totalGet0], [totalDebt, totalGet0]).html : '') +
-      perStation +
-      '<div class="nt-sum">Tổng nợ các trạm<b>' + fmt(totalDebt) + '</b></div>' +
-      '<div class="nt-sum">Nợ đã trả<b style="color:#16a34a">' + fmt(Math.max(totalDebt - toPay, 0)) + '</b></div>' +
-      '<div class="nt-sum">Nợ thiếu (còn phải trả)<b>' + fmt(toPay) + '</b></div>' +
-      '<div class="nt-sum">Được các trạm trả (sau cấn trừ)<b>' + fmt(toGet) + '</b></div></div>';
+    var ICO_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+    var stationSelect = function (id, label, placeholder, list, current, withDebt) {
+      return '<label class="ntx-field"><span>Chọn trạm</span><select id="' + id + '" aria-label="' + label + '"><option value="">' + placeholder + '</option>' +
+        list.map(function (st) {
+          var v = withDebt && me ? net(d, me, st) : 0;
+          return '<option value="' + st + '"' + (st === current ? ' selected' : '') + '>' + st + (v ? ' — ' + pairText(me, st, v) : '') + '</option>';
+        }).join('') + '</select></label>';
+    };
+    var stepHead = function (num, title, sub, cls) {
+      return '<div class="ntx-step-head"><span class="ntx-num ' + cls + '">' + num + '</span><div><strong>' + title + '</strong><small>' + sub + '</small></div></div>';
+    };
 
-    var n = 0, body = '<div class="nt-empty">' + (me ? 'Chọn trạm cần đối soát.' : 'Chọn trạm đang đối soát trước.') + '</div>';
-    if (me && other) {
-      n = net(d, me, other);
-      var t = sourceTable(breakdown(cargos, me, other), me + ' nợ ' + other, other + ' nợ ' + me);
-      var adj = n - (t.total[0] - t.total[1]);
-      body = t.html +
-        (adj ? '<div class="nt-adj">Đã trả / chuyển nợ trước đó: ' + (adj > 0 ? '+' : '−') + fmt(Math.abs(adj)) + '</div>' : '') +
-        '<div class="nt-net">Nợ ròng: <b>' + pairText(me, other, n) + '</b></div>' +
-        (n ? '<div class="nt-actions"><button class="secondary-btn" data-act="pay">Ghi nhận ' + (n > 0 ? 'đã trả' : 'đã nhận') + '</button>' +
-          '<button class="secondary-btn" data-act="reroute">Chuyển nợ qua ' + (via || 'trạm trung gian') + '</button></div>' : '');
-    }
-    var col2 = '<div class="nt-col nt-wide"><h3>2. Trạm cần đối soát</h3>' +
-      '<select id="ntOther" aria-label="Trạm cần đối soát"><option value="">— Chọn trạm —</option>' +
-      cands.map(function (s) {
-        var v = me ? net(d, me, s) : 0;
-        return '<option value="' + s + '"' + (s === other ? ' selected' : '') + '>' + s + (v ? ' — ' + pairText(me, s, v) : '') + '</option>';
-      }).join('') + '</select>' + body + '</div>';
+    // Tổng các khoản đã chuyển qua trạm trung gian liên quan trạm đang đối soát
+    var rerouted = entries.filter(function (e) {
+      return e.kind === 'reroute' && (e.from === me || e.to === me || e.via === me);
+    }).reduce(function (sum, e) { return sum + Number(e.amount || 0); }, 0);
+    var paid = Math.max(totalDebt - toPay, 0);
 
-    var viaBody = '<div class="nt-adj">Chọn trạm đối soát và trạm cần đối soát trước.</div>';
+    var stats = '<div class="ntx-stats">' +
+      '<div class="ntx-stat"><span>Tổng công nợ</span><strong>' + fmt(totalDebt) + '</strong><small>' + (me ? 'Giữa ' + cands.length + ' chi nhánh đang chọn' : 'Chọn trạm đang đối soát') + '</small></div>' +
+      '<div class="ntx-stat ntx-green"><span>Đã thanh toán</span><strong>' + fmt(paid) + '</strong><small>' + (paid ? 'Đã trả / cấn trừ' : 'Chưa có khoản trả trong kỳ') + '</small></div>' +
+      '<div class="ntx-stat ntx-red"><span>Còn phải trả</span><strong>' + fmt(toPay) + '</strong><small>Cần hoàn tất đối soát</small></div>' +
+      '<div class="ntx-stat"><span>Qua trạm trung gian</span><strong>' + fmt(rerouted) + '</strong><small>' + (rerouted ? 'Đã chuyển tiếp công nợ' : 'Không có khoản chuyển tiếp') + '</small></div></div>';
+
+    var perStationBlock = perStation ? '<div class="ntx-scroll">' + perStation + '</div>' : '';
+    var step1 = '<div class="ntx-card">' + stepHead(1, 'Trạm đang đối soát', 'Chi nhánh nguồn', 'ntx-dark') +
+      stationSelect('ntMe', 'Trạm đang đối soát', '— Chọn trạm —', all, me, false) +
+      '<div class="ntx-tile"><span>Công nợ với các trạm</span><strong>' + fmt(totalDebt) + '</strong>' +
+      '<div class="ntx-tile-foot"><span>Được các trạm trả (sau cấn trừ)</span><b>' + fmt(toGet) + '</b></div></div>' +
+      (me ? '<details class="ntx-more"><summary>Xem nợ theo nguồn tiền và từng trạm</summary><div class="ntx-scroll">' + sourceTable(breakdown(cargos, me), 'Nợ các trạm', 'Các trạm nợ', [toPay - totalDebt, toGet - totalGet0], [totalDebt, totalGet0]).html + '</div>' + perStationBlock + '</details>' : '') + '</div>';
+
+    var n = 0;
+    if (me && other) n = net(d, me, other);
+    var tile2 = !(me && other)
+      ? '<div class="ntx-empty">' + (me ? 'Chọn trạm cần đối soát.' : 'Chọn trạm đang đối soát trước.') + '</div>'
+      : '<div class="ntx-tile ' + (n ? 'ntx-tile-red' : '') + '"><span>Nợ ròng cần thanh toán</span><strong>' + (n ? fmt(Math.abs(n)) : '0đ') + '</strong>' +
+        '<div class="ntx-tile-foot"><span>' + (n ? (n > 0 ? me : other) + ' nợ' : 'Đã cấn trừ hết') + '</span><b>' + (n ? (n > 0 ? other : me) : '') + '</b></div></div>';
+    var step2 = '<div class="ntx-card">' + stepHead(2, 'Trạm cần đối soát', 'Chi nhánh nhận công nợ', 'ntx-red') +
+      stationSelect('ntOther', 'Trạm cần đối soát', '— Chọn trạm —', cands, other, true) + tile2 + '</div>';
+
+    var viaBody = '<div class="ntx-empty">Chọn trạm đối soát và trạm cần đối soát trước.</div>';
     if (me && other) {
       viaBody = !via ? '' :
         '<div class="nt-adj">' + via + '–' + me + ': ' + pairText(via, me, net(d, via, me)) + '</div>' +
@@ -155,15 +167,36 @@
         '<div>' + e.from + '–' + e.via + ': ' + pairText(e.from, e.via, net(d, e.from, e.via)) + '</div>' +
         '<div>' + e.via + '–' + e.to + ': ' + pairText(e.via, e.to, net(d, e.via, e.to)) + '</div>' +
         '<small>' + e.time + ' · ' + e.by + '</small></div>';
-    }).join('') || '<div class="nt-empty">Chưa có khoản nợ nào chuyển qua trạm trung gian.</div>';
-    var col3 = '<div class="nt-col"><h3>3. Trạm trung gian</h3>' +
-      '<select id="ntVia" aria-label="Trạm trung gian"><option value="">— Chọn trạm trung gian —</option>' +
-      all.filter(function (c) { return c !== me && c !== other; }).map(function (c) {
-        return '<option' + (c === via ? ' selected' : '') + '>' + c + '</option>';
-      }).join('') + '</select>' + viaBody +
-      '<h4 class="nt-sub">Các khoản đã chuyển qua trung gian</h4>' + chains + '</div>';
+    }).join('') || '<div class="ntx-empty">Chưa có khoản nợ nào chuyển qua trạm trung gian.</div>';
+    var step3 = '<div class="ntx-card">' + stepHead(3, 'Trạm trung gian', 'Chuyển tiếp công nợ', 'ntx-light') +
+      stationSelect('ntVia', 'Trạm trung gian', '— Chọn trạm trung gian —', all.filter(function (c) { return c !== me && c !== other; }), via, false) +
+      viaBody + '<details class="ntx-more"><summary>Các khoản đã chuyển qua trung gian</summary>' + chains + '</details></div>';
 
-    root.innerHTML = col1 + col2 + col3;
+    var steps = '<div class="ntx-steps">' + step1 +
+      '<div class="ntx-link"><span>Đối soát</span>' + ICO_CHEV + '</div>' + step2 +
+      '<div class="ntx-link ntx-link-dim"><span>Tùy chọn</span>' + ICO_CHEV + '</div>' + step3 + '</div>';
+
+    // Chi tiết công nợ giữa 2 trạm (bảng nguồn tiền + hành động) — chỉ hiện khi đã chọn đủ 2 trạm
+    var detail = '';
+    if (me && other) {
+      var bk = breakdown(cargos, me, other), tot = [0, 0];
+      var rowsHtml = ['cash', 'hot', 'cod'].map(function (k) {
+        var l = bk[k][0], r = bk[k][1], diff = l - r;
+        tot[0] += l; tot[1] += r;
+        return '<tr><td><b class="ntx-src">' + KIND_LABEL[k] + '</b></td><td>' + fmt(l) + '</td><td>' + fmt(r) + '</td><td><b>' + fmt(Math.abs(diff)) + '</b></td>' +
+          '<td><span class="ntx-pill ' + (diff ? 'ntx-pill-wait' : 'ntx-pill-ok') + '">' + (diff ? 'Chờ thanh toán' : 'Đã cân bằng') + '</span></td></tr>';
+      }).join('');
+      var adjD = n - (tot[0] - tot[1]);
+      detail = '<div class="ntx-detail"><div class="ntx-detail-head"><div><strong>Chi tiết công nợ</strong><small>Đối chiếu theo từng nguồn tiền</small></div></div>' +
+        '<div class="ntx-scroll"><table class="ntx-table"><thead><tr><th>Nguồn tiền</th><th>' + me + ' nợ ' + other + '</th><th>' + other + ' nợ ' + me + '</th><th>Chênh lệch</th><th>Trạng thái</th></tr></thead><tbody>' + rowsHtml +
+        '<tr class="ntx-total"><td>Tổng cộng</td><td>' + fmt(tot[0]) + '</td><td>' + fmt(tot[1]) + '</td><td>' + fmt(Math.abs(tot[0] - tot[1])) + '</td><td></td></tr></tbody></table></div>' +
+        (adjD ? '<div class="nt-adj ntx-adj">Đã trả / chuyển nợ trước đó: ' + (adjD > 0 ? '+' : '−') + fmt(Math.abs(adjD)) + '</div>' : '') +
+        '<div class="ntx-foot"><div><span>Số tiền cần đối soát</span><strong>' + fmt(Math.abs(n)) + '</strong><small>' + pairText(me, other, n) + '</small></div>' +
+        (n ? '<div class="nt-actions"><button class="secondary-btn" data-act="pay">Ghi nhận ' + (n > 0 ? 'đã trả' : 'đã nhận') + '</button>' +
+          '<button class="primary-btn" data-act="reroute">Chuyển nợ qua ' + (via || 'trạm trung gian') + '</button></div>' : '') + '</div></div>';
+    }
+
+    root.innerHTML = stats + steps + detail;
   }
 
   function addEntry(e) {

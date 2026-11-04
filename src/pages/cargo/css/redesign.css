@@ -1,0 +1,600 @@
+/* =========================================================
+   REDESIGN (theo "Redesign the User Interface") — chỉ đổi kiểu giao diện, không đổi markup/logic.
+   Scope body.rd-page (manifest, delivery, cod, returned, ket-ca); cargo.html là trang mẫu nên không cần.
+   ========================================================= */
+body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-line: #e5e7eb; background: #f5f6f8; }
+
+/* Tiêu đề trang */
+.rd-page .toolbar { background: transparent; border: 0; box-shadow: none; padding: 0; margin-bottom: 18px; }
+.rd-page .toolbar-head { align-items: flex-end; gap: 25px; margin-bottom: 18px; }
+.rd-page .toolbar .eyebrow { margin: 0 0 5px; color: var(--rd-red); font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.rd-page .toolbar h1 { margin: 0; color: #171f2d; font-size: 27px; line-height: 1.2; letter-spacing: -.8px; font-weight: 800; }
+
+/* Nút */
+.rd-page .primary-btn, .rd-page .ghost-btn, .rd-page .filter-submit-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 15px;
+  border: 1px solid transparent; border-radius: 9px; font-size: 12.5px; font-weight: 700; white-space: nowrap; transition: .18s ease;
+}
+.rd-page .primary-btn:hover, .rd-page .ghost-btn:hover, .rd-page .filter-submit-btn:hover { transform: translateY(-1px); }
+.rd-page .primary-btn, .rd-page .filter-submit-btn { color: #fff; background: var(--rd-red); box-shadow: 0 7px 16px rgba(189,24,27,.18); }
+.rd-page .primary-btn:hover, .rd-page .filter-submit-btn:hover { background: #aa1316; }
+.rd-page .ghost-btn { color: #3d4655; border-color: #e1e4e8; background: #fff; }
+
+/* Thẻ bộ lọc */
+.rd-page .filter-grid {
+  padding: 14px 17px 16px; border: 1px solid #e3e5e8; border-radius: 14px; background: #fafafa;
+  box-shadow: 0 4px 18px rgba(25,34,49,.035); align-items: end; gap: 10px;
+}
+.rd-page .filter-grid label > span { display: block; margin: 0 0 5px 2px; color: #566071; font-size: 11px; font-weight: 700; }
+.rd-page .filter-grid select, .rd-page .filter-grid input {
+  width: 100%; height: 38px; padding: 0 10px; outline: 0; border: 1px solid #dfe2e7; border-radius: 8px;
+  color: #384253; background: #fff; font-size: 12px;
+}
+.rd-page .filter-grid select:focus, .rd-page .filter-grid input:focus { border-color: #d9a3a4; box-shadow: 0 0 0 3px rgba(189,24,27,.07); }
+
+/* Thẻ bảng */
+.rd-page .table-card { border: 1px solid #e3e5e8; border-radius: 14px; background: #fff; box-shadow: 0 4px 18px rgba(25,34,49,.035); overflow: hidden; }
+.rd-page .table-scroll th {
+  padding: 11px 10px; color: #778090; background: #fafbfb; border: 0; border-bottom: 1px solid #e7e9ec;
+  font-size: 11px !important; font-weight: 800; letter-spacing: .5px; text-align: left; text-transform: uppercase;
+}
+.rd-page .table-scroll td { padding: 14px 10px; border: 0; border-bottom: 1px solid #eceef0; color: #303a49; }
+.rd-page .table-scroll tbody tr:last-child td { border-bottom: 0; }
+.rd-page .table-scroll tbody tr:hover td { background: #fdfafa; }
+.rd-page .table-scroll th:first-child, .rd-page .table-scroll td:first-child { padding-left: 17px; }
+.rd-page .table-scroll th:last-child, .rd-page .table-scroll td:last-child { padding-right: 17px; }
+.rd-page input[type='checkbox'] { width: 14px; height: 14px; accent-color: var(--rd-red); cursor: pointer; }
+.rd-page .cargo-name { color: #252e3b; font-weight: 700; }
+
+/* Trạng thái dạng viên thuốc */
+.rd-page .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 15px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+/* Nút thao tác từng dòng */
+.rd-page .rowicon-btn { border-radius: 8px; border: 1px solid transparent; background: transparent; color: #778293; }
+.rd-page .rowicon-btn:hover:not(:disabled) { color: var(--rd-red); background: #fff1f1; }
+.rd-page .rowicon-btn--danger:hover:not(:disabled) { color: #fff; background: var(--rd-red); }
+
+@media (max-width: 650px) {
+  .rd-page .toolbar-head { align-items: flex-start; flex-direction: column; }
+  .rd-page .toolbar h1 { font-size: 23px; }
+}
+
+/* Dòng mô tả dưới tiêu đề */
+.rd-page .page-sub { margin: 6px 0 0; color: var(--rd-muted); font-size: 12.5px; font-weight: 500; }
+
+/* Thẻ thống kê (js/redesign.js) */
+.rd-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.rd-stat { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 17px; border: 1px solid #e8e9ec; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px rgba(20,29,43,.025); }
+.rd-stat-icon { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; }
+.rd-stat-icon.rd-red { color: #b81d20; background: #fff0f0; }
+.rd-stat-icon.rd-amber { color: #d18413; background: #fff6df; }
+.rd-stat-icon.rd-blue { color: #3474cc; background: #edf5ff; }
+.rd-stat-icon.rd-green { color: #208c61; background: #eaf8f2; }
+.rd-stat span { display: block; color: var(--rd-muted); font-size: 12px; font-weight: 600; }
+.rd-stat strong { display: block; margin-top: 3px; color: var(--rd-ink); font-size: 22px; letter-spacing: -.5px; }
+
+/* Mã đơn dạng nhãn đỏ */
+.rd-page .table-scroll td code { color: #bd181b; background: #fff1f1; border-radius: 6px; padding: 3px 8px; font-weight: 800; }
+
+/* Trạng thái có chấm màu */
+.rd-page .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+
+/* Thanh cuộn mảnh */
+.rd-page * { scrollbar-width: thin; scrollbar-color: #c7cbd2 transparent; }
+
+/* =========================================================
+   SIDEBAR + TOPBAR theo bản redesign — KHÔNG scope rd-page: áp cho mọi trang cargo (kể cả cargo.html)
+   để thanh menu đồng nhất. Chỉ đổi màu/bo góc/khoảng cách, không đổi cấu trúc.
+   ========================================================= */
+.app-shell .app-sidebar {
+  background: linear-gradient(180deg, #981115 0%, #7c0c10 100%);
+  box-shadow: 6px 0 24px rgba(62, 10, 12, .08);
+}
+.app-shell .brand { background: #981115; } /* trùng đầu gradient sidebar để logo + menu liền khối */
+.app-shell .app-sidebar .sidebar-section-title {
+  color: rgba(255, 255, 255, .45); font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+}
+.app-shell .app-sidebar .sidebar-nav-item { border-radius: 9px; font-weight: 600; transition: .18s ease; }
+.app-shell .app-sidebar .sidebar-nav-item:hover,
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header:hover { background: rgba(255, 255, 255, .09) !important; }
+.app-shell .app-sidebar .sidebar-nav-item.active {
+  color: #8f1013; background: #fff; font-weight: 700; box-shadow: 0 6px 18px rgba(50, 0, 0, .12);
+}
+.app-shell .app-sidebar .sidebar-nav-item.active svg.nav-icon { color: #8f1013; }
+.app-shell .app-sidebar .group-children,
+.app-shell .app-sidebar .sidebar-submenu { border-left-color: rgba(255, 255, 255, .18) !important; }
+.app-shell .app-sidebar .sidebar-status-slider .status-option { border-radius: 8px; }
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active {
+  color: #8f1013; font-weight: 700; box-shadow: 0 6px 18px rgba(50, 0, 0, .12);
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon { color: #8f1013 !important; }
+
+.app-shell .page-header { background: rgba(255, 255, 255, .94); backdrop-filter: blur(12px); box-shadow: inset 0 -1px 0 #e8eaed; }
+.app-shell .search-shell { border: 1px solid #e4e7eb; border-radius: 11px; background: #f7f8fa; }
+.app-shell .search-shell:focus-within { border-color: #d9a3a4; box-shadow: 0 0 0 3px rgba(189, 24, 27, .07); }
+.app-shell .user-chip { border-radius: 10px; }
+
+/* ---- Kết ca (ket-ca.html dùng bộ class riêng) ---- */
+.rd-page .ket-ca-section-title { margin: 0 0 14px; color: #171f2d; font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+.rd-page .ket-ca-section-title::before { height: 22px; background: var(--rd-red); }
+.rd-page .report-filter-card, .rd-page .ket-ca-panel .report-filter-card {
+  padding: 14px 17px 16px; border: 1px solid #e3e5e8; border-radius: 14px; background: #fafafa; box-shadow: 0 4px 18px rgba(25,34,49,.035);
+}
+.rd-page .filter-control { height: 38px; border: 1px solid #dfe2e7; border-radius: 8px; font-size: 12px; color: #384253; background: #fff; }
+.rd-page .filter-control:focus { border-color: #d9a3a4; box-shadow: 0 0 0 3px rgba(189,24,27,.07); outline: 0; }
+.rd-page .stat-card { display: flex; align-items: center; gap: 14px; padding: 17px; border: 1px solid #e8e9ec; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px rgba(20,29,43,.025); }
+.rd-page .stat-card .stat-icon-wrapper { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 11px; }
+.rd-page .stat-card .stat-icon-wrapper svg { width: 18px !important; height: 18px !important; }
+.rd-page .stat-icon-red { color: #b81d20; background: #fff0f0; }
+.rd-page .stat-icon-blue { color: #3474cc; background: #edf5ff; }
+.rd-page .stat-icon-green { color: #208c61; background: #eaf8f2; }
+.rd-page .stat-icon-purple { color: #7c3aed; background: #f5f3ff; }
+.rd-page .table-container-card, .rd-page .ket-ca-panel .table-container-card {
+  border: 1px solid #e3e5e8; border-radius: 14px; background: #fff; box-shadow: 0 4px 18px rgba(25,34,49,.035); overflow: hidden; margin-top: 0;
+}
+.rd-page .ket-ca-panel .table-header-bar { padding: 14px 17px; border-bottom: 1px solid #e5e7eb; }
+.rd-page .ket-ca-panel .cargo-table { border: 0; border-radius: 0; }
+.rd-page .ket-ca-panel .cargo-table th { padding: 11px 10px; color: #778090; background: #fafbfb; font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+.rd-page .ket-ca-panel .cargo-table td { padding: 14px 10px; border-bottom: 1px solid #eceef0; }
+.rd-page .ket-ca-panel .cargo-table tbody tr:hover { background: #fdfafa; }
+
+/* ---- Tab trạng thái + phân trang (js/redesign.js) ---- */
+.rd-page tr[hidden] { display: none !important; }
+.rd-tabbar { display: flex; align-items: center; padding: 14px 17px; border-bottom: 1px solid #e5e7eb; }
+.rd-tabs { display: flex; gap: 5px; overflow-x: auto; }
+.rd-tabs button { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 0; border-radius: 8px; color: #747e8f; background: none; font: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.rd-tabs button.active { color: var(--rd-red); background: #fff0f0; }
+.rd-tabs button span { padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,.05); font-size: 10.5px; }
+.rd-pager { display: flex; align-items: center; justify-content: space-between; padding: 13px 17px; border-top: 1px solid #eceef0; color: #7c8593; font-size: 12px; }
+.rd-pager > div { display: flex; align-items: center; gap: 3px; }
+.rd-pager button { min-width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 7px; color: #6f7887; background: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.rd-pager button.active { color: #fff; background: var(--rd-red); }
+.rd-pager button:not(.active):not(:disabled):hover { border-color: var(--rd-line); }
+.rd-pager button:disabled { opacity: .35; cursor: default; }
+@media (max-width: 650px) { .rd-pager > span { display: none; } .rd-pager { justify-content: center; } }
+
+/* ---- Ô trong dòng bảng: icon vuông, tuyến, người gửi/nhận ---- */
+.rd-item { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.rd-item-icon { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 9px; color: #9f1d20; background: #fff3f3; }
+.rd-item-body { min-width: 0; }
+.rd-route { display: block; font-size: 13px; line-height: 1.5; color: #0f172a; } /* chữ chảy tự nhiên, mũi tên không bị rớt dòng riêng */
+.rd-route-arrow { margin: 0 6px; vertical-align: middle; }
+.rd-route strong { font-weight: 700; }
+.rd-route-arrow { margin: 0 6px; color: #94a3b8; font-size: 13px; font-weight: 600; } /* ký tự ➔ gốc, chỉ làm xám nhạt */
+.rd-people { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.rd-people span { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: #475569; }
+.rd-people i { width: 18px; height: 18px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #647083; background: #f0f2f4; font-size: 9px; font-style: normal; font-weight: 800; }
+.rd-people strong { color: #0f172a; }
+
+/* ---- COD: 4 khối tổng thành thẻ thống kê ---- */
+.rd-page .nt-sum { padding: 14px 16px; border: 1px solid #e8e9ec; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px rgba(20,29,43,.025); color: var(--rd-muted); font-size: 12px; font-weight: 600; }
+.rd-page .nt-sum b { margin-top: 3px; color: var(--rd-ink); font-size: 20px; letter-spacing: -.5px; }
+.rd-page .nt-col { border: 1px solid #e3e5e8; border-radius: 14px; box-shadow: 0 4px 18px rgba(25,34,49,.035); }
+
+/* Chữ trong dòng nhẹ hơn như bản mẫu: tên người không in đậm, tên hàng đậm vừa */
+.rd-page .rd-people strong { font-weight: 500; color: #303a49; }
+.rd-page .rd-item .cargo-name { font-size: 14px; font-weight: 700; color: #252e3b; }
+.rd-page .table-scroll td { font-size: 13px; }
+
+/* Bản mẫu không có cột STT */
+.rd-no-stt .table-scroll thead th:nth-child(2), .rd-no-stt .table-scroll tbody tr:not(:has(td[colspan])) td:nth-child(2) { display: none; }
+
+/* Cước phí & COD: số tiền đậm, các dòng phụ xám nhỏ như bản mẫu */
+.rd-fee { color: #252e3b; font-size: 13.5px; font-weight: 700; }
+.rd-fee-sub { margin-top: 3px; color: #87909e; font-size: 12px; font-weight: 400; }
+
+/* =========================================================
+   ĐỐI SOÁT COD (netting.js) — bố cục redesign: 4 thẻ thống kê, 3 bước, bảng chi tiết công nợ
+   ========================================================= */
+.rd-page #nettingPanel { display: block; margin-bottom: 20px; }
+.ntx-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.ntx-stat { padding: 17px 18px; border: 1px solid #e8e9ec; border-left: 3px solid #cbd0d8; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px rgba(20,29,43,.025); }
+.ntx-stat.ntx-green { border-left-color: #2ca66f; }
+.ntx-stat.ntx-red { border-left-color: var(--rd-red); }
+.ntx-stat span { display: block; color: var(--rd-muted); font-size: 12.5px; font-weight: 600; }
+.ntx-stat strong { display: block; margin: 8px 0 6px; color: var(--rd-ink); font-size: 26px; letter-spacing: -.8px; }
+.ntx-stat.ntx-green strong { color: #208c61; }
+.ntx-stat.ntx-red strong { color: var(--rd-red); }
+.ntx-stat small { color: #8a93a2; font-size: 11.5px; }
+
+.ntx-steps { display: grid; grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1.2fr) 64px minmax(0, 1fr); gap: 0; align-items: start; margin-bottom: 18px; }
+.ntx-card { min-width: 0; padding: 22px; border: 1px solid #e3e5e8; border-radius: 18px; background: #fff; box-shadow: 0 4px 18px rgba(25,34,49,.035); }
+.ntx-step-head { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #eceef0; }
+.ntx-step-head strong { display: block; color: var(--rd-ink); font-size: 15px; font-weight: 700; }
+.ntx-step-head small { display: block; margin-top: 2px; color: #8a93a2; font-size: 11.5px; }
+.ntx-num { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 10px; color: #fff; font-size: 13px; font-weight: 800; }
+.ntx-num.ntx-dark { background: #151f33; }
+.ntx-num.ntx-red { background: var(--rd-red); }
+.ntx-num.ntx-light { color: #6f7887; background: #eef0f3; }
+.ntx-field { display: block; margin-bottom: 14px; }
+.ntx-field span { display: block; margin-bottom: 6px; color: #566071; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.rd-page .ntx-field select { width: 100%; height: 46px; padding: 0 14px; border: 1px solid #dfe2e7; border-radius: 11px; color: #384253; background: #fff; font: inherit; font-size: 14px; }
+.rd-page .ntx-field select:focus { outline: 0; border-color: #d9a3a4; box-shadow: 0 0 0 3px rgba(189,24,27,.07); }
+.ntx-tile { padding: 16px 18px; border-radius: 13px; background: #f6f7f9; }
+.ntx-tile > span { display: block; color: #7c8593; font-size: 12.5px; }
+.ntx-tile > strong { display: block; margin: 6px 0 12px; color: var(--rd-ink); font-size: 26px; letter-spacing: -.8px; }
+.ntx-tile-red { background: #fff1f1; }
+.ntx-tile-red > strong { color: var(--rd-red); }
+.ntx-tile-foot { display: flex; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,.07); color: #7c8593; font-size: 11.5px; }
+.ntx-tile-foot b { color: var(--rd-ink); text-align: right; }
+.ntx-tile-red .ntx-tile-foot b { color: var(--rd-red); }
+.ntx-empty { padding: 28px 14px; border: 1.5px dashed #d5d9df; border-radius: 12px; color: #8a93a2; background: #fafbfc; font-size: 12.5px; text-align: center; }
+.ntx-scroll { margin-top: 14px; overflow-x: auto; }
+.ntx-card .nt-table { font-size: 12.5px; }
+.ntx-card .nt-sub { margin: 16px 0 10px; }
+.ntx-link { display: flex; flex-direction: column; align-items: center; justify-content: center; align-self: center; gap: 6px; color: var(--rd-red); font-size: 10px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; }
+.ntx-link-dim { color: #a6adb8; }
+
+.ntx-detail { overflow: hidden; border: 1px solid #e3e5e8; border-radius: 18px; background: #fff; box-shadow: 0 4px 18px rgba(25,34,49,.035); }
+.ntx-detail-head { padding: 20px 24px; border-bottom: 1px solid #eceef0; }
+.ntx-detail-head strong { display: block; color: var(--rd-ink); font-size: 17px; font-weight: 800; }
+.ntx-detail-head small { display: block; margin-top: 3px; color: #8a93a2; font-size: 12px; }
+.ntx-detail .ntx-scroll { margin: 0; }
+.ntx-table { width: 100%; min-width: 640px; border-collapse: collapse; }
+.ntx-table th { padding: 14px 24px; color: #778090; background: #fafbfb; border-bottom: 1px solid #e7e9ec; font-size: 11px; font-weight: 800; letter-spacing: .6px; text-align: left; text-transform: uppercase; }
+.ntx-table td { padding: 18px 24px; border-bottom: 1px solid #eceef0; color: #303a49; font-size: 14px; font-weight: 600; }
+.ntx-table .ntx-total td { border-bottom: 0; color: var(--rd-ink); font-weight: 800; }
+.ntx-src { font-weight: 600; }
+.ntx-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ntx-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ntx-pill-wait { color: #8c601e; background: #fff7e8; }
+.ntx-pill-ok { color: #316da8; background: #eef6ff; }
+.ntx-adj { margin: 0; padding: 10px 24px; border-top: 1px solid #eceef0; }
+.ntx-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px 24px; border-top: 1px solid #eceef0; background: #fdf8f6; }
+.ntx-foot span { display: block; color: #6f7887; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.ntx-foot strong { display: block; margin: 6px 0 4px; color: var(--rd-red); font-size: 28px; letter-spacing: -.8px; }
+.ntx-foot small { color: #8a93a2; font-size: 12px; }
+.ntx-foot .nt-actions { margin: 0; display: flex; gap: 10px; flex-wrap: wrap; }
+.ntx-foot .nt-actions button { min-height: 46px; padding: 0 22px; border-radius: 11px; font-size: 14px; font-weight: 700; }
+
+@media (max-width: 1100px) {
+  .ntx-steps { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .ntx-link { flex-direction: row; }
+  .ntx-link svg { transform: rotate(90deg); }
+}
+
+/* Gọn lại để bảng "Chi tiết công nợ" lên sát phía trên */
+.ntx-stats { margin-bottom: 12px; gap: 10px; }
+.ntx-stat { padding: 11px 14px; }
+.ntx-stat strong { margin: 4px 0 2px; font-size: 21px; }
+.ntx-steps { margin-bottom: 12px; }
+.ntx-card { padding: 14px 16px; border-radius: 14px; }
+.ntx-step-head { padding-bottom: 10px; margin-bottom: 10px; }
+.ntx-num { width: 30px; height: 30px; }
+.ntx-field { margin-bottom: 10px; }
+.rd-page .ntx-field select { height: 40px; }
+.ntx-tile { padding: 10px 14px; }
+.ntx-tile > strong { margin: 2px 0 8px; font-size: 21px; }
+.ntx-empty { padding: 14px 10px; }
+.ntx-more { margin-top: 10px; }
+.ntx-more > summary { cursor: pointer; color: var(--rd-red); font-size: 12px; font-weight: 700; }
+.ntx-more[open] > summary { margin-bottom: 8px; }
+.ntx-detail-head { padding: 12px 20px; }
+.ntx-table th { padding: 10px 20px; }
+.ntx-table td { padding: 11px 20px; }
+.ntx-foot { padding: 12px 20px; }
+.ntx-foot strong { margin: 2px 0; font-size: 24px; }
+
+/* =========================================================
+   SIDEBAR v2: gọn hơn, 2 nhóm Vận hành / Tài chính, icon trong khối nền, active nhẹ, chân sidebar cố định
+   (menu mở/đóng đã có chuyển động ở responsive.css; mobile drawer giữ nguyên)
+   ========================================================= */
+.app-shell .app-sidebar { overflow: hidden; }
+.app-shell .app-sidebar .sidebar-content { min-height: 0; padding: 14px 10px; gap: 6px; scrollbar-width: none; -ms-overflow-style: none; }
+.app-shell .app-sidebar .sidebar-content::-webkit-scrollbar { width: 0; height: 0; }
+.app-shell .app-sidebar .sidebar-nav { gap: 3px; }
+.app-shell .app-sidebar .rd-nav-title { margin: 14px 0 4px; }
+
+/* Icon trong khối nền riêng */
+.app-shell .app-sidebar .sidebar-nav-item svg.nav-icon {
+  width: 30px !important; height: 30px !important; padding: 6px; border-radius: 9px;
+  background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .8); box-sizing: border-box; transition: background .18s ease, color .18s ease;
+}
+.app-shell .app-sidebar .group-children .sidebar-nav-item svg.nav-icon { width: 26px !important; height: 26px !important; padding: 5px; border-radius: 8px; }
+.app-shell .app-sidebar .sidebar-nav-item { padding: 6px 8px; font-size: 13.5px; }
+.app-shell .app-sidebar .sidebar-nav-item .nav-item-content { gap: 10px; }
+.app-shell .app-sidebar .sidebar-nav-item:hover svg.nav-icon { background: rgba(255, 255, 255, .16); color: #fff; }
+
+/* Mục đang chọn: nổi bật nhẹ (không dùng mảng trắng lớn) — nền mờ + vạch trắng bên trái, icon sáng */
+.app-shell .app-sidebar .sidebar-nav-item.active {
+  color: #fff; background: rgba(255, 255, 255, .14); box-shadow: inset 3px 0 0 #fff; font-weight: 700;
+}
+.app-shell .app-sidebar .sidebar-nav-item.active svg.nav-icon { background: #fff; color: #bd181b; }
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header { font-weight: 700 !important; }
+
+/* Giảm độ sâu cây menu: bỏ lùi lề dày, chỉ còn 1 đường kẻ mảnh */
+.app-shell .app-sidebar .group-children { margin-left: 18px !important; padding-left: 6px !important; border-left: 1px solid rgba(255, 255, 255, .14) !important; }
+.app-shell .app-sidebar .sidebar-submenu { margin-left: 4px; padding-left: 0; border-left: 0 !important; }
+
+/* Bộ lọc loại hàng: lưới 2 cột dạng chip thay cho danh sách dọc 7 dòng */
+.app-shell .app-sidebar .sidebar-status-slider { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 2px 0; }
+.app-shell .app-sidebar .sidebar-status-slider .status-option { padding: 5px 8px; gap: 6px; font-size: 12px; border-radius: 8px; }
+.app-shell .app-sidebar .status-dot-icon, .app-shell .app-sidebar .status-dot-icon svg { width: 16px; height: 16px; }
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active {
+  color: #fff; background: rgba(255, 255, 255, .16); border-color: transparent; box-shadow: none; font-weight: 700;
+}
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active .status-dot-icon { color: #fff !important; }
+.app-shell .app-sidebar.is-collapsed .sidebar-status-slider { grid-template-columns: 1fr; }
+
+/* Hàng quá hạn: inline style #be123c chìm trên nền đỏ -> ép sang vàng nhạt */
+.app-shell .app-sidebar #overdueNavItem { color: #ffd9a8 !important; }
+.app-shell .app-sidebar #overdueNavItem svg.nav-icon { background: rgba(255, 217, 168, .16); color: #ffd9a8; }
+.app-shell .app-sidebar #overdueNavItem.active { color: #8f1013 !important; } /* nền mục đang chọn là trắng → chữ đỏ đậm */
+.app-shell .app-sidebar #overdueNavItem.active svg.nav-icon { color: #bd181b; background: #fde8e8; }
+
+/* Chữ mục dài (vd "Danh sách chuyến xe đến") xuống dòng thay vì tràn mép sidebar */
+.app-shell .app-sidebar .sidebar-nav-item .nav-item-content { min-width: 0; }
+.app-shell .app-sidebar .sidebar-nav-item .nav-item-content > span { min-width: 0; line-height: 1.25; }
+
+/* Badge thông báo COD */
+.app-shell .app-sidebar .rd-badge { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 10px; color: #bd181b; background: #fff; font-size: 11px; font-weight: 800; text-align: center; line-height: 18px; }
+.app-shell .app-sidebar.is-collapsed .rd-badge { display: none; }
+
+/* Chân sidebar cố định: tài khoản + chi nhánh */
+.rd-sidebar-foot { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin: 0 10px 10px; padding: 10px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; background: rgba(255, 255, 255, .07); color: #fff; overflow: hidden; }
+.rd-foot-avatar { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 10px; color: #8f1013; background: #fff; font-size: 13px; font-weight: 800; }
+.rd-foot-info { min-width: 0; }
+.rd-foot-info strong, .rd-foot-info small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-foot-info strong { font-size: 12.5px; }
+.rd-foot-info small { margin-top: 1px; color: rgba(255, 255, 255, .6); font-size: 11px; }
+.app-sidebar.is-collapsed .rd-sidebar-foot { justify-content: center; margin: 0 6px 10px; padding: 8px 4px; }
+.app-sidebar.is-collapsed .rd-foot-info { display: none; }
+
+/* =========================================================
+   BẢNG ĐƠN HÀNG gọn như bản mẫu: chữ phụ 12px xám, không rớt dòng lẻ (số ĐT, "NV: …", hình thức thanh toán)
+   Các style inline font-size:13px từ cargo.js được ghi đè ở đây để khỏi sửa JS.
+   ========================================================= */
+.rd-page .table-scroll td { padding: 12px 10px; font-size: 12.5px; vertical-align: middle; }
+.rd-page .table-scroll th { white-space: nowrap; }
+.rd-page .table-scroll td [style*="font-size:13px"] { font-size: 12px !important; }
+.rd-page .table-scroll td [style*="color:#475569"], .rd-page .table-scroll td [style*="color:#64748b"] { color: #87909e !important; font-weight: 400 !important; }
+.rd-page .rd-item .cargo-name { display: block; font-size: 13.5px; }
+.rd-page .rd-item .cargo-name + span { display: inline-block; margin-top: 1px; }
+.rd-page .rd-route strong { font-size: 12.5px; }
+.rd-page .rd-people { gap: 4px; font-size: 12.5px; }
+.rd-page .rd-people span { flex-wrap: nowrap; white-space: nowrap; color: #87909e; }
+.rd-page .rd-people strong { white-space: nowrap; }
+.rd-page .rd-fee-sub { white-space: nowrap; }
+.rd-page .table-scroll td:nth-child(6) > div:last-child { white-space: nowrap; }
+.rd-page .action-group { gap: 2px; flex-wrap: nowrap; }
+.rd-page .action-group .rowicon-btn { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; }
+.rd-page .action-group .rowicon-btn svg { width: 16px; height: 16px; }
+
+/* Vừa khít bề ngang: bớt đệm ngang giữa các cột, nút thao tác nhỏ lại, không cần cuộn ngang ở màn ~1500px */
+.rd-page .table-scroll th, .rd-page .table-scroll td { padding-left: 6px; padding-right: 6px; }
+.rd-page .table-scroll th:first-child, .rd-page .table-scroll td:first-child { padding-left: 14px; }
+.rd-page .table-scroll th:last-child, .rd-page .table-scroll td:last-child { padding-right: 10px; }
+.rd-page .rd-people { font-size: 12px; }
+.rd-page .rd-people span { gap: 5px; }
+.rd-page .status-pill, .rd-page .minimal-status-badge { padding: 5px 9px; font-size: 11.5px; }
+.rd-page .action-group .rowicon-btn { width: 27px; height: 27px; }
+.rd-page .table-scroll th { font-size: 10.5px !important; letter-spacing: .3px; }
+
+/* Cột Hàng hóa đủ rộng (tên + số lượng không bẻ 4–5 dòng); cột người gửi/nhận nhường chỗ: số ĐT xuống dòng dưới tên khi hẹp */
+.rd-page .rd-item { min-width: 190px; }
+.rd-page .rd-people span { flex-wrap: wrap; row-gap: 0; white-space: normal; }
+.rd-page .rd-people { max-width: 190px; }
+
+/* Bỏ icon hộp vuông ở cột Hàng hóa */
+.rd-page .rd-item-icon { display: none; }
+.rd-page .rd-item { min-width: 150px; }
+
+/* =========================================================
+   SIDEBAR theo bản mới: thẻ trạm, mục đang chọn nền trắng chữ đỏ, badge số lượng
+   ========================================================= */
+.rd-station { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; background: rgba(255, 255, 255, .07); color: #fff; }
+.rd-station-avatar { width: 32px; height: 32px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 9px; color: #8f1013; background: #fff; font-size: 12px; font-weight: 800; }
+.rd-station small, .rd-station strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-station small { color: rgba(255, 255, 255, .6); font-size: 10.5px; }
+.rd-station strong { margin-top: 1px; font-size: 13.5px; }
+.app-shell .app-sidebar.is-collapsed .rd-station { justify-content: center; padding: 8px 4px; }
+.app-shell .app-sidebar.is-collapsed .rd-station > div { display: none; }
+
+/* Mục đang chọn: nền trắng, chữ đỏ đậm (thay vạch trắng bên trái) */
+.app-shell .app-sidebar .sidebar-nav-item.active { color: #8f1013; background: #fff; box-shadow: 0 6px 16px rgba(53, 0, 0, .13); }
+.app-shell .app-sidebar .sidebar-nav-item.active svg.nav-icon { background: #fde8e8; color: #bd181b; }
+.app-shell .app-sidebar .sidebar-nav-item.active .rd-badge { color: #fff; background: #bd181b; }
+.app-shell .app-sidebar .sidebar-nav-item:not(.active) .rd-badge { color: #fff; background: rgba(255, 255, 255, .18); }
+
+/* Bộ lọc loại hàng gọn: 1 cột, thụt vào dưới mục cha, chữ nhỏ; mục đang chọn là nền mờ + chữ trắng đậm */
+.app-shell .app-sidebar .sidebar-status-slider { grid-template-columns: 1fr; gap: 1px; margin: 2px 0 6px 14px; padding: 0 0 0 10px; border-left: 1px solid rgba(255, 255, 255, .16); }
+.app-shell .app-sidebar .sidebar-status-slider .status-option { padding: 5px 8px; font-size: 12.5px; font-weight: 500; color: rgba(255, 255, 255, .72); }
+.app-shell .app-sidebar .sidebar-status-slider .status-option:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.app-shell .app-sidebar .sidebar-status-slider .status-option.active { color: #fff; font-weight: 700; background: rgba(255, 255, 255, .14); }
+.app-shell .app-sidebar .status-dot-icon, .app-shell .app-sidebar .status-dot-icon svg { width: 14px; height: 14px; opacity: .8; }
+
+/* =========================================================
+   DANH SÁCH PHƠI (manifest.html): nhẹ nhàng như bản mới
+   — nút thao tác xám trơn (hover mới có màu), chip số đơn/loại xe trung tính, dòng nhóm biển số nhạt
+   ========================================================= */
+.rd-page .action-group { gap: 2px; flex-wrap: nowrap; justify-content: center; }
+.rd-page .action-group > button { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border: 1px solid transparent; border-radius: 8px; color: #778293; background: transparent; }
+.rd-page .action-group > button svg { width: 16px; height: 16px; }
+.rd-page .action-group > button:hover:not(:disabled) { color: var(--rd-red); background: #fff1f1; }
+.rd-page .action-group > .btn-delete:hover:not(:disabled) { color: #fff; background: var(--rd-red); }
+.rd-page .action-group > .btn-receive-all:hover:not(:disabled) { color: #208c61; background: #eaf8f2; }
+
+.rd-page .vehicle-pill { padding: 3px 9px; color: #566071; background: #f0f2f4; border: 0; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.rd-page .table-scroll td:has(> .vehicle-pill) small, .rd-page .table-scroll td small { color: #87909e; font-size: 12px; }
+
+.rd-page .plate-group { background: #fafbfb; }
+.rd-page .plate-group:hover { background: #f4f5f7; }
+.rd-page .plate-group td { padding: 10px 17px; border-top: 1px solid #eceef0; }
+.rd-page .plate-group .pg-plate { font-size: 14px; font-weight: 800; color: var(--rd-ink); }
+.rd-page .plate-group .pg-chevron { color: #8a93a2; }
+.rd-page .plate-group .pg-count { padding: 2px 9px; color: var(--rd-red); background: #fff0f0; font-size: 11px; }
+.rd-page .plate-group .pg-del { border-color: #e1e4e8; color: #697386; font-weight: 600; }
+.rd-page .plate-group .pg-del:hover { color: #fff; background: var(--rd-red); border-color: var(--rd-red); }
+
+.rd-page .plate-child td strong[style*="font-size:15px"] { font-size: 13.5px !important; }
+.rd-page .plate-child .route-text { display: block; margin: 2px 0 0 !important; color: #87909e; font-size: 12px !important; }
+.rd-page .plate-child .route-text strong { font-weight: 600; color: #566071; }
+
+/* Hai nút thao tác hàng loạt: nhẹ hơn, không chiếm ưu thế so với thẻ thống kê */
+.rd-page #batchReceiveAllBtn { min-height: 34px; font-size: 12px; box-shadow: none; }
+.rd-page #batchReceiveAllBtn:disabled, .rd-page #batchPrintManifestsBtn:disabled { opacity: .5; transform: none; box-shadow: none; }
+
+/* Loại xe: chữ thường, không khung (chip "N đơn hàng" không có style inline font-size:12.5px nên giữ nguyên) */
+.rd-page .plate-child .vehicle-pill[style*="font-size:12.5px"] { padding: 0 !important; background: none; border-radius: 0; color: #303a49; font-size: 13px !important; font-weight: 600 !important; }
+
+/* Số đơn hàng trong phơi: "đã nhận/tổng", chữ thường không khung */
+.rd-page .order-count { color: #303a49; font-size: 13px; font-weight: 600; white-space: nowrap; }
+
+/* =========================================================
+   DANH SÁCH GIAO HÀNG (delivery.html): gọn như danh sách nhận hàng
+   — chữ phụ xám 12px; tên hàng + số lượng cùng dòng; người nhận: tên + SĐT cùng dòng; số tiền đậm
+   ========================================================= */
+#deliveryTableBody td { padding-top: 11px; padding-bottom: 11px; }
+#deliveryTableBody td [style*="font-size"] { font-size: 12px !important; }
+#deliveryTableBody .rd-item-body .cargo-name { display: inline; font-size: 13.5px !important; }
+#deliveryTableBody .rd-item-body > span[style] { margin-left: 3px; font-weight: 400 !important; color: #87909e !important; }
+#deliveryTableBody .rd-item-body > div[style] { margin-top: 1px !important; color: #87909e !important; }
+
+/* Chuyến xe: tuyến đậm, biển số + giờ đến xám */
+#deliveryTableBody td:nth-child(5) .td-val > div[style*="font-weight:700"] { font-weight: 400 !important; color: #87909e !important; }
+#deliveryTableBody td:nth-child(5) .td-val > div[style*="color:#64748b"] { color: #87909e !important; }
+
+/* COD & cước: số tiền đậm, nhãn xám */
+#deliveryTableBody td:nth-child(7) .td-val > div[style] { color: #87909e !important; white-space: nowrap; }
+#deliveryTableBody td:nth-child(7) strong { font-size: 13.5px !important; font-weight: 700; color: #252e3b !important; }
+
+/* Trạng thái: dòng phụ "Chưa quét" xám nhỏ */
+#deliveryTableBody td:nth-child(8) .td-val > div[style] { color: #87909e !important; }
+
+/* Giao hàng: cột người gửi/nhận còn dư chỗ → tên + SĐT cùng 1 dòng */
+#deliveryTableBody .rd-people { max-width: none; }
+#deliveryTableBody .rd-people span { flex-wrap: nowrap; white-space: nowrap; }
+
+/* =========================================================
+   DANH SÁCH CHUYẾN XE ĐẾN (manifest.html?tab=receive): biển số chữ đậm + tuyến xám, nút gọn
+   ========================================================= */
+.rd-page .rd-plate { color: #252e3b; font-size: 13.5px; font-weight: 700; }
+.rd-page .rd-plate-route { margin-top: 2px; color: #87909e; font-size: 12px; }
+#receiveTableBody .primary-btn, #receiveTableBody .ghost-btn { min-height: 32px; padding: 0 12px; font-size: 12px; box-shadow: none; }
+#receiveTableBody .primary-btn { box-shadow: 0 4px 10px rgba(189,24,27,.14); }
+#batchReceiveVehicleBtn { min-height: 34px; font-size: 12px; box-shadow: none; }
+#batchReceiveVehicleBtn:disabled, #batchPrintReceiveBtn:disabled { opacity: .5; transform: none; box-shadow: none; }
+
+/* Mục con trong sidebar: chữ 13px để "Danh sách chuyến xe đến" không bị cắt khi đang chọn */
+.app-shell .app-sidebar .group-children .sidebar-nav-item { font-size: 13px; }
+.app-shell .app-sidebar .group-children .sidebar-nav-item .nav-item-content { gap: 8px; }
+
+/* =========================================================
+   HÀNG CHƯA GIAO / HÀNG THIẾU (manifest.html, #unreceivedTableBody) — cùng kiểu bảng giao hàng
+   ========================================================= */
+#unreceivedTableBody .cargo-name { font-size: 13.5px; font-weight: 700; color: #252e3b; }
+#unreceivedTableBody .rd-people { max-width: none; }
+#unreceivedTableBody .rd-people span { flex-wrap: nowrap; white-space: nowrap; }
+
+/* =========================================================
+   KẾT CA (ket-ca.html): bỏ khối trắng bao ngoài (lồng 2 lớp thẻ), tiêu đề phần gọn không vạch đỏ
+   ========================================================= */
+.rd-page .ket-ca-panel { margin-bottom: 26px; padding: 0; background: transparent; border: 0; border-radius: 0; }
+.rd-page .ket-ca-section-title { margin: 0 0 12px; font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
+.rd-page .ket-ca-section-title::before { display: none; }
+.rd-page .ket-ca-panel .table-container-card { border: 1px solid #e3e5e8; border-radius: 14px; margin-top: 14px; }
+
+/* Kết ca: bộ lọc 1 lớp viền (rule .filter-grid dùng chung đang vẽ thêm 1 thẻ bên trong), gọn hơn */
+.rd-page .ket-ca-panel .report-filter-card { padding: 10px 14px; border: 1px solid #e3e5e8; background: #fafafa; box-shadow: none; }
+.rd-page .ket-ca-panel .filter-grid { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.rd-page .ket-ca-panel .filter-item label { margin: 0 0 4px 2px; color: #566071; font-size: 11px; font-weight: 700; }
+
+/* Kết ca: bảng nhẹ như bản mới — chữ phụ xám 12px, chip không khung, icon xám */
+.rd-page .ket-ca-panel .table-header-title { font-size: 12.5px; letter-spacing: .3px; }
+.rd-page .ket-ca-panel .count-chip { color: var(--rd-red); background: #fff0f0; font-weight: 800; }
+.rd-page .ket-ca-panel .staff-cell strong { font-size: 13.5px !important; font-weight: 700 !important; color: #252e3b !important; }
+.rd-page .ket-ca-panel .code-badge, .rd-page .ket-ca-panel .station-chip { padding: 0 !important; border: 0 !important; background: none !important; color: #87909e !important; font-size: 12px !important; font-weight: 400 !important; }
+.rd-page .ket-ca-panel .station-chip::before { content: '•'; margin-right: 6px; }
+.rd-page .ket-ca-panel .time-block > span { font-size: 13px !important; font-weight: 600 !important; color: #303a49 !important; }
+.rd-page .ket-ca-panel .time-block small { color: #87909e !important; font-size: 12px !important; }
+.rd-page .ket-ca-panel .amount-block > strong { font-size: 13.5px !important; font-weight: 700 !important; color: #252e3b !important; }
+.rd-page .ket-ca-panel .amount-block span[style*="border-radius:4px"] { padding: 0 !important; border: 0 !important; background: none !important; color: #87909e !important; font-size: 12px !important; font-weight: 400 !important; }
+.rd-page .ket-ca-panel .note-truncate { color: #87909e; font-size: 12.5px; }
+.rd-page .ket-ca-panel .action-icons-row { gap: 2px; justify-content: center; }
+.rd-page .ket-ca-panel .rowicon-btn { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; }
+
+/* Nút "Xóa Dữ Liệu" (style inline đỏ viền) → ghost xám, đỏ khi rê chuột */
+.rd-page .ket-ca-panel .table-header-bar button[onclick*="clearAllRealShifts"] { height: 32px !important; color: #566071 !important; border: 1px solid #e1e4e8 !important; font-weight: 600 !important; }
+.rd-page .ket-ca-panel .table-header-bar button[onclick*="clearAllRealShifts"]:hover { color: #fff !important; background: var(--rd-red) !important; border-color: var(--rd-red) !important; }
+
+/* =========================================================
+   SIDEBAR THU GỌN (is-collapsed): chỉ còn cột icon căn giữa — ẩn danh sách lọc, bỏ thụt lề + đường kẻ của mục con
+   ========================================================= */
+.app-shell .app-sidebar.is-collapsed .sidebar-content { padding: 12px 8px; }
+.app-shell .app-sidebar.is-collapsed .group-children { margin-left: 0 !important; padding-left: 0 !important; border-left: 0 !important; }
+.app-shell .app-sidebar.is-collapsed .sidebar-submenu { display: none !important; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item { justify-content: center; padding: 5px 0; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item .nav-item-content { gap: 0; justify-content: center; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item .nav-item-content > span { display: none; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item svg.nav-icon,
+.app-shell .app-sidebar.is-collapsed .group-children .sidebar-nav-item svg.nav-icon { width: 32px !important; height: 32px !important; padding: 7px; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item.active { box-shadow: none; background: transparent; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item.active svg.nav-icon { background: #fff; color: #bd181b; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item .rd-badge { display: none; }
+.app-shell .app-sidebar.is-collapsed .rd-nav-title { display: none; }
+
+/* Tắt hiệu ứng sidebar trong lúc tải trang (class no-anim gỡ sau 2 khung hình ở responsive.js) */
+.app-sidebar.no-anim, .app-sidebar.no-anim * { transition: none !important; animation: none !important; }
+
+/* =========================================================
+   DANH SÁCH LỌC LOẠI HÀNG = BẢNG NỔI (như menu "QL Bán vé"): bấm mũi tên cạnh Danh sách nhận/giao hàng mới hiện,
+   nền trắng, chữ thường, mục đang chọn màu đỏ. Vị trí đặt bằng --fly-x/--fly-y (sidebar.js).
+   ========================================================= */
+.app-shell .app-sidebar .sidebar-subgroup > .sidebar-submenu {
+  position: fixed; left: var(--fly-x, 260px); top: var(--fly-y, 80px); z-index: 500;
+  width: 230px; max-height: none !important; margin: 0 !important; padding: 8px !important; overflow: visible;
+  border: 0 !important; border-radius: 14px; background: #fff; box-shadow: 0 14px 44px rgba(20, 8, 8, .22), 0 0 0 1px rgba(0, 0, 0, .04);
+  opacity: 0 !important; visibility: hidden; pointer-events: none; transform: translateX(-6px);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
+}
+.app-shell .app-sidebar .sidebar-subgroup.open > .sidebar-submenu { opacity: 1 !important; visibility: visible; pointer-events: auto; transform: none; }
+.app-shell .app-sidebar .sidebar-submenu .sidebar-status-slider { display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 0; border: 0; }
+.app-shell .app-sidebar .sidebar-submenu .status-option {
+  padding: 11px 14px; border-radius: 9px; color: #2b3342; background: transparent; font-size: 14px; font-weight: 500; gap: 10px;
+}
+.app-shell .app-sidebar .sidebar-submenu .status-option:hover { color: #111827; background: #f3f4f6; }
+.app-shell .app-sidebar .sidebar-submenu .status-option.active { color: var(--rd-red, #bd181b); font-weight: 700; background: #fff0f0; }
+.app-shell .app-sidebar .sidebar-submenu .status-option .status-dot-icon { color: #8a93a2; background: none; border: 0; }
+.app-shell .app-sidebar .sidebar-submenu .status-option.active .status-dot-icon { color: var(--rd-red, #bd181b) !important; background: none; border: 0; }
+.app-shell .app-sidebar .sidebar-subgroup:not(.open) > .sidebar-nav-item .submenu-chevron { transform: rotate(-90deg) !important; }
+.app-shell .app-sidebar .sidebar-subgroup.open > .sidebar-nav-item .submenu-chevron { transform: rotate(90deg) !important; }
+.app-sidebar.is-collapsed .sidebar-subgroup > .sidebar-submenu { display: none !important; }
+
+/* Mục đang chọn (nền trắng) giữ nguyên khi rê chuột — rule hover chung dùng !important nên phải ghi đè cùng mức */
+.app-shell .app-sidebar .sidebar-nav-item.active:hover,
+.app-shell .app-sidebar .sidebar-nav-item.nav-group-header.active:hover { background: #fff !important; color: #8f1013 !important; }
+.app-shell .app-sidebar #overdueNavItem.active:hover { background: #fff !important; }
+.app-shell .app-sidebar.is-collapsed .sidebar-nav-item.active:hover { background: transparent !important; }
+.app-shell .app-sidebar .sidebar-nav-item.active:hover svg.nav-icon { background: #fde8e8; color: #bd181b; }
+.app-shell .app-sidebar .sidebar-nav-item.active:hover .submenu-chevron { color: #8f1013; }
+
+/* Ô chọn xổ xuống "Loại hàng" ở góc phải hàng tab (js/redesign.js) */
+.rd-tabbar { flex-wrap: wrap; row-gap: 8px; }
+.rd-catsel { position: relative; margin-left: auto; }
+.rd-catsel-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px 0 13px; border: 1px solid #e1e4e8; border-radius: 9px; color: #697386; background: #fff; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s ease; }
+.rd-catsel-btn strong { color: #252e3b; font-weight: 700; }
+.rd-catsel-btn:hover { border-color: #d3d7de; }
+.rd-catsel-btn.filtered { border-color: #e9b9ba; background: #fff5f5; }
+.rd-catsel-btn.filtered strong { color: var(--rd-red); }
+.rd-catsel.open .rd-catsel-btn svg { transform: rotate(180deg); }
+.rd-catmenu { display: none; position: fixed; z-index: 600; width: 200px; padding: 6px; border-radius: 12px; background: #fff; box-shadow: 0 14px 40px rgba(20, 8, 8, .2), 0 0 0 1px rgba(0, 0, 0, .05); }
+.rd-catsel.open .rd-catmenu { display: block; }
+.rd-catmenu button { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; color: #2b3342; background: none; font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; }
+.rd-catmenu button:hover { background: #f3f4f6; }
+.rd-catmenu button.active { color: var(--rd-red); font-weight: 700; background: #fff0f0; }
+
+/* Trang không dùng thẻ thống kê (data-cards='[]'): khối rỗng không chiếm chỗ */
+.rd-stats-grid:empty { display: none; }
+
+/* Bảng nổi lọc loại hàng: hover không đổi icon sang trắng (shell.css làm vậy cho nền đỏ cũ) — giữ icon xám đậm trên nền xám nhạt */
+.app-shell .app-sidebar .sidebar-submenu .status-option:not(.active):hover .status-dot-icon { color: #566071 !important; }
+.app-shell .app-sidebar .sidebar-submenu .status-option.active:hover .status-dot-icon { color: var(--rd-red, #bd181b) !important; }
+
+/* =========================================================
+   ĐỐI SOÁT COD: bỏ các khối lặp số liệu (cùng một con số hiện 6 lần). Số cần đối soát đã có ở chân bảng "Chi tiết công nợ",
+   từng nguồn tiền đã có trong bảng đó. Chỉ ẩn hiển thị — logic netting.js không đổi.
+   ========================================================= */
+.rd-page .ntx-stats { display: none; }                 /* 4 thẻ Tổng công nợ / Đã thanh toán / Còn phải trả / Qua trạm trung gian */
+.rd-page .ntx-card .ntx-tile { display: none; }        /* ô "Công nợ với các trạm" (bước 1) và "Nợ ròng cần thanh toán" (bước 2) */
+.rd-page .ntx-steps > .ntx-card:first-child .ntx-more { display: none; } /* "Xem nợ theo nguồn tiền và từng trạm" (bảng chi tiết bên dưới đã có) */
+.rd-page .ntx-steps { margin-top: 4px; }

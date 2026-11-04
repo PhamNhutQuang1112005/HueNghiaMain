@@ -1,0 +1,10 @@
+{
+  "description": "A project setup and deployment-readiness tool that helps developers validate imported projects and prepare reliable production and preview deployments.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

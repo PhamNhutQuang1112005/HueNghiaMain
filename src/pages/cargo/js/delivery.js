@@ -152,13 +152,16 @@ function populateDeliveryStaffFilter() {
   }
 }
 
+// "Đơn COD" không phải một loại hàng (cargoCategory) nên không có trong ô chọn "Loại hàng": lọc riêng theo codAmount > 0.
+let quickCodFilter = false;
+
 function getFilters() {
   return {
     date: (document.getElementById('filterDeliveryDate') || {}).value || '',
     status: (document.getElementById('filterDeliveryStatus') || {}).value || 'all',
     stationTo: (document.getElementById('filterStationTo') || {}).value || 'all',
     staff: (document.getElementById('filterDeliveryStaff') || {}).value || 'all',
-    category: (document.getElementById('filterDeliveryCategory') || {}).value || 'all',
+    category: quickCodFilter ? 'cod' : ((document.getElementById('filterDeliveryCategory') || {}).value || 'all'),
     search: ((document.getElementById('globalSearch') || {}).value || '').trim().toLowerCase()
   };
 }
@@ -180,7 +183,9 @@ function getFilteredList() {
     if (f.status !== 'all' && (c.deliveryStatus || 'cho-giao') !== f.status) return false;
     if (f.stationTo !== 'all' && c.stationTo !== f.stationTo) return false;
     if (f.staff !== 'all' && c.deliveryStaff !== f.staff) return false;
-    if (f.category !== 'all' && (c.cargoCategory || 'goods') !== f.category) return false;
+    if (f.category === 'cod') {
+      if (!(Number(c.codAmount) > 0)) return false;
+    } else if (f.category !== 'all' && (c.cargoCategory || 'goods') !== f.category) return false;
     if (f.date) {
       const rd = refDateOf(c);
       if (rd !== f.date) return false;
@@ -226,22 +231,27 @@ function buildRow(cargo, index) {
     <tr>
       <td style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${cargo.id}" /></td>
       <td style="text-align:center;"><strong>${index + 1}</strong></td>
+      <td style="text-align:center;"><code>${cargo.code}</code></td>
       <td>
-        <strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:11.5px; font-weight:700; color:#64748b;">(${formatCargoQuantity(cargo)})</span><br>
-        <code>${cargo.code}</code>
-        ${catLabel ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${catLabel}</div>` : ''}
+        <div class="rd-item">
+          <span class="rd-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg></span>
+          <div class="rd-item-body">
+            <strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:11.5px; font-weight:700; color:#64748b;">(${formatCargoQuantity(cargo)})</span>
+            ${catLabel ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${catLabel}</div>` : ''}
+          </div>
+        </div>
       </td>
       <td>
         <div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: ${manifest.plate || '—'}</div>
-        <div style="font-size:12px; color:#334155; margin-top:2px;">${cargo.stationFrom || manifest.from || '—'} ➔ ${cargo.stationTo || manifest.to || '—'}</div>
+        <div class="rd-route" style="margin-top:2px;"><strong>${cargo.stationFrom || manifest.from || '—'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || manifest.to || '—'}</strong></div>
         <div style="font-size:11px; color:#64748b; margin-top:2px;">Đến trạm: ${manifest.arrivedAt || '—'}</div>
       </td>
       <td>
-        <div style="line-height:1.35; font-size:12.5px;">
-          <strong>${cargo.receiver || '—'}</strong><br>
-          <span style="color:#475569;">${cargo.receiverPhone || ''}</span><br>
-          <small style="color:var(--text-muted);">${cargo.deliveryAddress || cargo.stationTo || ''}</small>
+        <div class="rd-people">
+          <span><i title="Người gửi">G</i><strong>${cargo.sender || '—'}</strong> (${cargo.senderPhone || ''})</span>
+          <span><i title="Người nhận">N</i><strong>${cargo.receiver || '—'}</strong> (${cargo.receiverPhone || ''})</span>
         </div>
+        ${cargo.deliveryAddress ? `<div style="font-size:12px; color:#87909e; margin-top:3px;">Giao: ${cargo.deliveryAddress}</div>` : ''}
       </td>
       <td>
         <div style="font-size:11.5px; color:#475569;">Cước: <strong style="color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong></div>
@@ -289,7 +299,7 @@ function renderTable() {
   const rows = getFilteredList();
   tbody.innerHTML = rows.length
     ? rows.map((c, i) => buildRow(c, i)).join('')
-    : '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
+    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
 
   document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBatchAssignButton));
   const selectAll = document.getElementById('selectAllCheckbox');
@@ -637,10 +647,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // "Loại hàng" rồi render lại mỗi khi radio đổi.
   document.querySelectorAll('input[name="deliveryStateFilter"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      if (categorySelect) categorySelect.value = radio.value;
+      quickCodFilter = radio.value === 'cod';
+      if (categorySelect) categorySelect.value = quickCodFilter ? 'all' : radio.value;
       renderTable();
     });
   });
+
+  if (categorySelect) categorySelect.addEventListener('change', () => { quickCodFilter = false; });
 
   const applyBtn = document.getElementById('applyFilterBtn');
   if (applyBtn) applyBtn.addEventListener('click', renderTable);

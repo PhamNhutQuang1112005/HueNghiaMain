@@ -1,0 +1,181 @@
+/* ===================== PHƠI XE MANAGEMENT (SHUTTLE TOOLBAR STYLE) ===================== */
+
+.filter-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-gray);
+  background: var(--white);
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 130px;
+  min-width: 120px;
+}
+
+.filter-field label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.filter-field select,
+.filter-field input[type="text"],
+.filter-field input[type="date"] {
+  width: 100%;
+  height: 35px;
+  border: 1.5px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--white);
+  outline: none;
+  transition: border-color .15s;
+}
+
+.filter-field select:focus,
+.filter-field input[type="text"]:focus,
+.filter-field input[type="date"]:focus {
+  border-color: var(--red);
+}
+
+/* Dropdown "Khung giờ" ở zone1 (sidebar phơi xe) — kích thước bằng đúng ô "Tuyến"/"Hướng đi" bên cạnh
+   (.combo-input-wrap + .combo-input: border 1px, radius --radius-sm, padding dọc 6px, font-size 15px) để
+   đồng bộ chiều cao/chữ giữa các field trong cùng cột lọc, thay vì để chiều cao/cỡ chữ tự chọn riêng. */
+#zone1HourFilter {
+  width: 100%;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--white);
+  outline: none;
+  transition: border-color .15s;
+}
+
+#zone1HourFilter:focus {
+  border-color: var(--red);
+}
+
+/* Mini seat map */
+.ch-mini-seat-map {
+  flex: 1 1 auto;
+  /* min-height mặc định của flex item là "auto" (co không nhỏ hơn nội dung bên trong) — thiếu dòng này
+     thì sơ đồ ghế dày (xe 45 chỗ, nhiều hàng) sẽ luôn cao bằng đúng nội dung của nó thay vì co lại theo
+     khoảng trống còn lại trong cột phải, đẩy toàn bộ cột (kể cả thẻ "Giá vé & Đặt cọc" bên dưới) tràn
+     xuống và buộc CẢ CỘT phải cuộn thay vì chỉ sơ đồ ghế tự cuộn riêng bên trong nó. */
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+.ch-seat-placeholder {
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 14px;
+  padding: 40px 20px;
+  font-weight: 600;
+}
+
+.ch-mini-floors {
+  display: flex;
+  gap: 14px;
+}
+
+.ch-mini-floor {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ch-mini-floor-title {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  color: var(--text-main);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 4px 0;
+  margin-bottom: 6px;
+}
+
+.ch-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.ch-mini-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ch-mini-seat {
+  padding: 8px 4px;
+  border: 1.5px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .12s;
+  position: relative;
+}
+
+.ch-mini-seat.empty {
+  background: var(--white);
+  border-color: var(--black);
+}
+
+.ch-mini-seat.empty:hover {
+  background: #FFF5F5;
+  border-color: var(--red);
+}
+
+.ch-mini-seat.empty.selected {
+  background: var(--red-light);
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(245, 16, 11, .2);
+}
+
+.ch-mini-seat.sold,
+.ch-mini-seat.hold,
+.ch-mini-seat.free,
+.ch-mini-seat.cargo,
+.ch-mini-seat.locked {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.ch-mini-seat.sold {
+  background: #FFECEB;
+  border-color: var(--seat-sold);
+}
+
+.ch-mini-seat.hold {
+  background: #FFFBEB;
+  border-color: var(--seat-hold);
+}
+
+.ch-mini-seat.free {
+  background: #F1F2F4;
+  border-color: var(--seat-free);
+}
+
+.ch-mini-seat.hidden-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+  border: none;
+}
+

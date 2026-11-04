@@ -1,0 +1,1 @@
+// Supabase client phía browser

@@ -36,9 +36,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  /* Đồng bộ font chữ với pages/admin/admin.css (--admin-body dùng Plus Jakarta Sans) — cargo.html đã
-     load sẵn font này qua thẻ <link> Google Fonts ở <head>. */
-  font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Đồng bộ font chữ với trang bán vé (shared/css/base.css dùng Inter) — các trang cargo đã load sẵn
+     Inter qua thẻ <link> Google Fonts ở <head>. */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
   color: var(--text-main);
   font-size: 15px;
@@ -1158,7 +1158,7 @@ input[type=number] {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25) !important;
   background: #ffffff !important;
   overflow: visible !important;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   color: #0F172A !important;
   display: flex !important;
   flex-direction: column !important;

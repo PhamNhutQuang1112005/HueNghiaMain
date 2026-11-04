@@ -9,9 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&subset=vietnamese&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/shell.css" />
   <link rel="stylesheet" href="css/manifest.css" />
+  <link rel="stylesheet" href="css/redesign.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
-<body>
+<body class="rd-page">
   <div class="app-shell">
     <!-- Top Header (Chứa Logo Huệ Nghĩa + Ô tìm kiếm căn trái + User Chip) -->
     <header class="page-header">
@@ -59,15 +60,16 @@
     <!-- App Body Layout (Sidebar + Main Content) -->
     <div class="app-body">
       <!-- Left Sidebar (Nằm dưới Top Header, Không chứa Logo) -->
-      <aside class="app-sidebar" id="appSidebar">
+      <aside class="app-sidebar no-anim" id="appSidebar">
         <div class="sidebar-content">
+          <div class="rd-station"><span class="rd-station-avatar">&nbsp;</span><div><small>Trạm đang làm việc</small><strong>&nbsp;</strong></div></div>
           <!-- Chuyển trang & Submenu Accordion -->
           <div class="sidebar-section">
-            <div class="sidebar-section-title">DANH MỤC ĐIỀU HÀNH</div>
+            <div class="sidebar-section-title">Vận hành</div>
             <nav class="sidebar-nav">
               
               <!-- Group 1: Nhận hàng (Accordion Group) -->
-              <div class="sidebar-nav-group" id="receiveNavGroup">
+              <div class="sidebar-nav-group open" id="receiveNavGroup">
                 <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('receiveNavGroup', event)" title="Nhận hàng">
                   <div class="nav-item-content">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -147,7 +149,7 @@
               </div>
 
               <!-- Group 2: Giao hàng (Accordion Group) -->
-              <div class="sidebar-nav-group" id="deliveryNavGroup">
+              <div class="sidebar-nav-group open" id="deliveryNavGroup">
                 <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('deliveryNavGroup', event)" title="Giao hàng">
                   <div class="nav-item-content">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -221,20 +223,8 @@
                 </div>
               </div>
 
-              <a class="sidebar-nav-item" href="ket-ca.html" title="Kết ca">
-                <div class="nav-item-content">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
-                  <span>Kết ca</span>
-                </div>
-              </a>
 
               <!-- Main Standalone Items -->
-              <a class="sidebar-nav-item" href="cod.html" title="Đối soát COD">
-                <div class="nav-item-content">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
-                  <span>Đối soát COD</span>
-                </div>
-              </a>
               <a class="sidebar-nav-item" href="returned.html" title="Hàng trả về">
                 <div class="nav-item-content">
                   <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
@@ -247,6 +237,19 @@
                   <span>Hàng quá hạn (>3 ngày)</span>
                 </div>
                 <span id="overdueBadgeCount" style="margin-left:auto; background:#be123c; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+              </a>
+              <div class="sidebar-section-title rd-nav-title">Tài chính</div>
+              <a class="sidebar-nav-item" href="ket-ca.html" title="Kết ca">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                  <span>Kết ca</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="cod.html" title="Đối soát COD">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
+                  <span>Đối soát COD</span>
+                </div>
               </a>
             </nav>
           </div>
@@ -271,6 +274,7 @@
             <div>
               <p class="eyebrow">Quản lý phơi</p>
               <h1>Danh sách phơi hàng</h1>
+            <p class="page-sub">Quản lý các phơi hàng theo từng xe và tuyến.</p>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <button type="button" class="ghost-btn" id="filterBtn">Lọc</button>
@@ -320,7 +324,8 @@
           <button type="button" id="batchReceiveAllBtn" class="primary-btn" disabled>Nhận tất cả hàng (<span id="manifestSelCount">0</span> phơi)</button>
           <button type="button" id="batchPrintManifestsBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
         </div>
-        <section class="table-card">
+        <div class="rd-stats" data-body="manifestTableBody" data-row="tr.plate-child" data-cards='[]'></div>
+      <section class="table-card">
           <div class="table-scroll">
             <table>
               <thead>
@@ -349,7 +354,7 @@
             <div>
               <p class="eyebrow">Vận chuyển & Nhập bến</p>
               <h1>Danh sách chuyến xe đến</h1>
-              <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">Nhấn "Nhận xe" để xác nhận xe vào bến & chuyển các đơn sang danh sách giao hàng.</p>
+              <p class="page-sub">Nhấn "Nhận xe" để xác nhận xe vào bến & chuyển các đơn sang danh sách giao hàng.</p>
             </div>
             <input type="text" id="searchReceiveManifest" oninput="renderReceiveTable()" placeholder="Tìm biển số, tên phơi, tài xế..." style="padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius-md); font-size:13.5px; width:260px;" />
           </div>
@@ -359,6 +364,7 @@
           <button type="button" id="batchReceiveVehicleBtn" class="primary-btn" disabled>Nhận xe (<span id="receiveSelCount">0</span> phơi)</button>
           <button type="button" id="batchPrintReceiveBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
         </div>
+        <div class="rd-stats" data-body="receiveTableBody" data-row="tr.plate-child" data-cards='[]'></div>
         <section class="table-card">
           <div class="table-scroll">
             <table>
@@ -419,9 +425,9 @@
         <section class="toolbar">
           <div class="toolbar-head">
             <div>
-              <p class="eyebrow" style="color:#d97706;" id="unreceivedEyebrow">Vận chuyển & Hàng chưa nhận</p>
+              <p class="eyebrow" id="unreceivedEyebrow">Vận chuyển & Hàng chưa nhận</p>
               <h1 id="unreceivedTitle">Danh sách hàng chưa giao</h1>
-              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Danh sách các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn <strong>"Bổ sung & Nhận hàng"</strong> khi đơn hàng cập bến sau.</p>
+              <p class="page-sub">Các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn dấu tích ở cột hành động khi đơn hàng cập bến sau.</p>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <input type="text" id="searchUnreceivedCargo" oninput="renderUnreceivedTable()" placeholder="Tìm mã đơn, tên hàng, biển số xe..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
@@ -429,15 +435,17 @@
           </div>
         </section>
 
+        <div class="rd-stats" data-body="unreceivedTableBody" data-cards='[]'></div>
         <section class="table-card">
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
                   <th style="width:45px; text-align:center;">STT</th>
-                  <th>Mã đơn & Tên hàng</th>
-                  <th>Phơi xe & Biển số</th>
-                  <th>Người gửi ➔ Người nhận</th>
+                  <th style="width:100px; text-align:center;">Mã đơn</th>
+                  <th>Hàng hóa</th>
+                  <th>Tuyến & Phơi xe</th>
+                  <th>Người gửi / Người nhận</th>
                   <th>Cước phí & COD</th>
                   <th style="text-align:center;">Trạng thái</th>
                   <th style="text-align:center;">Hành động</th>
@@ -1876,7 +1884,9 @@
       const allCargos = loadCargos();
       const rowHtml = (row, index, key, open) => {
           const driverInfo = parseDriverDetails(row.driver);
-          const orderCount = allCargos.filter(c => Number(c.manifestId) === row.id).length;
+          const manifestCargos = allCargos.filter(c => Number(c.manifestId) === row.id);
+          const orderCount = manifestCargos.length;
+          const scannedCount = manifestCargos.filter(c => c.isScanned).length; // đã quét nhận lên xe
           return `
           <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
@@ -1897,7 +1907,7 @@
               <span>${row.time}</span><br>
               <small style="color:var(--text-muted);">NV: ${row.staff}</small>
             </td>
-            <td style="text-align:center;"><span class="vehicle-pill">${orderCount} đơn hàng</span></td>
+            <td style="text-align:center;"><span class="order-count" title="Đã nhận ${scannedCount} trên tổng ${orderCount} đơn hàng">${scannedCount}/${orderCount} đơn hàng</span></td>
             <td style="text-align:center;">
               ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
                 ? `<span class="status-pill status-delivered">Đã nhận hàng</span>`
@@ -2120,12 +2130,23 @@
     const openPlates = new Set();
     function togglePlateGroup(head) {
       const key = head.dataset.grp;
+      const body = head.closest('tbody');
       const open = !head.classList.contains('open');
       head.classList.toggle('open', open);
       head.setAttribute('aria-expanded', open);
-      open ? openPlates.add(key) : openPlates.delete(key);
-      manifestTableBody.querySelectorAll('.plate-child').forEach((tr) => { if (tr.dataset.grp === key) tr.hidden = !open; });
+      const set = body.id === 'receiveTableBody' ? openReceivePlates : openPlates;
+      open ? set.add(key) : set.delete(key);
+      body.querySelectorAll('.plate-child').forEach((tr) => { if (tr.dataset.grp === key) tr.hidden = !open; });
     }
+    const receiveTableBodyEl = document.getElementById('receiveTableBody');
+    receiveTableBodyEl.addEventListener('click', (event) => {
+      const head = event.target.closest('.plate-group');
+      if (head) togglePlateGroup(head);
+    });
+    receiveTableBodyEl.addEventListener('keydown', (e) => {
+      const head = e.target.closest('.plate-group');
+      if (head && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); togglePlateGroup(head); }
+    });
     manifestTableBody.addEventListener('click', (event) => {
       const delBtn = event.target.closest('.pg-del');
       if (delBtn) return promptDeletePlate(delBtn.dataset.delPlate);
@@ -2269,6 +2290,7 @@
       }
     }
 
+    const openReceivePlates = new Set();
     window.renderReceiveTable = function() {
       const manifests = loadManifests();
       const cargos = loadCargos();
@@ -2291,39 +2313,60 @@
         return;
       }
 
-      tbody.innerHTML = filtered.map((item, index) => {
+      // Gom theo biển số: mỗi xe 1 dòng tiêu đề sổ xuống, các phơi (tuyến) nằm trong — giống ds chuyến xe đi.
+      const groups = new Map();
+      filtered.forEach((m) => {
+        const key = (m.plate || '').trim().toUpperCase() || '—';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(m);
+      });
+      const rowHtml = (item, index, key, open) => {
         const manifestCargos = cargos.filter(c => Number(c.manifestId) === item.id);
         const driverInfo = parseDriverDetails(item.driver);
         const isReceived = item.status === 'received' || item.statusText === 'Đã nhận xe';
         const scannedCount = manifestCargos.filter(c => c.arrivalScanned).length;
 
         return `
-          <tr>
+          <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${item.id}" ${selectedReceiveIds.has(item.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
-              <span class="plate-badge">${item.plate}</span>
-              <span class="route-text" style="margin-left:6px;">${item.from} <span style="color:var(--primary);">➔</span> ${item.to}</span>
+              <strong class="rd-plate">${item.plate}</strong>
+              <div class="rd-plate-route">${item.from} ➔ ${item.to}</div>
             </td>
             <td>
               <div style="font-weight:600;">${driverInfo.name}</div>
               <small style="color:var(--text-muted);">Phụ xe: ${item.helper || 'Không'}</small>
             </td>
             <td style="text-align:center;">
-              <span class="vehicle-pill">${manifestCargos.length} đơn hàng</span>
-              ${manifestCargos.length > 0 ? `<div style="font-size:12px; color:var(--green); font-weight:700; margin-top:4px;">Đã kiểm: ${scannedCount}/${manifestCargos.length}</div>` : ''}
+              <span class="order-count" title="Đã kiểm ${scannedCount} trên tổng ${manifestCargos.length} đơn hàng">${scannedCount}/${manifestCargos.length} đơn hàng</span>
             </td>
             <td style="text-align:center;">
               <span class="status-pill ${isReceived ? 'status-delivered' : 'status-enroute'}">${isReceived ? 'Đã nhận xe' : 'Đang chuyển'}</span>
             </td>
             <td style="text-align:center;">
-              <div style="display:inline-flex; align-items:center; gap:8px;">
-                <button type="button" onclick="openReceiveScanModal(${item.id}, 'arrive')" title="Quét mã QR nhận hàng khi xe đến trạm" class="${isReceived ? 'ghost-btn' : 'primary-btn'}">${isReceived ? 'Sửa kiểm nhận' : 'Quét QR / Kiểm hàng'}</button>
-                ${isReceived ? '' : `<button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Chỉ đổi trạng thái chuyến xe sang Đã nhận xe, không đụng tới hàng hóa" class="ghost-btn">Nhận xe</button>`}
+              <div class="action-group">
+                <button type="button" class="btn-scan" onclick="openReceiveScanModal(${item.id}, 'arrive')" title="${isReceived ? 'Sửa kiểm nhận' : 'Quét QR / Kiểm hàng khi xe đến trạm'}" aria-label="${isReceived ? 'Sửa kiểm nhận' : 'Quét QR / Kiểm hàng'}">
+                  ${isReceived
+                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>'}
+                </button>
+                ${isReceived ? '' : `<button type="button" class="btn-receive-all" onclick="receiveManifestAndRedirect(${item.id})" title="Nhận xe: chỉ đổi trạng thái chuyến xe sang Đã nhận xe, không đụng tới hàng hóa" aria-label="Nhận xe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>`}
               </div>
             </td>
           </tr>
         `;
+      };
+      tbody.innerHTML = [...groups].map(([key, list]) => {
+        const open = !!query || openReceivePlates.has(key);
+        return `
+          <tr class="plate-group ${open ? 'open' : ''}" data-grp="${key}" tabindex="0" role="button" aria-expanded="${open}">
+            <td colspan="7">
+              <span class="pg-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+              <strong class="pg-plate">${key}</strong>
+              <span class="pg-count">${list.length} phơi</span>
+            </td>
+          </tr>` + list.map((r, i) => rowHtml(r, i, key, open)).join('');
       }).join('');
       syncRowSelection('receiveTableBody');
     };
@@ -2632,7 +2675,7 @@
       }
 
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có đơn hàng nào trong danh sách Hàng chưa giao.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">Không có đơn hàng nào trong danh sách Hàng chưa giao.</td></tr>`;
         return;
       }
 
@@ -2643,34 +2686,29 @@
         return `
           <tr>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td style="text-align:center;"><code>${cargo.code}</code></td>
+            <td><strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong></td>
             <td>
-              <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:700; color:#0f172a;">${cargo.code}</code><br>
-              <strong style="font-size:14px; color:#0f172a;">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
+              <div class="rd-route"><strong>${cargo.stationFrom || '---'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || '---'}</strong></div>
+              <div class="rd-fee-sub">${manifestText}</div>
             </td>
             <td>
-              <div style="font-size:13px; font-weight:700; color:#1e293b;">${manifestText}</div>
-              <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || '---'} ➔ ${cargo.stationTo || '---'}</small>
-            </td>
-            <td>
-              <div style="font-size:13px;">
-                <span style="color:#64748b;">Gửi:</span> <strong>${cargo.sender}</strong> (${cargo.senderPhone})<br>
-                <span style="color:#64748b;">Nhận:</span> <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+              <div class="rd-people">
+                <span><i title="Người gửi">G</i><strong>${cargo.sender}</strong> (${cargo.senderPhone})</span>
+                <span><i title="Người nhận">N</i><strong>${cargo.receiver}</strong> (${cargo.receiverPhone})</span>
               </div>
             </td>
             <td>
-              <div style="font-size:13px; font-weight:700; color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</div>
-              ${cargo.codAmount ? `<small style="color:#dc2626; font-weight:700;">COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</small>` : ''}
+              <div class="rd-fee">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</div>
+              ${cargo.codAmount ? `<div class="rd-fee-sub">COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</div>` : ''}
             </td>
+            <td style="text-align:center;"><span class="status-pill status-enroute">Chưa nhận từ phơi</span></td>
             <td style="text-align:center;">
-              <span style="background:#fef3c7; color:#b45309; border:1px solid #fde047; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; display:inline-block;">
-                ⚠️ Chưa nhận từ phơi
-              </span>
-            </td>
-            <td style="text-align:center;">
-              <button type="button" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Nhận bổ sung đơn hàng này" class="primary-btn" style="padding:5px 12px; font-size:12.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>Bổ sung & Nhận hàng</span>
-              </button>
+              <div class="action-group">
+                <button type="button" class="btn-receive-all" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Bổ sung & Nhận hàng: nhận bổ sung đơn hàng này" aria-label="Bổ sung và nhận hàng">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+              </div>
             </td>
           </tr>
         `;
@@ -3260,5 +3298,7 @@
       document.getElementById('outboundTripsNavItem')?.classList.add('active');
     }
   </script>
+<script src="js/redesign.js"></script>
+<script src="js/sidebar.js"></script>
 </body>
 </html>

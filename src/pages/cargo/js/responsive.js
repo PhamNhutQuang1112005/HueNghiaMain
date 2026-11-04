@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Mặc định mở sẵn mọi nhóm menu (Nhận hàng/Giao hàng + submenu), bấm để thu lại
-  document.querySelectorAll('.sidebar-nav-group, .sidebar-subgroup').forEach(g => g.classList.add('open'));
+  // Mở sẵn nhóm Nhận hàng/Giao hàng. Danh sách lọc loại hàng (subgroup) là bảng nổi, chỉ mở khi bấm mũi tên (xem sidebar.js).
+  document.querySelectorAll('.sidebar-nav-group').forEach(g => g.classList.add('open'));
 
   // Event delegation for all chevron clicks and accordion toggles
   document.addEventListener('click', (e) => {
@@ -112,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // Sau khi trạng thái mở/đóng ban đầu đã đặt xong mới bật lại hiệu ứng, tránh menu "xổ/nhảy" mỗi lần tải trang
+  if (appSidebar) requestAnimationFrame(() => requestAnimationFrame(() => appSidebar.classList.remove('no-anim')));
 
   // Mobile menu slide-in toggle
   if (mobileSidebarBtn && appSidebar) {

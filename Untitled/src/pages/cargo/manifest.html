@@ -1,0 +1,3269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý phơi hàng — Huệ Nghĩa Express</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&subset=vietnamese&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <link rel="stylesheet" href="css/manifest.css" />
+  <link rel="stylesheet" href="css/redesign.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body class="rd-page">
+  <div class="app-shell">
+    <!-- Top Header (Chứa Logo Huệ Nghĩa + Ô tìm kiếm căn trái + User Chip) -->
+    <header class="page-header">
+      <div class="header-left">
+        <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Thu gọn / Mở rộng Sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+        </button>
+
+        <a class="brand" href="cargo.html">
+          <div class="brand-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+              <path d="M4 16h16" />
+              <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+              <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <strong>HUỆ NGHĨA EXPRESS</strong>
+            <span>Hệ thống điều hành</span>
+          </div>
+        </a>
+
+        <nav class="page-breadcrumb" aria-label="breadcrumb">
+          <svg class="bc-home-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          <span class="bc-seg">Hệ thống điều hành</span>
+          <svg class="bc-sep" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="bc-seg bc-current">Quản lý phơi hàng</span>
+        </nav>
+
+        <label class="search-shell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input id="manifestSearch" type="text" placeholder="Tìm tên phơi, biển số, tài xế..." />
+        </label>
+      </div>
+
+      <div class="header-right">
+        <div class="user-chip"><span class="avatar">?</span><span>Tài khoản</span></div>
+      </div>
+    </header>
+
+    <!-- App Body Layout (Sidebar + Main Content) -->
+    <div class="app-body">
+      <!-- Left Sidebar (Nằm dưới Top Header, Không chứa Logo) -->
+      <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-content">
+          <!-- Chuyển trang & Submenu Accordion -->
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">DANH MỤC ĐIỀU HÀNH</div>
+            <nav class="sidebar-nav">
+              
+              <!-- Group 1: Nhận hàng (Accordion Group) -->
+              <div class="sidebar-nav-group" id="receiveNavGroup">
+                <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('receiveNavGroup', event)" title="Nhận hàng">
+                  <div class="nav-item-content">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    <span>Nhận hàng</span>
+                  </div>
+                  <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                </a>
+
+                <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #fee2e2;">
+                  <!-- Subgroup: Nhận hàng -->
+                  <div class="sidebar-subgroup" id="cargoSubgroup">
+                    <a class="sidebar-nav-item" href="cargo.html" id="cargoSubmenuToggle" title="Danh sách nhận hàng">
+                      <div class="nav-item-content">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px; height:16px;"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span>Danh sách nhận hàng</span>
+                      </div>
+                      <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                    </a>
+
+                    <div class="sidebar-submenu" id="cargoSubmenu">
+                      <div class="sidebar-status-slider" role="radiogroup" aria-label="Loại trạng thái nhận hàng">
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="all" />
+                          <span class="status-dot-icon dot-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+                          <span>Tất cả</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="goods" />
+                          <span class="status-dot-icon dot-goods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                          <span>Hàng hóa</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                          <span>Bạn hàng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="hot" />
+                          <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
+                          <span>Tiền nóng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="baga" />
+                          <span class="status-dot-icon dot-baga"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="8" width="12" height="13" rx="2"/><path d="M9 8V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><line x1="10" y1="12" x2="10" y2="17"/><line x1="14" y1="12" x2="14" y2="17"/></svg></span>
+                          <span>Baga</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="cod" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                          <span>Đơn COD</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a class="sidebar-nav-item active" href="manifest.html?tab=manifests" id="outboundTripsNavItem" title="Danh sách chuyến xe đi">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 11l4-4m0 0h-3m3 0v3"/></svg>
+                      <span>Danh sách chuyến xe đi</span>
+                    </div>
+                  </a>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=missing" id="missingNavItem" title="Hàng thiếu trong danh sách chuyến xe đi">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                      <span>Hàng thiếu</span>
+                    </div>
+                    <span id="missingBadgeCount" style="margin-left:auto; background:#d97706; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+                  </a>
+
+                </div>
+              </div>
+
+              <!-- Group 2: Giao hàng (Accordion Group) -->
+              <div class="sidebar-nav-group" id="deliveryNavGroup">
+                <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('deliveryNavGroup', event)" title="Giao hàng">
+                  <div class="nav-item-content">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <span>Giao hàng</span>
+                  </div>
+                  <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                </a>
+
+                <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #bfdbfe;">
+                  <!-- Subgroup: Giao hàng -->
+                  <div class="sidebar-subgroup" id="deliverySubgroup">
+                    <a class="sidebar-nav-item" href="delivery.html" id="deliverySubmenuToggle" title="Danh sách giao hàng">
+                      <div class="nav-item-content">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M16 16l3 3 5-5"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="M3.29 7L12 12l8.71-5"/><path d="M12 22V12"/></svg>
+                        <span>Danh sách giao hàng</span>
+                      </div>
+                      <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                    </a>
+
+                    <div class="sidebar-submenu" id="deliverySubmenu">
+                      <div class="sidebar-status-slider" role="radiogroup" aria-label="Loại trạng thái giao hàng">
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="all" />
+                          <span class="status-dot-icon dot-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+                          <span>Tất cả</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="goods" />
+                          <span class="status-dot-icon dot-goods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                          <span>Hàng hóa</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                          <span>Bạn hàng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="hot" />
+                          <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
+                          <span>Tiền nóng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="cod" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                          <span>Đơn COD</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=receive" id="inboundTripsNavItem" title="Danh sách chuyến xe đến">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M13 7l-4 4m0 0h3m-3 0v-3"/></svg>
+                      <span>Danh sách chuyến xe đến</span>
+                    </div>
+                  </a>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=unreceived" id="unreceivedNavItem" title="Hàng chưa giao">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                      <span>Hàng chưa giao</span>
+                    </div>
+                    <span id="unreceivedBadgeCount" style="margin-left:auto; background:#d97706; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+                  </a>
+
+                </div>
+              </div>
+
+              <a class="sidebar-nav-item" href="ket-ca.html" title="Kết ca">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                  <span>Kết ca</span>
+                </div>
+              </a>
+
+              <!-- Main Standalone Items -->
+              <a class="sidebar-nav-item" href="cod.html" title="Đối soát COD">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
+                  <span>Đối soát COD</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="returned.html" title="Hàng trả về">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                  <span>Hàng trả về</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="cargo.html?filter=overdue" id="overdueNavItem" title="Hàng quá hạn (>3 ngày)" style="color:#be123c;">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#e11d48;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Hàng quá hạn (>3 ngày)</span>
+                </div>
+                <span id="overdueBadgeCount" style="margin-left:auto; background:#be123c; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Panel Container -->
+      <div class="app-main">
+
+    <main class="main-panel">
+      <!-- Sub-Tab Navigation Header (Hidden since sub-tabs removed) -->
+      <div class="sub-tab-container" style="display:none;">
+        <button type="button" class="sub-tab-btn active" id="tabManifestsBtn" onclick="switchManifestTab('manifests')">
+          <span>Tất cả phơi hàng</span>
+        </button>
+      </div>
+
+      <!-- SECTION 1: QUẢN LÝ PHƠI HÀNG (TẤT CẢ PHƠI) -->
+      <div id="viewManifestsSection" style="display:block;">
+        <section class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <p class="eyebrow">Quản lý phơi</p>
+              <h1>Danh sách phơi hàng</h1>
+            <p class="page-sub">Quản lý các phơi hàng theo từng xe và tuyến.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <button type="button" class="ghost-btn" id="filterBtn">Lọc</button>
+              <button type="button" class="ghost-btn" id="openDeletedHistoryBtn" onclick="openDeletedManifestHistoryModal()" style="display:flex; align-items:center; gap:6px;">
+                <span>Lịch sử xóa phơi</span>
+                <span id="deletedManifestBadgeCount" style="background:#be123c; color:white; font-size:11px; padding:1px 7px; border-radius:10px; font-weight:800;">0</span>
+              </button>
+              <button type="button" class="primary-btn" id="openCreateManifestBtn" onclick="openManifestModal()">Tạo phơi mới</button>
+            </div>
+          </div>
+
+          <div class="filter-grid">
+            <label>
+              <span>Tên phơi</span>
+              <input type="text" id="filterManifestName" placeholder="Nhập tên phơi" />
+            </label>
+            <label>
+              <span>Chọn ngày</span>
+              <input type="date" id="filterDate" />
+            </label>
+            <label>
+              <span>Điểm khởi hàng</span>
+              <select id="filterFrom">
+                <option value="all">Tất cả</option>
+                <option value="Sài Gòn">Sài Gòn</option>
+                <option value="Châu Đốc">Châu Đốc</option>
+                <option value="Tân Châu">Tân Châu</option>
+              </select>
+            </label>
+            <label>
+              <span>Điểm đến</span>
+              <select id="filterTo">
+                <option value="all">Tất cả</option>
+                <option value="Sài Gòn">Sài Gòn</option>
+                <option value="Châu Đốc">Châu Đốc</option>
+                <option value="Tân Châu">Tân Châu</option>
+              </select>
+            </label>
+            <label>
+              <span>Biển số</span>
+              <input type="text" id="filterPlate" placeholder="vd: 51F-123.45" />
+            </label>
+          </div>
+        </section>
+
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
+          <button type="button" id="batchReceiveAllBtn" class="primary-btn" disabled>Nhận tất cả hàng (<span id="manifestSelCount">0</span> phơi)</button>
+          <button type="button" id="batchPrintManifestsBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
+        </div>
+        <div class="rd-stats" data-body="manifestTableBody" data-row="tr.plate-child" data-cards='[["Tổng phơi","","box","red"],["Chưa nhận hàng","Chưa nhận hàng","clock","amber"],["Đã nhận hàng","Đã nhận hàng","check","green"]]'></div>
+      <section class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;"><input type="checkbox" class="select-all-rows" data-body="manifestTableBody" title="Chọn tất cả" /></th>
+                  <th style="width: 45px; text-align: center;">STT</th>
+                  <th>Biển số xe & Phơi</th>
+                  <th style="min-width: 110px; white-space: nowrap;">Tài xế lái xe</th>
+                  <th>Xe & Phụ xe</th>
+                  <th>Nhân viên & Thời gian</th>
+                  <th style="width: 120px; text-align: center;">Số đơn hàng</th>
+                  <th style="width: 145px; text-align: center;">Trạng thái phơi</th>
+                  <th style="width: 220px; text-align: center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="manifestTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION 2: DS NHẬN XE (VEHICLE RECEIVING) -->
+      <div id="viewReceiveSection" style="display:none;">
+        <section class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <p class="eyebrow">Vận chuyển & Nhập bến</p>
+              <h1>Danh sách chuyến xe đến</h1>
+              <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">Nhấn "Nhận xe" để xác nhận xe vào bến & chuyển các đơn sang danh sách giao hàng.</p>
+            </div>
+            <input type="text" id="searchReceiveManifest" oninput="renderReceiveTable()" placeholder="Tìm biển số, tên phơi, tài xế..." style="padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius-md); font-size:13.5px; width:260px;" />
+          </div>
+        </section>
+
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
+          <button type="button" id="batchReceiveVehicleBtn" class="primary-btn" disabled>Nhận xe (<span id="receiveSelCount">0</span> phơi)</button>
+          <button type="button" id="batchPrintReceiveBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
+        </div>
+        <section class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px; text-align:center;"><input type="checkbox" class="select-all-rows" data-body="receiveTableBody" title="Chọn tất cả" /></th>
+                  <th style="width:45px; text-align:center;">STT</th>
+                  <th>Biển số xe & Phơi</th>
+                  <th>Tài xế & Phụ xe</th>
+                  <th style="text-align:center;">Số đơn hàng</th>
+                  <th style="text-align:center;">Trạng thái phơi</th>
+                  <th style="text-align:center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="receiveTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION 3: DS GIAO HÀNG (DELIVERY LIST) -->
+      <div id="viewDeliverySection" style="display:none;">
+        <section class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <p class="eyebrow" style="color:#2563eb;">Trả hàng cho khách</p>
+              <h1>Danh sách giao hàng</h1>
+              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Nhấn <strong>"Giao hàng"</strong> để hoàn tất & tự động in Biên lai cho khách hàng.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <input type="text" id="searchDeliveryCargo" oninput="renderDeliveryTable()" placeholder="Tìm mã đơn, tên hàng, SĐT người nhận..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
+            </div>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:45px; text-align:center;">STT</th>
+                  <th>Mã đơn & Tên hàng</th>
+                  <th>Người gửi ➔ Người nhận (SĐT)</th>
+                  <th>Địa chỉ / Trạm nhận</th>
+                  <th>Cước phí & Thu hộ (COD)</th>
+                  <th style="text-align:center;">Trạng thái giao</th>
+                  <th style="text-align:center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="deliveryTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION 4: DS HÀNG CHƯA GIAO / CHƯA NHẬN (UNRECEIVED CARGO LIST) -->
+      <div id="viewUnreceivedSection" style="display:none;">
+        <section class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <p class="eyebrow" style="color:#d97706;" id="unreceivedEyebrow">Vận chuyển & Hàng chưa nhận</p>
+              <h1 id="unreceivedTitle">Danh sách hàng chưa giao</h1>
+              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Danh sách các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn <strong>"Bổ sung & Nhận hàng"</strong> khi đơn hàng cập bến sau.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <input type="text" id="searchUnreceivedCargo" oninput="renderUnreceivedTable()" placeholder="Tìm mã đơn, tên hàng, biển số xe..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
+            </div>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:45px; text-align:center;">STT</th>
+                  <th>Mã đơn & Tên hàng</th>
+                  <th>Phơi xe & Biển số</th>
+                  <th>Người gửi ➔ Người nhận</th>
+                  <th>Cước phí & COD</th>
+                  <th style="text-align:center;">Trạng thái</th>
+                  <th style="text-align:center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="unreceivedTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Popup Tạo / Sửa Phơi Hàng -->
+  <div class="modal-overlay" id="manifestModal">
+    <div class="modal-card" id="manifestModalCard" style="width:min(1280px,100%);">
+      <div class="modal-head">
+        <div>
+          <h2 id="manifestModalTitle">Thêm phơi mới</h2>
+        </div>
+        <button class="icon-btn" type="button" id="closeManifestModalBtn" aria-label="Đóng">✕</button>
+      </div>
+
+      <div id="manifestModalBody" style="display:flex; flex:1; min-height:0;">
+      <aside id="reuseManifestBox" style="width:340px; flex:none; display:flex; flex-direction:column; gap:10px; padding:20px 18px; border-right:1px solid var(--border); overflow-y:auto;">
+        <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Đặt lại từ phơi đã tạo</h3>
+        <div id="reuseDirections" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <input type="date" id="reuseDate" title="Ngày tạo phơi (để trống = tất cả)" style="min-width:0; padding:9px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; background:white;" />
+          <select id="reuseTime" style="min-width:0; padding:9px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; background:white;">
+            <option value="all">Tất cả khung giờ</option>
+            <option value="morning">Sáng (00:00 - 12:00)</option>
+            <option value="afternoon">Chiều (12:00 - 18:00)</option>
+            <option value="evening">Tối (18:00 - 24:00)</option>
+          </select>
+        </div>
+        <div id="reuseList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </aside>
+      <form id="manifestForm" class="modal-form">
+        <input type="hidden" name="id" id="manifestId" />
+        <div class="form-grid">
+          <label>
+            <span>Biển số xe / Tên xe <strong style="color:var(--primary);">*</strong></span>
+            <input name="plate" id="manifestPlate" required placeholder="vd: 64855 hoặc 67F-088.99" />
+          </label>
+          <label class="full-width" style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:14px; font-weight:700; color:#1e293b;">Điểm đi <strong style="color:var(--primary);">*</strong></span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" id="selectAllDeparturesBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; font-weight:700; color:#1d4ed8; border:1px solid #bfdbfe; background:#eff6ff;">Chọn tất cả</button>
+                <button type="button" id="deselectAllDeparturesBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; color:#64748b; border:1px solid #e2e8f0; background:#f8fafc;">Bỏ chọn</button>
+              </div>
+            </div>
+            <div id="departureStationsContainer" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px;">
+              <!-- Rendered by JS -->
+            </div>
+            <small id="departureValidationError" style="color:var(--primary); font-weight:600; display:none; margin-top:2px;">⚠️ Vui lòng chọn ít nhất 1 điểm đi!</small>
+            <!-- Hidden select để tương thích JS cũ (disabled, giá trị lấy từ checkboxes) -->
+            <select name="from" id="manifestFromSelect" style="display:none;" aria-hidden="true">
+              <option value="Sài Gòn" selected>Sài Gòn</option>
+            </select>
+          </label>
+
+          <label class="full-width" style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:14px; font-weight:700; color:#1e293b;">Điểm đến <strong style="color:var(--primary);">*</strong></span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="text" id="destinationSearchInput" placeholder="Tìm trạm đến..." style="padding:4px 10px; font-size:12.5px; border:1px solid #cbd5e1; border-radius:6px; outline:none; width:150px; background:white; font-weight:500;" />
+                <button type="button" id="selectAllDestinationsBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; font-weight:700; color:#b91c1c; border:1px solid #fca5a5; background:#fef2f2;">Chọn tất cả</button>
+                <button type="button" id="deselectAllDestinationsBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; color:#64748b; border:1px solid #e2e8f0; background:#f8fafc;">Bỏ chọn</button>
+              </div>
+            </div>
+
+            <div id="destinationStationsContainer" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px;">
+              <!-- Dynamic 4-column inline stations checkboxes rendered by JS -->
+            </div>
+            <small id="destinationValidationError" style="color:var(--primary); font-weight:600; display:none; margin-top:2px;">⚠️ Vui lòng chọn ít nhất 1 điểm đến (không trùng với điểm đi)!</small>
+          </label>
+
+          <label>
+            <span>Tên tài xế</span>
+            <input name="driverName" id="manifestDriverName" placeholder="vd: Nguyễn Văn Long" />
+          </label>
+          <label>
+            <span>SĐT tài xế</span>
+            <input name="driverPhone" id="manifestDriverPhone" placeholder="vd: 0901111111" />
+          </label>
+          <label>
+            <span>Loại xe vận chuyển</span>
+            <select name="vehicleType" id="manifestVehicleType" style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:600; background:white;">
+              <option value="Đội xe 40 Giường" selected>Đội xe 40 Giường</option>
+              <option value="Đội xe 36 giường">Đội xe 36 giường</option>
+              <option value="Đội xe 44 Giường">Đội xe 44 Giường</option>
+              <option value="Đội Xe Limousine 11 Chỗ">Đội Xe Limousine 11 Chỗ</option>
+              <option value="Đội xe Limousine 34 giường">Đội xe Limousine 34 giường</option>
+            </select>
+          </label>
+          <label>
+            <span>Phụ xe</span>
+            <input name="helper" id="manifestHelper" placeholder="vd: Trần Văn Bình" />
+          </label>
+          <label>
+            <span>Nhân viên tạo</span>
+            <input name="staff" id="manifestStaff" required value="Nguyễn Thị Linh" placeholder="Linh" />
+          </label>
+          <label>
+            <span>Thời gian / Giờ chạy</span>
+            <input name="time" id="manifestTime" required placeholder="vd: 12h hoặc 08:30 29/07/2026" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" id="cancelManifestBtn">Hủy</button>
+          <button type="submit" class="primary-btn" id="submitManifestBtn">Lưu phơi</button>
+        </div>
+      </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Xem Chi Tiết Phơi Hàng (Danh sách các cục hàng trong phơi) -->
+  <div class="modal-overlay" id="manifestDetailModal">
+    <div class="modal-card" style="width: min(1220px, 96%); padding: 22px 28px;">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Chi tiết phơi vận chuyển</p>
+          <h2 id="detailManifestTitle" style="font-size:22px;">Phơi chiều SG-CD 22/07</h2>
+        </div>
+        <button class="icon-btn" type="button" id="closeDetailModalBtn">✕</button>
+      </div>
+
+      <div class="detail-summary" id="detailManifestInfo">
+        <!-- Filled by JS (Card Grid) -->
+      </div>
+
+      <div class="table-card" style="box-shadow:none; border: 1px solid var(--border); overflow: hidden;">
+        <h4 style="margin: 10px 14px; font-size: 15px; font-weight: 800;">Danh sách hàng hóa đã gán vào phơi này (<span id="detailCargoCount">0</span> món hàng)</h4>
+        <div class="table-scroll" style="max-height: 360px; overflow-x: hidden;">
+          <table style="width: 100%; table-layout: auto; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center; padding: 8px;"><input type="checkbox" id="selectAllDetailCargos" title="Chọn tất cả" /></th>
+                <th style="width: 40px; text-align: center; padding: 8px;">STT</th>
+                <th style="padding: 8px 10px;">Tên hàng hóa</th>
+                <th style="width: 90px; padding: 8px 10px;">Mã đơn</th>
+                <th style="padding: 8px 10px;">Người gửi - SĐT</th>
+                <th style="padding: 8px 10px;">Người nhận - SĐT</th>
+                <th style="width: 100px; padding: 8px 10px;">Phí cước</th>
+                <th style="width: 120px; text-align: center; padding: 8px 10px;">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="detailCargoTableBody">
+              <!-- Filled by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="ghost-btn" id="closeDetailBtn">Đóng</button>
+            <details style="position:relative;">
+              <summary class="secondary-btn" style="list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">In ▾</summary>
+              <div style="position:absolute; bottom:calc(100% + 6px); left:0; min-width:200px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:4px; display:flex; flex-direction:column; z-index:10;">
+                <button type="button" class="ghost-btn" id="printManifestBtn" style="border:none; text-align:left;">In phơi hàng</button>
+                <button type="button" class="ghost-btn" id="batchPrintStickersBtn" style="border:none; text-align:left;">In tem dán</button>
+                <button type="button" class="ghost-btn" onclick="printAllReceiptsForCurrentManifest()" style="border:none; text-align:left;">In tất cả biên lai hàng</button>
+              </div>
+            </details>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="ghost-btn" onclick="confirmScanReceiveAllFromDetail()">Nhận tất cả</button>
+            <button type="button" class="primary-btn" onclick="openReceiveScanModal(currentDetailManifestId)">Quét QR theo món</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal In Biên Lai Giao Hàng Cho Khách -->
+  <div class="modal-overlay" id="deliveryReceiptModal">
+    <div class="modal-card" style="width:90%; max-width:650px; margin:auto;">
+      <div class="modal-head">
+        <div>
+          <h2 style="font-size:16px; font-weight:800; margin:0; color:#0f172a;">Biên lai xác nhận đã giao hàng</h2>
+          <span style="font-size:12px; color:#64748b;">Xem trước & In phiếu xác nhận đã giao hàng thành công</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeDeliveryReceiptModal()">✕</button>
+      </div>
+
+      <div style="padding:16px; max-height:75vh; overflow-y:auto;">
+        <div id="printableReceiptArea" style="background:white; border:1px solid #cbd5e1; border-radius:8px; padding:20px; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;">
+          <!-- Content populated dynamically by JS -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="padding:12px 18px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; background:#f8fafc;">
+        <button type="button" class="ghost-btn" onclick="closeDeliveryReceiptModal()">Đóng</button>
+        <button type="button" class="primary-btn" onclick="printReceiptNow()" style=" display:flex; align-items:center; gap:6px;">
+          <span>In biên lai</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nhập Lý Do Xóa Phơi Hàng -->
+  <div class="modal-overlay" id="deleteManifestReasonModal">
+    <div class="modal-card" style="width: min(520px, 94%); padding: 22px 26px;">
+      <div class="modal-head" style="border-bottom:1px solid #fee2e2; padding-bottom:12px; margin-bottom:16px;">
+        <div>
+          <h2 style="font-size:18px; font-weight:800; margin:0; color:#dc2626; display:flex; align-items:center; gap:8px;">
+            <span>⚠️</span> Xác nhận xóa phơi hàng
+          </h2>
+          <span style="font-size:12.5px; color:#64748b;">Vui lòng nhập lý do bắt buộc để lưu vào Nhật ký lịch sử xóa</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeDeleteManifestReasonModal()">✕</button>
+      </div>
+
+      <div style="background:#fef2f2; border:1px solid #fca5a5; padding:12px; border-radius:8px; margin-bottom:16px;">
+        <div style="font-size:11.5px; font-weight:700; color:#991b1b; text-transform:uppercase; margin-bottom:4px;">PHƠI XE SẼ XÓA:</div>
+        <div id="deleteTargetManifestInfo" style="font-size:13.5px; font-weight:700; color:#1e293b;"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:18px;">
+        <label style="font-size:13.5px; font-weight:700; color:#1e293b;">
+          Lý do xóa phơi <strong style="color:#dc2626;">*</strong>
+        </label>
+        <textarea id="deleteManifestReasonInput" rows="3" placeholder="Nhập lý do xóa (vd: Hủy chuyến, Nhầm biển số xe, Thay đổi lịch chạy...)..." style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit; resize:vertical;"></textarea>
+        <small id="deleteReasonError" style="color:#dc2626; font-weight:700; display:none;">⚠️ Vui lòng nhập lý do xóa phơi hàng!</small>
+      </div>
+
+      <div class="modal-actions" style="margin-top:0; padding-top:0; border-top:none;">
+        <button type="button" class="ghost-btn" onclick="closeDeleteManifestReasonModal()">Hủy bỏ</button>
+        <button type="button" class="primary-btn" onclick="confirmDeleteManifestSubmit()" style=" font-weight:700;">Xác nhận xóa phơi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Lịch Sử Xóa Phơi Hàng -->
+  <div class="modal-overlay" id="deletedManifestHistoryModal">
+    <div class="modal-card" style="width: min(1080px, 96%); padding: 22px 28px;">
+      <div class="modal-head" style="border-bottom:1px solid #cbd5e1; padding-bottom:14px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="font-size:19px; font-weight:800; margin:0; color:#1e293b;">Lịch sử phơi hàng đã xóa</h2>
+          <span id="deletedManifestModalBadge" style="background:#be123c; color:white; font-size:12px; font-weight:800; padding:2px 10px; border-radius:12px;">0 phơi</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeDeletedManifestHistoryModal()">✕</button>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;">
+        <input type="text" id="searchDeletedManifestInput" oninput="renderDeletedManifestTable()" placeholder="Tìm theo biển số, lộ trình, lý do xóa, người xóa..." style="padding:8px 14px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px; width:340px; outline:none;" />
+      </div>
+
+      <div class="table-scroll" style="max-height:55vh; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:1.5px solid #cbd5e1; text-align:left; color:#000;">
+              <th style="width:40px; text-align:center; padding:10px 8px; color:#000; font-weight:800;">STT</th>
+              <th style="padding:10px; color:#000; font-weight:800;">Biển số & Phơi hàng</th>
+              <th style="padding:10px; color:#000; font-weight:800;">Lái xe / Phụ xe</th>
+              <th style="padding:10px; width:150px; color:#000; font-weight:800;">Thời gian xóa</th>
+              <th style="padding:10px; color:#000; font-weight:800;">Lý do xóa phơi</th>
+              <th style="padding:10px; width:130px; color:#000; font-weight:800;">Người xóa</th>
+            </tr>
+          </thead>
+          <tbody id="deletedManifestTableBody">
+            <!-- Rendered dynamically by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0;">
+        <button type="button" class="ghost-btn" onclick="closeDeletedManifestHistoryModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Kiểm Nhận Hàng & Quét QR Theo Phơi -->
+  <div class="modal-overlay" id="receiveScanModal">
+    <div class="modal-card" style="width: min(920px, 96%); max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; margin: auto;">
+      <!-- Modal Header -->
+      <div class="modal-head">
+        <div>
+          <h2 id="receiveScanModalTitle" style="font-size: 17px; font-weight: 800; margin: 0;">Kiểm nhận hàng phơi xe</h2>
+          <span id="receiveScanModalSub" style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px; display: block;">Quét mã QR hoặc tích chọn các đơn hàng thực nhận khi xe vào bến</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeReceiveScanModal()">✕</button>
+      </div>
+
+      <!-- Stats Bar & QR Input -->
+      <div style="padding: 14px 24px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="font-size:14px; color:var(--text-main);">Đã quét <strong id="scannedCount" style="font-size:18px; color:#15803d;">0</strong> / <strong id="scanTotalCount">0</strong> đơn <span style="color:var(--text-muted); margin-left:6px;">· còn <strong id="unscannedCount">0</strong> chưa quét</span></div>
+          <div style="flex:1; height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden;"><div id="scanProgressBar" style="height:100%; width:0; background:#16a34a; transition:width .2s;"></div></div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="position: relative; flex: 1;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/>
+            </svg>
+            <input type="text" id="scanQrCodeInput" onkeydown="handleScanQrInputKeydown(event)" placeholder="Quét mã QR hoặc nhập mã đơn hàng (vd: HG1001)..." style="width: 100%; padding: 9px 12px 9px 38px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13.5px; font-weight: 500; outline: none; background: #ffffff;" />
+          </div>
+          <button type="button" onclick="processCurrentScanQrInput()" class="primary-btn" style="padding: 9px 18px; font-size: 13px;">Quét mã</button>
+        </div>
+      </div>
+
+      <!-- Cargo Table -->
+      <div class="table-scroll" style="padding: 16px 24px; overflow-y: auto; max-height: 60vh;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 44px; text-align:center;"><input type="checkbox" id="selectAllScanCargos" onchange="toggleSelectAllScanCargos(this.checked)" title="Chọn / Bỏ chọn tất cả" /></th>
+              <th>Đơn hàng</th>
+              <th>Người nhận</th>
+              <th style="width: 150px;">Cước phí</th>
+              <th style="width: 170px;">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="scanCargoTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-actions" style="justify-content: space-between; margin-top: 0; padding: 16px 24px;">
+        <button type="button" class="ghost-btn" onclick="closeReceiveScanModal()">Đóng</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" onclick="confirmScanReceiveAll(currentScanManifestId, currentScanMode)" class="ghost-btn" title="Tích nhận toàn bộ đơn trong phơi và xác nhận ngay">Nhận tất cả</button>
+          <button type="button" onclick="confirmScanReceiveSelected(currentScanManifestId, currentScanMode)" class="primary-btn">
+            <span>Xác nhận <span id="confirmSelectedCount">0</span> đơn</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Xem Trước & In Tem Dán Cục Hàng -->
+  <div class="modal-overlay" id="cargoStickerModal">
+    <div class="modal-card" style="max-width: 500px; padding: 20px;">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Tem dán nhãn hàng hóa</p>
+          <h2 style="font-size:18px; margin:2px 0 0 0; color:#0f172a;">Xem trước mẫu in tem dán</h2>
+        </div>
+        <button class="icon-btn" type="button" onclick="closeCargoStickerModal()">✕</button>
+      </div>
+
+      <div id="cargoStickerPreview" style="padding:12px 0;">
+        <!-- Preview content rendered by JS -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 16px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="ghost-btn" onclick="closeCargoStickerModal()">Hủy</button>
+        <button type="button" class="primary-btn" id="confirmPrintStickerBtn" onclick="executePrintStickerFromModal()">In tem dán</button>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- .app-body -->
+</div> <!-- .app-shell -->
+
+  <!-- Khu vực chứa bản in Phơi hàng & In hàng loạt Tem dán -->
+  <div id="printableManifestArea" style="display:none;"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../../shared/js/storage-keys.js"></script>
+  <script src="../../shared/js/fleet-store.js"></script>
+  <script src="js/stations.js?v=2"></script>
+  <script src="../../auth/session.js"></script>
+  <script src="js/auth-bridge.js"></script>
+  <script src="js/responsive.js"></script>
+  <script>
+    const STORAGE_KEYS = {
+      MANIFESTS: 'hueNghia_manifests',
+      CARGOS: 'hueNghia_cargos'
+    };
+
+    // Xóa sạch phơi/hàng cũ 1 lần (bản v5): từ giờ phơi hàng được tạo từ phơi xe vé
+    if (!localStorage.getItem('hueNghia_cargo_clean_test_v5')) {
+      [STORAGE_KEYS.MANIFESTS, STORAGE_KEYS.CARGOS, 'hueNghia_deleted_manifests', 'cargo_deletion_history'].forEach(k => localStorage.setItem(k, '[]'));
+      localStorage.setItem('hueNghia_cargo_clean_test_v5', 'true');
+    }
+
+    const defaultManifests = [];
+
+    function loadManifests() {
+      const saved = localStorage.getItem(STORAGE_KEYS.MANIFESTS);
+      if (saved !== null) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (e) {}
+      }
+      localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify([]));
+      return [];
+    }
+
+    function saveManifests(data) {
+      localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify(data));
+    }
+
+    function loadCargos() {
+      const saved = localStorage.getItem(STORAGE_KEYS.CARGOS);
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+      return [];
+    }
+
+    function saveCargos(data) {
+      localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify(data));
+    }
+
+    // Cứ đã gán vào phơi mà chưa quét QR là tính "chưa giao" ngay, không cần đợi bấm Nhận xe/Xác nhận.
+    // Thiếu hàng = đã gán vào phơi xe đi nhưng chưa quét lên xe
+    function isCargoMissing(c) {
+      return !!c.manifestId && isCargoUnreceived(c);
+    }
+    function isCargoUnreceived(c) {
+      return !c.isScanned && c.status !== 'delivered' && c.status !== 'returned';
+    }
+
+    let manifestData = loadManifests();
+    let currentDetailManifestId = null;
+
+    const manifestTableBody = document.getElementById('manifestTableBody');
+    const manifestModal = document.getElementById('manifestModal');
+    const manifestDetailModal = document.getElementById('manifestDetailModal');
+    const manifestForm = document.getElementById('manifestForm');
+    const toast = document.getElementById('toast');
+
+    // Load dynamic station list into filter selects
+    function initStationFilters() {
+      const filterFrom = document.getElementById('filterFrom');
+      const filterTo = document.getElementById('filterTo');
+      if (window.HueNghiaStations) {
+        window.HueNghiaStations.populateStationDropdowns(filterFrom, 'all', true, 'Tất cả trạm gửi');
+        window.HueNghiaStations.populateStationDropdowns(filterTo, 'all', true, 'Tất cả trạm nhận');
+      }
+    }
+    initStationFilters();
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timeout);
+      showToast.timeout = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    /* ── Render checkbox lưới ĐIỂM ĐI ── */
+    function renderDepartureCheckboxes(selectedDepartures = [], isReadOnly = false) {
+      const container = document.getElementById('departureStationsContainer');
+      if (!container) return;
+
+      const selectAllBtn = document.getElementById('selectAllDeparturesBtn');
+      const deselectAllBtn = document.getElementById('deselectAllDeparturesBtn');
+      if (selectAllBtn) {
+        selectAllBtn.disabled = isReadOnly;
+        selectAllBtn.style.opacity = isReadOnly ? '0.4' : '1';
+        selectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
+      }
+      if (deselectAllBtn) {
+        deselectAllBtn.disabled = isReadOnly;
+        deselectAllBtn.style.opacity = isReadOnly ? '0.4' : '1';
+        deselectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
+      }
+
+      const stations = (window.HueNghiaStations && typeof window.HueNghiaStations.getStations === 'function')
+        ? window.HueNghiaStations.getStations()
+        : ['Châu Đốc', 'Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Hà Tiên', 'Long Xuyên', 'Sài Gòn'];
+
+      container.innerHTML = stations.map(st => {
+        const isChecked = selectedDepartures.includes(st);
+        const isDisabled = isReadOnly;
+        return `
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:${isChecked ? '#1d4ed8' : '#1e293b'}; background:${isChecked ? '#eff6ff' : 'white'}; padding:5px 8px; border-radius:5px; border:1px solid ${isChecked ? '#bfdbfe' : '#cbd5e1'}; cursor:${isDisabled ? 'not-allowed' : 'pointer'}; opacity:${isDisabled ? '0.6' : '1'};">
+            <input type="checkbox" name="departureStation" value="${st}" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''} style="accent-color:#1d4ed8; width:15px; height:15px; cursor:${isDisabled ? 'not-allowed' : 'pointer'};" />
+            <span>${st}</span>
+          </label>
+        `;
+      }).join('');
+
+      if (!isReadOnly) {
+        container.querySelectorAll('input[name="departureStation"]').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const lbl = e.target.closest('label');
+            if (lbl) {
+              lbl.style.background = e.target.checked ? '#eff6ff' : 'white';
+              lbl.style.color = e.target.checked ? '#1d4ed8' : '#1e293b';
+              lbl.style.borderColor = e.target.checked ? '#bfdbfe' : '#cbd5e1';
+            }
+            // Cập nhật lại điểm đến khi điểm đi thay đổi
+            const checkedDeps = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(c => c.value);
+            const currentDest = Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(c => c.value);
+            // Dùng điểm đi đầu tiên để lọc điểm đến (ẩn các trạm đã chọn làm điểm đi)
+            renderDestinationCheckboxes(checkedDeps[0] || '', currentDest);
+          });
+        });
+      }
+    }
+
+    function renderDestinationCheckboxes(selectedFrom, selectedDestinations = [], isReadOnly = false) {
+      const container = document.getElementById('destinationStationsContainer');
+      if (!container) return;
+
+      const selectAllBtn = document.getElementById('selectAllDestinationsBtn');
+      const deselectAllBtn = document.getElementById('deselectAllDestinationsBtn');
+      if (selectAllBtn) {
+        selectAllBtn.disabled = isReadOnly;
+        selectAllBtn.style.opacity = isReadOnly ? '0.4' : '1';
+        selectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
+      }
+      if (deselectAllBtn) {
+        deselectAllBtn.disabled = isReadOnly;
+        deselectAllBtn.style.opacity = isReadOnly ? '0.4' : '1';
+        deselectAllBtn.style.cursor = isReadOnly ? 'not-allowed' : 'pointer';
+      }
+
+      // Lấy tất cả điểm đi đã chọn để ẩn chúng khỏi điểm đến
+      const selectedDeps = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(c => c.value);
+
+      const stations = (window.HueNghiaStations && typeof window.HueNghiaStations.getStations === 'function')
+        ? window.HueNghiaStations.getStations()
+        : ['Châu Đốc', 'Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Hà Tiên', 'Long Xuyên', 'Sài Gòn'];
+
+      container.innerHTML = stations.map(st => {
+        const isSameAsFrom = selectedDeps.length > 0 ? selectedDeps.includes(st) : st === selectedFrom;
+        const isChecked = !isSameAsFrom && selectedDestinations.includes(st);
+        const isDisabled = isSameAsFrom || isReadOnly;
+        return `
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:${isSameAsFrom ? '500' : '600'}; color:${isDisabled ? '#94a3b8' : (isChecked ? '#b91c1c' : '#1e293b')}; background:${isSameAsFrom ? '#f8fafc' : (isChecked ? '#fef2f2' : 'white')}; padding:5px 8px; border-radius:5px; border:1px solid ${isSameAsFrom ? '#f1f5f9' : (isChecked ? '#fca5a5' : '#cbd5e1')}; cursor:${isDisabled ? 'not-allowed' : 'pointer'}; opacity:${isReadOnly && !isChecked ? '0.6' : '1'};">
+            <input type="checkbox" name="destinationStation" value="${st}" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''} style="accent-color:#b91c1c; width:15px; height:15px; cursor:${isDisabled ? 'not-allowed' : 'pointer'};" />
+            <span>${st}${isSameAsFrom ? ' <small style="color:#94a3b8; font-size:11px;">(Điểm đi)</small>' : ''}</span>
+          </label>
+        `;
+      }).join('');
+
+      if (!isReadOnly) {
+        container.querySelectorAll('input[name="destinationStation"]').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const lbl = e.target.closest('label');
+            if (lbl) {
+              lbl.style.background = e.target.checked ? '#fef2f2' : 'white';
+              lbl.style.color = e.target.checked ? '#b91c1c' : '#1e293b';
+              lbl.style.borderColor = e.target.checked ? '#fca5a5' : '#cbd5e1';
+            }
+          });
+        });
+      }
+    }
+
+    function filterDestinationStationList(query) {
+      const q = query.toLowerCase().trim();
+      const labels = document.querySelectorAll('#destinationStationsContainer label');
+      labels.forEach(lbl => {
+        const text = lbl.textContent.toLowerCase();
+        lbl.style.display = text.includes(q) ? 'flex' : 'none';
+      });
+    }
+
+    const destinationSearchInput = document.getElementById('destinationSearchInput');
+    if (destinationSearchInput) {
+      destinationSearchInput.addEventListener('input', (e) => filterDestinationStationList(e.target.value));
+    }
+
+    window.openManifestModal = function (editId = null) {
+      const titleEl = document.getElementById('manifestModalTitle');
+      const eyebrowEl = document.getElementById('manifestModalEyebrow');
+      const fromSelect = document.getElementById('manifestFromSelect');
+      const errEl = document.getElementById('destinationValidationError');
+      const manifestModal = document.getElementById('manifestModal');
+      const manifestForm = document.getElementById('manifestForm');
+      if (!manifestModal) return;
+
+      if (errEl) errEl.style.display = 'none';
+
+      const searchInput = document.getElementById('destinationSearchInput');
+      if (searchInput) searchInput.value = '';
+
+      // Điểm đi: render checkboxes thay vì populate select
+      renderDepartureCheckboxes(['Sài Gòn']);
+
+      const vehicleSelect = document.getElementById('manifestVehicleType');
+
+      if (editId) {
+        const item = manifestData.find((row) => row.id === editId);
+        if (item) {
+          if (titleEl) titleEl.textContent = 'Chỉnh sửa phơi hàng';
+          if (eyebrowEl) eyebrowEl.textContent = 'Cập nhật phơi';
+          if (document.getElementById('manifestId')) document.getElementById('manifestId').value = item.id;
+          if (document.getElementById('manifestName')) document.getElementById('manifestName').value = item.name;
+          if (document.getElementById('manifestRoute')) document.getElementById('manifestRoute').value = item.route;
+          if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = item.plate;
+          // Điểm đi edit: chỉ hiển thị 1 trạm, lock readonly
+          renderDepartureCheckboxes(String(item.from).split(',').map(s => s.trim()), true);
+          const driverInfo = parseDriverDetails(item.driver);
+          if (document.getElementById('manifestDriverName')) document.getElementById('manifestDriverName').value = driverInfo.name === '—' ? '' : driverInfo.name;
+          if (document.getElementById('manifestDriverPhone')) document.getElementById('manifestDriverPhone').value = driverInfo.phone || '';
+          if (window.HueNghiaStations && vehicleSelect) {
+            window.HueNghiaStations.populateVehicleDropdowns(vehicleSelect, driverInfo.vehicle);
+          }
+          if (document.getElementById('manifestHelper')) document.getElementById('manifestHelper').value = item.helper || '';
+          if (document.getElementById('manifestStaff')) document.getElementById('manifestStaff').value = item.staff;
+          if (document.getElementById('manifestTime')) document.getElementById('manifestTime').value = item.time;
+          renderDestinationCheckboxes(item.from, [item.to], true);
+        }
+      } else {
+        if (titleEl) titleEl.textContent = 'Thêm phơi mới';
+        if (eyebrowEl) eyebrowEl.textContent = 'Tạo phơi hàng';
+        if (manifestForm) manifestForm.reset();
+        if (document.getElementById('manifestId')) document.getElementById('manifestId').value = '';
+        if (document.getElementById('manifestPlate')) document.getElementById('manifestPlate').value = '64855';
+        renderDepartureCheckboxes(['Sài Gòn']);
+        if (window.HueNghiaStations && vehicleSelect) {
+          window.HueNghiaStations.populateVehicleDropdowns(vehicleSelect, 'Đội xe 40 Giường');
+        }
+        if (document.getElementById('manifestTime')) document.getElementById('manifestTime').value = '12h';
+        renderDestinationCheckboxes('Sài Gòn', ['Long Bình', 'Tân Châu', 'AG', 'Đồng Ky', 'Cái Dầu', 'Châu Đốc'], false);
+      }
+      filterDestinationStationList('');
+      const pickBox = document.getElementById('reuseManifestBox');
+      if (pickBox) pickBox.style.display = editId ? 'none' : 'flex';
+      document.getElementById('manifestModalCard').style.width = editId ? '' : 'min(1280px,100%)';
+      if (!editId) {
+        reusePickedId = null;
+        document.getElementById('reuseDate').value = '';
+        document.getElementById('reuseTime').value = 'all';
+        renderReuseDirections();
+        renderReuseList();
+      }
+      manifestModal.classList.add('open');
+    };
+
+    // Tạo phơi hàng từ phơi xe vé (ticketstaff, key hn_ts_manifests_v1): bấm 1 thẻ bên trái → điền sẵn biển số, tài xế, phụ xe, giờ.
+    let reusePickedId = null;
+    // Danh sách chuyến bên bán vé (hn_trips_meta_v9) + biển số/tài xế/phụ xe từ sơ đồ ghế, phơi đã khởi hành ghi đè
+    function loadTicketManifests() {
+      const rd = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+      const bank = rd(HN_STORAGE_KEY, {}), mans = rd('hn_ts_manifests_v1', {});
+      return rd(HN_TRIPS_KEY, []).filter(t => !t.isTemplate).map(t => {
+        const b = bank[t.id] || {}, m = mans[t.id] || {};
+        return { ...t, tripId: t.id, plate: m.plate || b.plate || t.plate || '', driver: m.driver || b.driver || '', helper: m.helper || b.helper || '' };
+      });
+    }
+    // Quy tên trạm của vé về danh sách trạm trang hàng; chưa có thì thêm mới để form không lệch
+    function ticketStation(name, add) {
+      name = String(name || '').trim();
+      if (!name) return '';
+      const S = window.HueNghiaStations, strip = x => x.toLowerCase().replace(/^(trạm|bến) /, '');
+      const hit = S.getStations().find(st => strip(st) === strip(name)) || (add && S.addCustomStation(name), name);
+      return hit;
+    }
+    // Chuyến vé → thông tin điền form
+    function ticketTripInfo(t, add) {
+      const parts = (t.route || '').split(' - ').map(x => x.trim());
+      const from = ticketStation(t.fromStation || parts[0], add) || 'Sài Gòn';
+      // Cùng quy tắc stationsForTrip bên bán vé: có tick trạm nhận thêm → trạm đến chính + trạm đó; không → mọi trạm vùng điểm đến
+      let dest = [t.toStation || parts[1], ...(t.pickupStations || [])];
+      if (!(t.pickupStations || []).length) {
+        try { dest = FleetStore.buildDirTripCfg()[FleetStore.getRouteDirectionId(t.route)].toStations; } catch (e) {}
+      }
+      const tos = [...new Set(dest.map(x => ticketStation(x, add)).filter(x => x && x !== from))];
+      const [h, mi] = String(t.time || '').split(':');
+      return { from, tos, vehicle: matchVehicle(t.vehicleType), time: h ? `${+h}h${+mi ? mi : ''}` : '' };
+    }
+    // Loại xe vé ("Giường nằm 34 chỗ") ≠ tên đội xe ("Đội xe Limousine 34 giường"): khớp theo số chỗ + limousine
+    function matchVehicle(text) {
+      const t = String(text || '').toLowerCase(), n = (t.match(/\d+/) || [])[0];
+      const list = window.HueNghiaStations.VEHICLE_TYPES;
+      const cand = list.filter(v => n && v.includes(' ' + n + ' '));
+      return cand.find(v => v.toLowerCase().includes('limousine') === t.includes('limousine')) || cand[0] || list[1];
+    }
+    // Chọn hướng giống bên bán vé (FleetStore.getDirections); 'all' = mọi hướng
+    let reuseDir = 'all';
+    function renderReuseDirections() {
+      const dirs = [{ id: 'all', label: 'Tất cả hướng' }, ...FleetStore.getDirections().filter(d => d && d.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))];
+      document.getElementById('reuseDirections').innerHTML = dirs.map(d => {
+        const on = d.id === reuseDir;
+        return `<button type="button" data-dir="${d.id}" style="padding:6px 10px; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${on ? '#b91c1c' : '#cbd5e1'}; background:${on ? '#b91c1c' : 'white'}; color:${on ? 'white' : '#334155'};">${d.label}</button>`;
+      }).join('');
+    }
+    document.getElementById('reuseDirections').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-dir]');
+      if (!b) return;
+      reuseDir = b.dataset.dir;
+      renderReuseDirections();
+      renderReuseList();
+    });
+    function renderReuseList() {
+      const date = document.getElementById('reuseDate').value;
+      const slot = document.getElementById('reuseTime').value;
+      const rows = loadTicketManifests().filter(m => {
+        const h = parseInt(m.time, 10);
+        if (date && m.date !== date) return false;
+        if (reuseDir !== 'all' && FleetStore.getRouteDirectionId(m.route) !== reuseDir) return false;
+        if (slot !== 'all' && !isNaN(h) && !(slot === 'morning' ? h < 12 : slot === 'afternoon' ? h >= 12 && h < 18 : h >= 18)) return false;
+        return true;
+      });
+      document.getElementById('reuseList').innerHTML = rows.map(m => {
+        const on = String(m.tripId) === reusePickedId;
+        return `<div class="reuse-card" data-id="${m.tripId}" style="cursor:pointer; padding:8px 12px; border:2px solid ${on ? '#b91c1c' : '#e2e8f0'}; border-radius:12px; background:${on ? '#fef2f2' : 'white'};">
+          <div style="display:flex; gap:10px; font-weight:800;"><span>${m.time || ''}</span><span style="color:#b91c1c;">${m.plate || 'Chưa có'}</span></div>
+          <div style="font-size:13px; font-weight:600; color:#475569;">${m.name || ((m.fromStation || '') + ' → ' + (m.toStation || ''))}${m.date ? ' • ' + m.date : ''}</div></div>`;
+      }).join('') || '<div style="padding:10px; text-align:center; color:#94a3b8; font-size:13px;">Chưa có phơi bán vé nào</div>';
+    }
+    document.getElementById('reuseDate').addEventListener('change', renderReuseList);
+    document.getElementById('reuseTime').addEventListener('change', renderReuseList);
+    document.getElementById('reuseList').addEventListener('click', (e) => {
+      const card = e.target.closest('.reuse-card');
+      const m = card && loadTicketManifests().find(r => String(r.tripId) === card.dataset.id);
+      if (!m) return;
+      reusePickedId = String(m.tripId);
+      renderReuseList();
+      const set = (id, v) => { document.getElementById(id).value = v || ''; };
+      const info = ticketTripInfo(m, true);
+      set('manifestPlate', m.plate); set('manifestTime', info.time); set('manifestHelper', m.helper);
+      set('manifestDriverName', m.driver); set('manifestDriverPhone', '');
+      window.HueNghiaStations.populateVehicleDropdowns(document.getElementById('manifestVehicleType'), info.vehicle);
+      renderDepartureCheckboxes([info.from]);
+      renderDestinationCheckboxes(info.from, info.tos, false);
+      filterDestinationStationList('');
+    });
+
+    // Nút Chọn tất cả / Bỏ chọn cho ĐIỂM ĐI
+    const selectAllDepsBtn = document.getElementById('selectAllDeparturesBtn');
+    if (selectAllDepsBtn) {
+      selectAllDepsBtn.addEventListener('click', () => {
+        document.querySelectorAll('input[name="departureStation"]').forEach(cb => {
+          cb.checked = true;
+          const lbl = cb.closest('label');
+          if (lbl) { lbl.style.background = '#eff6ff'; lbl.style.color = '#1d4ed8'; lbl.style.borderColor = '#bfdbfe'; }
+        });
+        renderDestinationCheckboxes('', Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(c => c.value));
+      });
+    }
+    const deselectAllDepsBtn = document.getElementById('deselectAllDeparturesBtn');
+    if (deselectAllDepsBtn) {
+      deselectAllDepsBtn.addEventListener('click', () => {
+        document.querySelectorAll('input[name="departureStation"]').forEach(cb => {
+          cb.checked = false;
+          const lbl = cb.closest('label');
+          if (lbl) { lbl.style.background = 'white'; lbl.style.color = '#1e293b'; lbl.style.borderColor = '#cbd5e1'; }
+        });
+        renderDestinationCheckboxes('', Array.from(document.querySelectorAll('input[name="destinationStation"]:checked')).map(c => c.value));
+      });
+    }
+
+    const selectAllBtn = document.getElementById('selectAllDestinationsBtn');
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', () => {
+        const selectedDeps = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(c => c.value);
+        const fromVal = selectedDeps[0] || '';
+        const checkboxes = document.querySelectorAll('input[name="destinationStation"]');
+        checkboxes.forEach(cb => {
+          if (cb.value !== fromVal) {
+            cb.checked = true;
+            const lbl = cb.closest('label');
+            if (lbl) {
+              lbl.style.background = '#fef2f2';
+              lbl.style.color = '#b91c1c';
+              lbl.style.borderColor = '#fca5a5';
+            }
+          }
+        });
+      });
+    }
+
+    const deselectAllBtn = document.getElementById('deselectAllDestinationsBtn');
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('input[name="destinationStation"]');
+        checkboxes.forEach(cb => {
+          cb.checked = false;
+          const lbl = cb.closest('label');
+          if (lbl) {
+            lbl.style.background = 'white';
+            lbl.style.color = '#1e293b';
+            lbl.style.borderColor = '#cbd5e1';
+          }
+        });
+      });
+    }
+
+    function closeManifestModal() {
+      manifestModal.classList.remove('open');
+      manifestForm.reset();
+    }
+
+    function parseDriverDetails(driverStr) {
+      if (!driverStr) return { name: '—', phone: '', vehicle: 'Xe vận chuyển' };
+      const parts = driverStr.split('•').map(s => s.trim());
+      if (parts.length >= 3) {
+        return { name: parts[0], phone: parts[1], vehicle: parts[2] };
+      }
+      return { name: parts[0] || driverStr, phone: parts[1] || '', vehicle: 'Xe 45 chỗ' };
+    }
+
+    function openDetailModal(manifestId) {
+      currentDetailManifestId = manifestId;
+      const manifest = manifestData.find(m => m.id === manifestId);
+      if (!manifest) return;
+
+      const driverInfo = parseDriverDetails(manifest.driver);
+
+      document.getElementById('detailManifestTitle').textContent = manifest.name;
+      document.getElementById('detailManifestInfo').innerHTML = `
+        <div class="detail-grid-expanded">
+          <div class="detail-card-lg">
+            <span class="card-tag">Lịch trình & Biển số xe</span>
+            <div class="card-content-lg">
+              <div><span class="route-badge">${manifest.route}</span></div>
+              <div><span class="plate-badge">${manifest.plate}</span></div>
+            </div>
+          </div>
+          <div class="detail-card-lg">
+            <span class="card-tag">Tài xế lái xe</span>
+            <div class="card-content-lg">
+              <strong style="font-size:16px;">${driverInfo.name}</strong>
+              ${driverInfo.phone ? `<small style="color:var(--text-muted);font-size:14px;">SĐT: ${driverInfo.phone}</small>` : ''}
+            </div>
+          </div>
+          <div class="detail-card-lg">
+            <span class="card-tag">Loại xe vận chuyển</span>
+            <div class="card-content-lg">
+              <span class="vehicle-pill">${driverInfo.vehicle}</span>
+            </div>
+          </div>
+          <div class="detail-card-lg">
+            <span class="card-tag">Phụ xe đồng hành</span>
+            <div class="card-content-lg">
+              <strong style="font-size:16px;">${manifest.helper || '—'}</strong>
+            </div>
+          </div>
+          <div class="detail-card-lg full-span">
+            <span class="card-tag">Hành trình tuyến trạm</span>
+            <div class="card-content-lg" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:16px;">${manifest.from}</strong> 
+                <span style="color:#1e293b; font-weight:800; font-size:20px; margin:0 10px;">➔</span> 
+                <strong style="font-size:16px;">${manifest.to}</strong>
+              </div>
+              <small style="color:var(--text-muted); font-size:14px;">Nhân viên tạo: <strong>${manifest.staff}</strong> (${manifest.time})</small>
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderDetailCargos(manifestId);
+      manifestDetailModal.classList.add('open');
+    }
+
+    function generateSVGBarcode(code) {
+      return `
+        <svg class="barcode-lines-svg" viewBox="0 0 220 50" preserveAspectRatio="none" style="width:75%;height:40px;margin:0 auto;display:block;">
+          <rect x="0" y="0" width="220" height="50" fill="#ffffff" />
+          <rect x="10" y="0" width="3" height="50" fill="#000" />
+          <rect x="16" y="0" width="2" height="50" fill="#000" />
+          <rect x="22" y="0" width="5" height="50" fill="#000" />
+          <rect x="30" y="0" width="2" height="50" fill="#000" />
+          <rect x="35" y="0" width="4" height="50" fill="#000" />
+          <rect x="42" y="0" width="2" height="50" fill="#000" />
+          <rect x="48" y="0" width="6" height="50" fill="#000" />
+          <rect x="57" y="0" width="2" height="50" fill="#000" />
+          <rect x="62" y="0" width="4" height="50" fill="#000" />
+          <rect x="70" y="0" width="3" height="50" fill="#000" />
+          <rect x="76" y="0" width="5" height="50" fill="#000" />
+          <rect x="84" y="0" width="2" height="50" fill="#000" />
+          <rect x="90" y="0" width="4" height="50" fill="#000" />
+          <rect x="98" y="0" width="2" height="50" fill="#000" />
+          <rect x="104" y="0" width="6" height="50" fill="#000" />
+          <rect x="114" y="0" width="3" height="50" fill="#000" />
+          <rect x="120" y="0" width="2" height="50" fill="#000" />
+          <rect x="126" y="0" width="5" height="50" fill="#000" />
+          <rect x="134" y="0" width="2" height="50" fill="#000" />
+          <rect x="140" y="0" width="4" height="50" fill="#000" />
+          <rect x="148" y="0" width="2" height="50" fill="#000" />
+          <rect x="154" y="0" width="6" height="50" fill="#000" />
+          <rect x="163" y="0" width="2" height="50" fill="#000" />
+          <rect x="168" y="0" width="4" height="50" fill="#000" />
+          <rect x="176" y="0" width="3" height="50" fill="#000" />
+          <rect x="182" y="0" width="5" height="50" fill="#000" />
+          <rect x="190" y="0" width="2" height="50" fill="#000" />
+          <rect x="196" y="0" width="4" height="50" fill="#000" />
+          <rect x="204" y="0" width="3" height="50" fill="#000" />
+        </svg>
+      `;
+    }
+
+    function formatCargoQuantity(cargo) {
+      if (!cargo) return '1 cái';
+      const q = cargo.quantity || 1;
+      const origQ = cargo.originalQuantity || q;
+      const unit = cargo.unit || 'cái';
+      if (origQ > q) {
+        return `${q}/${origQ} ${unit}`;
+      }
+      return `${q} ${unit}`;
+    }
+
+    function renderDetailCargos(manifestId) {
+      const cargos = loadCargos();
+      const manifest = manifestData.find(m => m.id === manifestId);
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === manifestId);
+      const countEl = document.getElementById('detailCargoCount');
+      if (countEl) countEl.textContent = manifestCargos.length;
+
+      // Kiểm tra trạng thái phơi xe (xe ĐÃ NHẬN: status === 'received' hoặc statusText === 'Đã nhận xe')
+      const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
+
+      const detailTableBody = document.getElementById('detailCargoTableBody');
+      detailTableBody.innerHTML = manifestCargos.length
+        ? manifestCargos.map((cargo, index) => {
+            const st = cargo.status || 'in-transit';
+            const isCargoUndelivered = st === 'undelivered';
+            const isCargoReturned = st === 'returned';
+
+            // CHỈ cho phép Trả hàng khi: Xe ĐÃ NHẬN và Cục hàng chính xác ở trạng thái CHƯA GIAO (không phải Đã chuyển)
+            const canReturnCargo = isManifestReceived && isCargoUndelivered && !isCargoReturned;
+
+            return `
+              <tr style="${isCargoReturned ? 'background:#fff1f2;' : ''}">
+                <td style="text-align:center;"><input type="checkbox" class="detail-row-checkbox" data-id="${cargo.id}" /></td>
+                <td style="text-align:center;"><strong>${index + 1}</strong></td>
+                <td>
+                  <strong>${cargo.name}</strong> 
+                  <small style="color:#000000; font-weight:600;">(x${formatCargoQuantity(cargo)})</small>
+                  ${isCargoReturned ? `<br><span style="font-size:11px; font-weight:800; color:#C20D08; background:#fff1f2; border:1px solid #fecdd3; padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block;">⚠️ Hàng trả về</span>` : ''}
+                </td>
+                <td><code>${cargo.code}</code></td>
+                <td>${cargo.sender} (${cargo.senderPhone})</td>
+                <td>${cargo.receiver} (${cargo.receiverPhone})</td>
+                <td><strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong></td>
+                <td style="text-align:center; white-space:nowrap;">
+                  <div class="action-group" style="justify-content:center;">
+                    <button class="btn-receipt" onclick="openDeliveryReceiptModal(${cargo.id})" title="Xem & In biên lai giao hàng">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </button>
+                    <button class="btn-print" onclick="printSingleSticker(${cargo.id})" title="In tem dán hàng hóa">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                    </button>
+                    ${canReturnCargo ? `
+                      <button class="btn-return" onclick="markCargoReturned(${cargo.id})" title="Trả hàng về do có vấn đề">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                      </button>
+                    ` : ''}
+                    <button class="btn-edit" onclick="editCargoInManifest(${cargo.id})" title="Chỉnh sửa hàng hóa">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </button>
+                    <button class="btn-delete" onclick="removeFromManifest(${cargo.id})" title="Gỡ khỏi phơi này">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')
+        : '<tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280;">Chưa có hàng hóa nào được gán vào phơi này.</td></tr>';
+
+      const selectAll = document.getElementById('selectAllDetailCargos');
+      const rowCheckboxes = document.querySelectorAll('.detail-row-checkbox');
+      const batchPrintBtn = document.getElementById('batchPrintStickersBtn');
+
+      function updateSelectionState() {
+        const total = rowCheckboxes.length;
+        const checkedCount = Array.from(rowCheckboxes).filter(cb => cb.checked).length;
+        if (selectAll) {
+          selectAll.checked = total > 0 && checkedCount === total;
+          selectAll.indeterminate = checkedCount > 0 && checkedCount < total;
+        }
+        if (batchPrintBtn) {
+          if (checkedCount > 0) {
+            batchPrintBtn.textContent = `In tem đã chọn (${checkedCount}/${total})`;
+          } else {
+            batchPrintBtn.textContent = 'In tem dán';
+          }
+        }
+      }
+
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.onclick = () => {
+          rowCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+          updateSelectionState();
+        };
+      }
+
+      rowCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelectionState);
+      });
+
+      updateSelectionState();
+    }
+
+    window.updateCargoStatusInManifest = function(cargoId, newStatus) {
+      const cargos = loadCargos();
+      const target = cargos.find(c => String(c.id) === String(cargoId));
+      if (target) {
+        target.status = newStatus;
+        if (newStatus === 'pending') target.statusText = 'Chưa chuyển';
+        else if (newStatus === 'in-transit') target.statusText = 'Đã chuyển';
+        else if (newStatus === 'undelivered') target.statusText = 'Chưa giao';
+        else if (newStatus === 'delivered') target.statusText = 'Đã giao';
+        else if (newStatus === 'returned') target.statusText = 'Hàng trả về';
+
+        saveCargos(cargos);
+        showToast(`Đã cập nhật trạng thái: ${target.statusText}`);
+        if (currentDetailManifestId) renderDetailCargos(currentDetailManifestId);
+      }
+    };
+
+    window.batchUpdateCargoStatus = function(newStatus) {
+      if (!newStatus) return;
+      const checkedCbs = document.querySelectorAll('.detail-row-checkbox:checked');
+      if (checkedCbs.length === 0) {
+        alert('Vui lòng tích chọn ít nhất 1 hàng hóa trong danh sách!');
+        document.getElementById('batchStatusSelect').value = '';
+        return;
+      }
+      const ids = Array.from(checkedCbs).map(cb => String(cb.dataset.id));
+      const cargos = loadCargos();
+      let statusText = 'Chưa chuyển';
+      if (newStatus === 'in-transit') statusText = 'Đã chuyển';
+      else if (newStatus === 'undelivered') statusText = 'Chưa giao';
+      else if (newStatus === 'delivered') statusText = 'Đã giao';
+      else if (newStatus === 'returned') statusText = 'Hàng trả về';
+
+      cargos.forEach(c => {
+        if (ids.includes(String(c.id))) {
+          c.status = newStatus;
+          c.statusText = statusText;
+        }
+      });
+
+      saveCargos(cargos);
+      showToast(`Đã cập nhật trạng thái ${ids.length} hàng hóa sang "${statusText}"`);
+      document.getElementById('batchStatusSelect').value = '';
+      if (currentDetailManifestId) renderDetailCargos(currentDetailManifestId);
+    };
+
+    window.markCargoReturned = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+
+      const reason = prompt(`Xác nhận TRẢ HÀNG về danh sách Hàng trả về:\n[${cargo.code}] - ${cargo.name}.\n\nNhập lý do trả hàng (nếu có sự cố):`, 'Hàng bị lỗi / Khách hủy giao');
+      if (reason === null) return;
+
+      cargo.status = 'returned';
+      cargo.statusText = 'Hàng trả về';
+      cargo.returnReason = reason || 'Có vấn đề khi vận chuyển';
+      cargo.returnedAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+
+      saveCargos(cargos);
+      if (currentDetailManifestId) renderDetailCargos(currentDetailManifestId);
+      showToast('Đã chuyển hàng hóa vào Danh sách Hàng trả về');
+    };
+
+    window.batchReturnCargos = function() {
+      const manifest = manifestData.find(m => m.id === currentDetailManifestId);
+      const isManifestReceived = manifest && (manifest.status === 'received' || manifest.statusText === 'Đã nhận xe');
+
+      if (!isManifestReceived) {
+        alert('Chỉ được thực hiện Trả hàng khi phơi xe ở trạng thái "Đã nhận xe"!');
+        return;
+      }
+
+      const checkedBoxes = document.querySelectorAll('.detail-row-checkbox:checked');
+      if (!checkedBoxes.length) {
+        alert('Vui lòng tích chọn ít nhất 1 hàng hóa trong phơi để thực hiện Trả hàng!');
+        return;
+      }
+
+      const ids = Array.from(checkedBoxes).map(cb => Number(cb.dataset.id));
+      const reason = prompt(`Nhập lý do trả hàng chung cho ${ids.length} hàng hóa đã chọn:`, 'Có vấn đề khi vận chuyển');
+      if (reason === null) return;
+
+      const cargos = loadCargos();
+      const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+
+      ids.forEach(id => {
+        const cargo = cargos.find(c => Number(c.id) === id);
+        if (cargo) {
+          cargo.status = 'returned';
+          cargo.statusText = 'Hàng trả về';
+          cargo.returnReason = reason || 'Có vấn đề khi vận chuyển';
+          cargo.returnedAt = now;
+        }
+      });
+
+      saveCargos(cargos);
+      if (currentDetailManifestId) renderDetailCargos(currentDetailManifestId);
+      showToast(`Đã chuyển ${ids.length} hàng hóa sang Danh sách Hàng trả về`);
+    };
+
+    window.editCargoInManifest = function(cargoId) {
+      window.location.href = `cargo.html?editId=${cargoId}`;
+    };
+
+    window.removeFromManifest = function(cargoId) {
+      const cargos = loadCargos();
+      const target = cargos.find(c => c.id === cargoId);
+      if (target) {
+        target.manifestId = null;
+        target.stationFrom = 'Chưa gán';
+        target.stationTo = 'Chưa gán';
+        target.status = 'pending';
+        target.statusText = 'Chờ xử lý';
+        saveCargos(cargos);
+        if (currentDetailManifestId) renderDetailCargos(currentDetailManifestId);
+        showToast('Đã gỡ hàng hóa khỏi phơi');
+      }
+    };
+
+    function openPrintWindow(title, htmlBody, customCss = '') {
+      const printWin = window.open('', '_blank', 'width=920,height=750');
+      if (!printWin) {
+        alert('Vui lòng cho phép mở cửa sổ bật lên (Pop-up) trên trình duyệt để thực hiện in!');
+        return;
+      }
+      printWin.document.open();
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8" />
+          <title>${title}</title>
+          <style>
+            @page { size: auto; margin: 10mm; }
+            * { box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Arial, 'Inter', -apple-system, sans-serif; background: #fff; color: #000; margin: 0; padding: 12px; }
+            code { font-family: monospace; }
+            ${customCss}
+          </style>
+        </head>
+        <body>
+          ${htmlBody}
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 300);
+            };
+          <\/script>
+        <script src="js/redesign.js"></script>
+<script src="js/sidebar.js"></script>
+</body>
+        </html>
+      `);
+      printWin.document.close();
+    }
+
+    let activeStickerCargoId = null;
+
+    window.closeCargoStickerModal = function() {
+      const modal = document.getElementById('cargoStickerModal');
+      if (modal) modal.classList.remove('open');
+    };
+
+    window.printSingleSticker = function(cargoId) {
+      activeStickerCargoId = cargoId;
+      const cargos = loadCargos();
+      const manifests = loadManifests();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+      const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+
+      const stickerHtml = `
+        <div style="max-width:380px; margin:0 auto; border:2px solid #000; border-radius:10px; padding:14px; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; color:#0f172a;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
+            <strong style="color:#C20D08; font-size:15px; font-weight:700;">HUỆ NGHĨA EXPRESS</strong>
+            <span style="font-family:ui-monospace, SFMono-Regular, monospace; font-size:15px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px;">${cargo.code}</span>
+          </div>
+          <div style="text-align:center; background:#fafafa; border:1px dashed #cbd5e1; border-radius:6px; padding:6px; margin-bottom:8px;">
+            ${generateSVGBarcode(cargo.code)}
+            <div style="font-family:ui-monospace, SFMono-Regular, monospace; font-weight:800; font-size:13px; letter-spacing:0.2em;">* ${cargo.code} *</div>
+          </div>
+          <div style="background:#1e293b; color:white; padding:6px; border-radius:6px; text-align:center; font-weight:800; font-size:15px; margin-bottom:8px;">
+            ${cargo.stationFrom || (manifest ? manifest.from : 'Sài Gòn')} ➔ ${cargo.stationTo || (manifest ? manifest.to : 'AG')}
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; margin-bottom:8px;">
+            <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
+              <small style="color:#64748b; font-weight:800; display:block;">HÀNG HÓA</small>
+              <strong style="font-size:13px;">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
+            </div>
+            <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
+              <small style="color:#64748b; font-weight:800; display:block;">CƯỚC PHÍ</small>
+              <strong style="font-size:13px;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
+            </div>
+            <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
+              <small style="color:#64748b; font-weight:800; display:block;">GỬI</small>
+              <strong>${cargo.sender}</strong> (${cargo.senderPhone})
+            </div>
+            <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc;">
+              <small style="color:#64748b; font-weight:800; display:block;">NHẬN</small>
+              <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+            </div>
+          </div>
+          ${cargo.pickupAddress || cargo.deliveryAddress ? `
+            <div style="border:1px solid #e2e8f0; padding:6px; border-radius:6px; background:#f8fafc; font-size:11.5px; margin-bottom:8px;">
+              ${cargo.pickupAddress ? `Nhận: ${cargo.pickupAddress}<br>` : ''}
+              ${cargo.deliveryAddress ? `Giao: ${cargo.deliveryAddress}` : ''}
+            </div>
+          ` : ''}
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:#475569; border-top:1.5px solid #000; padding-top:6px;">
+            <span>Phơi: <strong>${manifest ? manifest.name : '—'}</strong></span>
+            <span>In ngày: ${new Date().toLocaleDateString('vi-VN')}</span>
+          </div>
+        </div>
+      `;
+
+      const previewEl = document.getElementById('cargoStickerPreview');
+      if (previewEl) previewEl.innerHTML = stickerHtml;
+
+      const modal = document.getElementById('cargoStickerModal');
+      if (modal) modal.classList.add('open');
+    };
+
+    window.executePrintStickerFromModal = function() {
+      const previewEl = document.getElementById('cargoStickerPreview');
+      if (!previewEl || !previewEl.innerHTML) return;
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(activeStickerCargoId));
+      const code = cargo ? cargo.code : '';
+
+      openPrintWindow(`Tem dán đơn ${code}`, previewEl.innerHTML);
+      closeCargoStickerModal();
+    };
+
+    function buildManifestSheetHtml(manifestId) {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => m.id === manifestId);
+      if (!manifest) return '';
+
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === manifestId);
+      const totalFee = manifestCargos.reduce((sum, c) => sum + Number(c.fee || 0), 0);
+      const driverInfo = parseDriverDetails(manifest.driver);
+
+      const sheetHtml = `
+        <div class="manifest-print-sheet" style="font-family:sans-serif; padding:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #000; padding-bottom:10px; margin-bottom:12px;">
+            <div>
+              <h2 style="margin:0; font-size:22px; font-weight:700; color:#e53935;">HUỆ NGHĨA EXPRESS</h2>
+              <p style="margin:2px 0 0 0; font-size:13px; color:#475569;">Hệ thống vận tải & Giao nhận hàng hóa chuyên nghiệp</p>
+            </div>
+            <div style="text-align:right;">
+              <h3 style="margin:0; font-size:18px; text-transform:uppercase;">PHƠI VẬN CHUYỂN HÀNG HÓA</h3>
+              <p style="margin:3px 0 0 0; font-size:12.5px; font-weight:700;">Ngày in: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:13.5px;">
+            <div>Tên phơi: <strong>${manifest.name}</strong></div>
+            <div>Biển số xe: <strong style="color:#e53935;">${manifest.plate}</strong> (${driverInfo.vehicle})</div>
+            <div>Hành trình: <strong>${manifest.from} ➔ ${manifest.to}</strong></div>
+            <div>Lái xe: <strong>${driverInfo.name}</strong> (${driverInfo.phone || 'N/A'})</div>
+            <div>Phụ xe: <strong>${manifest.helper || 'Không có'}</strong></div>
+            <div>NV lập phơi: <strong>${manifest.staff}</strong> (${manifest.time})</div>
+          </div>
+
+          <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;" border="1" cellpadding="6">
+            <thead>
+              <tr style="background:#f1f5f9; text-align:left;">
+                <th style="width:35px; text-align:center;">STT</th>
+                <th style="width:85px;">Mã đơn</th>
+                <th>Tên hàng hóa</th>
+                <th>Thông tin Người gửi</th>
+                <th>Thông tin Người nhận</th>
+                <th>Địa chỉ lấy / giao tận nơi</th>
+                <th style="width:90px; text-align:right;">Phí cước</th>
+                <th style="width:85px; text-align:center;">Thanh toán</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${manifestCargos.length ? manifestCargos.map((c, i) => `
+                <tr>
+                  <td style="text-align:center;"><strong>${i + 1}</strong></td>
+                  <td><code>${c.code}</code></td>
+                  <td><strong>${c.name}</strong> <small style="color:#1d4ed8; font-weight:700;">(x${formatCargoQuantity(c)})</small></td>
+                  <td>${c.sender}<br><small style="color:#64748b;">${c.senderPhone}</small></td>
+                  <td>${c.receiver}<br><small style="color:#64748b;">${c.receiverPhone}</small></td>
+                  <td>
+                    ${c.pickupAddress ? `Nhận: ${c.pickupAddress}<br>` : ''}
+                    ${c.deliveryAddress ? `Giao: ${c.deliveryAddress}` : ''}
+                    ${!c.pickupAddress && !c.deliveryAddress ? '—' : ''}
+                  </td>
+                  <td style="text-align:right;"><strong>${Number(c.fee || 0).toLocaleString('vi-VN')}đ</strong></td>
+                  <td style="text-align:center;">${c.status === 'delivered' ? 'Đã thu' : 'Thu sau'}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="8" style="text-align:center; padding:16px;">Phơi chưa có hàng hóa.</td></tr>'}
+            </tbody>
+          </table>
+
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:2px solid #000; padding-top:10px; margin-top:10px; font-size:14px;">
+            <div>
+              Tổng số lượng hàng hóa: <strong style="font-size:16px;">${manifestCargos.length} món</strong>
+            </div>
+            <div>
+              Tổng tiền cước phơi: <strong style="font-size:18px; color:#e53935;">${totalFee.toLocaleString('vi-VN')}đ</strong>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:35px; text-align:center; font-size:13.5px;">
+            <div>
+              <strong>NHÂN VIÊN LẬP PHƠI</strong><br>
+              <small style="color:#64748b;">(Ký và ghi rõ họ tên)</small>
+              <div style="height:55px;"></div>
+              <strong>${manifest.staff}</strong>
+            </div>
+            <div>
+              <strong>TÀI XẾ NHẬN PHƠI VẬN CHUYỂN</strong><br>
+              <small style="color:#64748b;">(Ký và ghi rõ họ tên)</small>
+              <div style="height:55px;"></div>
+              <strong>${driverInfo.name}</strong>
+            </div>
+          </div>
+        </div>
+      `;
+      return sheetHtml;
+    }
+
+    function printManifestSheet(manifestId) {
+      const html = buildManifestSheetHtml(manifestId);
+      if (!html) return;
+      const manifest = loadManifests().find(m => m.id === manifestId);
+      openPrintWindow(`Phơi ${manifest.name}`, html);
+    }
+
+    // In nhiều phơi cùng lúc: mỗi phơi 1 trang
+    function printManifestSheets(ids) {
+      const html = ids.map(buildManifestSheetHtml).filter(Boolean)
+        .join('<div style="page-break-after:always;"></div>');
+      if (html) openPrintWindow(`In ${ids.length} phơi`, html);
+    }
+
+    function printBatchStickers(manifestId, printAllOverride = false) {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => m.id === manifestId);
+      if (!manifest) return;
+
+      let manifestCargos = cargos.filter(c => Number(c.manifestId) === manifestId);
+      if (!manifestCargos.length) {
+        alert('Phơi này chưa có hàng hóa nào!');
+        return;
+      }
+
+      if (!printAllOverride) {
+        const checkedBoxes = Array.from(document.querySelectorAll('.detail-row-checkbox:checked'));
+        const checkedIds = checkedBoxes.map(cb => Number(cb.dataset.id));
+        if (checkedIds.length > 0) {
+          manifestCargos = manifestCargos.filter(c => checkedIds.includes(c.id));
+        }
+      }
+
+      const stickersHtml = `
+        <div class="batch-stickers-container">
+          ${manifestCargos.map((cargo) => `
+            <div class="printable-single-sticker-page" style="page-break-after: always; break-after: page; page-break-inside: avoid; border:2px solid #000; border-radius:10px; padding:12px; background:white; width:380px; max-width:100%; margin:0 auto 20px auto; font-family:sans-serif;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
+                <strong style="color:#e53935; font-size:14px;">HUỆ NGHĨA EXPRESS</strong>
+                <span style="font-family:monospace; font-size:15px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px;">${cargo.code}</span>
+              </div>
+              
+              <div style="text-align:center; background:#fafafa; border:1px dashed #cbd5e1; border-radius:6px; padding:6px; margin-bottom:8px;">
+                ${generateSVGBarcode(cargo.code)}
+                <div style="font-family:monospace; font-weight:800; font-size:12.5px; letter-spacing:0.2em;">* ${cargo.code} *</div>
+              </div>
+
+              <div style="background:#1e293b; color:white; padding:5px; border-radius:6px; text-align:center; font-weight:800; font-size:14px; margin-bottom:8px;">
+                ${cargo.stationFrom} ➔ ${cargo.stationTo}
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:11.5px; margin-bottom:8px;">
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">HÀNG HÓA & SL</small>
+                  <strong>${cargo.name}</strong> <small style="color:#1d4ed8; font-weight:700;">(x${formatCargoQuantity(cargo)})</small>
+                </div>
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">CƯỚC PHÍ</small>
+                  <strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
+                </div>
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">GỬI</small>
+                  <strong>${cargo.sender}</strong> (${cargo.senderPhone})
+                </div>
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">NHẬN</small>
+                  <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+                </div>
+              </div>
+
+              ${cargo.pickupAddress || cargo.deliveryAddress ? `
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc; font-size:11px; margin-bottom:8px;">
+                  ${cargo.pickupAddress ? `Nhận: ${cargo.pickupAddress}<br>` : ''}
+                  ${cargo.deliveryAddress ? `Giao: ${cargo.deliveryAddress}` : ''}
+                </div>
+              ` : ''}
+
+              <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#475569; border-top:1.5px solid #000; padding-top:5px;">
+                <span>Phơi: <strong>${manifest.name} (${manifest.plate})</strong></span>
+                <span>In ngày: ${new Date().toLocaleDateString('vi-VN')}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      openPrintWindow(`Tem dán phơi ${manifest.plate}`, stickersHtml);
+    }
+
+    function renderManifestTable() {
+      manifestData = loadManifests();
+      const nameVal = document.getElementById('filterManifestName').value.trim().toLowerCase();
+      const searchVal = document.getElementById('manifestSearch').value.trim().toLowerCase();
+      const fromVal = document.getElementById('filterFrom').value;
+      const toVal = document.getElementById('filterTo').value;
+      const plateVal = document.getElementById('filterPlate').value.trim().toLowerCase();
+
+      const rows = manifestData.filter((row) => {
+        const matchesName = !nameVal || row.name.toLowerCase().includes(nameVal);
+        const matchesSearch = !searchVal || [row.name, row.plate, row.driver, row.helper, row.from, row.to, row.staff, row.route].some((val) => (val || '').toLowerCase().includes(searchVal));
+        const matchesFrom = fromVal === 'all' || row.from === fromVal || row.route.includes(fromVal);
+        const matchesTo = toVal === 'all' || row.to === toVal || row.route.includes(toVal);
+        const matchesPlate = !plateVal || row.plate.toLowerCase().includes(plateVal);
+
+        return matchesName && matchesSearch && matchesFrom && matchesTo && matchesPlate;
+      });
+
+      // Gom theo biển số: mỗi xe 1 dòng tiêu đề sổ xuống, các phơi (tuyến) nằm trong.
+      const groups = new Map();
+      rows.forEach((r) => {
+        const key = (r.plate || '').trim().toUpperCase() || '—';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      });
+      const filtering = !!(nameVal || searchVal || plateVal || fromVal !== 'all' || toVal !== 'all');
+      const allCargos = loadCargos();
+      const rowHtml = (row, index, key, open) => {
+          const driverInfo = parseDriverDetails(row.driver);
+          const orderCount = allCargos.filter(c => Number(c.manifestId) === row.id).length;
+          return `
+          <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
+            <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
+            <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td>
+              <strong style="font-size:15px; color:#0f172a;">${row.plate}</strong>
+              <span class="route-text" style="font-size:12.5px; margin-left:4px;">(<strong>${row.from}</strong> <span style="color:var(--primary);">➔</span> <strong>${row.to}</strong>)</span>
+            </td>
+            <td>
+              <strong>${driverInfo.name}</strong><br>
+              ${driverInfo.phone ? `<small style="color:var(--text-muted);">SĐT: ${driverInfo.phone}</small>` : ''}
+            </td>
+            <td>
+              <span class="vehicle-pill" style="font-size:12.5px; padding:2px 8px; font-weight:700;">${driverInfo.vehicle}</span><br>
+              <small style="color:var(--text-muted);">Phụ xe: ${row.helper || '—'}</small>
+            </td>
+            <td>
+              <span>${row.time}</span><br>
+              <small style="color:var(--text-muted);">NV: ${row.staff}</small>
+            </td>
+            <td style="text-align:center;"><span class="vehicle-pill">${orderCount} đơn hàng</span></td>
+            <td style="text-align:center;">
+              ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
+                ? `<span class="status-pill status-delivered">Đã nhận hàng</span>`
+                : `<span class="status-pill status-enroute">Chưa nhận hàng</span>`
+              }
+            </td>
+            <td>
+              <div class="action-group">
+                <button class="btn-scan" data-action="scan" data-id="${row.id}" title="Quét QR / Kiểm từng món trong phơi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+                </button>
+                <button class="btn-receive-all" data-action="receive-all" data-id="${row.id}" title="Nhận tất cả hàng trong phơi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+                <button class="btn-detail" data-action="detail" data-id="${row.id}" title="Xem chi tiết">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="btn-print" data-action="print" data-id="${row.id}" title="In phơi hàng">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                </button>
+                <button class="btn-edit" data-action="edit" data-id="${row.id}" title="Chỉnh sửa">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
+                <button class="btn-delete" data-action="delete" data-id="${row.id}" title="Xóa phơi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      };
+      manifestTableBody.innerHTML = rows.length
+        ? [...groups].map(([key, list]) => {
+          const open = filtering || openPlates.has(key);
+          return `
+          <tr class="plate-group ${open ? 'open' : ''}" data-grp="${key}" tabindex="0" role="button" aria-expanded="${open}">
+            <td colspan="9">
+              <span class="pg-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+              <strong class="pg-plate">${key}</strong>
+              <span class="pg-count">${list.length} phơi</span>
+              <button type="button" class="pg-del" data-del-plate="${key}" title="Xóa tất cả phơi của xe ${key}" aria-label="Xóa tất cả phơi của xe ${key}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Xóa hết</button>
+            </td>
+          </tr>` + list.map((r, i) => rowHtml(r, i, key, open)).join('');
+        }).join('')
+        : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+      syncRowSelection('manifestTableBody');
+    }
+
+    // Tick chọn nhiều phơi ở ds chuyến xe đi (manifestTableBody) và chuyến xe đến (receiveTableBody)
+    const selectedManifestIds = new Set();
+    const selectedReceiveIds = new Set();
+    const selectionCfg = {
+      manifestTableBody: { ids: selectedManifestIds, btn: 'batchReceiveAllBtn', print: 'batchPrintManifestsBtn', count: 'manifestSelCount' },
+      receiveTableBody: { ids: selectedReceiveIds, btn: 'batchReceiveVehicleBtn', print: 'batchPrintReceiveBtn', count: 'receiveSelCount' }
+    };
+    function syncRowSelection(bodyId) {
+      const cfg = selectionCfg[bodyId];
+      const boxes = Array.from(document.querySelectorAll(`#${bodyId} .row-select`));
+      const checked = boxes.filter(b => b.checked).length;
+      const all = document.querySelector(`.select-all-rows[data-body="${bodyId}"]`);
+      if (all) {
+        all.checked = boxes.length > 0 && checked === boxes.length;
+        all.indeterminate = checked > 0 && checked < boxes.length;
+      }
+      document.getElementById(cfg.count).textContent = cfg.ids.size;
+      document.getElementById(cfg.btn).disabled = cfg.ids.size === 0;
+      document.getElementById(cfg.print).disabled = cfg.ids.size === 0;
+    }
+    Object.values(selectionCfg).forEach(({ ids, print }) => {
+      document.getElementById(print).addEventListener('click', () => printManifestSheets([...ids]));
+    });
+    Object.keys(selectionCfg).forEach(bodyId => {
+      const { ids } = selectionCfg[bodyId];
+      document.getElementById(bodyId).addEventListener('change', (e) => {
+        if (!e.target.classList.contains('row-select')) return;
+        const id = Number(e.target.dataset.id);
+        e.target.checked ? ids.add(id) : ids.delete(id);
+        syncRowSelection(bodyId);
+      });
+    });
+    document.querySelectorAll('.select-all-rows').forEach(all => {
+      all.addEventListener('change', () => {
+        const bodyId = all.dataset.body;
+        document.querySelectorAll(`#${bodyId} .row-select`).forEach(b => {
+          b.checked = all.checked;
+          const id = Number(b.dataset.id);
+          all.checked ? selectionCfg[bodyId].ids.add(id) : selectionCfg[bodyId].ids.delete(id);
+        });
+        syncRowSelection(bodyId);
+      });
+    });
+    document.getElementById('batchReceiveAllBtn').addEventListener('click', () => {
+      if (!confirm(`Xác nhận nhận tất cả hàng hóa trong ${selectedManifestIds.size} phơi đã chọn?`)) return;
+      [...selectedManifestIds].forEach(id => confirmScanReceiveAll(id));
+      selectedManifestIds.clear();
+      renderManifestTable();
+    });
+    document.getElementById('batchReceiveVehicleBtn').addEventListener('click', () => {
+      if (!confirm(`Xác nhận nhận ${selectedReceiveIds.size} xe đã chọn?`)) return;
+      [...selectedReceiveIds].forEach(id => receiveManifestAndRedirect(id));
+      selectedReceiveIds.clear();
+      renderReceiveTable();
+    });
+
+    ['manifestSearch', 'filterManifestName', 'filterDate', 'filterFrom', 'filterTo', 'filterPlate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', renderManifestTable);
+        el.addEventListener('change', renderManifestTable);
+      }
+    });
+
+    document.getElementById('openCreateManifestBtn').addEventListener('click', () => openManifestModal());
+    document.getElementById('closeManifestModalBtn').addEventListener('click', closeManifestModal);
+    document.getElementById('cancelManifestBtn').addEventListener('click', closeManifestModal);
+    document.getElementById('filterBtn').addEventListener('click', () => showToast('Đã áp dụng bộ lọc'));
+
+    document.getElementById('closeDetailModalBtn').addEventListener('click', () => manifestDetailModal.classList.remove('open'));
+    document.getElementById('closeDetailBtn').addEventListener('click', () => manifestDetailModal.classList.remove('open'));
+    document.getElementById('printManifestBtn').addEventListener('click', () => {
+      if (currentDetailManifestId) printManifestSheet(currentDetailManifestId);
+    });
+    document.getElementById('batchPrintStickersBtn').addEventListener('click', () => {
+      if (currentDetailManifestId) printBatchStickers(currentDetailManifestId, false);
+    });
+
+    manifestForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(manifestForm);
+      const idVal = data.get('id');
+
+      const plate = data.get('plate') || '';
+      const driverName = data.get('driverName') || '';
+      const driverPhone = data.get('driverPhone') || '';
+      const vehicleType = data.get('vehicleType') || 'Xe khách';
+      const helper = data.get('helper') || '';
+      const staff = data.get('staff') || 'Linh';
+      const time = data.get('time') || '12h';
+      const customName = data.get('manifestName') || '';
+      const customRoute = data.get('route') || '';
+      const combinedDriver = `${driverName} • ${driverPhone} • ${vehicleType}`;
+
+      // Lấy danh sách điểm đi đã chọn
+      const selectedDepartures = Array.from(document.querySelectorAll('input[name="departureStation"]:checked')).map(cb => cb.value);
+      const primaryFrom = selectedDepartures[0] || 'Sài Gòn';
+
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="destinationStation"]:checked'));
+      let selectedDestinations = checkedBoxes.map(cb => cb.value).filter(val => !selectedDepartures.includes(val));
+
+      const errDepEl = document.getElementById('departureValidationError');
+      const errEl = document.getElementById('destinationValidationError');
+
+      if (idVal) {
+        // Editing single manifest (Keep original from & to locked)
+        const target = manifestData.find(row => row.id === Number(idVal));
+        if (target) {
+          const dest = target.to;
+          const fromVal = target.from;
+          target.name = `Xe : ${plate} ${fromVal}->${dest} ${time}`;
+          target.route = `${fromVal} → ${dest}`;
+          target.plate = plate;
+          target.driver = combinedDriver;
+          target.helper = helper;
+          target.staff = staff;
+          target.time = time;
+          showToast('Đã cập nhật phơi hàng');
+        }
+      } else {
+        // Validate điểm đi
+        if (selectedDepartures.length === 0) {
+          if (errDepEl) errDepEl.style.display = 'block';
+          return;
+        }
+        if (errDepEl) errDepEl.style.display = 'none';
+
+        // Creating new manifest(s) — tạo phơi cho từng cặp (from × to)
+        if (selectedDestinations.length === 0) {
+          selectedDestinations = [primaryFrom === 'Châu Đốc' ? 'Sài Gòn' : 'Châu Đốc'];
+        }
+        if (errEl) errEl.style.display = 'none';
+
+        // Mọi trạm đi được chọn gom thành 1 điểm đi: 1 phơi/điểm đến, tên "Châu Đốc, Chi Lăng -> Sài Gòn".
+        const departureGroups = [selectedDepartures.join(', ')];
+
+        let count = 0;
+        departureGroups.forEach(fromVal => {
+          selectedDestinations.forEach((dest, idx) => {
+            if (fromVal === dest) return; // bỏ qua nếu trùng
+            const isSinglePair = departureGroups.length === 1 && selectedDestinations.length === 1;
+            const manifestName = isSinglePair && customName ? customName : `Xe : ${plate} ${fromVal}->${dest} ${time}`;
+            const route = isSinglePair && customRoute ? customRoute : `${fromVal} → ${dest}`;
+            manifestData.unshift({
+              id: Date.now() + count,
+              name: manifestName,
+              route: route,
+              plate: plate,
+              from: fromVal,
+              to: dest,
+              driver: combinedDriver,
+              helper: helper,
+              staff: staff,
+              time: time
+            });
+            count++;
+          });
+        });
+
+        if (count === 1) {
+          showToast('Đã thêm 1 phơi hàng mới');
+        } else {
+          showToast(`Đã tạo thành công ${selectedDestinations.length} phơi hàng mới cho xe ${plate}`);
+        }
+      }
+
+      saveManifests(manifestData);
+      closeManifestModal();
+      renderManifestTable();
+    });
+
+    const openPlates = new Set();
+    function togglePlateGroup(head) {
+      const key = head.dataset.grp;
+      const open = !head.classList.contains('open');
+      head.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', open);
+      open ? openPlates.add(key) : openPlates.delete(key);
+      manifestTableBody.querySelectorAll('.plate-child').forEach((tr) => { if (tr.dataset.grp === key) tr.hidden = !open; });
+    }
+    manifestTableBody.addEventListener('click', (event) => {
+      const delBtn = event.target.closest('.pg-del');
+      if (delBtn) return promptDeletePlate(delBtn.dataset.delPlate);
+      const head = event.target.closest('.plate-group');
+      if (head) return togglePlateGroup(head);
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      const { action, id } = button.dataset;
+      const targetId = Number(id);
+
+      if (action === 'detail') {
+        openDetailModal(targetId);
+      } else if (action === 'scan') {
+        openReceiveScanModal(targetId);
+      } else if (action === 'receive-all') {
+        if (confirm('Xác nhận nhận tất cả hàng hóa trong phơi xe này?')) {
+          confirmScanReceiveAll(targetId);
+        }
+      } else if (action === 'print') {
+        currentDetailManifestId = targetId;
+        printManifestSheet(targetId);
+      } else if (action === 'edit') {
+        openManifestModal(targetId);
+      } else if (action === 'delete') {
+        promptDeleteManifest(targetId);
+      }
+    });
+
+    manifestTableBody.addEventListener('keydown', (e) => {
+      const head = e.target.closest('.plate-group');
+      if (head && !e.target.closest('.pg-del') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); togglePlateGroup(head); }
+    });
+
+    window.confirmScanReceiveAllFromDetail = function() {
+      if (!currentDetailManifestId) return;
+      if (confirm('Xác nhận nhận tất cả hàng hóa trong phơi xe này?')) {
+        confirmScanReceiveAll(currentDetailManifestId);
+        renderDetailCargos(currentDetailManifestId);
+      }
+    };
+
+    // --- SUB-TAB & VEHICLE RECEIVING & DELIVERY & RECEIPT FUNCTIONS ---
+    let currentManifestTab = 'manifests';
+
+    // Breadcrumb đổi theo tab đang xem. Tab "manifests" có 2 lối vào khác nhóm sidebar:
+    // link "Danh sách chuyến xe đi" (trong nhóm Nhận hàng, có ?tab=manifests) vs link phẳng
+    // "Quản lý phơi hàng" (không query) — manifestsEntryGrouped phân biệt 2 lối vào đó.
+    function renderManifestBreadcrumb(tabName) {
+      const bc = document.querySelector('.page-breadcrumb');
+      if (!bc) return;
+      const homeIcon = bc.querySelector('.bc-home-ic');
+      const sepHTML = '<svg class="bc-sep" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>';
+      let segs;
+      if (tabName === 'receive') {
+        segs = ['Hệ thống điều hành', 'Giao hàng', 'Danh sách chuyến xe đến'];
+      } else if (tabName === 'delivery') {
+        segs = ['Hệ thống điều hành', 'Danh sách giao hàng'];
+      } else if (tabName === 'unreceived') {
+        segs = ['Hệ thống điều hành', 'Giao hàng', 'Hàng chưa giao'];
+      } else if (tabName === 'missing') {
+        segs = ['Hệ thống điều hành', 'Nhận hàng', 'Hàng thiếu'];
+      } else if (typeof manifestsEntryGrouped !== 'undefined' && manifestsEntryGrouped) {
+        segs = ['Hệ thống điều hành', 'Nhận hàng', 'Danh sách chuyến xe đi'];
+      } else {
+        segs = ['Hệ thống điều hành', 'Quản lý phơi hàng'];
+      }
+      let html = homeIcon ? homeIcon.outerHTML : '';
+      segs.forEach(function (seg, i) {
+        const isLast = i === segs.length - 1;
+        html += (i > 0 ? sepHTML : '') + '<span class="bc-seg' + (isLast ? ' bc-current' : '') + '">' + seg + '</span>';
+      });
+      bc.innerHTML = html;
+    }
+
+    window.switchManifestTab = function(tabName) {
+      currentManifestTab = tabName;
+      const btnManifests = document.getElementById('tabManifestsBtn');
+      const btnReceive = document.getElementById('tabReceiveBtn');
+      const btnDelivery = document.getElementById('tabDeliveryBtn');
+
+      const secManifests = document.getElementById('viewManifestsSection');
+      const secReceive = document.getElementById('viewReceiveSection');
+      const secDelivery = document.getElementById('viewDeliverySection');
+      const secUnreceived = document.getElementById('viewUnreceivedSection');
+
+      if (btnManifests) {
+        btnManifests.style.color = tabName === 'manifests' ? '#b91c1c' : '#64748b';
+        btnManifests.style.borderBottomColor = tabName === 'manifests' ? '#b91c1c' : 'transparent';
+      }
+      if (btnReceive) {
+        btnReceive.style.color = tabName === 'receive' ? '#b91c1c' : '#64748b';
+        btnReceive.style.borderBottomColor = tabName === 'receive' ? '#b91c1c' : 'transparent';
+      }
+      if (btnDelivery) {
+        btnDelivery.style.color = tabName === 'delivery' ? '#2563eb' : '#64748b';
+        btnDelivery.style.borderBottomColor = tabName === 'delivery' ? '#2563eb' : 'transparent';
+      }
+
+      if (secManifests) secManifests.style.display = tabName === 'manifests' ? 'block' : 'none';
+      if (secReceive) secReceive.style.display = tabName === 'receive' ? 'block' : 'none';
+      if (secDelivery) secDelivery.style.display = tabName === 'delivery' ? 'block' : 'none';
+      if (secUnreceived) secUnreceived.style.display = (tabName === 'unreceived' || tabName === 'missing') ? 'block' : 'none';
+
+      updateTabBadges();
+
+      if (tabName === 'manifests') renderManifestTable();
+      if (tabName === 'receive') renderReceiveTable();
+      if (tabName === 'delivery') renderDeliveryTable();
+      if (tabName === 'unreceived' || tabName === 'missing') renderUnreceivedTable();
+
+      renderManifestBreadcrumb(tabName);
+    };
+
+    function updateTabBadges() {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+
+      const receiveCount = manifests.filter(m => m.status !== 'received' && m.statusText !== 'Đã nhận xe').length;
+      
+      const deliveryCount = cargos.filter(c => {
+        if (isCargoUnreceived(c)) return false;
+        return !!c.manifestId;
+      }).length;
+
+      const unreceivedCount = cargos.filter(isCargoUnreceived).length;
+      const mBadge = document.getElementById('missingBadgeCount');
+      if (mBadge) {
+        const n = cargos.filter(isCargoMissing).length;
+        mBadge.textContent = n;
+        mBadge.style.display = n > 0 ? 'inline-block' : 'none';
+      }
+
+      const rBadge = document.getElementById('receiveBadge');
+      const dBadge = document.getElementById('deliveryBadge');
+      const uBadge = document.getElementById('unreceivedBadgeCount');
+      if (rBadge) rBadge.textContent = receiveCount;
+      if (dBadge) dBadge.textContent = deliveryCount;
+      if (uBadge) {
+        uBadge.textContent = unreceivedCount;
+        uBadge.style.display = unreceivedCount > 0 ? 'inline-block' : 'none';
+      }
+    }
+
+    window.renderReceiveTable = function() {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const tbody = document.getElementById('receiveTableBody');
+      const query = (document.getElementById('searchReceiveManifest')?.value || '').toLowerCase().trim();
+
+      if (!tbody) return;
+
+      let filtered = manifests;
+      if (query) {
+        filtered = filtered.filter(m => 
+          (m.name || '').toLowerCase().includes(query) ||
+          (m.plate || '').toLowerCase().includes(query) ||
+          (m.driver || '').toLowerCase().includes(query)
+        );
+      }
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có xe nào trong danh sách nhận xe.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((item, index) => {
+        const manifestCargos = cargos.filter(c => Number(c.manifestId) === item.id);
+        const driverInfo = parseDriverDetails(item.driver);
+        const isReceived = item.status === 'received' || item.statusText === 'Đã nhận xe';
+        const scannedCount = manifestCargos.filter(c => c.arrivalScanned).length;
+
+        return `
+          <tr>
+            <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${item.id}" ${selectedReceiveIds.has(item.id) ? 'checked' : ''} /></td>
+            <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td>
+              <span class="plate-badge">${item.plate}</span>
+              <span class="route-text" style="margin-left:6px;">${item.from} <span style="color:var(--primary);">➔</span> ${item.to}</span>
+            </td>
+            <td>
+              <div style="font-weight:600;">${driverInfo.name}</div>
+              <small style="color:var(--text-muted);">Phụ xe: ${item.helper || 'Không'}</small>
+            </td>
+            <td style="text-align:center;">
+              <span class="vehicle-pill">${manifestCargos.length} đơn hàng</span>
+              ${manifestCargos.length > 0 ? `<div style="font-size:12px; color:var(--green); font-weight:700; margin-top:4px;">Đã kiểm: ${scannedCount}/${manifestCargos.length}</div>` : ''}
+            </td>
+            <td style="text-align:center;">
+              <span class="status-pill ${isReceived ? 'status-delivered' : 'status-enroute'}">${isReceived ? 'Đã nhận xe' : 'Đang chuyển'}</span>
+            </td>
+            <td style="text-align:center;">
+              <div style="display:inline-flex; align-items:center; gap:8px;">
+                <button type="button" onclick="openReceiveScanModal(${item.id}, 'arrive')" title="Quét mã QR nhận hàng khi xe đến trạm" class="${isReceived ? 'ghost-btn' : 'primary-btn'}">${isReceived ? 'Sửa kiểm nhận' : 'Quét QR / Kiểm hàng'}</button>
+                ${isReceived ? '' : `<button type="button" onclick="receiveManifestAndRedirect(${item.id})" title="Chỉ đổi trạng thái chuyến xe sang Đã nhận xe, không đụng tới hàng hóa" class="ghost-btn">Nhận xe</button>`}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      syncRowSelection('receiveTableBody');
+    };
+
+    let currentScanManifestId = null;
+    let currentScanMap = {};
+    // 'depart' = nhận hàng lên xe (ds chuyến xe đi) → cờ isScanned; 'arrive' = nhận xe tại trạm giao (ds chuyến xe đến) → cờ arrivalScanned.
+    let currentScanMode = 'depart';
+    const scanFlag = (mode) => mode === 'arrive' ? 'arrivalScanned' : 'isScanned';
+
+    window.openReceiveScanModal = function(manifestId, mode) {
+      currentScanMode = mode === 'arrive' ? 'arrive' : 'depart';
+      currentScanManifestId = manifestId;
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
+      if (!manifest) return;
+
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
+      currentScanMap = {};
+      manifestCargos.forEach(c => {
+        currentScanMap[c.id] = !!c[scanFlag(currentScanMode)];
+      });
+
+      const titleEl = document.getElementById('receiveScanModalTitle');
+      const subEl = document.getElementById('receiveScanModalSub');
+      if (titleEl) titleEl.innerHTML = `${currentScanMode === 'arrive' ? 'Nhận xe tại trạm' : 'Nhận hàng lên xe'}: <strong>${manifest.plate}</strong> (${manifest.from || '---'} ➔ ${manifest.to || '---'})`;
+      if (subEl) subEl.textContent = `Lộ trình: ${manifest.from || '---'} ➔ ${manifest.to || '---'} • Lái xe: ${manifest.driver || '---'}`;
+
+      const modal = document.getElementById('receiveScanModal');
+      if (modal) modal.classList.add('open');
+
+      renderScanCargoTable();
+
+      setTimeout(() => {
+        const input = document.getElementById('scanQrCodeInput');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+      }, 100);
+    };
+
+    window.closeReceiveScanModal = function() {
+      const modal = document.getElementById('receiveScanModal');
+      if (modal) modal.classList.remove('open');
+    };
+
+    window.renderScanCargoTable = function() {
+      if (!currentScanManifestId) return;
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentScanManifestId));
+
+      let scannedCount = 0;
+      manifestCargos.forEach(c => {
+        if (currentScanMap[c.id]) scannedCount++;
+      });
+
+      const totalCount = manifestCargos.length;
+      const unscannedCount = totalCount - scannedCount;
+
+      const totEl = document.getElementById('scanTotalCount');
+      const scaEl = document.getElementById('scannedCount');
+      const unsEl = document.getElementById('unscannedCount');
+      const cnfEl = document.getElementById('confirmSelectedCount');
+      if (totEl) totEl.textContent = totalCount;
+      if (scaEl) scaEl.textContent = scannedCount;
+      if (unsEl) unsEl.textContent = unscannedCount;
+      if (cnfEl) cnfEl.textContent = scannedCount;
+      const barEl = document.getElementById('scanProgressBar');
+      if (barEl) barEl.style.width = (totalCount ? scannedCount * 100 / totalCount : 0) + '%';
+
+      const tbody = document.getElementById('scanCargoTableBody');
+      if (!tbody) return;
+
+      if (!manifestCargos.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Phơi xe này chưa có đơn hàng nào.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = manifestCargos.map((cargo) => {
+        const isChecked = !!currentScanMap[cargo.id];
+        return `
+          <tr style="${isChecked ? 'background:#f0fdf4;' : ''}">
+            <td style="text-align:center;">
+              <input type="checkbox" class="scan-cargo-checkbox" data-id="${cargo.id}" ${isChecked ? 'checked' : ''} onchange="toggleScanCargoItem(${cargo.id}, this.checked)" />
+            </td>
+            <td>
+              <div style="font-weight:700;">${(cargo.name || '').replace(/🧳/g, '').trim()} <span style="font-weight:500; font-size:12px; color:var(--text-muted);">(${cargo.quantity || 1} ${cargo.unit || 'cái'})</span></div>
+              <code style="font-size:12px;">${cargo.code}</code>
+            </td>
+            <td style="font-size:13px;">
+              <div style="font-weight:700;">${cargo.receiver || '—'}</div>
+              <div style="font-size:12px; color:var(--text-muted);">${cargo.receiverPhone || ''}</div>
+            </td>
+            <td style="font-size:13px;">
+              <div style="font-weight:700;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</div>
+              ${cargo.codAmount ? `<div style="font-size:12px; color:var(--text-muted);">COD ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</div>` : ''}
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                ${isChecked
+                  ? `<span style="color:#15803d; font-weight:700; font-size:13px;">✓ Đã quét</span>
+                     <button type="button" class="ghost-btn" onclick="printSingleScanReceipt(${cargo.id})" style="padding:4px 10px; font-size:12px;">In</button>`
+                  : `<span style="color:var(--text-muted); font-size:13px;">Chưa quét</span>`}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.printSingleScanReceipt = function(cargoId) {
+      const cargos = loadCargos();
+      const manifests = loadManifests();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+      const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+      printReceiptsForCargoList([cargo], manifest, `Biên lai giao hàng - ${cargo.code}`);
+    };
+
+    window.toggleScanCargoItem = function(cargoId, isChecked) {
+      currentScanMap[cargoId] = isChecked;
+      renderScanCargoTable();
+    };
+
+    window.toggleSelectAllScanCargos = function(isChecked) {
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentScanManifestId));
+      manifestCargos.forEach(c => {
+        currentScanMap[c.id] = isChecked;
+      });
+      renderScanCargoTable();
+    };
+
+    window.handleScanQrInputKeydown = function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        processCurrentScanQrInput();
+      }
+    };
+
+    window.processCurrentScanQrInput = function() {
+      const input = document.getElementById('scanQrCodeInput');
+      if (!input) return;
+      const rawCode = input.value.trim().toLowerCase();
+      if (!rawCode) return;
+
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentScanManifestId));
+
+      const targetCargo = manifestCargos.find(c => 
+        (c.code || '').toLowerCase() === rawCode ||
+        (c.code || '').toLowerCase().includes(rawCode) ||
+        (c.baga && (c.baga.code || '').toLowerCase() === rawCode)
+      );
+
+      if (targetCargo) {
+        const curStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+        const sName = curStaff ? curStaff.name : 'Nhân viên';
+        const sCode = curStaff ? curStaff.code : '933';
+        const nowTs = Date.now();
+        const nowStr = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+
+        if (currentScanMode === 'arrive') {
+          targetCargo.arrivalScanned = true;
+        } else {
+        targetCargo.isScanned = true;
+        targetCargo.scannedBy = sName;
+        targetCargo.scannedByCode = sCode;
+        targetCargo.scannedAt = nowTs;
+        targetCargo.receivedBy = sName;
+        targetCargo.receivedByCode = sCode;
+        targetCargo.receivedAtTimestamp = nowTs;
+        targetCargo.receivedAt = nowStr;
+        }
+
+        const allCargosList = loadCargos();
+        const mainIdx = allCargosList.findIndex(c => Number(c.id) === Number(targetCargo.id));
+        if (mainIdx !== -1) {
+          allCargosList[mainIdx] = targetCargo;
+          saveCargos(allCargosList);
+        }
+
+        if (currentScanMap[targetCargo.id]) {
+          showToast(`Đơn ${targetCargo.code} đã được quét`);
+        } else {
+          currentScanMap[targetCargo.id] = true;
+          showToast(`Đã quét đơn ${targetCargo.code}`);
+        }
+        input.value = '';
+        renderScanCargoTable();
+      } else {
+        showToast(`Không tìm thấy đơn "${input.value}" trong phơi xe này`);
+        input.select();
+      }
+    };
+
+    window.confirmScanReceiveSelected = function(manifestId, mode) {
+      if (!manifestId) return;
+      mode = mode === 'arrive' ? 'arrive' : 'depart';
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
+      if (!manifest) return;
+
+      let scannedCount = 0;
+      let unreceivedCount = 0;
+      const now = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+      const curStaff = window.HNAuth ? window.HNAuth.getCurrentStaff() : null;
+      const sName = curStaff ? curStaff.name : 'Nhân viên';
+      const sCode = curStaff ? curStaff.code : '933';
+      const nowTs = Date.now();
+
+      cargos.forEach(c => {
+        if (mode === 'arrive') {
+          if (Number(c.manifestId) === Number(manifestId)) {
+            c.arrivalScanned = !!currentScanMap[c.id];
+            if (c.arrivalScanned) scannedCount++;
+          }
+        } else if (Number(c.manifestId) === Number(manifestId)) {
+          if (currentScanMap[c.id]) {
+            c.isScanned = true;
+            c.isUnreceived = false;
+            if (c.status === 'unreceived') { c.status = 'in_transit'; c.statusText = 'Chờ giao'; }
+            c.scannedBy = c.scannedBy || sName;
+            c.scannedByCode = c.scannedByCode || sCode;
+            c.scannedAt = c.scannedAt || nowTs;
+            c.receivedBy = sName;
+            c.receivedByCode = sCode;
+            c.receivedAtTimestamp = nowTs;
+            c.receivedAt = now;
+            scannedCount++;
+          } else if (c.status !== 'delivered' && c.deliveryStatus !== 'da-giao') {
+            c.isScanned = false;
+            c.isUnreceived = true;
+            c.status = 'unreceived';
+            c.statusText = 'Chưa nhận';
+            unreceivedCount++;
+          }
+        }
+      });
+
+      // Nhận hàng lên xe (đi) KHÔNG đổi trạng thái chuyến xe; chỉ nhận xe tại trạm giao (đến) mới là "Đã nhận xe".
+      if (mode === 'arrive') {
+        manifest.status = 'received';
+        manifest.statusText = 'Đã nhận xe';
+        if (!manifest.arrivedAt) manifest.arrivedAt = now;
+        saveManifests(manifests);
+      } else if (manifest.status !== 'received') {
+        // Nhận hàng lên xe: phơi chuyển thành "Đã nhận hàng" (khác với "Đã nhận xe" tại trạm giao).
+        manifest.status = 'loaded';
+        manifest.statusText = 'Đã nhận hàng';
+        saveManifests(manifests);
+      }
+      saveCargos(cargos);
+
+      closeReceiveScanModal();
+
+      showToast(mode === 'arrive'
+        ? `Đã nhận xe ${manifest.plate} (${scannedCount} đơn).`
+        : `Đã nhận ${scannedCount} đơn hàng lên xe ${manifest.plate}` + (unreceivedCount > 0 ? `, ${unreceivedCount} đơn chưa nhận.` : '. Hàng đã hiện trong ds giao hàng của chuyến xe đến.'));
+
+      renderManifestTable();
+      renderReceiveTable();
+      updateTabBadges();
+      if (typeof currentDetailManifestId !== 'undefined' && currentDetailManifestId === manifestId) {
+        renderDetailCargos(manifestId);
+      }
+    };
+
+    window.confirmScanReceiveAll = function(manifestId, mode) {
+      if (!manifestId) return;
+      // "Nhận tất cả (Toàn phơi)" = coi như đã quét đủ toàn bộ số lượng hàng trong phơi, khác với
+      // "Xác nhận Nhận hàng" (chỉ tính đúng những đơn thật sự đã tích quét, có thể chưa đủ).
+      const cargos = loadCargos();
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
+      manifestCargos.forEach(c => {
+        currentScanMap[c.id] = true;
+      });
+      confirmScanReceiveSelected(manifestId, mode);
+    };
+
+    window.renderUnreceivedTable = function() {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const tbody = document.getElementById('unreceivedTableBody');
+      const query = (document.getElementById('searchUnreceivedCargo')?.value || '').toLowerCase().trim();
+
+      if (!tbody) return;
+
+      const missing = currentManifestTab === 'missing';
+      const setText = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+      setText('unreceivedTitle', missing ? 'Hàng thiếu trong danh sách chuyến xe đi' : 'Danh sách hàng chưa giao');
+      setText('unreceivedEyebrow', missing ? 'Chuyến xe đi & Thiếu hàng' : 'Vận chuyển & Hàng chưa nhận');
+
+      let filtered = cargos.filter(missing ? isCargoMissing : isCargoUnreceived);
+
+      if (query) {
+        filtered = filtered.filter(c => 
+          (c.code || '').toLowerCase().includes(query) ||
+          (c.name || '').toLowerCase().includes(query) ||
+          (c.receiver || '').toLowerCase().includes(query) ||
+          (c.receiverPhone || '').toLowerCase().includes(query)
+        );
+      }
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có đơn hàng nào trong danh sách Hàng chưa giao.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((cargo, index) => {
+        const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+        const manifestText = manifest ? `${manifest.name} (${manifest.plate})` : 'Chưa gán phơi xe';
+
+        return `
+          <tr>
+            <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td>
+              <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:700; color:#0f172a;">${cargo.code}</code><br>
+              <strong style="font-size:14px; color:#0f172a;">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
+            </td>
+            <td>
+              <div style="font-size:13px; font-weight:700; color:#1e293b;">${manifestText}</div>
+              <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || '---'} ➔ ${cargo.stationTo || '---'}</small>
+            </td>
+            <td>
+              <div style="font-size:13px;">
+                <span style="color:#64748b;">Gửi:</span> <strong>${cargo.sender}</strong> (${cargo.senderPhone})<br>
+                <span style="color:#64748b;">Nhận:</span> <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
+              </div>
+            </td>
+            <td>
+              <div style="font-size:13px; font-weight:700; color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</div>
+              ${cargo.codAmount ? `<small style="color:#dc2626; font-weight:700;">COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</small>` : ''}
+            </td>
+            <td style="text-align:center;">
+              <span style="background:#fef3c7; color:#b45309; border:1px solid #fde047; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; display:inline-block;">
+                ⚠️ Chưa nhận từ phơi
+              </span>
+            </td>
+            <td style="text-align:center;">
+              <button type="button" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Nhận bổ sung đơn hàng này" class="primary-btn" style="padding:5px 12px; font-size:12.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Bổ sung & Nhận hàng</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.receiveSingleUnreceivedCargo = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (cargo) {
+        cargo.status = 'in_transit';
+        cargo.statusText = 'Chờ giao';
+        cargo.isUnreceived = false;
+        cargo.isScanned = true;
+        saveCargos(cargos);
+        showToast(`✅ Đã nhận đơn ${cargo.code}, chuyển sang danh sách giao hàng.`);
+        renderUnreceivedTable();
+        updateTabBadges();
+      }
+    };
+
+    window.receiveManifestAndRedirect = function(manifestId) {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const manifest = manifests.find(m => m.id === manifestId);
+
+      if (!manifest) return;
+
+      const now =`${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+      manifest.status = 'received';
+      manifest.statusText = 'Đã nhận xe';
+      if (!manifest.arrivedAt) {
+        manifest.arrivedAt = now;
+      }
+      saveManifests(manifests);
+      // Nhận xe chỉ đổi trạng thái chuyến xe, không đụng tới hàng hóa / giao hàng.
+      showToast(`✅ Đã nhận xe ${manifest.plate}!`);
+
+      renderReceiveTable();
+      updateTabBadges();
+    };
+
+    window.renderDeliveryTable = function() {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const tbody = document.getElementById('deliveryTableBody');
+      const query = (document.getElementById('searchDeliveryCargo')?.value || '').toLowerCase().trim();
+
+      if (!tbody) return;
+
+      // Hàng đã nhận lên xe (isScanned) là hiện ở đây, không cần chuyến xe đã "Đã nhận xe".
+      let filtered = cargos.filter(c => {
+        if (!c.manifestId) return false;
+        if (isCargoUnreceived(c)) return false;
+        return true;
+      });
+
+      if (query) {
+        filtered = filtered.filter(c => 
+          (c.code || '').toLowerCase().includes(query) ||
+          (c.name || '').toLowerCase().includes(query) ||
+          (c.receiver || '').toLowerCase().includes(query) ||
+          (c.receiverPhone || '').toLowerCase().includes(query)
+        );
+      }
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Chưa có đơn hàng nào trong danh sách giao hàng.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((cargo, index) => {
+        const isDelivered = cargo.status === 'delivered';
+        const feeStr = Number(cargo.fee || 0).toLocaleString('vi-VN') + 'đ';
+        const codStr = cargo.codAmount && Number(cargo.codAmount) > 0 ? Number(cargo.codAmount).toLocaleString('vi-VN') + 'đ' : '';
+
+        return `
+          <tr style="${isDelivered ? 'background:#f8fafc;' : ''}">
+            <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td>
+              <strong class="cargo-name">${cargo.name}</strong><br>
+              <code>${cargo.code}</code>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#1e293b;">${cargo.sender} <small style="color:var(--text-muted);">(${cargo.senderPhone})</small></div>
+              <div style="font-weight:700; color:#0f172a;">➔ ${cargo.receiver} <small style="color:var(--text-muted);">(${cargo.receiverPhone})</small></div>
+            </td>
+            <td>
+              <div style="font-weight:700; color:#334155;">${cargo.deliveryAddress || cargo.stationTo || 'Trạm đến'}</div>
+            </td>
+            <td>
+              <strong>${feeStr}</strong>
+              ${codStr ? `<br><small style="color:#7c3aed; font-weight:700;">COD: ${codStr}</small>` : ''}
+            </td>
+            <td style="text-align:center;">
+              ${isDelivered
+                ? `<span style="background:#dcfce7; color:#15803d; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; border:1px solid #86efac;">Đã giao hàng</span>`
+                : `<span style="background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; border:1px solid #bfdbfe;">Chờ giao</span>`
+              }
+            </td>
+            <td style="text-align:center; white-space:nowrap;">
+              ${!isDelivered 
+                ? `<button type="button" onclick="deliverCargoAndPrintReceipt(${cargo.id})" style="padding:6px 14px; background:#16a34a; color:white; border:none; border-radius:6px; font-weight:700; font-size:12.5px; cursor:pointer; box-shadow:0 1px 3px rgba(22,163,74,0.3);">Giao hàng</button>`
+                : `<button type="button" onclick="openDeliveryReceiptModal(${cargo.id})" style="padding:6px 14px; background:#2563eb; color:white; border:none; border-radius:6px; font-weight:700; font-size:12.5px; cursor:pointer; box-shadow:0 1px 3px rgba(37,99,235,0.3);">In biên lai</button>`
+              }
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.deliverCargoAndPrintReceipt = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+
+      if (!cargo) return;
+
+      cargo.status = 'delivered';
+      cargo.statusText = 'Đã giao';
+      cargo.deliveredAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
+
+      saveCargos(cargos);
+      showToast(`🎉 Đã giao đơn hàng ${cargo.code} thành công!`);
+
+      renderDeliveryTable();
+      updateTabBadges();
+
+      // Automatically open receipt printing modal
+      openDeliveryReceiptModal(cargoId);
+    };
+
+    let currentReceiptCargoId = null;
+
+    window.openDeliveryReceiptModal = function(cargoId) {
+      const cargos = loadCargos();
+      const manifests = loadManifests();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+
+      if (!cargo) return;
+      currentReceiptCargoId = cargoId;
+
+      const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+      const feeVal = Number(cargo.fee || 0);
+      const codVal = Number(cargo.codAmount || 0);
+
+      const isFeePaid = cargo.paymentStatus === 'paid';
+      const isFeeFree = cargo.paymentStatus === 'free';
+      const collectFee = isFeePaid || isFeeFree ? 0 : feeVal;
+      const totalCollect = collectFee + codVal;
+
+      let payStatusStr = 'Chưa thanh toán (Thu cước)';
+      if (isFeeFree) payStatusStr = 'Không thu phí';
+      else if (isFeePaid) payStatusStr = `Tiền rồi (${cargo.paidMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt'})`;
+
+      const area = document.getElementById('printableReceiptArea');
+      if (area) {
+        area.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
+            <div>
+              <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:700; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
+              <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa tận nơi</span>
+            </div>
+            <div style="text-align:right;">
+              <code style="font-size:16px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px; color:#0f172a;">${cargo.code}</code>
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Ngày: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</div>
+            </div>
+          </div>
+
+          <div style="text-align:center; margin-bottom:14px;">
+            <h3 style="margin:0; font-size:16px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#1e293b;">BIÊN LAI XÁC NHẬN ĐÃ GIAO HÀNG</h3>
+            <span style="font-size:11.5px; color:#64748b;">(Phiếu xác nhận đã giao hàng thành công cho người nhận)</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:12.5px;">
+            <div>
+              <div style="color:#64748b; font-size:10.5px; font-weight:700; text-transform:uppercase;">NGƯỜI GỬI:</div>
+              <strong style="color:#0f172a; font-size:13.5px;">${cargo.sender}</strong>
+              <div style="color:#475569;">SĐT: ${cargo.senderPhone}</div>
+              <div style="color:#64748b; font-size:11.5px;">Trạm đi: ${cargo.stationFrom || (manifest ? manifest.from : 'Sài Gòn')}</div>
+            </div>
+            <div>
+              <div style="color:#64748b; font-size:10.5px; font-weight:700; text-transform:uppercase;">NGƯỜI NHẬN:</div>
+              <strong style="color:#0f172a; font-size:13.5px;">${cargo.receiver}</strong>
+              <div style="color:#475569;">SĐT: ${cargo.receiverPhone}</div>
+              <div style="color:#64748b; font-size:11.5px;">Địa chỉ/Trạm: ${cargo.deliveryAddress || cargo.stationTo || (manifest ? manifest.to : 'An Giang')}</div>
+            </div>
+          </div>
+
+          <table style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:12.5px;">
+            <thead>
+              <tr style="background:#f1f5f9; border-bottom:1.5px solid #cbd5e1; text-align:left; font-size:11px; text-transform:uppercase;">
+                <th style="padding:7px 10px;">TÊN HÀNG HÓA</th>
+                <th style="padding:7px 10px; text-align:center;">SỐ LƯỢNG</th>
+                <th style="padding:7px 10px; text-align:right;">PHÍ CƯỚC</th>
+                <th style="padding:7px 10px; text-align:right;">THU HỘ (COD)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px 10px;"><strong style="color:#0f172a;">${cargo.name}</strong></td>
+                <td style="padding:8px 10px; text-align:center;">${formatCargoQuantity(cargo)}</td>
+                <td style="padding:8px 10px; text-align:right; font-weight:700;">${feeVal.toLocaleString('vi-VN')}đ</td>
+                <td style="padding:8px 10px; text-align:right; font-weight:800; color:#7c3aed;">${codVal > 0 ? codVal.toLocaleString('vi-VN') + 'đ' : '0đ'}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="background:#fff1f2; border:1.5px solid #fecdd3; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+              <span style="font-size:11px; color:#9f1239; font-weight:700; display:block;">TRẠNG THÁI CƯỚC:</span>
+              <strong style="font-size:12.5px; color:#be123c;">${payStatusStr}</strong>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:11px; color:#9f1239; font-weight:700; display:block;">TỔNG CẦN THU CỦA KHÁCH:</span>
+              <strong style="font-size:18px; color:#dc2626;">${totalCollect.toLocaleString('vi-VN')} VNĐ</strong>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; text-align:center; font-size:12px; margin-top:14px; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <div>
+              <strong style="display:block; margin-bottom:4px; color:#0f172a;">NGƯỜI NHẬN HÀNG</strong>
+              <span style="font-size:10.5px; color:#64748b;">(Ký & ghi rõ họ tên)</span>
+              <div style="height:45px;"></div>
+            </div>
+            <div>
+              <strong style="display:block; margin-bottom:4px; color:#0f172a;">NHÂN VIÊN GIAO HÀNG</strong>
+              <span style="font-size:10.5px; color:#64748b;">(Ký & ghi rõ họ tên)</span>
+              <div style="height:45px;"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      const modal = document.getElementById('deliveryReceiptModal');
+      if (modal) modal.classList.add('open');
+    };
+
+    window.closeDeliveryReceiptModal = function() {
+      const modal = document.getElementById('deliveryReceiptModal');
+      if (modal) modal.classList.remove('open');
+    };
+
+    window.printReceiptNow = function() {
+      const receiptContent = document.getElementById('printableReceiptArea')?.innerHTML;
+      if (receiptContent) {
+        const receiptHtml = `
+          <div style="max-width:480px; margin:0 auto; padding:16px; border:2px solid #000; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif;">
+            ${receiptContent}
+          </div>
+        `;
+        openPrintWindow('Biên lai giao hàng', receiptHtml);
+      }
+    };
+
+    function buildDeliveryReceiptCard(cargo, manifest, idx) {
+        const feeVal = Number(cargo.fee || 0);
+        const codVal = Number(cargo.codAmount || 0);
+        const isFeePaid = cargo.paymentStatus === 'paid';
+        const isFeeFree = cargo.paymentStatus === 'free';
+        const collectFee = isFeePaid || isFeeFree ? 0 : feeVal;
+        const totalCollect = collectFee + codVal;
+
+        let payStatusStr = 'Chưa thanh toán (Thu cước)';
+        if (isFeeFree) payStatusStr = 'Không thu phí';
+        else if (isFeePaid) payStatusStr = `Tiền rồi (${cargo.paidMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt'})`;
+
+        return `
+          <div style="max-width:480px; margin:0 auto 30px auto; padding:16px; border:2px solid #000; background:white; font-family:'Segoe UI', Arial, 'Inter', sans-serif; page-break-after:always;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
+              <div>
+                <h2 class="receipt-brand-title" style="margin:0; font-size:19px; font-weight:700; color:#C20D08 !important; font-family:'Segoe UI', Arial, sans-serif;">HUỆ NGHĨA EXPRESS</h2>
+                <span style="font-size:12px; color:#475569;">Dịch vụ vận tải & Giao nhận hàng hóa</span>
+              </div>
+              <div style="text-align:right;">
+                <code style="font-size:16px; font-weight:800; background:#f1f5f9; padding:2px 8px; border-radius:4px; color:#0f172a;">${cargo.code}</code>
+                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Ngày: ${new Date().toLocaleDateString('vi-VN')}</div>
+              </div>
+            </div>
+
+            <div style="text-align:center; margin-bottom:14px;">
+              <h3 style="margin:0; font-size:16px; font-weight:800; text-transform:uppercase; color:#1e293b;">BIÊN LAI XÁC NHẬN ĐÃ GIAO HÀNG</h3>
+              <span style="font-size:11.5px; color:#64748b;">(Phiếu xác nhận đã giao hàng - Cục hàng #${idx + 1} - Phơi: ${manifest ? manifest.name : ''})</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:12.5px;">
+              <div>
+                <div style="color:#64748b; font-size:10.5px; font-weight:700;">NGƯỜI GỬI:</div>
+                <strong style="color:#0f172a; font-size:13.5px;">${cargo.sender}</strong>
+                <div style="color:#475569;">SĐT: ${cargo.senderPhone}</div>
+                <div style="color:#64748b; font-size:11.5px;">Trạm đi: ${cargo.stationFrom || (manifest ? manifest.from : 'Sài Gòn')}</div>
+              </div>
+              <div>
+                <div style="color:#64748b; font-size:10.5px; font-weight:700;">NGƯỜI NHẬN:</div>
+                <strong style="color:#0f172a; font-size:13.5px;">${cargo.receiver}</strong>
+                <div style="color:#475569;">SĐT: ${cargo.receiverPhone}</div>
+                <div style="color:#64748b; font-size:11.5px;">Trạm/ĐC: ${cargo.deliveryAddress || cargo.stationTo || (manifest ? manifest.to : 'An Giang')}</div>
+              </div>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:12.5px;">
+              <thead>
+                <tr style="background:#f1f5f9; border-bottom:1.5px solid #cbd5e1; text-align:left; font-size:11px;">
+                  <th style="padding:7px 10px;">TÊN HÀNG HÓA</th>
+                  <th style="padding:7px 10px; text-align:center;">SL</th>
+                  <th style="padding:7px 10px; text-align:right;">CƯỚC</th>
+                  <th style="padding:7px 10px; text-align:right;">COD</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <td style="padding:8px 10px;"><strong style="color:#0f172a;">${cargo.name}</strong></td>
+                  <td style="padding:8px 10px; text-align:center;">${formatCargoQuantity(cargo)}</td>
+                  <td style="padding:8px 10px; text-align:right; font-weight:700;">${feeVal.toLocaleString('vi-VN')}đ</td>
+                  <td style="padding:8px 10px; text-align:right; font-weight:800; color:#7c3aed;">${codVal > 0 ? codVal.toLocaleString('vi-VN') + 'đ' : '0đ'}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="background:#fff1f2; border:1.5px solid #fecdd3; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <div>
+                <span style="font-size:11px; color:#9f1239; font-weight:700;">TRẠNG THÁI CƯỚC:</span>
+                <strong style="font-size:12.5px; color:#be123c; display:block;">${payStatusStr}</strong>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:11px; color:#9f1239; font-weight:700;">TỔNG CẦN THU:</span>
+                <strong style="font-size:18px; color:#dc2626; display:block;">${totalCollect.toLocaleString('vi-VN')} VNĐ</strong>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; text-align:center; font-size:12px; margin-top:14px; border-top:1px solid #e2e8f0; padding-top:12px;">
+              <div>
+                <strong style="display:block; margin-bottom:4px; color:#0f172a;">NGƯỜI NHẬN HÀNG</strong>
+                <span style="font-size:10.5px; color:#64748b;">(Ký & ghi rõ họ tên)</span>
+                <div style="height:40px;"></div>
+              </div>
+              <div>
+                <strong style="display:block; margin-bottom:4px; color:#0f172a;">NHÂN VIÊN GIAO HÀNG</strong>
+                <span style="font-size:10.5px; color:#64748b;">(Ký & ghi rõ họ tên)</span>
+                <div style="height:40px;"></div>
+              </div>
+            </div>
+          </div>
+        `;
+    }
+
+    window.printAllReceiptsForCurrentManifest = function() {
+      if (!currentDetailManifestId) return;
+      const cargos = loadCargos();
+      const manifests = loadManifests();
+      const manifest = manifests.find(m => Number(m.id) === Number(currentDetailManifestId));
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(currentDetailManifestId));
+
+      if (!manifestCargos.length) {
+        alert('Phơi này chưa có hàng hóa nào để in biên lai!');
+        return;
+      }
+
+      const htmlList = manifestCargos.map((cargo, idx) => buildDeliveryReceiptCard(cargo, manifest, idx)).join('');
+      openPrintWindow(`Tất cả biên lai - ${manifest ? manifest.name : ''}`, htmlList);
+    };
+
+    function printReceiptsForCargoList(cargoList, manifest, title) {
+      if (!cargoList.length) return;
+      const htmlList = cargoList.map((cargo, idx) => buildDeliveryReceiptCard(cargo, manifest, idx)).join('');
+      openPrintWindow(title, htmlList);
+    }
+
+    // --- LỊCH SỬ XÓA PHƠI HÀNG (DELETED MANIFEST HISTORY) ---
+    STORAGE_KEYS.DELETED_MANIFESTS = 'hueNghia_deleted_manifests';
+    let pendingDeleteManifestId = null;
+
+    function loadDeletedManifests() {
+      const saved = localStorage.getItem(STORAGE_KEYS.DELETED_MANIFESTS);
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+      return [];
+    }
+
+    function saveDeletedManifests(data) {
+      localStorage.setItem(STORAGE_KEYS.DELETED_MANIFESTS, JSON.stringify(data));
+    }
+
+    function updateDeletedCountBadge() {
+      const deletedList = loadDeletedManifests();
+      const badgeCountEl = document.getElementById('deletedManifestBadgeCount');
+      if (badgeCountEl) badgeCountEl.textContent = deletedList.length;
+      const modalBadgeEl = document.getElementById('deletedManifestModalBadge');
+      if (modalBadgeEl) modalBadgeEl.textContent = `${deletedList.length} phơi`;
+    }
+
+    let pendingDeletePlate = null;
+    const plateKey = (m) => (m.plate || '').trim().toUpperCase() || '—';
+    function promptDeletePlate(key) {
+      const list = manifestData.filter(m => plateKey(m) === key);
+      if (!list.length) return;
+      pendingDeletePlate = key;
+      pendingDeleteManifestId = null;
+      document.getElementById('deleteTargetManifestInfo').innerHTML = `<strong>Xóa tất cả ${list.length} phơi của xe ${key}</strong>`;
+      document.getElementById('deleteManifestReasonInput').value = '';
+      const errEl = document.getElementById('deleteReasonError');
+      if (errEl) errEl.style.display = 'none';
+      document.getElementById('deleteManifestReasonModal').classList.add('open');
+    }
+
+    function promptDeleteManifest(manifestId) {
+      pendingDeletePlate = null;
+      pendingDeleteManifestId = manifestId;
+      const manifest = manifestData.find(m => m.id === manifestId);
+      if (!manifest) return;
+
+      const driverInfo = parseDriverDetails(manifest.driver);
+      document.getElementById('deleteTargetManifestInfo').innerHTML = `
+        <strong>${manifest.name}</strong> (${manifest.plate})<br>
+        <span style="font-size:12.5px; font-weight:600; color:#475569;">Lộ trình: ${manifest.from} ➔ ${manifest.to} | Lái xe: ${driverInfo.name}</span>
+      `;
+      document.getElementById('deleteManifestReasonInput').value = '';
+      const errEl = document.getElementById('deleteReasonError');
+      if (errEl) errEl.style.display = 'none';
+      document.getElementById('deleteManifestReasonModal').classList.add('open');
+    }
+
+    function closeDeleteManifestReasonModal() {
+      document.getElementById('deleteManifestReasonModal').classList.remove('open');
+      pendingDeleteManifestId = null;
+      pendingDeletePlate = null;
+    }
+
+    function confirmDeleteManifestSubmit() {
+      if (pendingDeletePlate) {
+        const reason = document.getElementById('deleteManifestReasonInput').value.trim();
+        const errEl = document.getElementById('deleteReasonError');
+        if (!reason) { if (errEl) errEl.style.display = 'block'; return; }
+        const at = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN')}`;
+        const gone = manifestData.filter(m => plateKey(m) === pendingDeletePlate);
+        saveDeletedManifests([...gone.map(m => ({ ...m, deletedAt: at, deletedBy: m.staff || 'Nguyễn Thị Linh', deleteReason: reason })), ...loadDeletedManifests()]);
+        manifestData = manifestData.filter(m => plateKey(m) !== pendingDeletePlate);
+        saveManifests(manifestData);
+        renderManifestTable();
+        updateDeletedCountBadge();
+        showToast(`Đã xóa ${gone.length} phơi của xe ${pendingDeletePlate} và lưu vào Lịch sử xóa!`);
+        return closeDeleteManifestReasonModal();
+      }
+      if (!pendingDeleteManifestId) return;
+      const reasonInput = document.getElementById('deleteManifestReasonInput');
+      const reason = reasonInput ? reasonInput.value.trim() : '';
+      const errEl = document.getElementById('deleteReasonError');
+
+      if (!reason) {
+        if (errEl) errEl.style.display = 'block';
+        return;
+      }
+      if (errEl) errEl.style.display = 'none';
+
+      const manifest = manifestData.find(m => m.id === pendingDeleteManifestId);
+      if (manifest) {
+        const deletedRecord = {
+          ...manifest,
+          deletedAt: `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN')}`,
+          deletedBy: manifest.staff || 'Nguyễn Thị Linh',
+          deleteReason: reason
+        };
+
+        let deletedList = loadDeletedManifests();
+        deletedList.unshift(deletedRecord);
+        saveDeletedManifests(deletedList);
+
+        manifestData = manifestData.filter(m => m.id !== pendingDeleteManifestId);
+        saveManifests(manifestData);
+
+        renderManifestTable();
+        updateDeletedCountBadge();
+        showToast(`Đã xóa phơi ${manifest.plate} và lưu vào Lịch sử xóa!`);
+      }
+
+      closeDeleteManifestReasonModal();
+    }
+
+    function openDeletedManifestHistoryModal() {
+      updateDeletedCountBadge();
+      const searchInput = document.getElementById('searchDeletedManifestInput');
+      if (searchInput) searchInput.value = '';
+      renderDeletedManifestTable();
+      document.getElementById('deletedManifestHistoryModal').classList.add('open');
+    }
+
+    function closeDeletedManifestHistoryModal() {
+      document.getElementById('deletedManifestHistoryModal').classList.remove('open');
+    }
+
+    function renderDeletedManifestTable() {
+      const deletedList = loadDeletedManifests();
+      const searchInput = document.getElementById('searchDeletedManifestInput');
+      const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      const tbody = document.getElementById('deletedManifestTableBody');
+      if (!tbody) return;
+
+      const filtered = deletedList.filter(item => {
+        if (!q) return true;
+        const text = `${item.name} ${item.plate} ${item.route} ${item.driver} ${item.deleteReason} ${item.deletedBy}`.toLowerCase();
+        return text.includes(q);
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#64748b;">Không có phơi nào trong lịch sử xóa.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((item, idx) => {
+        const driverInfo = parseDriverDetails(item.driver);
+        return `
+          <tr style="border-bottom:1px solid #cbd5e1; color:#000;">
+            <td style="text-align:center; padding:10px 8px; color:#000; font-weight:700;">${idx + 1}</td>
+            <td style="padding:10px; color:#000;">
+              <strong style="color:#000; font-size:13.5px; font-weight:800;">${item.name}</strong><br>
+              <span style="font-size:12px; color:#000; font-weight:700; background:#f1f5f9; border:1px solid #cbd5e1; padding:1px 6px; border-radius:4px; display:inline-block; margin-top:3px;">${item.route}</span>
+            </td>
+            <td style="padding:10px; font-size:13px; color:#000;">
+              <strong style="color:#000;">${driverInfo.name}</strong> (${driverInfo.phone || 'N/A'})<br>
+              <span style="color:#000; font-size:12px; font-weight:600;">NV lập: ${item.staff}</span>
+            </td>
+            <td style="padding:10px; font-size:13px; color:#000; font-weight:700;">${item.deletedAt}</td>
+            <td style="padding:10px; font-size:13px; font-weight:700; color:#000; max-width:280px; word-break:break-word;">
+              ${item.deleteReason}
+            </td>
+            <td style="padding:10px; font-size:13px; font-weight:800; color:#000;">${item.deletedBy}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function restoreDeletedManifest(manifestId) {
+      let deletedList = loadDeletedManifests();
+      const target = deletedList.find(m => m.id === manifestId);
+      if (!target) return;
+
+      deletedList = deletedList.filter(m => m.id !== manifestId);
+      saveDeletedManifests(deletedList);
+
+      delete target.deletedAt;
+      delete target.deletedBy;
+      delete target.deleteReason;
+
+      manifestData.unshift(target);
+      saveManifests(manifestData);
+
+      renderManifestTable();
+      renderDeletedManifestTable();
+      updateDeletedCountBadge();
+      showToast(`Đã khôi phục phơi ${target.plate} (${target.route}) về danh sách phơi!`);
+    }
+
+    function clearAllDeletedManifestHistory() {
+      if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn toàn bộ lịch sử phơi đã xóa? Thao tác này không thể hoàn tác!')) return;
+      saveDeletedManifests([]);
+      renderDeletedManifestTable();
+      updateDeletedCountBadge();
+      showToast('Đã xóa sạch lịch sử phơi đã xóa!');
+    }
+
+    // Auto-update tab badges & deleted count on load
+    updateTabBadges();
+    updateDeletedCountBadge();
+
+    // Check URL query parameters for active tab
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab');
+    const manifestsEntryGrouped = initialTab === 'manifests';
+    if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests' || initialTab === 'unreceived' || initialTab === 'missing')) {
+      switchManifestTab(initialTab);
+    } else {
+      renderManifestTable();
+      renderManifestBreadcrumb('manifests');
+    }
+
+    if (initialTab === 'receive') {
+      document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
+      document.getElementById('inboundTripsNavItem')?.classList.add('active');
+    } else if (initialTab === 'unreceived') {
+      document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
+      document.getElementById('unreceivedNavItem')?.classList.add('active');
+    } else if (initialTab === 'missing') {
+      document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
+      document.getElementById('missingNavItem')?.classList.add('active');
+    } else if (initialTab === 'manifests' || !initialTab) {
+      document.querySelectorAll('.sidebar-nav-item').forEach(e => e.classList.remove('active'));
+      document.getElementById('outboundTripsNavItem')?.classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "installOn": [
+    "Redesign the User Interface/package.json",
+    "Redesign the User Interface/pnpm-lock.yaml"
+  ],
+  "restartOn": [
+    "Redesign the User Interface/vite.config.ts"
+  ]
+}

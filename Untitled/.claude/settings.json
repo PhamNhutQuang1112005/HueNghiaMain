@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(sed -i 's/booking-ui\\\\.css?v=70/booking-ui.css?v=71/' html/ticketstaff.html html/callcenter.html)",
+      "Bash(sed -i 's/booking-ui\\\\.css?v=71/booking-ui.css?v=72/' html/ticketstaff.html html/callcenter.html)",
+      "Bash(node test_edit_group_deposit.js)"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+cd "$ROOT_DIR/Redesign the User Interface"
+
+pnpm run build
+[[ -d "dist" ]] || {
+  echo "Expected build output at dist" >&2
+  exit 1
+}
+figma make deploy --build-dir "dist"

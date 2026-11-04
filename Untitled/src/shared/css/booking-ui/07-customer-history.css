@@ -1,0 +1,234 @@
+/* ========== CUSTOMER HISTORY VIEW ========== */
+/* Empty state */
+.ch-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-sub);
+  gap: 8px;
+}
+
+.ch-empty svg {
+  width: 48px;
+  height: 48px;
+  stroke: var(--border-gray);
+}
+
+.ch-empty span {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ch-selected-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+/* Bộ lọc ngày/khung giờ cho danh sách phơi xe trong modal "Đặt lại vé" — allTripsMeta tích luỹ theo
+   thời gian nên không lọc sẽ rất dài, khó chọn đúng chuyến. 2 ô nằm cùng 1 hàng, mỗi ô ~50% (trừ khoảng
+   cách), tự động xuống 2 hàng nếu không đủ chỗ ngang (màn hình nhỏ) nhờ flex-wrap. */
+.rb-trip-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rb-trip-filter-row .rb-date-filter-wrap,
+.rb-trip-filter-row select {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 140px;
+}
+
+/* Chọn selector đặc hiệu hơn ".rebook-form-section select" (khai báo sau, cùng độ đặc hiệu nếu chỉ
+   dùng ".rb-trip-filter-row select" — sẽ bị rule đó đè mất padding/font-size do đứng sau trong file)
+   để chắc chắn thắng, không phụ thuộc thứ tự khai báo. Cùng chiều cao/font-size với nút chọn ngày
+   (.filter-select) để 2 ô thẳng hàng, cân đối. */
+.rebook-form-section .rb-trip-filter-row select {
+  width: 100%;
+  height: 35px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--white);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.rebook-form-section .rb-trip-filter-row select:focus {
+  outline: 2px solid var(--red);
+  outline-offset: 0;
+  border-color: var(--red);
+}
+
+/* Nút mở lịch chọn ngày (#rbFilterDateBtn) — cùng bộ class "filter-select"/"filter-date-chev" đã dùng
+   cho #pkFilterDateBtn (trang Rước liền) và trang shuttle, nhưng #rebookModal dùng chung cho cả
+   callcenter.html lẫn ticketstaff.html nên đặt ở đây (dùng chung) thay vì trong css riêng từng trang. */
+.rb-date-filter-wrap {
+  position: relative;
+}
+
+/* #rbFilterDateBtn nằm trong .rb-date-filter-wrap chỉ rộng ~50% cột trái modal (~230-240px), trong khi
+   .calendar-popover dùng chung neo theo "right:0" và rộng 250px — cùng lỗi tràn sang trái/đè nội dung đã
+   sửa cho #pkCalendarPanel (trang Rước liền), neo lại "left:0" cho khớp. */
+#rbCalendarPanel {
+  left: 0;
+  right: auto;
+}
+
+/* #phFilterDateBtn (trang Lịch sử hành khách) cũng nằm trong .filter-field-date hẹp (~160-190px) — cùng
+   lỗi lệch/tràn đã sửa cho #pkCalendarPanel/#rbCalendarPanel. */
+/* #phCalendarPanel là lịch DUY NHẤT có 2 nút trong .cal-head-right ("Tất cả" + "Hôm nay", các lịch khác
+   chỉ có 1 nút "Hôm nay") — cùng cỡ chữ/kích thước dùng chung (tháng 15px, nút 12.5px) thì hàng tiêu đề
+   bị chật/to mất cân đối trong khung rộng 250px. Nới khung rộng hơn 1 chút + thu nhỏ chữ tháng/nút riêng
+   cho lịch này, không đụng cỡ chữ dùng chung của các lịch khác (Zone 1, Rước liền, Đặt lại vé). */
+#phCalendarPanel {
+  left: 0;
+  right: auto;
+  width: 280px;
+}
+
+#phCalendarPanel .cal-head b {
+  font-size: 13px;
+}
+
+#phCalendarPanel .cal-today-btn {
+  font-size: 10.5px;
+  padding: 3px 6px;
+}
+
+#phCalendarPanel .cal-head-right {
+  gap: 3px;
+}
+
+.filter-select {
+  display: flex; align-items: center; gap: 6px; height: 35px; width: 100%;
+  border: 1.5px solid var(--border-gray); border-radius: var(--radius-md);
+  padding: 0 10px; background: var(--white); font-size: 13px; font-weight: 600; color: var(--text-main);
+  transition: border-color .12s, background .12s, color .12s;
+  cursor: pointer;
+}
+.filter-select:hover { border-color: var(--red); color: var(--red); }
+.filter-select.open { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.filter-select svg { width: 14px; height: 14px; stroke: currentColor; flex: 0 0 auto; }
+.filter-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
+#zone1HourFilterBtn { font-size: 15px; }
+.filter-date-chev { width: 11px !important; height: 11px !important; margin-left: auto; transition: transform .15s; }
+.filter-select.open .filter-date-chev { transform: rotate(180deg); }
+.filter-field-date {
+  flex: 0 0 auto !important;
+  min-width: 160px !important;
+  max-width: 190px !important;
+  position: relative;
+}
+
+/* Popover "Khung giờ" Zone 1 — 2 cột Sáng/Chiều thay cho <select> 1 cột dài trước đây. */
+.hour-filter-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: 230px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  padding: 8px;
+}
+
+.hour-filter-popover.open {
+  display: block;
+}
+
+.hour-filter-all {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 8px;
+  margin-bottom: 6px;
+  border: none;
+  border-bottom: 1px solid var(--border-gray);
+  border-radius: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.hour-filter-all:hover,
+.hour-filter-all.selected {
+  color: var(--red);
+}
+
+.hour-filter-cols {
+  display: flex;
+  gap: 6px;
+}
+
+.hour-filter-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hour-filter-col-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-sub);
+  padding: 2px 8px 4px;
+}
+
+.hour-filter-col button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.hour-filter-col button:hover {
+  background: var(--surface-2);
+  color: var(--red);
+}
+
+.hour-filter-col button.selected {
+  background: var(--red-light);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.ch-trip-empty {
+  padding: 16px 4px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+/* Trip list for rebook — từng thẻ phơi giờ dùng chung .trip-card/.trip-card-row1/.trip-card-row2 (kiểu
+   dáng y hệt danh sách phơi Zone 1), không còn .ch-trip-card riêng nữa. */
+.ch-trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+

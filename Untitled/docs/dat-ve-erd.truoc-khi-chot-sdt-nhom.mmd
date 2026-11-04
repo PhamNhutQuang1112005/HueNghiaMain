@@ -1,0 +1,404 @@
+erDiagram
+    %% ĐẶT VÉ (BOOKING) — các bảng + quan hệ ở ĐẦU file, ghi chú / ánh xạ code / quy tắc B1..B22 / phát hiện F1..F27 / điểm cần xác nhận C1..C11 ở CUỐI file. Gắn vào docs/phoi-xe-erd.mmd.
+
+    trip ||--o{ ticket : "vé bán trên phơi (ticket.trip_id)"
+    ticket |o--o{ trip_seat : "ghế thuộc vé; ghế đôi = 1 ghế, vé nhiều ghế = nhiều ghế"
+    ticket ||--o{ seat_cancellation : "ghế đã hủy của vé"
+    ticket |o--o| seat_cancellation : "vé mới tạo khi đặt lại vé hủy (restored_ticket_id)"
+    ticket |o--o{ ticket : "vé được chuyển từ vé gốc (transferred_from_ticket_id)"
+    ticket |o--o{ ticket : "vé đặt thêm cùng nhóm (group_ticket_id)"
+    customer |o--o{ ticket : "khách hàng (customer_id), gán theo SĐT chính"
+    agent |o--o{ ticket : "đại lý bán (agent_id)"
+    station ||--o{ ticket : "trạm bán / trạm chịu doanh số (selling_station_id); admin gốc = trạm hệ thống Admin"
+    station ||--o{ ticket : "trạm của người đặt (booked_station_id)"
+    station |o--o{ ticket : "trạm đi lúc bán, dùng tra giá (from_station_id)"
+    station |o--o{ ticket : "trạm đến lúc bán, dùng tra giá (to_station_id)"
+    users ||--o{ ticket : "người bán / chịu doanh số (sold_by)"
+    users ||--o{ ticket : "người đặt (booked_by)"
+    ticket ||--o{ ticket_payment : "các lần thu cọc / thu tiền / hoàn / chuyển tiền của vé"
+    ticket_payment |o--o| ticket_payment : "cặp chuyển tiền transfer_out / transfer_in (counterpart_payment_id)"
+    users ||--o{ ticket_payment : "người thu / hoàn (created_by)"
+    station ||--o{ ticket_payment : "trạm của người ghi (station_id)"
+    trip_reopen_event |o--o{ ticket_payment : "lần Re-open đang mở lúc ghi (reopen_event_id)"
+    trip_reopen_event |o--o{ ticket : "vé tạo trong lần Re-open (reopen_event_id)"
+    trip_reopen_event |o--o{ ticket : "vé đặt trước, thu tiền trong lần Re-open (settled_reopen_event_id)"
+    trip ||--o{ seat_cancellation : "phơi của ghế hủy"
+    users ||--o{ seat_cancellation : "người hủy (cancelled_by)"
+
+
+    employees ||--o{ employee_stations : "trạm làm việc (có lịch sử)"
+    station ||--o{ employee_stations : "trạm được gán; is_primary = nguồn của ticket.selling_station_id"
+    users |o--o{ activity_logs : "người thao tác (entity_type = ticket)"
+    trip ||--o{ trip_seat : "sơ đồ ghế (phoi-xe-erd.mmd)"
+    trip ||--o{ trip_reopen_event : "các lần Re-open (qua trip_manifest, phoi-xe-erd.mmd)"
+
+    %% ===================== CÁC BẢNG ĐẶT VÉ =====================
+    ticket {
+        bigint ticket_id PK "UNIQUE (ticket_id, trip_id)"
+        bigint trip_id FK "NOT NULL; phơi của vé"
+        varchar ticket_no "NOT NULL; SGCD-0001 từ ticket_no_seq; UNIQUE (ticket_no, trip_id) WHERE status IN (hold, sold)"
+        varchar status "NOT NULL; hold | sold | cancelled | transferred"
+        varchar channel "NOT NULL DEFAULT counter; counter | pickup (từ Rước liền); online = ĐỂ SAU (B25, quyết định 16), bản nội bộ chưa dùng"
+        timestamptz hold_expires_at "ĐỂ SAU (online, quyết định 16): chỉ vé online chưa thanh toán đủ; quá hạn thì tự nhả ghế (B25); NULL với vé quầy / đại lý (không hết hạn, F12)"
+        bigint group_ticket_id FK "vé gốc của nhóm khi Đặt thêm cho nhóm; FK ghép (group_ticket_id, trip_id) -> ticket(ticket_id, trip_id) để nhóm chỉ nằm trong 1 phơi; không trỏ vào vé đã là con (B27)"
+        bigint transferred_from_ticket_id FK "vé nguồn khi chuyển ghế / đặt lại / đổi chỉ định"
+        bigint customer_id FK "khách hàng, suy từ SĐT chính"
+        varchar customer_name "NOT NULL; app: customerName"
+        varchar phone "NOT NULL; SĐT chính chuẩn hoá; có index"
+        text phone_extra "SĐT phụ (text[])"
+        varchar guest_type "NOT NULL; Khách trạm | Trung chuyển | Rước đường; app: guestType"
+        varchar first_stop "NOT NULL; chữ để hiển thị / in vé, tra giá dùng from_station_id; app: firstStop"
+        varchar last_stop "NOT NULL; chữ để hiển thị / in vé, tra giá dùng to_station_id; app: lastStop"
+        bigint from_station_id FK "trạm đi lúc bán, tra giá; app: fromStationId"
+        bigint to_station_id FK "trạm đến lúc bán; app: toStationId"
+        text pickup_address "app: transshipStation / transship / pickupAddress"
+        text dropoff_address "app: arrivalTransfer / dropoffAddress"
+        boolean has_luggage "NOT NULL DEFAULT FALSE; app: hasLuggage"
+        text luggage_note "app: luggageNote"
+        text note "app: note"
+        int unit_price "NOT NULL >= 0; giá 1 ghế; app: price"
+        boolean is_double_seat "NOT NULL DEFAULT FALSE; ghế đôi vẫn là 1 ghế"
+        text zero_price_reason "bắt buộc khi unit_price = 0"
+        timestamptz sold_at "NOT NULL khi sold"
+        bigint agent_id FK "đại lý; app: agentId"
+        varchar agent_name "chụp tên đại lý; app: agentName"
+        decimal agent_commission_rate "chụp % hoa hồng của đại lý lúc bán (B24); NULL = không có đại lý hoặc dữ liệu cũ"
+        bigint selling_station_id FK "NOT NULL; trạm chịu doanh số; app: sellingStation"
+        uuid sold_by FK "NOT NULL; người chịu doanh số / thu tiền; app: staff"
+        bigint booked_station_id FK "NOT NULL; trạm người đặt; app: bookedStation"
+        uuid booked_by FK "NOT NULL; người đặt; app: bookedBy"
+        varchar sold_phase "NOT NULL; PRE_DEPART | POST_DEPART; app: soldPhase"
+        bigint reopen_event_id FK "vé tạo lúc Re-open; app: reopenEventId"
+        bigint settled_reopen_event_id FK "thu tiền lúc Re-open; app: settledReopenEventId"
+        timestamptz created_at "NOT NULL; dữ liệu cũ: actionTime sớm nhất của vé, thiếu thì giờ khởi hành của phơi"
+        timestamptz updated_at "NOT NULL; app: actionTime"
+    }
+
+    trip_seat {
+        bigint trip_seat_id PK "bảng đầy đủ ở phoi-xe-erd.mmd"
+        bigint trip_id FK "NOT NULL"
+        varchar seat_code "UNIQUE (trip_id, seat_code); app: code"
+        varchar floor_type "down | up | extra | sub"
+        boolean is_hidden "ghế ẩn của loại xe"
+        int price "giá niêm yết ghế TRỐNG"
+        bigint ticket_id FK "THÊM: NULL = ghế trống; FK ghép (ticket_id, trip_id)"
+    }
+
+    seat_cancellation {
+        bigint cancellation_id PK "app: cancelledSeats[].id"
+        bigint ticket_id FK "NOT NULL; vé gốc của ghế hủy"
+        bigint trip_id FK "NOT NULL"
+        varchar seat_code "NOT NULL; mỗi ghế hủy 1 dòng; app: code"
+        varchar prev_status "hold | sold; chỉ hold mới đặt lại được; app: prevState"
+        int unit_price "NOT NULL; giá ghế lúc hủy; app: price"
+        text reason "NOT NULL; lý do hủy"
+        timestamptz cancelled_at "NOT NULL; app: cancelledAt"
+        uuid cancelled_by FK "users.user_id; app: cancelStaff"
+        bigint restored_ticket_id FK "UNIQUE; vé mới khi đặt lại; app: restoredTo*"
+    }
+
+    ticket_payment {
+        bigint payment_id PK "B23; dòng chỉ thêm, không sửa, không xóa"
+        bigint ticket_id FK "NOT NULL"
+        varchar kind "NOT NULL; deposit | payment | refund | transfer_out | transfer_in"
+        int amount "NOT NULL > 0; chiều tiền do kind quyết định"
+        varchar method "Tiền mặt | Chuyển khoản; NOT NULL với deposit / payment / refund, NULL với transfer_*"
+        text reason "bắt buộc khi refund; ghi cách nhân viên tính số hoàn"
+        varchar reference "mã giao dịch ngân hàng / cổng thanh toán, tùy chọn"
+        bigint counterpart_payment_id FK "UNIQUE; nối cặp transfer_out / transfer_in; FK DEFERRABLE INITIALLY DEFERRED vì ghi cả cặp trong 1 giao dịch (B27)"
+        bigint station_id FK "NOT NULL; trạm của người ghi"
+        uuid created_by FK "NOT NULL; người thu / hoàn"
+        bigint reopen_event_id FK "lần Re-open đang mở lúc ghi, NULL nếu không"
+        timestamptz paid_at "NOT NULL"
+    }
+
+    customer {
+        bigint customer_id PK
+        varchar customer_code UK "KH0001..; từ hn_admin_customer_codes_v1"
+        varchar phone UK "SĐT chính chuẩn hoá"
+        varchar full_name "tên gần nhất"
+        timestamptz created_at "NOT NULL"
+    }
+
+    agent {
+        bigint agent_id PK "app: AgentStore id"
+        varchar code UK "DL001.."
+        varchar name UK
+        varchar phone
+        text note
+        decimal commission_rate "NOT NULL DEFAULT 0, 0..100; % hoa hồng, admin cài ở màn Đại lý, mỗi đại lý một số (B24)"
+    }
+
+    employee_stations {
+        bigint id PK "đầy đủ ở so-do-er-nhan-su-v3.1"
+        bigint employee_id FK
+        bigint station_id FK
+        boolean is_primary "nguồn của ticket.selling_station_id"
+        timestamptz valid_to "NULL = đang áp dụng"
+    }
+
+    trip {
+        bigint trip_id PK "KHUNG, đầy đủ ở phoi-xe-erd.mmd"
+    }
+
+    trip_reopen_event {
+        bigint reopen_event_id PK "KHUNG, đầy đủ ở phoi-xe-erd.mmd"
+    }
+
+    station {
+        bigint station_id PK "KHUNG; cần dòng hệ thống Admin"
+    }
+
+    users {
+        uuid user_id PK "KHUNG, so-do-er-nhan-su-v3.1"
+    }
+
+    employees {
+        bigint id PK "KHUNG, so-do-er-nhan-su-v3.1"
+    }
+
+    activity_logs {
+        bigint id PK "KHUNG, so-do-er-nhat-ky-v3.1"
+        text entity_type "ticket, pickup_request..."
+        text entity_id
+        text action "book, sell, edit, cancel_seat, refund, transfer, restore..."
+    }
+
+    employee_types {
+        smallint id PK "KHUNG, so-do-er-nhan-su-v3.1; loại nhân viên (quyền gán theo loại, không gán riêng từng người)"
+    }
+
+    employee_type_permissions {
+        smallint employee_type_id PK, FK "KHUNG, so-do-er-nhan-su-v3.1; do HR cấp, migration KHÔNG seed (B16)"
+        text permission_key PK, FK "book_ticket, sell_ticket, change_price, transship_pickup, transship_assign, print_transship_ticket, assign_depart_reopen, edit_after_departure, view_tickets, view_customers... Nguồn DUY NHẤT của quyền; các hàm B26 kiểm bằng bảng này"
+    }
+
+    permissions {
+        text key PK "KHUNG, so-do-er-nhan-su-v3.1; danh mục khóa chức năng (nhóm Vé & ghế)"
+    }
+
+    employee_types ||--o{ employee_type_permissions : "cấp quyền cho loại (có thể 0 dòng)"
+    permissions ||--o{ employee_type_permissions : "khóa được cấp cho loại"
+    employee_types ||--o{ employees : "loại nhân viên -> quyền dùng các hàm đặt / bán / hủy / chuyển / hoàn (B26)"
+
+    %% ===================== GHI CHÚ, ÁNH XẠ VÀ QUY TẮC (đọc kèm các bảng ở trên) =====================
+    %% ===== ĐẶT VÉ (GIAI ĐOẠN BOOKING) — ERD =====
+    %% Đây là phần "ĐỂ SAU" của docs/phoi-xe-erd.mmd (bản chỉ có phơi xe). Gắn vào đúng các điểm móc mà bản đó đã chừa: ticket.trip_id, trip_seat.ticket_id,
+    %%   ticket.reopen_event_id, ticket.settled_reopen_event_id. Bản đầy đủ cũ (docs/phoi-xe-erd.full-booking.mmd) chỉ để tham khảo; sơ đồ này chắt lọc lại từ đó + đối chiếu code.
+    %% PHẠM VI: vé / ghế / thanh toán / cọc / đại lý; hủy ghế, chuyển vé, đặt lại vé hủy; khách hàng + lịch sử; Rước liền + Trung chuyển.
+    %% KHÔNG NẰM TRONG BẢN NÀY (làm ở giai đoạn kết ca, chỉ ĐỌC từ ticket): manifest_sales_total, manifest_denomination, manifest_roadside_guest, trip_violation, shift_closing*,
+    %%   các cột orig_* / *_added của trip_manifest và trip_reopen_event. Xem quy tắc B13 về các cột ticket mà phần đó phụ thuộc.
+    %% Các bảng trip, trip_seat, trip_reopen_event, station, users, employees, activity_logs ở cuối chỉ là KHUNG để vẽ quan hệ (bảng đầy đủ ở phoi-xe-erd.mmd, station-erd.mmd, so-do-er-nhan-su-v3.1, so-do-er-nhat-ky-v3.1).
+    %% .
+    %% ĐIỂM NỐI VỚI DỮ LIỆU PHƠI (ngoài phạm vi đặt vé; đặt vé chỉ ĐỌC các thứ này, không ghi ngược vào phơi):
+    %%   hn_trips_meta_v9 (trip): giá niêm yết, loại xe (tra giá), status "Đã hủy", cờ phơi mẫu, giờ / ngày, biển số. | hn_ts_manifests_v1 (trip_manifest): status quyết định khóa B12. | hn_ts_reopen_events_v1 (trip_reopen_event): id lần Re-open đang OPEN -> ticket.reopen_event_id.
+    %%   hn_trip_seat_bank_v12 (trip_seat): phơi giữ cấu trúc ghế (ghế ẩn, ghế phụ, ghế dư khi đổi loại xe), đặt vé chỉ thêm trip_seat.ticket_id. | Hủy phơi (tsCancelTrips) đếm vé còn trên phơi. | Khởi hành / kết ca chỉ ĐỌC ticket (B13). | Bảng giá (FleetStore.getFare, fare-erd) và trạm (station-erd).
+    %% .
+    %% NGUỒN CODE ĐÃ ĐỌC: seat-bank.js, storage-keys.js, constants.js, booking.js, booking-combobox.js, booking-rebook.js, ticketstaff.js (saveTicket, sellTicket, confirmSellPayment, confirmTransfer, confirmAddToGroup,
+    %%   confirmCancel, tsStampSeller, tsStampSoldPhaseIfNeeded, tsFareSnapshot), ticketstaff-account.js (confirmRebook, confirmRebookAndSell), ticketstaff-pickup.js, ticketstaff-manifest-core.js, ticketstaff-manifest-ui.js,
+    %%   admin-tickets.js, admin-customers.js, agent-store.js, pickup-service.js, shuttle-driver-service.js.
+    %% .
+    %% MƯỜI CHÍN QUYẾT ĐỊNH ĐÃ CHỐT VỚI CHỦ (khác app hiện tại):
+    %%   (1) Chỉ làm ERD, chưa viết SQL.
+    %%   (2) "Đặt thêm cho nhóm" TÁCH THÀNH VÉ MỚI (mã vé mới, trạng thái riêng), nối với vé cũ bằng ticket.group_ticket_id. Nhờ đó MỌI GHẾ CỦA 1 VÉ luôn cùng trạng thái, cùng đơn giá, cùng cọc: hết tình trạng vé có ghế hold lẫn ghế sold mà vẫn tính "đã thu" cả vé.
+    %%   (3) GHẾ ĐÔI = 1 ghế vật lý, ticket.unit_price là giá cả ghế đó (giá đôi), is_double_seat chỉ là cờ cho biết đã tính giá đôi. Tiền vé = unit_price x số ghế của vé.
+    %%   (4) BÁN MỘT PHẦN GHẾ CỦA VÉ ĐANG HOLD thì TÁCH vé mới cho phần ghế được bán (B21), không để vé có ghế hold lẫn sold.
+    %%   (5) CỌC khi migrate vé nhóm cũ: lấy giá trị lớn nhất trong các ghế cùng vé, không cộng (B20).
+    %%   (6) Modal ĐẶT LẠI VÉ thêm ô Đại lý và dùng cùng bộ kiểm hợp lệ với Đặt vé (B22).
+    %%   (7) ĐẶT THÊM CHO NHÓM cho phép cả khi vé nguồn chỉ có 1 ghế (B8); app đã bỏ điều kiện chặn đó.
+    %%   (8) TIỀN CỦA VÉ ghi bằng bảng ticket_payment (cọc, thu, hoàn, chuyển tiền giữa vé); BỎ deposit_amount / deposit_method / payment_method trên ticket (B6, B23). Hoàn tiền do NHÂN VIÊN TỰ NHẬP số hoàn từng lần, không có công thức phí cố định.
+    %%   (9) [SỬA 28/10/2026: tính trên TỔNG TIỀN VÉ, xem 19] HOA HỒNG ĐẠI LÝ theo tỷ lệ % riêng từng đại lý, admin cài ở màn Đại lý; vé chụp tỷ lệ lúc bán. Hoa hồng = tỷ lệ x TIỀN ĐÃ THU RÒNG của vé (sau khi trừ hoàn và chuyển đi), không tính trên giá vé (B24). Bỏ hằng 15% trong admin-accounting.js (F29).
+    %%   (10) VÉ GIỮ CHỖ (hold) giữ đến khi xe chạy hoặc nhân viên hủy, không có hạn (F12). Kênh bán bản nội bộ: quầy, đại lý, Rước liền (online để sau, quyết định 16); CHƯA thêm bảng booking (C6).
+    %%   (11) [SỬA 28/10/2026: nay là khóa edit_after_departure, xem 17] ADMIN NGOẠI LỆ KHÓA SAU KHỞI HÀNH: tài khoản admin (Auth.isAdmin, role = admin) làm được MỌI thao tác vé / ghế / tiền (kể cả hoàn tiền) dù xe đã chạy; mọi tài khoản khác vẫn bị khóa như B12. Mọi thao tác admin sau khởi hành ghi activity_logs (B12).
+    %%   (12) [ĐỂ SAU, quyết định 16] HẠN GIỮ GHẾ CHO VÉ ONLINE chưa thanh toán: số phút do ADMIN cài đặt ở màn cấu hình (làm sau); không hard-code 15 phút (B25).
+    %%   (13) PHÂN QUYỀN ĐẶT / BÁN (chốt 28/10/2026, B16): sell_ticket BAO GỒM book_ticket, vẫn có người chỉ có book_ticket; vé hold sửa / hủy / chuyển được bằng book_ticket hoặc sell_ticket, vé sold chỉ sell_ticket; hoàn tiền dùng sell_ticket (không tách khóa); chỉ định xe Rước liền = sell_ticket (transship_assign chỉ là chế độ điều hành); change_price cho sửa mọi giá kể cả giá bảng; Đặt lại vé từ lịch sử KHÔNG lưu vé gốc (lịch sử vé cũ đã nằm ở activity_logs); KHÔNG seed quyền mặc định: nhân sự (HR) cấp quyền theo khóa chức năng cho từng loại nhân viên, có cờ bật kiểm quyền; chuyển vé ĐÃ BÁN sang phơi khác bắt buộc nhập lý do (C7); thêm 2 khóa xem view_tickets, view_customers (C3); trip_seat bỏ cột state (C5).
+    %%   (14) KIẾN TRÚC GHI (chốt 28/10/2026): GIỮ MỘT BẢNG ticket (hold -> sold là cùng một dòng, cùng mã vé), KHÔNG tách bảng đặt / bán riêng và KHÔNG thêm bảng booking (C6). Quyền gắn vào HÀNH ĐỘNG, không gắn vào bảng: mọi ghi lên ticket, trip_seat, ticket_payment, seat_cancellation đi qua các hàm DB theo chức năng (B26), mỗi hàm tự kiểm khóa quyền ở employee_type_permissions; client không được ghi thẳng.
+    %%   (15) TIỀN (chốt 28/10/2026): "thu đủ" chỉ kiểm MỘT LẦN lúc vé chuyển sang sold; sau đó đã thu ròng được lệch tiền vé (hủy một phần, hoàn tiền, phí giữ lại). Còn nợ = max(0, tiền vé - đã thu ròng); phần đã thu dư = phí giữ lại (B1, B23). Sửa vé hold được TĂNG hoặc GIẢM cọc tùy nhân viên: tăng ghi thêm dòng deposit, giảm ghi một dòng refund "Điều chỉnh cọc khi sửa vé" (B4). Chuyển / tách vé phải giữ đủ: cọc + phần thu còn lại của mỗi vé sau khi tách = đúng phần tiền vé của vé đó (B6, B10).
+    %%   (16) PHẠM VI (chốt 28/10/2026): bản này chỉ làm NỘI BỘ (quầy, đại lý, Rước liền). Đặt vé online cho khách (channel = online, hold_expires_at, tác nhân hệ thống, cổng thanh toán; B25, C6, C12) để GIAI ĐOẠN SAU; cột liên quan giữ nullable, chưa dùng.
+    %%   (17) PHÂN QUYỀN HOÀN TOÀN THEO KHÓA CHỨC NĂNG (chốt 28/10/2026): không quyền nào gán cứng cho một người hay một loại nhân viên. Admin gốc luôn có mọi quyền; mọi người khác chỉ có khóa do admin (hoặc HR trong trần ủy quyền) cấp ở employee_type_permissions, không seed mặc định. Ngoại lệ khóa sau khởi hành (B12) nay là KHÓA edit_after_departure (thêm vào nhóm Vé & ghế), thay cho "role = admin" của quyết định 11 và C13; khóa này không phụ thuộc cờ bật kiểm quyền vé, chưa cấp thì chỉ admin gốc được miễn.
+    %%   (18) GIAI ĐOẠN (chốt 28/10/2026): GIAI ĐOẠN 1 = ĐẶT VÉ + BÁN VÉ: ticket, trip_seat.ticket_id, seat_cancellation, ticket_payment, customer, agent; hàm fn_book_ticket, fn_edit_hold_ticket, fn_add_to_group, fn_sell_ticket, fn_cancel_seats, fn_transfer_seats, fn_restore_cancelled, fn_rebook, fn_set_price; khóa book_ticket, sell_ticket, change_price, view_tickets, view_customers, edit_after_departure. GIAI ĐOẠN 2 = TRUNG CHUYỂN: pickup_request, shuttle_assignment, quy tắc B11 và B15; hàm fn_save_pickup_request, fn_assign_pickup, fn_update_shuttle; khóa transship_pickup, transship_assign, print_transship_ticket. Giai đoạn 1 vẫn giữ trên ticket: guest_type, first_stop / last_stop, pickup_address / dropoff_address (nhập lúc đặt vé khách Trung chuyển / Rước đường), channel (chỉ counter; pickup dùng từ giai đoạn 2), transferred_from_ticket_id. Khi làm giai đoạn 2: fn_transfer_seats phải chuyển cả dòng shuttle_assignment sang vé mới (B15) và B12 không khóa shuttle_assignment / pickup_request.
+    %%   (19) HOA HỒNG ĐẠI LÝ (chốt 28/10/2026, thay C14): tính trên TỔNG TIỀN VÉ (unit_price x số ghế) của các vé đại lý còn hiệu lực (status hold hoặc sold), nhân agent_commission_rate chụp trên từng vé, làm tròn từng vé rồi cộng theo đại lý. Không phụ thuộc đã thu bao nhiêu; vé cancelled / transferred không tính; phí giữ lại của vé hủy là doanh thu nhà xe, KHÔNG có hoa hồng (trả lời C16).
+    %%   (20) VÉ ĐÃ BÁN CHỈ ĐỌC (chốt 28/10/2026): không có hàm sửa nội dung vé status = sold (tên, SĐT, chặng, điểm đón / trả, ghi chú, giá). Nhập sai thì hủy ghế (có lý do, hoàn tiền nếu cần) rồi đặt lại, mã vé mới, nhật ký giữ vết. Sửa chỉ áp cho vé HOLD (B4). Khớp giao diện hiện tại (panel "Thông tin ghế" chỉ đọc).
+    %%   (21) TÁCH SƠ ĐỒ (chốt 28/10/2026): docs/dat-ve-erd.mmd = giai đoạn 1 (đặt + bán vé); docs/trung-chuyen-erd.mmd = giai đoạn 2 (Rước liền + chặng đón / trả). Điểm nối giữa hai sơ đồ là B28, bắt buộc giữ khi làm giai đoạn 2.
+    %% .
+    %% ÁNH XẠ DỮ LIỆU APP -> BẢNG (localStorage -> DB):
+    %%   hn_trip_seat_bank_v12 (tripSeatBank[tripId].down/up/extraSeats/subSeats) -> trip_seat.ticket_id (ghế nào thuộc vé nào) + ticket (thông tin khách / tiền; app lặp lại trên MỖI ghế, DB chỉ giữ 1 lần / vé)
+    %%   tripSeatBank[tripId].cancelledSeats                                      -> seat_cancellation (+ ticket status cancelled)
+    %%   hn_agents_v1                                                             -> agent (+ commissionRate -> agent.commission_rate; đại lý cũ chưa cài = 0)
+    %%   hn_admin_customer_codes_v1 (mã KH0001.. tự sinh theo SĐT)                -> customer.customer_code (giữ nguyên mã đã cấp)
+    %%   hn_customer_bookings (trang khách hàng)                                  -> CHƯA nối (xem điểm cần xác nhận C6)
+    %% .
+    %% ÁNH XẠ TỪNG TRƯỜNG seat.* (app) -> cột DB:
+    %%   code -> trip_seat.seat_code | ticketNo -> ticket.ticket_no | state -> ticket.status (hold | sold; 'free' và 'cargo' là giá trị cũ, xem B2) | paid -> suy ra từ status = sold, KHÔNG lưu
+    %%   customerName -> ticket.customer_name | phone (chuỗi 'a, b') -> ticket.phone (số đầu, đã chuẩn hoá) + ticket.phone_extra (các số sau) | guestType -> ticket.guest_type
+    %%   firstStop / lastStop -> ticket.first_stop / last_stop | fromStationId / toStationId -> ticket.from_station_id / to_station_id | isDoubleSeat -> ticket.is_double_seat
+    %%   price -> ticket.unit_price | zeroPriceReason -> ticket.zero_price_reason | depositAmount / depositMethod -> ticket_payment kind = deposit (app lặp CÙNG số tổng trên mọi ghế của vé: lấy 1 giá trị, KHÔNG cộng)
+    %%   paymentMethod -> method của ticket_payment kind = payment | agentId / agentName / agentCommissionRate -> ticket.agent_id / agent_name / agent_commission_rate (tỷ lệ chụp từ agent.commission_rate lúc bán, sửa vé không đổi) | hasLuggage / luggageNote -> ticket.has_luggage / luggage_note | note -> ticket.note
+    %%   transshipStation + transship + pickupAddress (+ fromTransfer của Rước liền) -> ticket.pickup_address (4 tên cho cùng 1 thứ) | arrivalTransfer + dropoffAddress (+ toTransfer) -> ticket.dropoff_address
+    %%   staff -> ticket.sold_by | bookedBy -> ticket.booked_by | sellingStation -> ticket.selling_station_id | bookedStation -> ticket.booked_station_id
+    %%   soldPhase / reopenEventId / settledReopenEventId -> ticket.sold_phase / reopen_event_id / settled_reopen_event_id | actionTime -> ticket.updated_at (app không lưu giờ tạo: created_at lấy actionTime của bản ghi cũ nhất, thiếu thì giờ khởi hành của phơi; không để NULL)
+    %%   groupTicketNo -> ticket.group_ticket_id (mã vé gốc của nhóm -> ticket_id của vé gốc; chỉ gom trong 1 phơi) | transferredFromTicketNo -> ticket.transferred_from_ticket_id (mã vé nguồn -> ticket_id; cũng ghi ở Chỉ định Rước liền / Admin > Trung chuyển, mới có từ bản code gần đây)
+    %%   actionTime -> ticket.updated_at, và với ghế sold cũng là nguồn gần đúng của ticket.sold_at (app KHÔNG lưu giờ bán riêng; nếu vé bị sửa sau khi bán thì sold_at lệch, chấp nhận khi migrate)
+    %%   BỎ (không cột): count (đếm trip_seat), locked / lockedBy (BR-05, chỉ có ở ghế demo), callState (chỉ gán ở makeSeat, không có chức năng nào đổi), pickupTime (chỉ sao chép, không nơi nào nhập), driver (app luôn rỗng)
+    %%   cancelledSeats[]: id -> cancellation_id | code -> seat_code | prevState -> prev_status | price -> unit_price | reason | cancelledAt / cancelStaff -> cancelled_at / cancelled_by | restoredTicketNo (+ restoredToTripId để tra đúng phơi) -> restored_ticket_id; bản ghi cũ chỉ có restoredToTripId + restoredToSeat thì nối vé qua (phơi, mã ghế) (bỏ restored, restoredAtIso, restoredAt, restoredBy, cancelTime, và các bản chụp tên khách / SĐT / chặng vì đã có ở ticket) | TIỀN KHI HỦY: collectedAtCancel / refundAmount / refundMethod / refundBy / refundAt -> ticket_payment kind = refund (chỉ khi refundAmount > 0; method, created_by, paid_at lấy từ refundMethod, refundBy, refundAt); collectedAtCancel - refundAmount = phí giữ lại (không thành cột) | agentCommissionRate -> ticket.agent_commission_rate
+    %%   Mã người thao tác (NV01.., username) -> users.user_id theo đúng cách đã chốt ở phoi-xe-erd.mmd (mã NV -> employees.employee_code -> users.employee_id -> users.user_id; admin gốc -> users.is_root).
+    %% .
+    %% QUY TẮC:
+    %%   (B1) MÔ HÌNH VÉ. Vé (ticket) là đơn vị bán: thuộc đúng 1 phơi, giữ N >= 1 ghế (N = số trip_seat có ticket_id = vé), mọi ghế của vé dùng chung khách, chặng, điểm đón / trả, đơn giá, cọc, trạng thái (bán một phần ghế của vé hold thì tách vé: B21).
+    %%       Số ghế KHÔNG có cột đếm. Tiền vé = unit_price x số ghế; đã thu (paid_amount) = SUM(deposit + payment + transfer_in) - SUM(refund + transfer_out) của ticket_payment (B23); còn nợ = tiền vé - đã thu. Dựng thành view v_ticket (seat_count, total_amount, paid_amount, remaining_amount) để mọi báo cáo dùng chung 1 công thức.
+    %%       FK ghép trip_seat(ticket_id, trip_id) -> ticket(ticket_id, trip_id) để ghế không trỏ sang vé của phơi khác. trip_seat.ticket_id NULL = ghế trống.
+    %%       trip_seat KHÔNG còn cột state: trống / có khách suy từ ticket_id, hold / sold suy từ ticket.status, ghế ẩn dùng is_hidden như bản phơi xe. (Khác ghi chú ĐỂ SAU ở phoi-xe-erd.mmd là thêm state vào trip_seat: bỏ vì giữ 2 nơi cùng 1 sự thật dễ lệch; xem C5.)
+    %%       trip_seat.price chỉ là giá NIÊM YẾT của ghế trống (đổi giá phơi thì chỉ ghế trống đổi, quy tắc 3 phơi xe). Giá đã bán nằm ở ticket.unit_price.
+    %%       [SỬA 28/10/2026] v_ticket: remaining_amount = GREATEST(0, total_amount - paid_amount) (còn nợ không bao giờ âm); retained_amount = GREATEST(0, paid_amount - total_amount) (đã thu dư: phí giữ lại sau hủy một phần / hoàn thiếu). Đã thu ròng được khác tiền vé sau khi vé thành sold (B23, quyết định 15).
+    %%       [SỬA 28/10/2026] Ghế extra (dư) và sub: hàng trip_seat KHÔNG xóa khi hết khách; ticket_id = NULL. Giao diện chỉ hiện ghế extra đang có vé (suy ra: floor_type = extra AND ticket_id IS NOT NULL), không thêm cột. Code hiện xóa ghế dư khi chuyển đi nhưng hủy thì để lại ghế dư trống (F40).
+    %%   (B2) TRẠNG THÁI VÉ: hold (đã đặt, chưa thu đủ) -> sold (đã bán, thu đủ); hold | sold -> cancelled khi ghế cuối của vé bị hủy; hold | sold -> transferred khi ghế cuối chuyển hết sang vé khác. cancelled và transferred là cuối, không quay lại.
+    %%       Mọi thống kê / manifest chỉ tính status IN (hold, sold). Trạng thái ghế cũ của app map: sold -> sold; hold -> hold; free -> sold với unit_price = 0 (lý do 0đ cũ thiếu thì điền 'Ghế miễn phí (dữ liệu cũ)'); cargo -> hold (loại ghế này đã bỏ khỏi giao diện, chỉ còn trong OCCUPIED_STATES).
+    %%       DB: trigger kiểm đường chuyển trạng thái; vé hold / sold phải còn >= 1 ghế (constraint trigger DEFERRABLE, kiểm cuối giao dịch). Hủy ghế, chuyển ghế làm trong MỘT giao dịch: đổi trip_seat.ticket_id, ghi seat_cancellation, cập nhật ticket.status.
+    %%   (B3) MÃ VÉ ticket_no dạng SGCD-0001 cấp bằng SEQUENCE ticket_no_seq (không dùng ticketSeq của app: reset mỗi lần tải trang, nhiều máy bán cùng lúc có thể trùng). UNIQUE (ticket_no, trip_id) WHERE status IN (hold, sold).
+    %%       KHÔNG unique toàn hệ thống vì dữ liệu cũ đã trùng mã giữa các phơi. Mọi lần chuyển ghế / chuyển phơi / đặt thêm cho nhóm đều cấp mã MỚI. NGOẠI LỆ đã sửa so với code: đặt lại vé hủy đúng ghế cũ trong đúng phơi cũ chỉ dùng lại mã khi vé gốc đã status = cancelled
+    %%       (vé gốc nhiều ghế hủy một phần vẫn còn active thì dùng mã mới, nếu không hai vé active trùng mã trong 1 phơi), xem B9.
+    %%   (B4) ĐẶT vs BÁN. Đặt (saveTicket, cần book_ticket hoặc sell_ticket, B16) tạo vé status = hold, paid = chưa thu. Bán (sellTicket -> confirmSellPayment, cần sell_ticket) tạo / chuyển vé sang sold, bắt buộc chọn phương thức (Tiền mặt | Chuyển khoản) cho khoản thu còn lại (ghi ticket_payment kind = payment), ghi sold_at.
+    %%       Cả hai phải đăng nhập (requireActor); tài khoản thường phải có trạm chính (quy tắc 12 phơi xe: selling_station_id = trạm chính của người thao tác, admin gốc = trạm hệ thống 'Admin'). Kiểm hợp lệ lúc lưu (khớp code ở panel Đặt vé / Bán vé; MỌI luồng tạo vé khác như Đặt lại vé, Chỉ định Rước liền, Đặt thêm cho nhóm, Đặt lại vé hủy, Chuyển ghế phải dùng chung đúng bộ kiểm này; Chỉ định Rước liền có HAI nơi: ticketstaff (pkConfirmAssign) và Admin > Trung chuyển (adminTsConfirmSellPayment). Code đã làm ở các luồng này (F14, F17) nhưng mới là kiểm ở giao diện, nên vẫn phải lặp ở service / CHECK):
+    %%         trạm đến (last_stop) bắt buộc; guest_type = Trung chuyển (đặt tại quầy) bắt buộc pickup_address; Rước đường bắt buộc pickup_address VÀ first_stop; unit_price bắt buộc (cặp chưa có giá thì nhân viên nhập tay); unit_price = 0 bắt buộc zero_price_reason;
+    %%         cọc > 0 ghi ticket_payment kind = deposit kèm method; đã thu ròng <= tiền vé = unit_price x số ghế của vé (trigger trên ticket_payment, vì tiền vé phụ thuộc số ghế; panel Đặt / Bán / Sửa vé và modal Đặt lại vé đều kiểm theo tổng này, F18); chọn đại lý khi bật tick Đại lý (agent_id + agent_name). Vé Trung chuyển do Rước liền chỉ định xe (channel = pickup) được để trống điểm đón / trả (quy tắc B11).
+    %%       Chỉ bán / đặt trên ghế trống của phơi thật (không mẫu, không hủy, nếu đã khởi hành thì phải đang Re-open: B12). Sửa vé (Sửa) cập nhật ticket 1 lần, không đổi sold_by / selling_station_id / sold_phase / reopen_event_id (chụp 1 lần lúc tạo).
+    %%       [SỬA 28/10/2026] SỬA VÉ HOLD (panel Sửa; vé SOLD chỉ đọc trên giao diện: panel "Thông tin ghế", nên Sửa chỉ áp cho hold, F37): TĂNG cọc -> ghi thêm dòng deposit bằng phần chênh; GIẢM cọc -> ghi một dòng refund bằng phần chênh (reason mặc định "Điều chỉnh cọc khi sửa vé", method theo dòng cọc gần nhất, nhân viên đổi được), không giảm quá đã thu ròng. Hạ unit_price hoặc bỏ ghế khiến tiền vé nhỏ hơn đã thu ròng thì bị CHẶN (trigger BEFORE UPDATE trên ticket: unit_price x số ghế >= đã thu ròng). Đổi giá cần change_price (B16).
+    %%   (B5) GIÁ. Giá gốc tra theo (ticket.from_station_id, ticket.to_station_id, loại xe của phơi) ở bảng station_price (docs/fare-erd.mmd), KHÔNG theo cặp trạm của phơi. from_station_id / to_station_id luôn là trạm KHÁCH chọn (cùng trạm với first_stop / last_stop); mọi luồng tạo vé phải truyền đúng trạm đó, không dùng cặp trạm của phơi (modal Đặt lại vé, Chỉ định Rước liền và Admin > Trung chuyển từng làm sai: F14, F15, F17; nay giá điền sẵn cũng tra theo trạm khách). Giá đơn = price, ghế đôi = double_seat_price (0 thì tạm tính price x 2). Giá đã chọn chụp vào ticket.unit_price, KHÔNG đổi khi bảng giá đổi sau này.
+    %%       Ghế đôi: 1 ghế, unit_price = giá đôi. Vé nhiều ghế thường: mỗi ghế unit_price. Modal "Đặt lại vé" hiện TỔNG cho cả nhóm ghế rồi chia lại cho số ghế (Math.round): nếu tổng không chia hết thì tiền vé lệch vài đồng so với tổng nhân viên gõ; DB chỉ lưu unit_price nguyên, nên modal phải báo / làm tròn trước khi lưu (xem F9).
+    %%   (B6) THU / HOÀN TIỀN (ĐÃ CHỐT, thay cho cột cọc / payment_method trên ticket). Mọi dòng tiền của vé ghi ở ticket_payment, mỗi lần một dòng: deposit (cọc lúc đặt), payment (thu phần còn lại lúc bán), refund (hoàn cho khách), transfer_out / transfer_in (chuyển tiền giữa hai vé khi chia cọc hoặc dồn cọc, luôn đi cặp). ticket KHÔNG còn deposit_amount / deposit_method / payment_method: cọc = SUM(deposit), đã thu = SUM(deposit + payment + transfer_in) - SUM(refund + transfer_out), tiền mặt / chuyển khoản = SUM theo method. Nhờ vậy F6 (manifest cộng cả vé hold vào Tiền mặt) hết: chỉ cộng tiền đã thật sự thu, đúng phương thức.
+    %%       Tách vé theo ghế (chuyển một phần ghế B10, bán một phần B21) chia cọc theo tỷ lệ số ghế: ghi một cặp transfer_out (vé gốc) / transfer_in (vé mới) bằng phần cọc chuyển đi, không sao chép cọc sang cả hai vé (code hiện sao chép: F4). Hủy một phần ghế mà đã thu lớn hơn tiền vé còn lại thì nhân viên có thể hoàn phần chênh bằng một dòng refund; không tự xóa dòng nào.
+    %%       HOÀN TIỀN (ĐÃ CHỐT, C1): nhân viên TỰ NHẬP số hoàn cho từng lần hủy, không có công thức phí cố định. Mỗi lần hoàn = một dòng refund (amount > 0, method và reason bắt buộc). Tổng refund của vé không vượt số đã thu ròng (trigger). Phần đã thu mà không hoàn coi là phí giữ lại; cách báo cáo nó ở kết ca để giai đoạn kết ca quyết (B13). Quyền: sell_ticket (ĐÃ CHỐT, B16: không tách khóa hoàn tiền riêng). Code ĐÃ có (F28).
+    %%       [SỬA 28/10/2026] TIỀN KHI CHIA / DỒN VÉ: sau mỗi lần tách hoặc chuyển, cọc + phần thu còn lại của từng vé phải bằng đúng phần tiền vé của vé đó. Vé HOLD: chuyển phần cọc theo tỷ lệ số ghế (như trên). Vé SOLD: chuyển toàn bộ ĐÃ THU RÒNG (cọc + thu), không chỉ cọc, theo tỷ lệ số ghế: vé mới nhận floor(đã thu ròng x ghế chuyển / tổng ghế), phần dư ở vé gốc, bằng một cặp transfer_out / transfer_in. Chuyển CẢ vé (vé gốc thành transferred): chuyển toàn bộ đã thu ròng sang vé mới, vé gốc về 0. Vé sold mới nhờ đó có đã thu ròng đúng tiền vé của nó (không vi phạm B23 (d)).
+    %%   (B7) NHÃN NGƯỜI BÁN / TRẠM (giữ nguyên quy tắc 12, 13, 21 của bản đầy đủ). sold_by / selling_station_id luôn NOT NULL và là NGƯỜI CHỊU DOANH SỐ HIỆN TẠI: vé hold mang người đặt (hoặc người chuyển gần nhất), khi sang sold đổi thành người bấm bán (tsStampSeller) và booked_by giữ người đặt.
+    %%       sold_phase, reopen_event_id chụp 1 lần lúc tạo vé: sold_phase = POST_DEPART khi và chỉ khi reopen_event_id có giá trị (CHECK). Vé đặt trước, thu tiền trong lúc Re-open: settled_reopen_event_id = lần Re-open đó (chỉ khi status = sold). Số liệu Re-open / kết ca đọc các cột này như đã mô tả ở phoi-xe-erd.full-booking.mmd quy tắc 12.
+    %%       Admin gốc bán: sold_by = tài khoản admin, trạm 'Admin'. Vé cũ thiếu người bán / trạm: gán admin gốc + trạm 'Admin' (không để NULL).
+    %%   (B8) ĐẶT THÊM CHO NHÓM (confirmAddToGroup) — ĐÃ CHỐT KHÁC CODE: mỗi lần đặt thêm tạo MỘT VÉ MỚI (status = hold, ticket_no mới, chưa có dòng ticket_payment nào), sao chép khách / chặng / điểm đón trả / đơn giá / đại lý / cờ ghế đôi từ vé nguồn, group_ticket_id = vé gốc của nhóm
+    %%       (nếu vé nguồn đã có group_ticket_id thì dùng giá trị đó, nếu chưa thì dùng ticket_id của chính nó; không bao giờ trỏ vào vé đã là con). Code hiện cho ghế mới dùng CHUNG ticketNo với nhóm, nên vé nhóm có ghế hold lẫn sold; DB không cho phép (B1).
+    %%       Màn "Danh sách hành khách" vẫn có thể gom các vé cùng group_ticket_id thành 1 cụm khi hiển thị. group_ticket_id chỉ để gom / hiển thị, không ảnh hưởng tiền.
+    %%       ĐÃ CHỐT thêm: vé nguồn chỉ có 1 ghế vẫn đặt thêm được (group_ticket_id = chính vé đó); code hiện chặn khi vé nguồn < 2 ghế (confirmAddToGroup), sẽ bỏ điều kiện này. Vé mới sao chép CẢ đại lý (code hiện không chép agentId / agentName: F13). booked_by + booked_station_id của vé mới = NGƯỜI THAO TÁC đặt thêm (code hiện lấy staff của vé nguồn, còn trạm là trạm người thao tác nên lệch người / trạm).
+    %%   (B9) HỦY GHẾ. Hủy theo TỪNG GHẾ: mỗi ghế hủy = 1 dòng seat_cancellation (ticket_id, seat_code, prev_status, unit_price lúc hủy, lý do bắt buộc, giờ + người hủy), trip_seat.ticket_id về NULL. Vé còn ghế khác thì giữ status; hết ghế thì status = cancelled. Cần đăng nhập, không cần trạm (requireActor(false)).
+    %%       Hủy bị chặn như bán: phơi đã khởi hành mà không Re-open thì không hủy được (tsIsSellingLocked bọc cả openCancelModal, confirmCancel, cancelSelectedFromTransferBar). Quyền theo TRẠNG THÁI GHẾ (B16): ghế hold cần book_ticket hoặc sell_ticket; ghế sold (hoặc chọn lẫn hold và sold) cần sell_ticket.
+    %%       Đặt lại vé hủy (startTransferFromCancelled -> confirmRestoreFromCancelled): chỉ khi prev_status = hold (vé ghế đã bán vẫn hủy được nhưng KHÔNG đặt lại / chuyển được; bản ghi cũ không có prev_status coi như không chuyển được). Đặt lại tạo vé MỚI (status = hold) ở ghế đích, gán seat_cancellation.restored_ticket_id = vé mới (UNIQUE, mỗi dòng hủy chỉ đặt lại 1 lần).
+    %%       Vé mới SAO CHÉP đầy đủ từ vé gốc (khách, chặng, điểm đón / trả, đơn giá, đại lý, hành lý, ghi chú; KHÔNG chép cọc, xem dòng CỌC KHI HỦY / ĐẶT LẠI và C2), khác code hiện chỉ chép 8 trường và làm rơi loại khách, điểm đón / trả, đại lý, cọc (F5). Nhãn bán theo NGƯỜI THAO TÁC MỚI NHẤT (tsStampSoldPhaseIfNeeded force). Phơi đích: không hủy, không mẫu, đã khởi hành thì phải đang Re-open.
+    %%       TIỀN ĐÃ THU KHI HỦY / ĐẶT LẠI (ĐÃ CHỐT; code ĐÃ theo: F28): (1) hủy hẳn vé (ghế cuối của vé bị hủy) mà vé KHÔNG thuộc nhóm còn vé khác: hộp thoại hủy phải có ô "Số tiền hoàn", nhân viên nhập (mặc định điền toàn bộ số đã thu, sửa được, 0 được phép); số > 0 ghi một dòng refund. Vé cancelled không còn tính vào thống kê (status IN hold, sold), các dòng ticket_payment giữ nguyên để đối soát. (2) Đặt lại vé hủy tạo vé mới không mang tiền theo (chưa có ticket_payment nào); khách cần cọc thì thu lại như vé mới. (3) Hủy MỘT PHẦN ghế của vé: tiền đã thu giữ nguyên ở vé còn ghế; nếu lớn hơn tiền vé còn lại thì nhân viên có thể hoàn phần chênh trong cùng hộp thoại hủy. (4) Hủy hẳn một vé thuộc nhóm (cùng group_ticket_id) mà còn vé khác trong nhóm hiệu lực thì cọc CHUYỂN sang vé còn lại: ưu tiên vé gốc, rồi vé đặt thêm sớm nhất, cắt ở mức tiền vé nhận, bằng một cặp transfer_out / transfer_in; phần không chuyển được đi vào ô "Số tiền hoàn" như (1). Ghi nhật ký (activity_logs) cancel_seat kèm vé nhận và số tiền chuyển (code lưu tạm ở bản ghi hủy: depositMovedTo / depositMovedAmount).
+    %%       Mã vé: dùng lại mã của vé hủy chỉ khi đúng ghế cũ, đúng phơi cũ VÀ vé gốc đã cancelled hẳn; còn lại cấp mã mới và đặt group_ticket_id = vé gốc nếu vé gốc còn ghế khác.
+    %%       Dữ liệu cũ (cancelledSeats[]): tìm vé active cùng ticketNo trong phơi đó để gắn ticket_id; không có thì TẠO vé status = cancelled từ bản chụp (tên, SĐT, chặng, giá, ghi chú), người bán = admin gốc, trạm 'Admin', sold_phase = PRE_DEPART, để seat_cancellation.ticket_id luôn NOT NULL.
+    %%       [SỬA 28/10/2026] CHUYỂN CỌC TRONG NHÓM khi hủy hẳn một vé (mục 4): vé nhận chỉ nhận tối đa SỐ CÒN NỢ của nó (tiền vé - đã thu ròng); vé đã sold (còn nợ 0) KHÔNG nhận; không còn vé nào còn nợ thì toàn bộ số đã thu thuộc phần hoàn. Code đã sửa tsPlanDepositMoves (F35). Lý do hoàn (ticket_payment.reason) lấy từ lý do hủy, không có ô lý do riêng (F38); hoàn ít hơn số có thể hoàn thì phần còn lại là phí giữ lại. Kế toán tính phí giữ lại của vé cancelled vào doanh thu nhà xe, KHÔNG tính hoa hồng đại lý trên đó (C16, quyết định 19).
+    %%   (B10) CHUYỂN GHẾ / VÉ TRỰC TIẾP (confirmTransfer; cùng phơi hay khác phơi): ghế khác = vé khác. Các ghế của CÙNG vé gốc chuyển chung một lần dùng chung 1 vé mới (ticket_no mới, transferred_from_ticket_id = vé gốc). Vé gốc còn ghế thì giữ status; hết ghế thì status = transferred.
+    %%       Vé mới giữ nguyên status (hold | sold), unit_price, khách, chặng, điểm đón / trả, đại lý, cờ ghế đôi, ghi chú Phòng vé (shuttle_assignment theo vé mới). Cọc chia theo tỷ lệ ghế chuyển (B6). Nhãn bán: vé sold giữ sold_by + selling_station + booked_by + booked_station (doanh thu thuộc người thu tiền);
+    %%       vé hold mang người thao tác MỚI NHẤT (cả khi chuyển trong cùng phơi: booked_by, booked_station_id, sold_by, selling_station_id đổi sang người thao tác; sold_phase / reopen_event_id giữ nguyên, F21). Khác phơi: sold_phase / reopen_event_id tính lại theo phơi đích, settled_reopen_event_id về NULL. Phơi nguồn và đích đều không bị khóa bán; phải đăng nhập + có trạm (requireActor(true)). Vé giấy khách cầm mang mã cũ nên phải in lại (app đã nhắc).
+    %%       Ghi vết nguồn: app lưu seat.transferredFromTicketNo = mã vé nguồn trên ghế vừa chuyển (nguồn để migrate transferred_from_ticket_id; dữ liệu chuyển trước thay đổi này không có). Mặc định vé chuyển KHÔNG mang group_ticket_id của vé nguồn (nhóm chỉ gom trong một phơi, xem C8).
+    %%       LÝ DO CHUYỂN VÉ (ĐÃ CHỐT, C7): chuyển vé ĐÃ BÁN (status = sold) sang phơi KHÁC bắt buộc nhập lý do; lưu ở activity_logs action = transfer, changes.reason (không thêm bảng hay cột); cùng quyền sell_ticket. Chuyển vé hold, hoặc chuyển trong cùng phơi: lý do không bắt buộc. Giao diện: thêm ô Lý do vào bước xác nhận của confirmTransfer và chặn khi để trống (F34).
+    %%       [SỬA 28/10/2026] Tiền của vé SOLD khi chuyển một phần hoặc cả vé: theo B6 [SỬA 28/10/2026] (chuyển toàn bộ đã thu ròng theo tỷ lệ ghế, không chỉ cọc). Cặp transfer_* ghi ở phơi nguồn nên chịu khóa B12 như thao tác chuyển; không thay đổi tiền mặt / chuyển khoản của kết ca vì transfer_* không có method.
+    %%   (B11) [GIAI ĐOẠN 2, đã chuyển sang docs/trung-chuyen-erd.mmd] RƯỚC LIỀN: khách Rước liền nhập vào hàng chờ pickup_request; "Chỉ định xe" bán vé qua CÙNG hàm lõi với fn_sell_ticket (xem B28). Chi tiết quy tắc, dữ liệu cũ và hai nơi nhập (Phòng vé, Admin > Trung chuyển) ở trung-chuyen-erd.mmd.
+    %%   (B12) KHÓA SAU KHỞI HÀNH (quy tắc 4 phơi xe, áp cho MỌI thao tác ghi lên vé / ghế): đặt, bán, sửa, hủy, chuyển, đặt thêm cho nhóm, đặt lại vé hủy, chỉ định Rước liền chỉ chạy được khi phơi chưa khởi hành hoặc đang Re-open. App chỉ khóa ở giao diện (hàm bọc tsIsSellingLocked trong ticketstaff-manifest-ui.js);
+    %%       App bọc tsIsSellingLocked cho: onSeatClick, nút Đặt / Sửa trên ghế, saveTicket, sellTicket, confirmSellPayment, sellFromTransferBar, openCancelModal*, confirmCancel, confirmSelectionAction, confirmAddToGroup, confirmRebook*. confirmSellPayment khóa theo PHƠI ĐÍCH của nhánh đang chạy (Đặt lại vé / Chỉ định Rước liền), không theo phơi đang xem (F19).
+    %%       DB cần trigger BEFORE INSERT / UPDATE trên ticket, trip_seat, seat_cancellation kiểm phơi: status open, is_template = FALSE, và (chưa có trip_manifest HOẶC có trip_reopen_event status = OPEN). Phơi đã đóng băng không mở lại nên khóa vĩnh viễn.
+    %%       ĐÃ CHỐT: vé bị khóa ghi NGAY TỪ LÚC KHỞI HÀNH (manifest.status = DEPARTED | REOPEN_CLOSED | MANIFEST_CLOSED), không đợi đóng băng; mọi sửa vé (kể cả tên, SĐT, ghi chú) chỉ làm được lúc phơi chưa khởi hành hoặc đang Re-open. Cờ frozen_at chỉ chặn MỞ Re-open (phoi-xe-erd.mmd quy tắc 6, đã sửa câu cho khớp), không phải điều kiện chặn ghi vé.
+    %%       Trigger khóa CHỈ áp cho ticket, trip_seat, seat_cancellation. shuttle_assignment và pickup_request KHÔNG bị khóa: tài xế trung chuyển vẫn cập nhật trạng thái đón / trả và ghi chú sau khi xe khởi hành. Điều kiện khóa lặp ở 3 chỗ trong code (tsIsSellingLocked, adminTsTripSellingLocked, zone1IsTripSellingLocked): DB chỉ cần MỘT trigger.
+    %%       NGOẠI LỆ ADMIN [SỬA 28/10/2026: người có khóa edit_after_departure, admin gốc luôn có; quyết định 17] (ĐÃ CHỐT, C13): khi người thao tác là tài khoản admin (role = admin) thì trigger khóa KHÔNG chặn, ở mọi trạng thái của phơi (đã khởi hành, đóng Re-open, đóng manifest), cho ticket, trip_seat, seat_cancellation và ticket_payment, gồm cả hoàn tiền. Tài khoản khác (kể cả HR có quyền hạn chế vào trang Admin) vẫn bị khóa. Trigger phải nhận biết người thao tác từ phiên đăng nhập ở tầng service (DB không tự biết role của app), không tin tham số do giao diện gửi.
+    %%       Thao tác admin sau khởi hành BẮT BUỘC ghi activity_logs (action của thao tác + changes trước / sau) để truy vết; ticket.sold_phase / reopen_event_id của vé tạo lúc này vẫn tính theo B7 (phơi đã khởi hành mà không có Re-open đang mở -> reopen_event_id NULL thì sold_phase = PRE_DEPART; xem C15 về tác động tới kết ca). Code ĐÃ theo (F30). Vé do admin tạo sau khởi hành mà không có Re-open đang mở có sold_phase = PRE_DEPART, reopen_event_id NULL (đã sửa tsStampSoldPhaseIfNeeded và bản Admin).
+    %%   (B13) CỘT TICKET MÀ KẾT CA / MANIFEST PHỤ THUỘC (để giai đoạn sau chỉ việc đọc): status IN (hold, sold) + unit_price x số ghế (tổng tiền), status = sold (đã thu) hay hold (chưa thu), guest_type (vé trạm vs Rước đường), selling_station_id + sold_by (doanh thu theo trạm / nhân viên), booked_by + booked_station_id (nguồn chuyển doanh thu),
+    %%       sold_phase + reopen_event_id (phần gốc hay Re-open), settled_reopen_event_id (thu bổ sung), ticket_payment (cọc, thu, hoàn, chuyển tiền; theo method, created_by, station_id, reopen_event_id). Lưu ý F6: manifest hiện cộng CẢ vé hold vào Tiền mặt; khi dựng lại nên tính theo B6.
+    %%   (B14) KHÁCH HÀNG. App KHÔNG có bảng khách: danh sách khách ở Admin > Khách hàng được suy từ SĐT của mọi vé, mã KH0001.. tự sinh theo thứ tự xuất hiện sớm nhất. DB tạo bảng customer (customer_code UK, phone UK) làm nguồn thật; ticket.customer_id nullable, gán lúc lưu vé (tìm / tạo theo SĐT chính đã chuẩn hoá) để tên đổi giữa các lần đi không tách khách.
+    %%       ticket.customer_name / phone / phone_extra vẫn là bản chụp những gì nhân viên gõ lúc đó. Chuẩn hoá SĐT: bỏ khoảng trắng . -, +84 đầu -> 0 (giống searchCustomerByPhone). Tên khách của customer = tên khác rỗng gần nhất. Số lần đi, tuyến hay đi, lần đầu / lần cuối KHÔNG lưu: dựng bằng view từ ticket (status IN (hold, sold)).
+    %%       Admin > Khách hàng (custBuildCustomers) nay đúng quy tắc này: khoá = SĐT chính chuẩn hoá (custNormPhone), tên = tên khác rỗng gần nhất theo actionTime; mã KH cũ lưu theo chuỗi SĐT thô được gộp về SĐT chính chuẩn hoá, giữ mã nhỏ nhất, mã bị bỏ không cấp lại (F20).
+    %%       Lịch sử hành khách (Tra cứu header, trang Lịch sử hành khách, Admin > Danh sách vé) là truy vấn trên ticket JOIN trip JOIN trip_seat, gom 1 dòng / vé (không còn gom theo ticketNo trên từng ghế). Tìm theo SĐT (kể cả phone_extra), tên (bỏ dấu), mã vé. Index ở B17.
+    %%       Khách chỉ trùng người khi trùng SĐT chính; cùng người nhiều SĐT sẽ thành nhiều customer, cần chức năng gộp khách sau (C4).
+    %%   (B15) [GIAI ĐOẠN 2, đã chuyển sang docs/trung-chuyen-erd.mmd] CHẶNG ĐÓN / TRẢ (shuttle_assignment). Giai đoạn 1 không tạo dòng nào. Khi chuyển vé (B10) sang vé mới mà vé cũ có dòng chặng thì giai đoạn 2 phải chuyển dòng theo (B28).
+    %%   (B16) PHÂN QUYỀN (ĐÃ CHỐT 28/10/2026; chỉ thêm 2 khóa xem view_tickets, view_customers (C3); các khóa còn lại đã khai báo ở quy tắc 19 bản đầy đủ). QUAN HỆ: sell_ticket BAO GỒM book_ticket (người có sell_ticket cũng đặt được vé); vẫn có người chỉ có book_ticket (chỉ giữ chỗ, không bán). Hai nhóm khóa dùng chung ở mọi nơi: BOOK_KEYS = [book_ticket, sell_ticket]; SELL_KEYS = [sell_ticket].
+    %%       MA TRẬN: (1) BOOK_KEYS: đặt vé mới, Đặt thêm cho nhóm, Đặt lại vé nút "Đặt", Đặt lại vé hủy (restore, vé mới là hold). (2) theo TRẠNG THÁI GHẾ NGUỒN: sửa vé, hủy ghế, chuyển ghế / chuyển vé: ghế hold cần BOOK_KEYS; ghế sold, hoặc chọn lẫn hold và sold, cần sell_ticket. (3) sell_ticket: bán vé (sellTicket, confirmSellPayment, sellFromTransferBar), bán một phần ghế (B21), Đặt lại vé nút "Bán", Chỉ định xe Rước liền (pkConfirmAssign, adminTsConfirmSellPayment), hoàn tiền (ô "Số tiền hoàn" khi hủy, không tách khóa riêng). (4) change_price: sửa giá. (5) transship_pickup: nhập khách Rước liền (savePickupInfo). (6) transship_assign: CHỈ bật chế độ điều hành trung chuyển (gán tài xế, cập nhật chặng; Auth.isShuttleDispatch), KHÔNG dùng cho chỉ định xe bán vé. (7) print_transship_ticket: in vé trung chuyển. (8) assign_depart_reopen: khởi hành, Re-open, đóng băng, kết ca, khách ngoài phơi; Re-open quyết định phơi nào được ghi vé sau khởi hành (B12).
+    %%       CHANGE_PRICE (ĐÃ CHỐT): người có change_price (loại tổng đài, phòng vé) sửa được MỌI giá, kể cả giá điền sẵn từ bảng giá; giá 0đ cũng cần change_price (kèm lý do, B4). Người không có change_price: ô giá chỉ đọc khi giá tra được từ bảng giá; cặp trạm chưa có giá vẫn nhập tay (B4). Áp cho ô giá của panel Đặt vé, modal Đặt lại vé và modal Chỉ định xe.
+    %%       CẤP QUYỀN (ĐÃ CHỐT 28/10/2026): KHÔNG hard-code hay seed quyền mặc định theo loại nhân viên. Quyền chỉ do nhân sự (HR / admin) cấp ở màn Loại nhân viên, chọn theo khóa chức năng trong PERMISSION_GROUPS; mỗi loại giữ mảng permissions (đúng cơ chế getStaffRoles / normalizeStaffRole hiện có). Hệ quả: mọi loại hiện permissions: [] nên bật kiểm quyền khi HR chưa cấp sẽ khóa nhân viên vé. Vì vậy kiểm quyền vé bật bằng cờ HN_ENFORCE_TICKET_PERMS (mặc định TẮT); HR cấp xong cho các loại cần dùng mới bật. Khi lên DB: quyền nằm ở employee_type_permissions (so-do-er-nhan-su-v3.1) do HR nhập, migration không seed.
+    %%       (9) view_tickets, view_customers (MỚI, nhóm Vé & ghế, ĐÃ CHỐT C3): xem Admin > Danh sách vé và Admin > Khách hàng. Khai báo thêm mục trong ADMIN_VIEW_PERMS (admin.js) cho viewTicketList và viewCustomers và kiểm lại khi lấy dữ liệu; phạm vi dữ liệu vẫn theo view_all_stations / is_self ở HIỆN TRẠNG bên dưới. Admin gốc luôn có.
+    %%       ADMIN GỐC có mọi quyền [SỬA 28/10/2026: người khác chỉ thao tác được sau khởi hành khi được cấp edit_after_departure] kể cả sau khởi hành (B12). Sau khởi hành chỉ admin hoàn tiền được.
+    %%       HIỆN TRẠNG: đã kiểm quyền ở giao diện ticketstaff / Admin > Trung chuyển (xem F32) khi cờ HN_ENFORCE_TICKET_PERMS bật; cờ tắt thì mọi thao tác qua như cũ. Chỉ transship_assign (Auth.isShuttleDispatch) và nhóm manage_* luôn được thi hành. Phải kiểm lại ở tầng service / API khi lên DB, không chỉ ẩn nút. PHẠM VI DỮ LIỆU: người không có view_all_stations chỉ thấy vé theo selling_station_id thuộc trạm xem được; nhóm is_self chỉ thấy ticket.sold_by = chính mình.
+    %%       [SỬA 28/10/2026] Ma trận mục (2): vé SOLD chỉ hủy, chuyển, hoàn (đều sell_ticket); sửa nội dung vé chỉ cho hold (F37). Danh sách hàm và bảng được ghi theo từng khóa quyền: B26.
+    %%       [SỬA 28/10/2026, quyết định 17] Thêm khóa edit_after_departure (nhóm Vé & ghế): thao tác sửa / hủy / chuyển / hoàn vé SAU KHI XE KHỞI HÀNH. Không còn gán cứng cho role admin; admin gốc luôn có, người khác có khi được cấp. Các hàm B26 kiểm khóa này ở bước (3). Tất cả khóa khác vẫn do admin / HR cấp theo loại nhân viên, không seed.
+    %%   (B17) INDEX / TRUY VẤN CHÍNH: ticket(trip_id, status); ticket(phone); GIN trigram trên ticket.customer_name và phone_extra (tìm tên không dấu, tìm theo số phụ); ticket(customer_id); ticket(selling_station_id, created_at); ticket(sold_by, created_at); ticket(reopen_event_id) WHERE NOT NULL; ticket(settled_reopen_event_id) WHERE NOT NULL; ticket(group_ticket_id) WHERE NOT NULL; | ticket_payment(ticket_id); ticket_payment(created_by, paid_at); ticket_payment(reference) WHERE NOT NULL; agent(commission_rate) không cần index.
+    %%       trip_seat(ticket_id) WHERE NOT NULL; seat_cancellation(trip_id, cancelled_at); shuttle_assignment(driver_id, status); pickup_request(ticket_id) WHERE NULL (hàng chờ); customer(phone), customer(customer_code).
+    %%   (B18) NHẬT KÝ. Thao tác vé ghi activity_logs (entity_type = ticket, entity_id = ticket_id, changes = trước / sau): book, sell, edit, cancel_seat, refund, transfer, restore, add_group, assign_pickup, split_sell, rebook (ghi trên vé MỚI khi Đặt lại vé; không lưu vé gốc). Đây là nơi giữ LỊCH SỬ SỬA (ticket.updated_at chỉ là lần gần nhất, giống actionTime). CHECK action của activity_logs cần bổ sung các giá trị này (chưa sửa file nhật ký).
+    %%       HIỆN TRẠNG: nhật ký thao tác vé ghi cho (a) ADMIN thao tác sau khởi hành (wrapLog: edit, sell, cancel_seat, transfer, add_group, split_sell, rebook, assign_pickup, restore), (b) Đặt lại vé qua tsLogTicket (action rebook, entityId = mã vé mới), (c) chuyển vé sold sang phơi khác (action transfer, changes.reason). Chưa ghi cho các thao tác thường còn lại. Phải ghi đủ ở tầng service khi lên DB.
+    %%   (B19) TRANSACTION VÀ TRANH CHẤP: hai người bấm cùng 1 ghế trống cùng lúc phải chỉ một người thành công (app đơn máy không gặp). DB: UPDATE trip_seat SET ticket_id = ... WHERE trip_seat_id = ... AND ticket_id IS NULL, kiểm số dòng; hoặc SELECT ... FOR UPDATE các ghế rồi mới tạo ticket. Đặt / bán nhiều ghế là một giao dịch (hoặc được cả, hoặc không).
+    %%       [SỬA 28/10/2026] Mọi hàm ghi tiền hoặc đổi unit_price / số ghế của một vé phải SELECT ... FOR UPDATE dòng ticket đó trước khi chạy trigger kiểm đã thu ròng (B23), để hai lần thu / hoàn đồng thời không làm vượt tiền vé hoặc đã thu ròng âm. Hàm đụng nhiều vé (chuyển tiền giữa hai vé, tách vé) khóa theo thứ tự ticket_id tăng dần để không deadlock.
+    %%   (B20) DỮ LIỆU DEMO KHÔNG MIGRATE (quy tắc 13 phơi xe): khách / địa chỉ / loại khách ngẫu nhiên của makeSeat, sample-seat-pool.js, sample-customer-history.js (CUSTOMER_HISTORY_DATA), tài xế trung chuyển mẫu TX01..TX05.
+    %%       THỨ TỰ MIGRATE: agent -> customer (từ SĐT các vé) -> ticket (gom ghế theo (phơi, ticketNo); nếu các ghế khác trạng thái, khác đơn giá HOẶC khác khách (tên + SĐT chính đã chuẩn hoá; app có splitAccidentalTicketGroups() vá lỗi trùng mã giữa các khách nên dữ liệu cũ có thể còn mã chung cho nhiều khách) thì TÁCH thành nhiều vé, vé phụ có group_ticket_id. Cọc: mỗi vé lấy MAX depositAmount của các ghế thuộc vé đó; nếu nhóm bị tách thành nhiều vé cùng mang đúng một số cọc (app lặp số tổng trên mọi ghế) thì chỉ vé chứa ghế mã nhỏ nhất giữ số đó (nhỏ nhất theo thứ tự chữ của app, localeCompare: A10 đứng trước A2, để khớp ghế đại diện mà groupSeatsByTicket đã hiển thị), vé còn lại = 0 để không tính cọc hai lần (F4); cọc lớn hơn tiền vé thì cắt về tiền vé; nhóm có cọc không đồng nhất giữa các ghế ghi vào báo cáo rà soát, không chặn migrate) -> ticket_payment (mỗi vé: depositAmount > 0 -> 1 dòng deposit, created_by = booked_by, paid_at = created_at; vé sold -> 1 dòng payment = tiền vé - cọc, method = paymentMethod, created_by = sold_by, paid_at = sold_at; không có hoàn tiền cũ để migrate) -> trip_seat.ticket_id -> seat_cancellation -> pickup_request -> shuttle_assignment (tách theo vé) -> đặt ticket_no_seq = max + 1.
+    %%       Mã trùng giữa các phơi giữ nguyên (B3). Phơi seed demo (id '1'..'14') không migrate, vé của chúng cũng bỏ.
+    %%       [SỬA 28/10/2026] MIGRATE bổ sung: (a) vé phụ tách từ nhóm trùng mã (khác khách / giá / trạng thái) được cấp ticket_no MỚI từ ticket_no_seq, chỉ vé chứa ghế mã nhỏ nhất giữ mã cũ, để không vi phạm UNIQUE (ticket_no, trip_id); (b) dòng ticket_payment migrate: deposit có station_id = booked_station_id, reopen_event_id = ticket.reopen_event_id; payment có station_id = selling_station_id, reopen_event_id = COALESCE(settled_reopen_event_id, reopen_event_id); refund có station_id = trạm của nhân viên hoàn (refundBy), thiếu thì trạm "Admin"; (c) người ghi thiếu (booked_by hoặc refundBy trống) -> admin gốc. Thiếu reopen_event_id thì số thu bổ sung của kết ca Re-open bị mất.
+    %% .
+    %%   (B21) BÁN MỘT PHẦN GHẾ CỦA VÉ ĐANG HOLD (ĐÃ CHỐT: TÁCH VÉ). App có hai đường: panel Sửa mở 1 ghế rồi bấm Bán vé (events.js mở [seat]), và sellFromTransferBar chọn một số ghế rồi Bán nhanh. Khi số ghế bán nhỏ hơn số ghế của vé hold, trong MỘT giao dịch: tạo VÉ MỚI cho các ghế được bán (ticket_no mới, status = sold, sold_at; phần chưa thu ghi ticket_payment kind = payment, sold_by = người bán, sold_phase / reopen_event_id / settled_reopen_event_id theo B7), sao chép khách / chặng / điểm đón trả / đơn giá / đại lý / cờ ghế đôi từ vé gốc, group_ticket_id = vé gốc của nhóm (B8), booked_by + booked_station_id giữ người đặt của vé gốc; đổi trip_seat.ticket_id sang vé mới. Vé gốc giữ status = hold với các ghế còn lại.
+    %%       Cọc chia theo tỷ lệ số ghế (B6): phần cọc ứng với ghế bán chuyển sang vé mới (làm tròn xuống), phần dư ở vé gốc; ghi bằng một cặp transfer_out / transfer_in (B23). Bán đủ MỌI ghế còn lại của vé thì không tách, chỉ chuyển vé sang sold. Vé giấy của ghế đã bán in theo mã vé mới. Nhật ký: activity_logs action = split_sell, changes ghi vé nguồn. Thay đổi cho app: bước Bán vé phải tách vé thay vì đổi state từng ghế (xem F1).
+    %% .
+    %%   (B22) ĐẶT LẠI VÉ (modal Đặt lại vé từ lịch sử khách: confirmRebook / confirmRebookAndSell; ĐÃ CHỐT thêm ô Đại lý). Tạo vé MỚI (hold hoặc sold) trên ghế trống của phơi không khóa. Modal phải: (a) có ô Đại lý, cùng kiểm hợp lệ và cùng agent_id + agent_name như Đặt vé; (b) ghi pickup_address / dropoff_address (code hiện chỉ ghi transshipStation / arrivalTransfer); (c) kiểm trạm đến, điểm trung chuyển / rước đường, phơi không hủy và không mẫu; (d) lấy from_station_id / to_station_id theo trạm khách chọn trong modal (B5); (e) hiện tổng cả nhóm rồi chia cho số ghế: tổng không chia hết thì báo hoặc làm tròn trước khi lưu (F9). Mã vé mới; doanh số theo NGƯỜI THAO TÁC (tsStampSoldPhaseIfNeeded).
+    %%       ĐƯỜNG VÀO TỪ LỊCH SỬ (openRebookFromHistory, nút "Đặt lại" ở mỗi dòng trang Lịch sử hành khách): điền sẵn tên, SĐT, loại khách, trạm đi / đến, điểm đón / trả, ghi chú, hành lý; KHÔNG mang theo đại lý, cọc, lý do 0đ, ghế đôi, giá (giá tra lại theo phơi mới chọn). Vé mới gán customer_id theo SĐT chính (B14). ĐÃ CHỐT: KHÔNG lưu vé gốc (không có cột rebooked_from_ticket_id); lịch sử vé cũ đã nằm ở activity_logs. Quyền: nút "Đặt" = BOOK_KEYS, nút "Bán" = sell_ticket (B16).
+    %%   (B23) TIỀN CỦA VÉ (bảng ticket_payment; ĐÃ CHỐT thay cho cột cọc / payment_method). kind IN (deposit, payment, refund, transfer_out, transfer_in); amount luôn > 0, chiều tiền do kind quyết định; method (Tiền mặt | Chuyển khoản) NOT NULL với deposit / payment / refund và NULL với transfer_*; reason bắt buộc khi refund; reference = mã giao dịch ngân hàng / cổng thanh toán (tùy chọn, cần cho chuyển khoản và online; một lần thanh toán online nhiều vé thì mỗi vé một dòng cùng reference).
+    %%       Dòng KHÔNG sửa, KHÔNG xóa: ghi sai thì thêm dòng mới để đính chính. transfer_out và transfer_in đi cặp cùng amount, nối nhau bằng counterpart_payment_id, thuộc hai vé khác nhau. Trigger: (a) đã thu ròng = SUM(deposit + payment + transfer_in) - SUM(refund + transfer_out) không âm; (b) khi ghi deposit / payment: đã thu ròng <= tiền vé hiện tại; (c) refund <= đã thu ròng trước đó; (d) CHỈ khi vé chuyển sang sold: đã thu ròng >= tiền vé tại thời điểm đó (kiểm MỘT LẦN trong hàm bán; vé unit_price = 0 không cần dòng nào). Sau đó đã thu ròng được lệch tiền vé do hủy một phần, hoàn tiền hoặc phí giữ lại (B1, quyết định 15); (e) khóa sau khởi hành B12 áp cho ticket_payment như ticket, trừ admin (kể cả hoàn tiền sau khởi hành: C13).
+    %%       reopen_event_id chụp lần Re-open đang mở lúc ghi dòng, để kết ca tính thu / hoàn bổ sung; station_id = trạm của người ghi (admin gốc = trạm "Admin"); người ghi = created_by, khác với sold_by (người chịu doanh số, B7). Doanh thu theo người bán vẫn đọc ticket.sold_by.
+    %%   (B24) HOA HỒNG ĐẠI LÝ (ĐÃ CHỐT): mỗi đại lý một tỷ lệ % riêng, admin cài ở màn Đại lý (agent.commission_rate, 0..100, mặc định 0). Lúc đặt / bán vé có đại lý, ticket.agent_commission_rate chụp tỷ lệ của đại lý tại thời điểm đó: đổi tỷ lệ về sau KHÔNG làm đổi vé cũ (giống đơn giá, B5); Sửa vé không đổi tỷ lệ đã chụp.
+    %%       TÍNH HOA HỒNG [BỊ THAY 28/10/2026 bởi quyết định 19: tính trên TỔNG TIỀN VÉ, không phải đã thu ròng] (C14): chỉ dựa trên TIỀN ĐÃ THU RÒNG của vé = paid_amount ở B1 (deposit + payment + transfer_in - refund - transfer_out), KHÔNG dựa trên giá vé. Tiền hoa hồng KHÔNG lưu, tính bằng view: round(paid_amount x agent_commission_rate / 100). Hệ quả: vé mới cọc thì chỉ tính hoa hồng trên phần cọc; khách được hoàn tiền thì hoa hồng giảm tương ứng; hủy hẳn và hoàn đủ thì bằng 0; không cần lọc theo status. Vé cũ có đại lý mà không rõ tỷ lệ: agent_commission_rate = NULL, kế toán xử lý tay. Công nợ đại lý (đại lý thu hộ, nhà xe nợ hoa hồng) CHƯA có bảng: thuộc giai đoạn kế toán.
+    %%       [SỬA 28/10/2026, quyết định 19] v_agent_commission: với mỗi vé có agent_id và status IN (hold, sold): round(unit_price x seat_count x agent_commission_rate / 100), cộng theo agent_id (và theo kỳ / phơi khi báo cáo). KHÔNG dùng paid_amount nên không đổi khi cọc, thu, hoàn; vé hủy hết ghế (cancelled) hoặc chuyển đi (transferred) tự rơi khỏi tổng, vé mới sinh từ chuyển / tách tính lại theo ghế của nó. Vé đại lý cũ có agent_commission_rate NULL: coi 0, kế toán xử lý tay. Công nợ đại lý (đại lý thu hộ, nhà xe nợ hoa hồng) và chiều thu / chi của khoản hoa hồng vẫn thuộc giai đoạn kế toán (F29).
+    %%   (B25) [ĐỂ SAU, quyết định 16] HẠN GIỮ GHẾ VÉ ONLINE (ĐÃ CHỐT HƯỚNG, C12): chỉ vé channel = online chưa thanh toán đủ có ticket.hold_expires_at = giờ đặt + số phút do admin cài (cấu hình hệ thống, thiết kế ở giai đoạn admin; ERD này chưa có bảng cấu hình). Quá hạn mà chưa đủ tiền thì chuyển vé sang cancelled và nhả ghế (trip_seat.ticket_id = NULL) trong một giao dịch, ghi seat_cancellation với lý do "Hết hạn giữ chỗ" và cancelled_by = tài khoản hệ thống; đã có cọc một phần thì phải có người xử lý hoàn (không tự hoàn). Thanh toán đủ trước hạn thì hold_expires_at = NULL. Vé quầy / đại lý không có hạn (F12).
+    %%       [ĐỂ SAU] Khi làm online phải có tài khoản + trạm hệ thống cho sold_by / selling_station_id / booked_by / booked_station_id / ticket_payment.created_by, station_id / seat_cancellation.cancelled_by (đang NOT NULL), và hàm nhả ghế quá hạn chạy bằng tài khoản hệ thống, được trigger khóa B12 miễn như admin. Webhook thanh toán cổng cũng cần được miễn khóa nếu tiền về sau giờ khởi hành. Bản nội bộ không cần.
+    %%   (B26) HÀM THEO CHỨC NĂNG VÀ KHÓA QUYỀN (ĐÃ CHỐT, quyết định 14). Một bảng ticket; client KHÔNG INSERT / UPDATE / DELETE thẳng vào ticket, trip_seat, ticket_payment, seat_cancellation (RLS từ chối, hàm SECURITY DEFINER). Mọi hàm: (1) lấy người thao tác từ phiên đăng nhập, không nhận tham số; (2) kiểm khóa quyền bằng users -> employees -> employee_types -> employee_type_permissions; (3) kiểm khóa sau khởi hành B12 (người có edit_after_departure được miễn, ghi activity_logs); (4) khóa dòng B19; (5) ghi MỘT giao dịch + activity_logs (B18).
+    %%       fn_book_ticket ............ book_ticket | sell_ticket ......... ghi: ticket (hold), trip_seat.ticket_id, ticket_payment (deposit)
+    %%       fn_edit_hold_ticket ....... book_ticket | sell_ticket ......... ghi: ticket, ticket_payment (deposit hoặc refund chênh lệch cọc, B4); đổi giá cần thêm change_price; CHỈ vé hold
+    %%       fn_add_to_group ........... book_ticket | sell_ticket ......... ghi: ticket (vé mới, group_ticket_id), trip_seat
+    %%       fn_sell_ticket ............ sell_ticket ....................... ghi: ticket (sold, sold_at), ticket_payment (payment), tách vé B21 (ticket, trip_seat, cặp transfer_*)
+    %%       fn_cancel_seats ........... ghế hold: book_ticket | sell_ticket; ghế sold hoặc chọn lẫn: sell_ticket ... ghi: trip_seat, seat_cancellation, ticket.status, ticket_payment (refund, cặp transfer_* khi dồn cọc trong nhóm)
+    %%       fn_transfer_seats ......... như fn_cancel_seats (theo trạng thái ghế nguồn); vé sold sang phơi khác bắt buộc lý do ... ghi: ticket (vé mới), trip_seat, ticket_payment (cặp transfer_*), activity_logs.changes.reason
+    %%       fn_restore_cancelled ...... book_ticket | sell_ticket ......... ghi: ticket (hold), trip_seat, seat_cancellation.restored_ticket_id
+    %%       fn_rebook (Đặt lại vé) .... nút Đặt: book_ticket | sell_ticket; nút Bán: sell_ticket ... ghi: như fn_book_ticket hoặc fn_sell_ticket
+    %%       fn_set_price .............. change_price, được gọi trong fn_book / edit / sell / rebook / assign_pickup khi giá khác bảng giá hoặc bằng 0 (kèm zero_price_reason)
+    %%       v_ticket_list, v_customer . view_tickets, view_customers ...... chỉ ĐỌC, phạm vi theo view_all_stations / is_self (B16)
+    %%       Cờ bật kiểm quyền (HN_ENFORCE_TICKET_PERMS, localStorage từng trình duyệt ở app) lên DB là một dòng app_settings (key ticket_permission_enforced, chỉ admin gốc sửa); HR cấp quyền xong mới bật, migration không seed quyền.
+    %%   (B27) RÀNG BUỘC KHÔNG VẼ ĐƯỢC TRÊN SƠ ĐỒ: (a) ticket: FK ghép (group_ticket_id, trip_id) -> ticket(ticket_id, trip_id); trigger group_ticket_id không trỏ vào vé đã có group_ticket_id; CHECK (sold_phase = POST_DEPART) = (reopen_event_id IS NOT NULL); CHECK unit_price = 0 -> zero_price_reason NOT NULL. (b) trip_seat: FK ghép (ticket_id, trip_id) -> ticket(ticket_id, trip_id). (c) ticket_payment: counterpart_payment_id DEFERRABLE INITIALLY DEFERRED; CHECK kind IN (transfer_out, transfer_in) -> counterpart NOT NULL, method NULL; trigger cặp cùng amount, hai vé khác nhau. Ràng buộc của shuttle_assignment và pickup_request: xem trung-chuyen-erd.mmd.
+    %%   (B28) ĐIỂM NỐI VỚI TRUNG CHUYỂN (vé sinh từ Rước liền; chốt 28/10/2026). Giai đoạn 2 ở docs/trung-chuyen-erd.mmd nhưng vé do Rước liền chỉ định xe PHẢI đi đúng bộ luật đặt / bán vé: (a) bảng ticket đã có sẵn channel = pickup, guest_type = Trung chuyển, transferred_from_ticket_id (đổi chỉ định: vé cũ chuyển transferred, vé mới trỏ về vé cũ); (b) fn_assign_pickup KHÔNG ghi ticket riêng mà gọi cùng hàm lõi tạo vé sold với fn_sell_ticket, nên cùng kiểm: ghế trống B19, giá theo trạm KHÁCH B5, giá 0đ cần change_price + lý do B4, khóa phơi cũ và mới B12, mã vé từ ticket_no_seq B3, dòng payment B23, nhật ký assign_pickup B18, doanh số theo người thao tác B7; (c) ngoại lệ CHECK duy nhất: channel = pickup được để trống pickup_address / dropoff_address (B4); (d) fn_transfer_seats khi vé có dòng shuttle_assignment phải chuyển dòng sang vé mới; (e) khóa B12 KHÔNG áp cho shuttle_assignment / pickup_request nhưng áp cho vé được sinh; (f) pickup_request.ticket_id và shuttle_assignment.ticket_id trỏ vào ticket nên migrate hai bảng này SAU ticket. Giai đoạn 1 chưa tạo vé channel = pickup; cột và CHECK đã sẵn để giai đoạn 2 không phải đổi bảng ticket.
+    %% .
+    %% PHÁT HIỆN KHI ĐỐI CHIẾU CODE (lệch / rủi ro; mục ghi [ĐÃ SỬA TRONG CODE] thì code đã sửa, mục ghi [CHƯA SỬA] hoặc không ghi gì thì DB đã xử lý như ghi, code app CHƯA đổi):
+    %%   (F1) [ĐÃ SỬA TRONG CODE: tsSplitPartialSale; nhưng groupSeatsByTicket vẫn chọn ghế đại diện bằng localeCompare nên dữ liệu cũ còn ảnh hưởng] Vé nhiều ghế: groupSeatsByTicket lấy ghế mã nhỏ nhất làm đại diện cho state, price, paid, cọc của cả vé. 'Đặt thêm cho nhóm' thêm ghế hold vào vé đã sold -> cả vé hiện sold, thu đủ ghế chưa thu. Bán một phần ghế của vé hold (panel Sửa -> Bán vé trên 1 ghế; sellFromTransferBar) cũng cho vé có ghế sold lẫn hold, không riêng 'Đặt thêm'. 'Mã nhỏ nhất' tính bằng localeCompare theo chữ (A10 đứng trước A2), không theo số. -> B1, B8, B21.
+    %%   (F2) Ghế đôi: fare.double là giá cả 1 chỗ đôi; nếu giữ 2 ghế, mỗi ghế mang giá đôi thì tiền gấp đôi. -> chốt 1 ghế vật lý (B5).
+    %%   (F3) [ĐÃ SỬA TRONG CODE] 'Đặt thêm cho nhóm' dùng chung ticketNo, trong khi chuyển ghế và đặt lại vé đã theo nguyên tắc 'ghế khác = vé khác'. -> B8.
+    %%   (F4) [ĐÃ SỬA TRONG CODE] Chuyển MỘT PHẦN ghế của vé có cọc: ghế đích chép depositAmount của nguồn và nguồn vẫn giữ cọc nguyên -> cọc bị tính 2 lần. -> B6, B10 chia theo tỷ lệ.
+    %%   (F5) [ĐÃ SỬA TRONG CODE] confirmRestoreFromCancelled chỉ chép tên, SĐT, 2 chặng, giá, ghi chú: mất loại khách, điểm đón / trả, đại lý, cọc, hành lý; và dùng lại ticketNo ngay cả khi vé gốc còn ghế khác -> hai vé cùng mã trong 1 phơi, bị groupSeatsByTicket gộp nhầm. -> B9. (Sau đó chủ CHỐT không mang cọc theo khi đặt lại vé hủy, và cọc chuyển sang vé còn lại khi hủy hẳn một vé trong nhóm: xem B9, C2, C11.)
+    %%   (F6) tsAggregateTicketsFromSeats cộng cashAmount / transferAmount theo paymentMethod || 'Tiền mặt' cho CẢ vé hold (chưa thu), nên 'tiền mặt' gồm tiền chưa thu; cọc bằng chuyển khoản cũng không được tách. -> B6, B13.
+    %%   (F9) [ĐÃ SỬA TRONG CODE] readAndValidateRebookPrice chia tổng cho số ghế rồi Math.round: tổng không chia hết thì lưu lệch. -> B5.
+    %%   (F10) [ĐÃ SỬA MỘT PHẦN TRONG CODE] ticketSeq của app reset về 1 mỗi lần tải trang. Code đã vá một phần bằng reseedTicketSeqFromBank() (khi tải trang, khi nhận sự kiện storage, trong issueTicketNo / Đặt lại vé / Rước liền), saveTicket và nhánh bán chính nay cũng dùng issueTicketNo() (có reseed). Còn lại: localStorage chỉ có hiệu lực trong một trình duyệt: hai tab chưa kịp nhận storage vẫn có thể cấp trùng. -> ticket_no_seq (B3).
+    %%   (F11) Trường chết: callState, pickupTime, locked / lockedBy, seat.driver. Không tạo cột. Nếu sau này làm BR-05 (khóa ghế tạm) thì thêm trip_seat.locked_by + locked_until (có hạn), không dùng cờ không hết hạn.
+    %%   (F12) [ĐÃ CHỐT: GIỮ NGUYÊN] Vé giữ chỗ (hold) KHÔNG có hạn giữ: ghế hold tồn tại đến khi khởi hành hoặc bị hủy tay. Áp cho vé quầy / đại lý; vé online đang chờ thanh toán cần hạn riêng: C12.
+    %%   (F13) [ĐÃ SỬA TRONG CODE] confirmAddToGroup: ghế mới không chép agentId / agentName (mất đại lý); booked_by lấy staff của vé nguồn trong khi trạm là trạm người thao tác; chặn khi vé nguồn < 2 ghế. -> B8.
+    %%   (F14) [ĐÃ SỬA TRONG CODE] confirmRebook / confirmRebookAndSell: không có đại lý; chỉ ghi transshipStation / arrivalTransfer (không ghi pickupAddress / dropoffAddress); không kiểm trạm đến, điểm trung chuyển, phơi hủy / mẫu; tsFareSnapshot lấy cặp trạm của phơi thay vì trạm khách chọn. -> B4, B5, B22.
+    %%   (F18) [ĐÃ SỬA TRONG CODE] saveTicket / sellTicket kiểm cọc <= giá MỘT ghế (t_price là giá 1 ghế), trong khi B4 cho cọc tới đơn giá x số ghế (modal Đặt lại vé đã đúng). Nay dùng tsPanelTicketSeatCount(). -> B4.
+    %%   (F19) [ĐÃ SỬA TRONG CODE] Khóa B12: saveTicket không được bọc; wrapper confirmSellPayment luôn kiểm currentTripId nên chặn nhầm việc bán sang phơi còn mở từ Đặt lại vé / Chỉ định Rước liền khi đang xem phơi đã khởi hành, và để treo ngữ cảnh chờ; đổi chỉ định Rước liền không kiểm phơi cũ. -> B11, B12.
+    %%   (F20) [ĐÃ SỬA TRONG CODE] Admin > Khách hàng khoá theo chuỗi SĐT thô ('a, b', +84, dấu cách) và tên bị gán ngược (rows mới nhất trước nhưng gán đè mỗi vòng nên tên CŨ nhất thắng). -> B14.
+    %%   (F21) [ĐÃ SỬA TRONG CODE] confirmTransfer: vé hold chuyển trong cùng phơi giữ staff / bookedBy / trạm của vé nguồn; thông báo đếm cả ghế bị bỏ qua; không ghi vết vé nguồn. -> B10.
+    %%   (F25) [CHƯA SỬA] Mã vé có nhiều nơi cấp: issueTicketNo / ticketSeq (Phòng vé), nextTicketNoFromBank (Admin), và pkConfirmAssign cấp mã TRƯỚC khi thu tiền (đóng hộp thanh toán thì số bị bỏ trống). Lên DB chỉ dùng ticket_no_seq, chấp nhận số bị bỏ trống. -> B3, F10.
+    %%   (F26) [CHƯA SỬA] splitAccidentalTicketGroups() chạy mỗi lần tải trang và đổi mã vé trên MỌI phơi, kể cả phơi đã khởi hành. Đây là công cụ vá dữ liệu cũ, không mang lên DB (việc tách đã nằm trong thứ tự migrate B20). -> B12, B20.
+    %%   (F27) [CHƯA SỬA] Khóa B12 lặp ở 3 hàm kiểm trong code (xem B12); Admin dùng bản riêng đọc thẳng hn_ts_manifests_v1. -> B12.
+    %%   (F28) [ĐÃ SỬA TRONG CODE: ô "Số tiền hoàn" ở hộp thoại hủy (tsCancelPlan, tsPlanDepositMoves, confirmCancel); bản ghi hủy lưu collectedAtCancel, refundAmount, refundMethod, refundBy, refundAt, ghi nhật ký action = refund] confirmCancel coi cọc của vé hủy hẳn là đã hoàn mà không hỏi số tiền, và không nơi nào ghi tiền hoàn. Phải thêm ô "Số tiền hoàn" ở hộp thoại hủy và ghi ticket_payment kind = refund. -> B6, B9, B23, C1.
+    %%   (F29) [ĐÃ SỬA TRONG CODE: acctTripCollectionSummary đọc seat bank thật, hoa hồng = tỷ lệ chụp trên vé x tiền đã thu ròng; sửa cả bảng đối soát phơi và chi tiết hành khách. CÒN MỞ: hướng thu / chi của khoản "Hoa hồng đại lý" trong sổ thu chi chưa chốt] admin-accounting.js: hoa hồng đại lý gán cứng 15% (Math.round(price * 0.15)); và đọc seat.status / seat.agent / seat.isAgency / seat.paxName là các trường KHÔNG có trên ghế thật (ghế dùng state / agentId, và seat bank là { down, up, extraSeats, subSeats }, không phải map ghế). Làm lại trên v_ticket + ticket_payment + ticket.agent_commission_rate. -> B13, B23, B24.
+    %%   (F30) [ĐÃ SỬA TRONG CODE: tsIsLifecycleLocked (chỉ để tô màu) tách khỏi tsIsSellingLocked (cổng chặn, admin được miễn); Admin > Trung chuyển dùng adminTsGateLocked; nhật ký ghi ở các hàm bọc cuối ticketstaff-manifest-ui.js] Khóa sau khởi hành (tsIsSellingLocked, adminTsTripSellingLocked, zone1IsTripSellingLocked) không xét admin: admin cũng bị chặn. Cần miễn cho Auth.isAdmin() ở cả 3 hàm, và DB chỉ một trigger (B12). -> B12.
+    %% .
+    %% ĐIỂM CẦN CHỦ XÁC NHẬN (code CHƯA đổi):
+    %%   (C1) [ĐÃ CHỐT, CODE ĐÃ THEO] Hủy vé ĐÃ BÁN: có hoàn tiền, nhân viên tự nhập số hoàn từng lần, không công thức phí. Ghi bằng ticket_payment kind = refund (B6, B23), thay cho các cột cọc / thanh toán trên ticket. Xem F28.
+    %%   (C2) [ĐÃ CHỐT, CODE ĐÃ THEO] Cọc của vé bị hủy hẳn do nhân viên nhập số hoàn (C1); đặt lại vé hủy KHÔNG mang tiền theo, cần cọc thì thu lại. Hủy một phần ghế của vé nhóm thì tiền đã thu giữ nguyên ở vé còn ghế; hủy hẳn một vé trong nhóm thì cọc chuyển sang vé còn lại (C11). Xem B9.
+    %%   (C3) [ĐÃ CHỐT] Admin > Danh sách vé / Khách hàng dùng 2 khóa xem mới view_tickets, view_customers (B16 mục 9); HR và kế toán chỉ vào được khi được cấp.
+    %%   (C4) Gộp khách trùng người khác SĐT: có cần chức năng gộp (customer.merged_into_id) không?
+    %%   (C5) [ĐÃ CHỐT] BỎ trip_seat.state, chỉ giữ ticket_id + is_hidden (một nguồn sự thật; truy vấn sơ đồ ghế JOIN ticket). Dòng ĐỂ SAU ở phoi-xe-erd.mmd đã được sửa theo.
+    %%   (C6) [ĐỂ SAU] Đặt vé online của trang khách hàng (hn_customer_bookings: tuyến, ngày, ghế, điểm lên / xuống) đang là kho riêng, KHÔNG ghi vào seat bank. Khi nối vào: ticket.channel thêm 'online', cần tài khoản khách (customer_account) và quy tắc sold_by / selling_station cho vé không do nhân viên bán. || ĐÃ CHỐT HƯỚNG (nhà xe bán qua quầy, đại lý và online): vé online dùng chính bảng ticket với channel = online, tiền thu qua cổng thanh toán ghi ticket_payment (B23). CHƯA thêm bảng booking; chỉ cần khi có vé khứ hồi / một lần đặt nhiều chuyến, khi đó group_ticket_id đổi thành booking_id.
+    %%   (C7) [ĐÃ CHỐT] Chuyển vé ĐÃ BÁN sang phơi khác: vẫn cần sell_ticket (không đòi quyền cao hơn) nhưng BẮT BUỘC nhập lý do, lưu ở activity_logs (xem B10, F34).
+    %%   (C8) Vé chuyển (B10) có mang group_ticket_id của vé nguồn không? Mặc định thiết kế: KHÔNG (code hiện không chép). Nếu chuyển một phần ghế của vé trong nhóm, vé mới rời nhóm trên màn Danh sách hành khách.
+    %%   (C11) [ĐÃ CHỐT, CODE ĐÃ THEO] Hủy hẳn vé trong nhóm khi còn vé khác trong nhóm: cọc chuyển sang vé còn lại (B9 mục 4), không hoàn.
+    %%   (C12) [ĐỂ SAU] [ĐÃ CHỐT HƯỚNG] Hạn giữ ghế vé online chưa thanh toán: số phút do admin cài đặt sau, không cố định. Xem B25. Còn lại để làm khi thiết kế màn cấu hình admin: giá trị mặc định và khoảng cho phép.
+    %%   (C13) [ĐÃ CHỐT; SỬA 28/10/2026: "chỉ admin" nay là "người có khóa edit_after_departure, admin gốc luôn có", quyết định 17] Sau khi xe đã chạy, CHỈ ADMIN được thao tác vé / ghế / tiền (kể cả hoàn tiền cho khách không đi, no-show); mọi tài khoản khác bị khóa như B12. Xem B12, B16, F30.
+    %%   (C14) [BỊ THAY 28/10/2026 bởi quyết định 19] Hoa hồng đại lý tính trên tiền đã thu ròng của vé, tỷ lệ % do admin cài từng đại lý. Xem B24.
+    %%   (F31) [ĐÃ SỬA TRONG CODE, TRỪ ADMIN > TRUNG CHUYỂN: wrapLog (ticketstaff-manifest-ui.js) nhận hàm lấy phơi / loại thao tác và bọc thêm confirmRebook, confirmRestoreFromCancelled, confirmSellPayment (phơi theo pendingRebookSell / pendingPickupAssignSell; action rebook / assign_pickup / sell). CÒN MỞ: adminTsConfirmSellPayment và adminTsTransferExisting chưa ghi nhật ký admin sau khởi hành (trang Admin không nạp ticketstaff-manifest-ui.js).] Trước đây nhật ký admin sau khởi hành (wrapLog) không bọc Đặt lại vé, Đặt lại vé hủy, Chỉ định xe và lấy phơi từ currentTripId trong khi vé đặt lại nằm ở rebookSelectedTripId. -> B12, B18.
+    %%   (F32) [ĐÃ SỬA TRONG CODE Ở GIAO DIỆN: requirePermission / requireTicketTouchPermission / hasTicketPermission trong seat-bank.js (BOOK_KEYS, SELL_KEYS), cờ HN_ENFORCE_TICKET_PERMS_KEY bật ở Admin > Cấu hình nhân sự > Tham số (mặc định tắt, từ chối bật khi chưa loại nhân viên nào có book_ticket / sell_ticket); đã gắn vào saveTicket, sellTicket, confirmSellPayment, sellFromTransferBar, confirmCancel / openCancelModalForCodes, confirmTransfer, startTransferMode, onSeatClick, confirmAddToGroup, openBookingPanel, confirmRebook, confirmRebookAndSell, openRebookFromHistory, confirmRestoreFromCancelled, pkConfirmAssign, savePickupInfo, adminTsConfirmSellPayment, adminTsTransferExisting; change_price khóa ô giá (tsPriceLocked / tsApplyPriceLock) và giá 0đ (tsAllowZeroPrice, readAndValidateRebookPrice, pkConfirmAssign). CÒN MỞ: kiểm lại ở tầng service / API khi lên DB; adminSavePickup chưa kiểm transship_pickup (Admin).] Trước đây các khóa vé chỉ khai báo, không nơi nào kiểm. -> B16.
+    %%   (F34) [ĐÃ SỬA TRONG CODE: modal #transferReasonModal, openTransferReasonModal / submitTransferReason / closeTransferReasonModal; confirmTransfer hỏi lý do khi có ghế sold và phơi nguồn khác phơi đích, ghi nhật ký action transfer với changes.reason qua tsLogTicket] Trước đây confirmTransfer không có ô lý do. -> B10, C7.
+    %%   (F35) [ĐÃ SỬA TRONG CODE: tsPlanDepositMoves lọc bỏ vé sold, chọn vé còn nợ > 0, trần = tiền vé - cọc hiện có] Chuyển cọc trong nhóm khi hủy hẳn vé lấy trần là cả tiền vé nhưng cọc hiện có chỉ tính phần cọc, nên vé nhận đã sold vẫn bị cộng cọc (thu dư). -> B9 mục 4.
+    %%   (F37) [ĐÃ CHỐT quyết định 20: vé sold chỉ đọc] Vé SOLD chỉ đọc trên giao diện (panel "Thông tin ghế", shared/js/ui.js isReadOnly), nên "Sửa vé" thực tế chỉ có với hold. Ma trận B16 mục (2) chỉ ghế sold cho hủy / chuyển / hoàn. -> B4, B16.
+    %%   (F38) [GHI NHẬN] Hộp thoại hủy chỉ có ô số tiền hoàn và phương thức, không có lý do hoàn riêng; ticket_payment.reason (bắt buộc với refund) lấy từ lý do hủy. -> B9, B23.
+    %%   (F40) [CHƯA SỬA] Ghế dư (extra): chuyển đi thì xóa khỏi extraLeftoverSeats, hủy thì clearSeatToEmpty để lại ghế dư trống vô nghĩa. -> B1.
+    %%   (F41) [ĐÃ SỬA TRONG CODE: saveTicket nhánh Sửa ghi nhật ký tăng cọc = edit, giảm cọc = refund "Điều chỉnh cọc khi sửa vé"] Trước đây đổi cọc ở panel Sửa không để lại dấu vết. -> B4, quyết định 15.
+    %%   (C15) Admin sửa / hoàn tiền sau khi xe đã chạy hoặc sau khi kết ca có làm đổi số liệu kết ca và manifest đã chốt không? Đề xuất mặc định: số đã chốt KHÔNG tự đổi; thao tác admin chỉ hiện ở báo cáo như một khoản điều chỉnh (đọc từ activity_logs và ticket_payment.paid_at lớn hơn giờ chốt). Cần chốt khi làm giai đoạn kết ca. LƯU Ý từ code: vé admin tạo sau khởi hành (không Re-open) mang sold_phase = PRE_DEPART nên cộng vào phần "gốc" của manifest khi tổng hợp lại (tsAggregateTickets lọc soldPhase !== POST_DEPART).
+    %%   (C16) [ĐÃ CHỐT 28/10/2026: KHÔNG tính hoa hồng trên phí giữ lại; hoa hồng chỉ tính trên tiền vé của vé còn hiệu lực, quyết định 19, code acctTripCollectionSummary đã sửa] Phí giữ lại của vé cancelled (đã thu - đã hoàn): code kế toán hiện cộng vào doanh thu phơi và tính hoa hồng đại lý trên phần đó (B24 "không lọc theo status"). Có đúng ý chủ không, hay hoa hồng chỉ tính trên vé còn hiệu lực? Giai đoạn kết ca cũng cần quyết cách báo cáo (B13).
+    %%   (C17) [QUYẾT SAU] Tiền tố mã vé: tạm giữ SGCD-0001 cho mọi tuyến, một ticket_no_seq duy nhất (B3). Khi chủ chọn tiền tố theo tuyến thì thêm cột route prefix, không đổi ý nghĩa unique (ticket_no, trip_id).

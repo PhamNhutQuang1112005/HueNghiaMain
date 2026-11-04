@@ -1,0 +1,123 @@
+/* Reset & khối UI chung (app shell, topbar, user-menu) — trích từ phần giống hệt cc/ts */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--white);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: 'Roboto Mono', monospace;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ===== APP SHELL ===== */
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 1180px;
+  overflow: hidden;
+}
+
+/* ===== TOP SIDEBAR (thanh ngang) ===== */
+.topbar {
+  height: 54px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-gray);
+  background: var(--white);
+  position: relative;
+}
+
+.topbar-align-group {
+  position: absolute;
+  left: 393px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-spacer {
+  flex: 1 1 auto;
+}
+
+.user-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.user-menu.open .user-chip>svg {
+  transform: rotate(180deg);
+}
+
+/* ===================== RESPONSIVE ===================== */
+/* .app khóa min-width:1180px ở trên là nguyên nhân chính gây scrollbar ngang toàn trang trên
+   tablet/mobile — dỡ bỏ khóa này dưới 1200px, phần layout bên trong (topbar/zone1/zone2...) tự co giãn
+   theo media query riêng ở từng file. */
+@media (max-width: 1199px) {
+  .app {
+    min-width: 0;
+  }
+
+  /* .topbar-align-group dùng position:absolute (left:393px cố định theo bề rộng .brand desktop) —
+     không thể co giãn theo bề rộng màn hình nhỏ hơn. Chuyển về dòng chảy bình thường (static), xuống
+     hàng riêng bên dưới brand/user-menu bằng flex-wrap thay vì định vị tuyệt đối. */
+  .topbar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    height: auto;
+    min-height: 54px;
+    row-gap: 8px;
+    padding: 10px 16px;
+  }
+
+  .topbar-align-group {
+    position: static;
+    order: 3;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .topbar-spacer {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .topbar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+}

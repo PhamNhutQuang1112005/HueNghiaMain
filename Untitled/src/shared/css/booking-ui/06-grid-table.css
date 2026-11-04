@@ -1,0 +1,475 @@
+/* ===== Bảng dạng kẻ ô đầy đủ — dùng chung cho các bảng danh sách trong Zone 3 (Hành khách, Trung
+   chuyển đón/trả, Ghế hủy, Lịch sử), cùng phong cách với bảng trong modal Khởi hành xe/Xem phơi
+   (.lined-table/.denom-grid-table): mỗi ô đều có viền, header nền xám nhạt, thay cho kiểu chỉ có viền
+   dưới mỗi hàng mặc định của .pax-table. */
+.pax-table.pax-table--grid {
+  border-collapse: collapse;
+}
+
+.pax-table.pax-table--grid th,
+.pax-table.pax-table--grid td {
+  border: 1px solid var(--border-gray);
+}
+
+.pax-table.pax-table--grid thead th {
+  background: var(--surface-2);
+}
+
+.pax-table.pax-table--grid tbody tr:last-child td {
+  border-bottom: 1px solid var(--border-gray);
+}
+
+/* .pax-table--history tự khai riêng nền header (trắng) + viền dưới mỗi hàng (2px header/1px thân, màu
+   var(--surface) nhạt hơn) với độ đặc hiệu bằng đúng các rule .pax-table--grid ở trên — cùng gắn thêm
+   2 lớp (.pax-table--grid.pax-table--history) để chắc chắn thắng, đồng bộ hẳn màu/độ dày viền với các
+   bảng kẻ ô khác thay vì lẫn lộn 2 tông màu viền trên cùng 1 bảng. */
+.pax-table--grid.pax-table--history thead th {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.pax-table--grid.pax-table--history tbody td {
+  border-bottom: 1px solid var(--border-gray);
+}
+
+/* Khung bao ngoài cùng tông màu viền đậm hơn (var(--border-gray)) như .grid-table-wrap trong modal
+   Khởi hành xe/Xem phơi, thay vì màu viền nhạt var(--surface) mặc định của .pax-table-wrap. */
+.pax-table-wrap:has(.pax-table--grid) {
+  border-color: var(--border-gray);
+}
+
+.pax-empty-row td {
+  text-align: center;
+  color: var(--text-sub);
+  padding: 32px 12px;
+  font-weight: 600;
+}
+
+.pax-col-name {
+  color: var(--text-main);
+}
+
+/* ===== Cột "Hành trình": điểm đi/đến dạng timeline dọc, chấm đỏ = đi, ghim xám = đến ===== */
+.pax-route {
+  display: flex;
+  flex-direction: column;
+}
+
+.pax-route-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pax-route-icon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.pax-route-from .pax-route-icon {
+  color: var(--red);
+}
+
+.pax-route-to .pax-route-icon {
+  color: var(--text-sub);
+}
+
+.pax-route-connector {
+  width: 1px;
+  height: 8px;
+  background: var(--border-gray);
+  margin-left: 6px;
+}
+
+.pax-route-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+/* ===== Cột "Ghế": 2 dòng nhãn tắt SL: (số lượng vé)/VT: (vị trí, mã ghế) — cùng kiểu label:value
+   như "Đã thu/Còn nợ" ở cột Thanh toán bên cạnh. Label đặt width cố định (thay vì để chữ tự co giãn)
+   để "SL:"/"VT:" và phần giá trị theo sau luôn thẳng cột với nhau giữa 2 dòng. */
+.pax-seat-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.pax-seat-line + .pax-seat-line {
+  margin-top: 3px;
+}
+
+.pax-seat-label {
+  flex: 0 0 20px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+/* ===== Cột "Baga": chỉ hiện icon vali khi có hành lý, còn lại để trống nhẹ nhàng thay vì vẽ khung
+   rỗng — giảm nhiễu mắt khi bảng có nhiều hàng không ký gửi hành lý. Icon trung tính (không tô màu),
+   cùng tông xám với icon ghi chú bên cạnh, giữ tooltip để vẫn rõ nghĩa dù không có khung nền màu. ===== */
+.pax-luggage-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-sub);
+}
+
+.pax-luggage-mark svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pax-luggage-empty {
+  color: var(--border-gray);
+  font-size: 13px;
+}
+
+/* ===== Cột "Ghi chú": icon ghi chú chỉ hiện khi có nội dung — giúp mắt lướt bảng bắt được ngay hàng
+   nào cần chú ý mà không phải đọc hết chữ. Line-clamp 2 dòng giữ chiều cao hàng đồng đều.
+   QUAN TRỌNG: display:flex đặt thẳng lên <td> (thay vì lên 1 <div> bọc bên trong) sẽ "blockify" ô đó
+   thành box flex, khiến trình duyệt không còn xem nó là table-cell — ô thoát khỏi lưới hàng/cột của
+   bảng, border không còn đồng bộ chiều cao với các ô khác cùng hàng, và toàn cột trông như 1 khối tách
+   rời khỏi bảng. Vì vậy layout icon+chữ được đặt ở .pax-note-row (div con), còn <td.pax-col-note> giữ
+   nguyên display:table-cell mặc định — cùng nguyên tắc đã áp dụng cho .pax-note-clamp bên dưới. */
+.pax-note-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pax-note-icon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--text-sub);
+}
+
+.pax-note-empty {
+  color: var(--border-gray);
+  font-style: italic;
+}
+
+/* display:-webkit-box đặt thẳng lên <td> làm ô thoát khỏi mô hình "table-cell", khiến trình duyệt
+   không còn tính đúng chiều cao hàng theo nội dung đã cắt — chữ dòng 3 tràn lộ ra ngoài viền hàng
+   thay vì bị overflow:hidden chặn lại. Bọc riêng 1 <span> bên trong để line-clamp áp dụng cho nó,
+   còn <td> vẫn giữ nguyên display:table-cell mặc định. */
+.pax-note-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+textarea {
+  width: 100%;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 70px;
+}
+
+textarea:focus {
+  outline: 2px solid var(--red);
+  border-color: var(--red);
+}
+
+.btn[disabled] {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.seat-menu {
+  position: absolute;
+  z-index: 60;
+  background: white;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .14);
+  overflow: hidden;
+  min-width: 150px;
+  display: none;
+}
+
+.seat-menu.open {
+  display: block;
+}
+
+.seat-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 14px;
+  font-size: 14.5px;
+  font-weight: 600;
+  background: white;
+  border: none;
+  border-bottom: 1px solid var(--surface-2);
+}
+
+.seat-menu button:last-child {
+  border-bottom: none;
+}
+
+.seat-menu button:hover {
+  background: var(--surface-2);
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--black);
+  color: white;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 600;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, bottom .25s;
+}
+
+.toast.show {
+  opacity: 1;
+  bottom: 34px;
+}
+
+.toast svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--green);
+}
+
+/* ZONE 3 columns adjustments for cols-3 */
+.floor-row:has(.cols-3) {
+  flex-wrap: nowrap;
+}
+
+.floor-col:has(.cols-3) {
+  min-width: 510px;
+}
+
+.seat-label-short {
+  display: none;
+}
+
+.seat-card.hidden-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+  border: none;
+  background: transparent;
+  height: 200px;
+}
+
+.cols-3 .seat-card.hidden-placeholder {
+  height: 215px;
+}
+
+.seat-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cols-3 .seat-label-full {
+  display: none;
+}
+
+.cols-3 .seat-label-short {
+  display: inline;
+}
+
+.cols-3 .seat-card {
+  padding: 5px 6px;
+  min-height: 215px;
+  height: auto;
+}
+
+.cols-3 .seat-code {
+  font-size: 13.5px;
+}
+
+.cols-3 .seat-price-tag {
+  font-size: 11px;
+  padding: 1.5px 6px;
+}
+
+.cols-3 .seat-deposit-tag {
+  font-size: 10px;
+  padding: 1.5px 5px;
+}
+
+.cols-3 .seat-line {
+  font-size: 11.5px;
+  margin: 3.5px 0;
+}
+
+.cols-3 .route-single-line {
+  display: none;
+}
+
+.cols-3 .route-split-line {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+  margin: 3.5px 0;
+}
+
+.cols-3 .route-split-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.cols-3 .route-split-label {
+  color: var(--black);
+  font-weight: normal;
+  flex: 0 0 auto;
+  font-size: 11.5px;
+}
+
+.cols-3 .seat-stop {
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.cols-3 .seat-note {
+  font-size: 11.5px;
+  margin: 3.5px 0;
+}
+
+.cols-3 .seat-footbtn {
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+/* GHẾ PHỤ (SUB SEATS) — bản thân ô ghế phụ (trống/đã bán) giờ render bằng seatCard() dùng chung với
+   ghế thường (xem renderSubSeats() ở shared/booking-rebook.js), chỉ còn riêng ô "+" bên dưới. */
+.seat-card.sub-add {
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border-gray);
+  background: transparent;
+  cursor: pointer;
+  height: 200px;
+}
+
+.cols-3 .seat-card.sub-add {
+  height: 215px;
+}
+
+.seat-card.sub-add:hover {
+  border-color: var(--black);
+}
+
+#extraSeatsList,
+#cancelledSeatsList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 12px;
+  background: white;
+}
+
+#extraSeatsList.cols-3,
+#cancelledSeatsList.cols-3 {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  padding: 12px;
+}
+
+#extraSeatsList .seat-card,
+#cancelledSeatsList .seat-card {
+  width: 100%;
+}
+
+.seat-card.cancelled {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.seat-card.cancelled .seat-code {
+  color: #dc2626;
+}
+
+.seat-card.cancelled:hover .seat-price-tag {
+  display: block;
+}
+
+.seat-card.cancelled .seat-footbtn {
+  background: #fee2e2;
+  border-top: 1px solid #fca5a5;
+  text-align: center;
+  padding: 4px 0;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.sub-add-plus {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-sub);
+  line-height: 1;
+}
+
+#subSeatsList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 12px;
+  background: white;
+}
+
+#subSeatsList.cols-3 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+#subSeatsList .seat-card {
+  width: 100%;
+}
+
+/* Ghế phụ ĐÃ BÁN vẫn có nút "Hủy" hiện khi rê chuột (như ghế thường) nhưng KHÔNG ẩn giá tiền đi cùng
+   lúc — huỷ riêng rule .seat-card:hover .seat-price-tag{display:none} trong phạm vi danh sách ghế
+   phụ, giữ giá luôn hiện kể cả khi đang rê chuột qua thẻ (đã có tiền lệ .ch-seat-card-item ở
+   10-customer-history-seatmap.css). Loại trừ .empty vì ô ghế phụ TRỐNG vốn không có giá (thẻ giá
+   rỗng, xem seatCard()) — không loại trừ thì rê chuột lại vô tình hiện cái thẻ rỗng đó lên. */
+#subSeatsList .seat-card:not(.empty):hover .seat-price-tag {
+  display: block;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8D9DA;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+

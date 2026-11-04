@@ -1,0 +1,92 @@
+/* =========================================================
+   DELIVERY.CSS — bổ sung riêng cho delivery.html (Danh sách giao hàng)
+   Chỉ thêm những gì css/cargo.css chưa có (6 trạng thái giao hàng,
+   timeline lịch sử trạng thái, chỉnh số cột filter-grid). Không đổi
+   biến màu/layout tổng thể — mọi thứ khác (sidebar, header, bảng,
+   modal, rowicon-btn, mini-tag, form-section...) dùng chung cargo.css.
+   ========================================================= */
+
+/* filter-grid mặc định (cargo.css) có 5 track cho 4 filter + nút Lọc của trang Nhận hàng;
+   trang Giao hàng có 5 filter + nút Lọc = 6 ô, cần thêm 1 track. */
+.filter-grid--delivery {
+  grid-template-columns: minmax(130px, 1fr) minmax(150px, 1.1fr) minmax(150px, 1.1fr) minmax(150px, 1.1fr) minmax(140px, 1fr) auto;
+}
+@media (max-width: 1100px) {
+  .filter-grid--delivery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 2 trạng thái giao hàng chưa có sẵn trong css/cargo.css (status-pending/in-transit/delivered đã có
+   sẵn và được tái dùng cho Chờ giao/Đang giao/Đã giao). */
+.status-fail {
+  background: var(--red-light);
+  color: var(--primary);
+  border: 1px solid #fecdd3;
+}
+.status-reschedule {
+  background: var(--status-enroute-bg);
+  color: var(--status-enroute);
+  border: 1px solid #fde68a;
+}
+.status-returned {
+  background: #F5F3FF;
+  color: #7C3AED;
+  border: 1px solid #DDD6FE;
+}
+
+/* Timeline lịch sử trạng thái trong popup chi tiết giao hàng */
+.delivery-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.delivery-timeline-step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 18px;
+  padding-left: 4px;
+}
+.delivery-timeline-step:last-child {
+  padding-bottom: 0;
+}
+.delivery-timeline-step::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.delivery-timeline-step:last-child::before {
+  display: none;
+}
+.delivery-timeline-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  flex: 0 0 auto;
+  z-index: 1;
+}
+.delivery-timeline-step.is-done .delivery-timeline-dot {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.delivery-timeline-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.delivery-timeline-step.is-done .delivery-timeline-label {
+  color: var(--text-main);
+}
+.delivery-timeline-time {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}

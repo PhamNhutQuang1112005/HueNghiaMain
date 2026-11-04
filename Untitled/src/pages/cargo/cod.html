@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đối soát COD — Huệ Nghĩa Express</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&subset=vietnamese&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <link rel="stylesheet" href="css/cargo.css" />
+  <link rel="stylesheet" href="css/cod.css" />
+  <link rel="stylesheet" href="css/redesign.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body class="rd-page">
+  <div class="app-shell">
+    <!-- Top Header (Chứa Logo Huệ Nghĩa + Ô tìm kiếm căn trái + User Chip) -->
+    <header class="page-header">
+      <div class="header-left">
+        <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Thu gọn / Mở rộng Sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+        </button>
+
+        <a class="brand" href="cargo.html">
+          <div class="brand-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 16V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9" />
+              <path d="M4 16h16" />
+              <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+              <path d="M18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <strong>HUỆ NGHĨA EXPRESS</strong>
+            <span>Hệ thống điều hành</span>
+          </div>
+        </a>
+
+        <nav class="page-breadcrumb" aria-label="breadcrumb">
+          <svg class="bc-home-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          <span class="bc-seg">Hệ thống điều hành</span>
+          <svg class="bc-sep" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="bc-seg bc-current">Đối soát COD</span>
+        </nav>
+
+        <label class="search-shell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input id="globalCodSearch" type="text" placeholder="Tìm mã phiếu DT, mã đơn SG, người gửi..." />
+        </label>
+      </div>
+
+      <div class="header-right">
+        <div class="user-chip"><span class="avatar">?</span><span>Tài khoản</span></div>
+      </div>
+    </header>
+
+    <!-- App Body Layout (Sidebar + Main Content) -->
+    <div class="app-body">
+      <!-- Left Sidebar (Nằm dưới Top Header, Không chứa Logo) -->
+      <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-content">
+          <!-- Chuyển trang & Submenu Accordion -->
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">DANH MỤC ĐIỀU HÀNH</div>
+            <nav class="sidebar-nav">
+              
+              <!-- Group 1: Nhận hàng (Accordion Group) -->
+              <div class="sidebar-nav-group" id="receiveNavGroup">
+                <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('receiveNavGroup', event)" title="Nhận hàng">
+                  <div class="nav-item-content">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    <span>Nhận hàng</span>
+                  </div>
+                  <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                </a>
+
+                <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #fee2e2;">
+                  <!-- Subgroup: Nhận hàng -->
+                  <div class="sidebar-subgroup" id="cargoSubgroup">
+                    <a class="sidebar-nav-item" href="cargo.html" id="cargoSubmenuToggle" title="Danh sách nhận hàng">
+                      <div class="nav-item-content">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px; height:16px;"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span>Danh sách nhận hàng</span>
+                      </div>
+                      <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                    </a>
+
+                    <div class="sidebar-submenu" id="cargoSubmenu">
+                      <div class="sidebar-status-slider" role="radiogroup" aria-label="Loại trạng thái nhận hàng">
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="all" />
+                          <span class="status-dot-icon dot-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+                          <span>Tất cả</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="goods" />
+                          <span class="status-dot-icon dot-goods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                          <span>Hàng hóa</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                          <span>Bạn hàng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="hot" />
+                          <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
+                          <span>Tiền nóng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="baga" />
+                          <span class="status-dot-icon dot-baga"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="8" width="12" height="13" rx="2"/><path d="M9 8V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><line x1="10" y1="12" x2="10" y2="17"/><line x1="14" y1="12" x2="14" y2="17"/></svg></span>
+                          <span>Baga</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="cargoStateFilter" value="cod" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                          <span>Đơn COD</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=manifests" title="Danh sách chuyến xe đi">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 11l4-4m0 0h-3m3 0v3"/></svg>
+                      <span>Danh sách chuyến xe đi</span>
+                    </div>
+                  </a>
+
+                </div>
+              </div>
+
+              <!-- Group 2: Giao hàng (Accordion Group) -->
+              <div class="sidebar-nav-group" id="deliveryNavGroup">
+                <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('deliveryNavGroup', event)" title="Giao hàng">
+                  <div class="nav-item-content">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <span>Giao hàng</span>
+                  </div>
+                  <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                </a>
+
+                <div class="group-children" style="margin-left: 10px; padding-left: 8px; border-left: 2px solid #bfdbfe;">
+                  <!-- Subgroup: Giao hàng -->
+                  <div class="sidebar-subgroup" id="deliverySubgroup">
+                    <a class="sidebar-nav-item" href="delivery.html" id="deliverySubmenuToggle" title="Danh sách giao hàng">
+                      <div class="nav-item-content">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M16 16l3 3 5-5"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="M3.29 7L12 12l8.71-5"/><path d="M12 22V12"/></svg>
+                        <span>Danh sách giao hàng</span>
+                      </div>
+                      <svg class="submenu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+                    </a>
+
+                    <div class="sidebar-submenu" id="deliverySubmenu">
+                      <div class="sidebar-status-slider" role="radiogroup" aria-label="Loại trạng thái giao hàng">
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="all" />
+                          <span class="status-dot-icon dot-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+                          <span>Tất cả</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="goods" />
+                          <span class="status-dot-icon dot-goods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                          <span>Hàng hóa</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                          <span>Tiền thường</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="partner_cash" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                          <span>Bạn hàng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="hot" />
+                          <span class="status-dot-icon dot-hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/></svg></span>
+                          <span>Tiền nóng</span>
+                        </label>
+                        <label class="status-option">
+                          <input type="radio" name="deliveryStateFilter" value="cod" />
+                          <span class="status-dot-icon dot-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                          <span>Đơn COD</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a class="sidebar-nav-item" href="manifest.html?tab=receive" title="Danh sách chuyến xe đến">
+                    <div class="nav-item-content">
+                      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M13 7l-4 4m0 0h3m-3 0v-3"/></svg>
+                      <span>Danh sách chuyến xe đến</span>
+                    </div>
+                  </a>
+
+                </div>
+              </div>
+
+              <a class="sidebar-nav-item" href="ket-ca.html" title="Kết ca">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                  <span>Kết ca</span>
+                </div>
+              </a>
+
+              <!-- Main Standalone Items -->
+              <a class="sidebar-nav-item active" href="cod.html" title="Đối soát COD">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
+                  <span>Đối soát COD</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="returned.html" title="Hàng trả về">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                  <span>Hàng trả về</span>
+                </div>
+              </a>
+              <a class="sidebar-nav-item" href="cargo.html?filter=overdue" id="overdueNavItem" title="Hàng quá hạn (>3 ngày)" style="color:#be123c;">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#e11d48;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Hàng quá hạn (>3 ngày)</span>
+                </div>
+                <span id="overdueBadgeCount" style="margin-left:auto; background:#be123c; color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; display:none;">0</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Panel Container -->
+      <div class="app-main">
+
+    <!-- Main Panel -->
+    <main class="main-panel">
+      <!-- Toolbar Section -->
+      <section class="toolbar">
+        <div class="toolbar-head">
+          <div>
+            <p class="eyebrow" style="color:#C20D08; font-weight:800;">QUẢN LÝ TÀI CHÍNH & DÒNG TIỀN</p>
+            <h1>Đối soát tiền thu hộ (COD)</h1>
+            <p class="page-sub">Theo dõi công nợ và đối soát dòng tiền minh bạch giữa các chi nhánh.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button type="button" class="secondary-btn" onclick="location.reload()">Làm mới</button>
+            <button type="button" class="primary-btn" onclick="showCodToast('Báo cáo đối soát COD đã được xuất file Excel thành công!')" style=" color:white; font-weight:700;">Xuất báo cáo</button>
+          </div>
+        </div>
+
+        <div id="nettingPanel"></div>
+
+      </section>
+
+    </main>
+  </div>
+
+</div> <!-- .app-body -->
+</div> <!-- .app-shell -->
+
+
+  <script src="js/cod.js"></script>
+  <script src="../../shared/js/storage-keys.js"></script>
+  <script src="../../auth/session.js"></script>
+  <script src="../../shared/js/fleet-store.js"></script>
+  <script src="js/auth-bridge.js"></script>
+  <script src="js/responsive.js"></script>
+  <script src="js/stations.js?v=2"></script>
+  <script src="js/netting.js?v=2"></script>
+<script src="js/sidebar.js"></script>
+</body>
+</html>

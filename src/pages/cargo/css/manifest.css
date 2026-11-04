@@ -33,7 +33,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
   color: var(--text-main);
   font-size: 15px;

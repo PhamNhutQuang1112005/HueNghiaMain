@@ -1,0 +1,4996 @@
+/* =========================================================
+   ADMIN.CSS — Deep Burgundy Red Reference Template Overhaul
+   Nhà Xe Huệ Nghĩa
+   =========================================================
+   Deep, elegant burgundy red theme matching the reference design layout:
+   - Deep Muted Red Sidebar gradient (#6B141A -> #450B0F)
+   - Floating Curved White Active Tab Cut-out
+   - Topbar with Greeting, Center Floating Pill Search Bar, & Right Actions
+   - Dashboard Deep Red Featured Card, Gauge Metric, Donut Chart, Wave Chart
+   - 100% Preservation of all DOM IDs, Classes, and JS Actions
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --admin-sidebar-w: 260px;
+  --admin-content-max: 2200px;
+
+  /* TicketStaff Exact Brand Red Palette (#C20D08) */
+  --red: #C20D08;
+  --red-hover: #990A06;
+  --red-light: #FEEFEF;
+  --red-border: #FCA5A5;
+  --red-gradient: linear-gradient(135deg, #C20D08 0%, #990A06 100%);
+  /* Đỏ đậm hơn, MÀU ĐẶC (không gradient) RIÊNG cho sidebar + khối logo (không đụng --red-gradient —
+     biến đó còn dùng cho nút .btn-primary/avatar/tab active khắp trang, đổi sẽ ảnh hưởng ngoài phạm
+     vi sidebar). Sidebar nhạt hơn khối logo 1 chút để phân biệt 2 khối theo yêu cầu. */
+  --brand-red: #6B0805;
+  --sidebar-red: #7E0B07;
+
+  /* Functional Status Colors */
+  --green: #10B981;
+  --green-bg: #ECFDF5;
+  --green-fg: #047857;
+
+  /* Neutral Palette */
+  --black: #0F172A;
+  --border-gray: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --surface: #F1F5F9;
+  --surface-2: #F8FAFC;
+  --text-main: #1E293B;
+  --text-sub: #64748B;
+  --white: #FFFFFF;
+
+  /* 4 Signature Dashboard Theme Colors */
+  --db-c1: #C20D08; /* Xe Tuyến - Crimson Red */
+  --db-c2: #EA580C; /* Xe Trung Chuyển - Bright Orange */
+  --db-c3: #F59E0B; /* Yellow Gold (dùng chung: trạng thái cảnh báo, badge, gradient...) */
+  --db-c4: #D97706; /* Nhân Sự - Warm Amber */
+
+  --db-c1-soft: #FEE2E2;
+  --db-c2-soft: #FFEDD5;
+  --db-c3-soft: #FEF3C7;
+  --db-c4-soft: #FDE68A;
+
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  --ring: 0 0 0 3px rgba(194, 13, 8, 0.16);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 4px 0 rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.06);
+  --shadow-pop: 0 18px 40px -8px rgba(15, 23, 42, 0.15);
+  --shadow-modal: 0 24px 50px -12px rgba(15, 23, 42, 0.25);
+  --t-fast: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--surface-2);
+  color: var(--text-main);
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== APP SHELL =====
+   Trở lại bố cục gốc: topbar FULL-WIDTH nằm trên cùng (chứa khối .brand — logo — bên trái), sidebar +
+   main nằm trong .admin-layout bên dưới. */
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-layout {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+/* ===== CREATIVE TIM STYLE TOPBAR & LIGHT SIDEBAR ===== */
+.admin-body .topbar {
+  height: 64px;
+  padding: 0 28px 0 0;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-gray);
+  z-index: 30;
+  display: flex;
+  flex-wrap: nowrap;            /* base.css (dùng chung với Tổng đài) đặt wrap <1200px → chip người dùng rớt hàng, đè nội dung */
+  align-items: center;
+  gap: 14px;
+}
+
+/* Logo — trở lại nằm trong topbar như bản gốc (khối cố định bề rộng = sidebar), chỉ đổi nền trắng
+   thành đỏ (cùng --red-gradient với sidebar) theo yêu cầu. */
+.brand {
+  position: relative;
+  width: var(--admin-sidebar-w);
+  flex: 0 0 var(--admin-sidebar-w);
+  height: 100%;
+  background: var(--brand-red);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+/* .topbar có border-bottom xám kéo dài hết bề ngang, kể cả dưới khối logo đỏ — tạo vạch ngăn cách lộ
+   liễu giữa logo và sidebar (cùng màu đỏ) bên dưới. Phủ đè 1px đỏ đúng bề rộng logo để che vạch đó. */
+.brand::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--sidebar-red);
+}
+.brand-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.brand-badge svg { width: 20px; height: 20px; stroke: var(--red); fill: none; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.brand-text b { font-size: 13px; font-weight: 800; letter-spacing: -0.02em; color: #FFFFFF; white-space: nowrap; }
+.brand-sub { font-size: 11px; color: rgba(255, 255, 255, 0.78); font-weight: 500; white-space: nowrap; }
+
+/* Nút hamburger thu/mở sidebar — nằm trong topbar, ngay sau khối logo. Canh THẲNG HÀNG mép NGOÀI
+   KHUNG NÚT (border 36px, không phải icon 3 dòng kẻ bên trong) với mép ngoài khối panel "● Chuyến xe
+   hôm nay" ở Dashboard bên dưới: .admin-main padding-left 20px = mốc mép panel, cách mép phải khối
+   logo 20px; .topbar có sẵn gap:14px giữa các item — margin-left cần bù 20 - 14 = 6px. */
+.topbar-menu-btn {
+  margin-left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.topbar-menu-btn:hover { background: #F1F5F9; color: var(--black); }
+.topbar-menu-btn svg { width: 18px; height: 18px; }
+
+/* Breadcrumb — nội dung do adminRenderBreadcrumb() (admin.js) đổ vào mỗi lần đổi view. */
+.admin-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.admin-breadcrumb .bc-home-ic { width: 15px; height: 15px; flex: 0 0 auto; stroke: currentColor; fill: none; }
+.admin-breadcrumb .bc-sep { flex: 0 0 auto; color: #94A3B8; }
+.admin-breadcrumb .bc-seg { overflow: hidden; text-overflow: ellipsis; }
+.admin-breadcrumb .bc-current { color: var(--text-main); font-weight: 800; }
+
+.topbar-spacer { flex: 1 1 auto; }
+
+/* Nút chuông thông báo — badge = số phơi "Chưa chỉ định" cần xử lý (adminUpdateNotifBadge trong
+   admin.js), không phải hệ thống thông báo thời gian thực thật. */
+.topbar-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-gray);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.topbar-icon-btn:hover { background: #F1F5F9; color: var(--black); }
+.topbar-icon-btn svg { width: 18px; height: 18px; }
+.topbar-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--white);
+}
+
+/* Vạch ngăn cách chuông thông báo | pill trạng thái. */
+.topbar-divider { width: 1px; height: 24px; background: var(--border-gray); flex: 0 0 auto; }
+
+/* Pill trạng thái hệ thống — CHỈ hiển thị tĩnh (chưa có hệ thống giám sát/health-check thật đứng
+   sau), xem title tooltip trên thẻ HTML. */
+.system-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--green-bg);
+  color: var(--green-fg);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.status-pulse-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex: 0 0 auto; }
+.status-pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.4;
+  animation: statusPulse 1.8s ease-out infinite;
+}
+@keyframes statusPulse {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@media (max-width: 900px) {
+  .system-status-pill span:last-child { display: none; }
+  .system-status-pill { padding: 6px; }
+}
+
+/* USER MENU CHIP */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border-gray);
+  background: var(--white);
+  border-radius: 999px;
+  padding: 4px 14px 4px 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--t-fast);
+}
+.user-chip:hover { background: var(--white); border-color: #CBD5E1; transform: translateY(-1px); }
+.user-chip:focus-visible { outline: none; box-shadow: var(--ring); }
+
+.user-chip .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--red-gradient);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(124, 28, 36, 0.25);
+}
+
+.user-pop {
+  position: absolute;
+  right: 0;
+  top: 50px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  min-width: 220px;
+  padding: 10px;
+  display: none;
+  box-shadow: var(--shadow-pop);
+  animation: modal-in 0.18s ease;
+  z-index: 50;
+}
+.user-menu.open .user-pop { display: block; }
+.user-pop .u-name { font-weight: 800; font-size: 14px; padding: 6px 10px 2px; color: var(--black); }
+.user-pop .u-role { font-size: 12px; color: var(--text-sub); padding: 0 10px 10px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 6px; }
+.user-pop button { width: 100%; text-align: left; border: 0; background: transparent; padding: 10px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; color: var(--red); cursor: pointer; transition: background var(--t-fast); }
+.user-pop button:hover { background: var(--red-light); }
+
+/* ===== CREATIVE TIM DARK RED SIDEBAR WITH FLOATING WHITE PILL =====
+   .admin-sidebar giờ chỉ là khung ngoài KHÔNG cuộn (để .sidebar-footer/Đăng xuất luôn ghim đáy, không
+   trôi theo danh sách menu) — .sidebar-scroll bên trong mới thật sự overflow-y:auto. */
+.admin-sidebar {
+  flex: 0 0 var(--admin-sidebar-w);
+  width: var(--admin-sidebar-w);
+  background: var(--sidebar-red);
+  padding: 16px 12px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border-gray);
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.02);
+}
+
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar { width: 0; }
+
+.sidebar-footer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header-divider {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 4px 6px 12px 6px;
+  opacity: 0.8;
+}
+
+/* Nav Item Base — chữ trắng mờ trên nền sidebar đỏ đậm, sáng hẳn lên khi hover/active. */
+.admin-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.35;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all var(--t-fast);
+}
+
+.admin-nav-item + .admin-nav-item { margin-top: 2px; }
+.admin-sub-nav-item { margin-left: 14px; padding-left: 14px; background: rgba(255, 255, 255, 0.06); }
+
+.sd-blocks { display: grid; gap: 16px; }
+/* KHÔNG viền/bo góc riêng — khung này bọc trực tiếp .sd-table-wrap > .admin-table (hầu hết trang admin:
+   Trạm Xe, Tài khoản, Nhân viên, Khách hàng, Xe, Loại xe, Ghế xe, Phòng vé...), có viền + bo góc riêng
+   sẽ chồng lên viền lưới vuông #CBCDCD của bảng bên trong, nhìn như 1 khung bo tròn bao quanh 1 khung
+   vuông dày hơn hẳn viền lưới bình thường. */
+.sd-section-block { border: 0; border-radius: 0; background: var(--white); overflow: hidden; }
+.sd-section-head { padding: 10px 14px; font-weight: 800; color: var(--text-main); background: #F8FAFC; border-bottom: 1px solid var(--border-gray); }
+.station-subtabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 12px;
+  padding: 5px;
+  width: fit-content;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid var(--border-gray);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+}
+.station-subtab {
+  border: 0;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  white-space: nowrap;
+}
+.station-subtab:hover {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-main);
+}
+.station-subtab.active {
+  background: var(--red-gradient);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(194, 13, 8, 0.18), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+
+.admin-nav-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+}
+
+/* FLOATING WHITE PILL ACTIVE ITEM — nền sidebar đã đỏ sẵn nên pill active đổi thành trắng mới nổi,
+   chữ/icon active đổi sang đỏ thương hiệu (đảo màu so với bản sidebar trắng trước đây). */
+.admin-sidebar .admin-nav-item.active,
+.admin-nav-item.active {
+  background: var(--white) !important;
+  color: var(--red) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-nav-item .nav-ic {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  fill: none;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all var(--t-fast);
+}
+
+.admin-nav-item:hover:not(.active) .nav-ic { color: #FFFFFF; }
+.admin-sidebar .admin-nav-item.active .nav-ic,
+.admin-nav-item.active .nav-ic { color: var(--red) !important; stroke: var(--red) !important; }
+
+.admin-nav-item .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  flex: 0 0 auto;
+}
+.admin-nav-item.active .dot { background: var(--red); }
+
+/* Accordion Nav Groups */
+.admin-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 11px 16px;
+  margin-top: 6px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.35;
+  box-sizing: border-box;
+  transition: all var(--t-fast);
+}
+
+.admin-nav-group-toggle:hover { background: rgba(255, 255, 255, 0.12); color: #FFFFFF; }
+/* Vạch nhỏ bên trái khi nhóm đang MỞ — báo hiệu đây là nhóm đang active, khớp mockup. */
+.admin-nav-group-toggle { position: relative; }
+.admin-nav-group-toggle:not(.collapsed)::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: #fff;
+}
+
+.admin-nav-group-toggle .nav-ic {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  fill: none;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-nav-group-toggle .navgrp-title { flex: 1 1 auto; text-align: left; }
+
+.admin-nav-group-toggle .grp-chevron {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.6);
+  transition: transform 0.24s ease-in-out;
+  transform: rotate(180deg); /* mặc định (đang mở) quay lên ⌃, khớp mockup */
+}
+.admin-nav-group-toggle.collapsed .grp-chevron { transform: rotate(-90deg); } /* đang đóng quay phải > */
+
+.admin-nav-group-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.24s ease-in-out;
+}
+.admin-nav-group-wrap.collapsed { grid-template-rows: 0fr; }
+.admin-nav-group-inner { overflow: hidden; min-height: 0; }
+
+.admin-nav-group {
+  padding-left: 10px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
+  margin-left: 14px;
+}
+
+/* ===== SIDEBAR THU GỌN DẠNG ICON (body.admin-sidebar-collapsed) =====
+   --admin-sidebar-w dùng chung cho .brand (topbar) VÀ .admin-sidebar nên chỉ cần đổi 1 biến là cả 2
+   tự co theo; phần còn lại là ẩn mọi nhãn chữ, canh icon vào giữa. */
+body.admin-sidebar-collapsed { --admin-sidebar-w: 72px; }
+body.admin-sidebar-collapsed .brand { justify-content: center; padding: 0; gap: 0; }
+body.admin-sidebar-collapsed .brand-text { display: none; }
+body.admin-sidebar-collapsed .admin-sidebar { padding-left: 8px; padding-right: 8px; align-items: center; }
+body.admin-sidebar-collapsed .admin-nav-item,
+body.admin-sidebar-collapsed .admin-nav-group-toggle {
+  justify-content: center;
+  gap: 0;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 0;
+}
+body.admin-sidebar-collapsed .admin-nav-group-toggle .navgrp-title,
+body.admin-sidebar-collapsed .admin-nav-group-toggle .grp-chevron { display: none; }
+/* Icon nhóm menu con tô vàng gold khi sidebar thu gọn — cách phân biệt "đây là 1 nhóm" thay cho badge.
+   Không dùng --red vì sidebar đã nền đỏ sẵn (đỏ trên đỏ sẽ chìm mất). */
+body.admin-sidebar-collapsed .admin-nav-group-toggle .nav-ic { color: var(--db-c3); }
+body.admin-sidebar-collapsed .admin-nav-group { margin-left: 0; padding-left: 0; border-left: 0; }
+body.admin-sidebar-collapsed .admin-sub-nav-item { margin-left: 0; }
+/* Giữ nguyên hành vi đóng/mở riêng từng nhóm (adminToggleNavGroup) kể cả khi sidebar đang thu gọn —
+   bấm icon nhóm vẫn thật sự ẩn/hiện icon con bên dưới, không ép luôn mở như trước (lúc đó bấm không
+   thấy gì đổi vì đã ép sẵn .grid-template-rows:1fr, coi như "không hoạt động"). */
+
+/* ===== MAIN CONTENT =====
+   .admin-main giữ nền xám nhạt làm viền ngoài (gutter); toàn bộ nội dung 1 view gộp chung vào 1 khung
+   trắng lớn (.admin-view) thay vì để rời từng khối trắng nhỏ nổi trực tiếp trên nền xám. */
+.admin-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--surface-2);
+  padding: 16px 20px 32px;
+}
+
+@media (min-width: 1700px) {
+  .admin-main { padding-left: 24px; padding-right: 24px; }
+}
+
+.admin-view {
+  /* Căn giữa nhưng trần rộng (2200px) nên trên màn lớn khoảng trống 2 bên nhỏ. */
+  max-width: var(--admin-content-max);
+  min-height: 100%;
+  margin: 0 auto;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.admin-view[hidden] { display: none; }
+.admin-view > *:first-child { margin-top: 0; }
+
+/* Dashboard tự có các thẻ/banner màu riêng thiết kế để trải sát mép — không bọc panel trắng như các
+   trang khác, tránh viền trắng thừa đè lên màu nền các khối đó. */
+#viewDashboard.admin-view {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  min-height: 0;
+}
+
+.admin-view h3 {
+  margin: 28px 0 16px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--black);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-view h3:first-child { margin-top: 0; }
+
+/* TYPO HELPERS */
+.cell-sub { margin-top: 3px; font-size: 12px; color: var(--text-sub); font-weight: 500; }
+.grp-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+.mono { font-family: 'Roboto Mono', monospace; }
+
+/* ===== BUTTON SYSTEM ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-gray);
+  background: var(--white);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--t-fast);
+}
+
+.btn:hover {
+  background: var(--surface-2);
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active { transform: translateY(1px); box-shadow: none; }
+.btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-primary {
+  background: var(--red-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 28, 36, 0.22);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #8C1E27 0%, #4D0F14 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(124, 28, 36, 0.32);
+}
+
+.btn-ghost { border-color: transparent; background: transparent; box-shadow: none; }
+.btn-ghost:hover { background: var(--surface); border-color: transparent; box-shadow: none; }
+
+.btn-danger { color: var(--red); border-color: var(--red-border); background: var(--white); }
+.btn-danger:hover { background: var(--red-light); border-color: var(--red); color: var(--red-hover); }
+.btn-sm { height: 32px; padding: 0 12px; font-size: 12px; border-radius: var(--radius-sm); }
+
+/* ===== DASHBOARD — soft UI template layout ===== */
+#viewDashboard {
+  --db-c1: #C20D08;
+  --db-c2: #EA580C;
+  --db-c3: #F59E0B;
+  --db-c4: #D97706;
+  --db-c1-soft: #FEE2E2;
+  --db-c2-soft: #FFEDD5;
+  --db-c3-soft: #FEF3C7;
+  --db-c4-soft: #FDE68A;
+  background: #FFF6F3;
+  border-radius: var(--radius-lg);
+  padding: 4px 2px 8px;
+}
+
+.db-shell { display: flex; flex-direction: column; gap: 18px; }
+
+.db-row-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 900px) { .db-row-top { grid-template-columns: 1fr; } }
+
+.db-row-main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 18px;
+  align-items: stretch;
+}
+@media (max-width: 1100px) { .db-row-main { grid-template-columns: 1fr; } }
+
+.db-row-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+@media (max-width: 900px) { .db-row-bottom { grid-template-columns: 1fr; } }
+
+.ref-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.db-card-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--black);
+}
+
+/* Featured card — pastel đỏ hồng nhạt thay cho gradient đỏ đậm/chữ trắng trước đây. */
+.ref-card-featured {
+  background: linear-gradient(135deg, #FDE4E4 0%, #FBD2D2 100%);
+  color: #8A1F1A;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 168px;
+  box-shadow: 0 8px 20px rgba(194, 13, 8, 0.08);
+  border: none;
+}
+
+.ref-featured-head { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+.ref-featured-val { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; margin: 10px 0 4px; line-height: 1; }
+.ref-unit { font-size: 16px; font-weight: 600; opacity: 0.75; }
+.ref-featured-sub { font-size: 12.5px; opacity: 0.85; font-weight: 500; }
+
+.ref-featured-foot,
+.ref-featured-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(138, 31, 26, 0.16);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.db-pill-on {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(138, 31, 26, 0.1);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Metric card */
+.ref-card-head-sm { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-sub); }
+.ref-metric-val { font-size: 40px; font-weight: 800; color: var(--black); letter-spacing: -0.03em; margin: 10px 0 4px; line-height: 1; }
+.ref-metric-unit { font-size: 22px; font-weight: 700; color: var(--text-sub); margin-left: 2px; }
+.ref-metric-status { font-size: 12px; font-weight: 800; margin-bottom: 4px; }
+.ref-metric-status.is-high { color: var(--db-c1); }
+.ref-metric-status.is-mid { color: #EA580C; }
+.ref-metric-status.is-low { color: var(--db-c3); }
+.ref-metric-caption { font-size: 12px; font-weight: 600; color: var(--text-sub); margin-top: 12px; }
+
+.ref-progress-track {
+  position: relative;
+  height: 8px;
+  background: var(--db-c2-soft);
+  border-radius: 999px;
+  margin-top: 16px;
+}
+.ref-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--db-c1), var(--db-c3));
+  border-radius: 999px;
+}
+.ref-progress-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--db-c1);
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(194, 13, 8, 0.35);
+}
+
+/* Pie sidebar */
+.ref-card-pie-side { display: flex; flex-direction: column; align-items: center; }
+.ref-pie-container { display: flex; justify-content: center; margin: 8px 0; }
+.ref-pie-container--lg { margin: 12px 0 8px; }
+.ref-pie-svg { width: 100px; height: 100px; }
+.ref-pie-svg--lg { width: 130px; height: 130px; }
+.ref-pie-legend { display: flex; gap: 10px; justify-content: center; font-size: 11.5px; font-weight: 700; color: var(--text-main); flex-wrap: wrap; }
+.ref-pie-legend--stack { flex-direction: column; align-items: flex-start; width: 100%; gap: 8px; padding: 0 4px; }
+.ref-pie-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+/* Chart */
+.ref-card-chart { display: flex; flex-direction: column; }
+.ref-chart-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
+.ref-time-pills { display: inline-flex; background: #F1F5F9; border-radius: 999px; padding: 3px; gap: 4px; flex-shrink: 0; }
+.ref-time-pills span { padding: 4px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.ref-time-pills span.active { background: var(--white); color: var(--black); box-shadow: var(--shadow-xs); }
+.ref-chart-svg-wrap { width: 100%; position: relative; margin-top: 4px; }
+.ref-chart-svg { width: 100%; height: 180px; }
+.ref-chart-labels { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-top: 8px; }
+
+/* Info panel — like reference lighting list */
+.db-info-panel { min-height: 100%; }
+.db-info-list { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.db-info-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.db-info-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--db-c2-soft);
+  background: transparent;
+}
+.db-info-dot.dot-c1 { border-color: var(--db-c1); background: var(--db-c1); }
+.db-info-dot.dot-c2 { border-color: var(--db-c2); background: var(--db-c2); }
+.db-info-dot.dot-c3 { border-color: var(--db-c3); background: var(--db-c3); }
+.db-info-label { font-weight: 700; color: var(--text-main); }
+.db-info-val { font-weight: 800; color: var(--black); }
+
+/* Toggle grid — 2x2 like reference */
+.db-toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 560px) { .db-toggle-grid { grid-template-columns: 1fr; } }
+
+.db-toggle-card {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: 18px;
+  padding: 18px 16px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 130px;
+  transition: transform var(--t-fast), box-shadow var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+.db-toggle-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); }
+.db-toggle-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--toggle-soft, #F1F5F9);
+  color: var(--toggle-accent, #64748B);
+}
+.db-toggle-title { font-size: 13px; font-weight: 800; color: var(--black); margin-top: 4px; }
+.db-toggle-val { font-size: 24px; font-weight: 800; color: var(--black); line-height: 1; }
+.db-toggle-val span { font-size: 14px; font-weight: 700; color: var(--text-sub); }
+.db-toggle-sub { font-size: 11.5px; font-weight: 600; color: var(--text-sub); }
+
+.db-toggle-card--c1 { --toggle-accent: var(--db-c1); --toggle-soft: var(--db-c1-soft); }
+.db-toggle-card--c2 { --toggle-accent: var(--db-c2); --toggle-soft: var(--db-c2-soft); }
+.db-toggle-card--c3 { --toggle-accent: var(--db-c3); --toggle-soft: var(--db-c3-soft); }
+.db-toggle-card--c4 { --toggle-accent: var(--db-c4); --toggle-soft: var(--db-c4-soft); }
+
+/* Thẻ "is-on" (đang có xe/khung giờ/nhân sự hoạt động) — nền PASTEL nhạt (dùng lại --toggle-soft đã
+   định nghĩa sẵn theo từng màu) thay cho gradient đậm/chữ trắng trước đây, chữ đổi màu đậm cùng tông
+   (--toggle-accent) để vẫn đọc rõ trên nền nhạt. */
+.db-toggle-card.is-on {
+  border-color: var(--toggle-accent, transparent);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+.db-toggle-card--c1.is-on { background: var(--db-c1-soft); }
+.db-toggle-card--c2.is-on { background: var(--db-c2-soft); }
+.db-toggle-card--c3.is-on { background: var(--db-c3-soft); }
+.db-toggle-card--c4.is-on { background: var(--db-c4-soft); }
+.db-toggle-card.is-on .db-toggle-icon { background: rgba(255, 255, 255, 0.65); color: var(--toggle-accent); }
+.db-toggle-card.is-on .db-toggle-title,
+.db-toggle-card.is-on .db-toggle-val { color: var(--black); }
+.db-toggle-card.is-on .db-toggle-sub { color: var(--toggle-accent); }
+.db-toggle-card.is-on .db-toggle-val span { color: var(--text-sub); }
+
+.db-departures-panel { margin-top: 0; }
+.db-departures-panel .db-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.db-departures-panel .db-card-head > div { flex: 1; min-width: 0; }
+
+.db-trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.db-trip-panel {
+  display: grid;
+  grid-template-columns: 105px 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: 14px;
+  padding: 12px 18px;
+  transition: all var(--t-fast);
+}
+
+.db-trip-panel:hover {
+  background: var(--white);
+  border-color: var(--red-border);
+  box-shadow: 0 4px 16px rgba(194, 13, 8, 0.08);
+  transform: translateY(-1px);
+}
+
+.db-trip-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--black);
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+
+.db-trip-time svg {
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.db-trip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.db-trip-route {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-trip-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.db-trip-status {
+  display: flex;
+  align-items: center;
+}
+
+.db-trip-action {
+  display: flex;
+  align-items: center;
+}
+
+.db-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--text-sub);
+  background: var(--surface-2);
+  border-radius: 14px;
+  border: 1px dashed var(--border-gray);
+}
+
+.db-empty-panel p {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .db-trip-panel {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .db-trip-time {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
+
+.db-seat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #F1F5F9;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+/* Legacy top grid — keep for other views if referenced */
+.ref-db-top-grid {
+  display: grid;
+  grid-template-columns: 320px 280px 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+@media (max-width: 1200px) {
+  .ref-db-top-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* CSS INTERACTIVE SWITCH */
+.switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #CBD5E1; transition: .3s; }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; }
+input:checked + .slider { background-color: #10B981; }
+.ref-toggle-card.active input:checked + .slider { background-color: #FFFFFF; }
+.ref-toggle-card.active input:checked + .slider:before { background-color: var(--red); }
+input:checked + .slider:before { transform: translateX(16px); }
+.slider.round { border-radius: 22px; }
+.slider.round:before { border-radius: 50%; }
+
+/* TABLE & FILTER TOOLBAR */
+.filter-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 16px; background: var(--white); border: 1px solid var(--border-gray); border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 22px; box-shadow: var(--shadow-sm); }
+.filter-field { display: flex; flex-direction: column; gap: 6px; }
+.filter-field label { font-size: 11px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.06em; }
+.filter-field input, .filter-field select, .admin-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .admin-form select, .admin-form textarea { height: 38px; min-width: 160px; padding: 0 14px; border: 1px solid var(--border-gray); border-radius: var(--radius-md); background: var(--surface-2); font-size: 13px; font-weight: 600; color: var(--text-main); transition: all var(--t-fast); }
+.filter-field input:focus, .filter-field select:focus, .admin-form input:not([type="checkbox"]):not([type="radio"]):focus, .admin-form select:focus, .admin-form textarea:focus { outline: none; background: var(--white); border-color: var(--red); box-shadow: var(--ring); }
+.filter-spacer { flex: 1 1 auto; }
+
+/* Combobox gõ-để-lọc "Khu vực"/"Trạm" trong modal (.admin-form) — VD "Thêm nhân viên mới"
+   (admin-staff.js) — ghi đè lại rule ".admin-form input" phía trên vì nó có độ đặc thù cao hơn
+   ".combo-input" đơn lẻ, nếu không sẽ lồng thêm 1 lớp viền/nền/padding lên input bên trong
+   .combo-input-wrap (cùng lý do đã ghi đè cho .sd-toolbar .filter-field, xem phía trên trong file này). */
+.admin-form .fld .combo-input-wrap {
+  height: 38px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: 0 14px;
+}
+.admin-form .fld .combo-input-wrap:focus-within {
+  border-color: var(--red);
+  background: var(--white);
+  box-shadow: var(--ring);
+}
+.admin-form .fld .combo-input-wrap input.combo-input {
+  height: auto;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Phơi xe — thanh lọc PHẲNG (bỏ panel card) + cân đối chiều ngang: 5 ô lọc giãn đều, nút bám 2 đầu.
+   Ô lọc kiểu TicketStaff (viền 1.5px #CBCDCD, nền trắng, 35px, nhãn nhỏ trên). */
+.tf-toolbar {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 4px;
+  margin-bottom: 16px;
+  gap: 10px;
+  flex-wrap: nowrap;          /* tất cả (5 ô lọc + 4 nút) nằm CÙNG 1 hàng */
+  overflow-x: auto;           /* không đủ chỗ thì cuộn ngang thay vì bóp/chồng lấn các ô lọc lên nhau */
+}
+.tf-toolbar .filter-field { flex: 1 1 0; min-width: 96px; gap: 4px; }
+.tf-toolbar .filter-spacer { display: none; }
+.tf-toolbar .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+.tf-toolbar .filter-field input,
+.tf-toolbar .filter-field select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.tf-toolbar .filter-field input:focus,
+.tf-toolbar .filter-field select:focus { outline: none; background: #fff; border-color: var(--red); box-shadow: none; }
+.tf-toolbar > .btn { flex: 0 0 auto; height: 35px; }
+@media (max-width: 900px) {
+  .tf-toolbar { flex-wrap: wrap; }
+  .tf-toolbar .filter-field { flex: 1 1 46%; min-width: 130px; }
+  .tf-toolbar > .btn { flex: 1 1 auto; }
+}
+
+/* ============================================================================
+   MỌI BẢNG ADMIN (.admin-table + khung bọc) — Y CHANG bảng "Lịch sử" bên TicketStaff
+   (.pax-table.pax-table--history.pax-table--grid, xem 06-grid-table.css). admin.css định nghĩa lại
+   biến cùng tên nhưng khác giá trị (--border-gray admin #E2E8F0 ≠ TicketStaff #CBCDCD) nên phải
+   HARDCODE đúng hex TicketStaff: --border-gray #CBCDCD, --surface-2 #F8F7F7, --text-sub #6B6E70,
+   --text-main #111213, --radius-md 8px.
+   ============================================================================ */
+/* Khung bọc bảng = .transship-block nhưng KHÔNG bo góc, KHÔNG viền riêng (viền mép ngoài đã do chính ô
+   th/td của bảng vẽ qua border-collapse — nếu khung bọc có thêm viền sẽ chồng lên viền ô, làm mép ngoài
+   nhìn đậm/dày gấp đôi so với các đường kẻ lưới bên trong). */
+.table-wrap,
+.sd-table-wrap {
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.table-wrap { overflow: auto; }
+.sd-table-wrap { overflow-x: auto; }
+
+table.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-family: inherit;
+  font-size: 13px;
+}
+/* Y CHANG lưới bảng "Lịch sử" bên TicketStaff — table thật ngoài HTML gắn CẢ 2 lớp
+   "pax-table--history pax-table--grid" (xem ticketstaff.html:703, admin-tickets.js:229), nên lưới
+   thật là của .pax-table--grid (06-grid-table.css dòng 5-16): viền ĐỦ 4 CẠNH mỗi ô — kẻ dọc lẫn
+   ngang — 1px #CBCDCD (đúng hex --border-gray của TicketStaff), header nền #F8F7F7. */
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 12px;
+  border: 1px solid #CBCDCD;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #F8F7F7;
+  color: #6B6E70;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding: 10px 12px;
+  vertical-align: bottom;
+  text-align: center;
+}
+.admin-table tbody td { font-size: 13.5px; color: #111213; }
+.admin-table tbody tr { transition: background .12s ease; }
+.admin-table tbody tr:nth-child(even) { background: transparent; }
+.admin-table tbody tr:hover { background: #F8F7F7; }
+.admin-table tr.is-selected { background: var(--red-light); }
+.admin-table tr.row-click { cursor: pointer; }
+.admin-table .num { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; font-weight: 700; }
+/* KHÔNG dùng display:flex trên <td> — trong bảng border-collapse nó tách ô khỏi lưới, viền không gộp
+   với ô kế bên nên trông ĐẬM/DÀY hơn các ô khác. Giữ ô là table-cell, chỉ căn giữa + cách nút bằng margin. */
+.admin-table td.row-actions { display: table-cell; text-align: center; white-space: nowrap; }
+.admin-table td.row-actions .btn + .btn { margin-left: 8px; }
+.admin-table th.th-actions { text-align: center; }
+.admin-table .col-status { text-align: center; white-space: nowrap; }
+
+/* Card / cột bọc bảng ở các trang khác (Tài khoản, Nhật ký, Nhân viên, Sơ đồ ghế, Tuyến xe,
+   Vé, Trung chuyển...) — KHÔNG viền riêng (viền mép ngoài đã do chính ô th/td của bảng vẽ #CBCDCD
+   rồi, card có thêm viền sẽ chồng lên làm mép ngoài đậm gấp đôi — xem lý do ở khối .table-wrap/
+   .sd-table-wrap phía trên); còn lại vẫn KHÔNG bo góc, bóng nhẹ. */
+.ref-card:has(.admin-table) {
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.ref-card:has(.admin-table) .table-wrap,
+.ref-card:has(.admin-table) .admin-table-wrap {
+  border: 0;
+  box-shadow: none;
+}
+.st-col { border-color: #CBCDCD; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+/* .st-col-routes bọc trực tiếp bảng .admin-table (Tuyến xe, tab Directions) — cùng lý do trên,
+   bỏ viền riêng để không chồng viền mép ngoài với lưới ô. .st-col-stations (danh sách trạm, không
+   phải bảng) vẫn giữ viền #CBCDCD của .st-col để tách khung 2 cột rõ ràng. Dùng .st-col.st-col-routes
+   (2 lớp) để chắc chắn thắng rule "border: 1px solid var(--border-gray)" của .st-col khai báo sau
+   ở phần dưới file, dù cùng độ đặc hiệu nếu chỉ 1 lớp thì rule khai báo sau sẽ thắng. */
+.st-col.st-col-routes { border: 0; }
+
+/* KHÔNG BO GÓC bất kỳ khung bảng admin nào — đè mọi border-radius kế thừa (.ref-card 20px,
+   .pax-table-wrap/.st-col --radius-*, ...). */
+.admin-view .table-wrap,
+.admin-view .sd-table-wrap,
+.admin-view .admin-table-wrap,
+.admin-view .pax-table-wrap,
+.admin-view .ref-card:has(.admin-table),
+.admin-view .st-col,
+.admin-view .admin-table,
+.admin-view .admin-table th,
+.admin-view .admin-table td { border-radius: 0 !important; }
+
+.empty-state { padding: 60px 20px; text-align: center; color: var(--text-sub); font-size: 13.5px; font-weight: 500; }
+
+/* Bảng tuyến (.rt-table): thu gọn cột Mã / Trạng thái, dồn bề ngang cho cột "Trạm có thể nhận".
+   Cột Thao tác KHÔNG khai width → tự vừa nút "Cập nhật ▾" y như bảng Trạm Xe (cùng .row-menu-btn).
+   Tiêu đề mọi cột canh giữa (kế thừa .admin-table thead th); ô dữ liệu cột trạm canh trái để chip đọc dễ. */
+.rt-table .rt-col-abbr { width: 72px; white-space: nowrap; text-align: center; }
+.rt-table .col-status,
+.rt-table th.th-actions,
+.rt-table td.row-actions { width: 120px; }
+.rt-table td.rt-pickup-cell { text-align: left; min-width: 220px; }
+.rt-table td.rt-pickup-cell { min-width: 420px; }
+/* Chip trạm xếp lưới 2-3 ô/hàng thay vì mỗi chip 1 dòng. */
+.rt-pickup.chip-editor { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); align-items: center; gap: 6px; }
+.rt-pickup .btn-ghost { justify-self: start; }
+/* Modal Thêm/Sửa tuyến: rộng, 2 cột; điểm đi xếp lưới 3 ô/hàng; co về 1 cột trên màn hẹp. */
+.modal:has(> .route-form) { width: min(860px, calc(100vw - 24px)); }
+.route-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; max-height: calc(100vh - 130px); overflow-y: auto; }
+.route-form > .fld-full, .route-form > .modal-actions { grid-column: 1 / -1; }
+#rmFrom.chip-editor { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 260px; overflow-y: auto; }
+@media (max-width: 760px) { #rmFrom.chip-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  .route-form { grid-template-columns: 1fr; }
+  #rmFrom.chip-editor { grid-template-columns: 1fr; }
+}
+/* Chip trạm dài (tên trạm nhiều chữ) trong cột hẹp (Điểm đi/Điểm đến ở Quản lý giá) mặc định không
+   co lại được (flex item min-width:auto) nên tràn ra ngoài, đè lên cột kế bên. Cho phép chip tự co và
+   xuống dòng bên trong chính nó thay vì tràn. */
+.rt-pickup.chip-editor .chip { min-width: 0; max-width: 100%; white-space: normal; word-break: break-word; }
+.rt-table th.col-stt, .rt-table td.col-stt { width: 28px; text-align: center; font-weight: 600; padding-left: 4px; padding-right: 4px; }
+.rt-table th.col-check, .rt-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.rt-table tbody tr.selected-row { background: var(--red-light); }
+
+/* Trang Quản lý giá — 1 bảng gộp chung như cũ; giá hiển thị dạng badge tròn (.price-badge) thay vì
+   chữ trần. Sửa giá (đơn lẫn đôi) làm chung trong modal Sửa tuyến — bảng chỉ để xem. */
+.pricing-table tbody tr:nth-child(even) { background: #FAFAFA; }
+.pricing-table tbody tr:hover { background: #F8F7F7; }
+.pricing-table th.pr-price,
+.pricing-table td.pr-price { text-align: center; }
+.pricing-table td.pr-vehicle,
+.pricing-table th.pr-vehicle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pricing-table th.col-check, .pricing-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.pricing-table tbody tr.selected-row { background: var(--red-light); }
+
+.veh-table th.col-stt, .veh-table td.col-stt { width: 28px; text-align: center; font-weight: 600; padding-left: 4px; padding-right: 4px; }
+.veh-table th.col-check, .veh-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.veh-table tbody tr.selected-row { background: var(--red-light); }
+
+.vc-table th.col-check, .vc-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.vc-table tbody tr.selected-row { background: var(--red-light); }
+
+.vs-table th.col-check, .vs-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.vs-table tbody tr.selected-row { background: var(--red-light); }
+
+.staff-table th.col-stt, .staff-table td.col-stt { width: 28px; text-align: center; font-weight: 600; padding-left: 4px; padding-right: 4px; }
+.staff-table th.col-check, .staff-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.staff-table tbody tr.selected-row { background: var(--red-light); }
+
+.acc-table th.col-check, .acc-table td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.acc-table tbody tr.selected-row { background: var(--red-light); }
+
+.price-badge-stack { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.price-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+.price-badge em {
+  font-style: normal;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  opacity: .7;
+}
+
+/* Bảng "Thông báo tuyển dụng" (admin-recruitment.js) — ảnh thu nhỏ trong bảng + preview ảnh trong modal
+   Thêm/Sửa (chưa chọn ảnh thì hiện khung placeholder, không để trống trơn). */
+.rc-thumb {
+  width: 64px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  display: block;
+  background: var(--surface);
+}
+.rc-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sub);
+}
+.rc-thumb-empty svg { width: 20px; height: 20px; }
+.rc-img-preview {
+  margin-top: 6px;
+  width: 100%;
+  height: 80px;
+  border: 1px dashed var(--border-gray);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.rc-img-preview img { width: 100%; height: 100%; object-fit: cover; }
+/* Input file gốc ẩn đi (mất nút "Choose file" mặc định của trình duyệt, không đồng bộ kiểu với
+   .btn) — nhãn <label for="rmImageFile" class="btn ..."> đứng thay, bấm vào label mở hộp thoại chọn
+   file y hệt bấm thẳng input (hành vi chuẩn HTML). Ẩn kiểu "visually hidden" (không display:none) để
+   vẫn bắt được sự kiện change/focus đúng chuẩn truy cập. */
+.rc-img-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.rc-img-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.rc-img-actions > label,
+.rc-img-actions > button {
+  flex: 1 1 0;
+}
+.rc-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 4px;
+}
+.rc-active-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.rc-active-inline input { min-width: auto; height: auto; }
+.rc-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #FEF3C7;
+  color: #B45309;
+  font-size: 10.5px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+/* Modal "Thêm/Sửa bài tuyển dụng" — bố cục NGANG (modal-wide, xem adminOpenRecruitmentModal): cột trái
+   thông tin cơ bản + ảnh, cột phải "Nội dung chi tiết" chiếm TRỌN chiều cao cột (align-items:stretch mặc
+   định của flex row + .rc-fld-fill kéo dãn cả label lẫn textarea), thay vì xếp hết các ô theo chiều dọc
+   như 1 modal hẹp. .rc-form thu gọn khoảng cách giữa các ô (margin-bottom mặc định 16px) để modal đỡ cao,
+   giống cách .admin-form.trip-form đã làm cho modal "Tạo/Sửa phơi xe". */
+/* Modal cao QUÁ khổ màn hình thì trước đây cả .modal-overlay cuộn (cuộn nguyên modal, kéo theo tiêu đề
+   "Thêm/Sửa bài tuyển dụng" và nút Lưu/Huỷ trôi mất khỏi tầm nhìn) — giờ chặn chiều cao modal lại
+   (max-height) rồi ép .admin-form/.rc-form-grid theo đúng chiều cao đó (flex:1 auto + min-height:0 xuyên
+   suốt), CHỈ còn .ck-editor__editable (vùng gõ nội dung, đã overflow-y:auto sẵn ở dưới) là nơi DUY NHẤT
+   cuộn khi gõ dài — tiêu đề modal + form + nút Lưu/Huỷ luôn hiện trọn, không cuộn. .rc-form-main (cột
+   trái) cũng thêm overflow-y:auto làm lưới an toàn cho màn hình rất thấp, dù bình thường nội dung cột này
+   đã đủ ngắn để không bao giờ cần cuộn. */
+#adminModal .modal:has(.rc-form-grid) {
+  width: 1080px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+#adminModal .modal:has(.rc-form-grid) > .admin-form.rc-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.admin-form.rc-form .fld { margin-bottom: 8px; }
+.admin-form.rc-form .fld-row { gap: 14px; }
+.admin-form.rc-form > .modal-actions { flex: 0 0 auto; margin-top: 32px; }
+.rc-form-grid {
+  display: flex;
+  gap: 28px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.rc-form-main { flex: 0 0 380px; min-width: 0; min-height: 0; overflow-y: auto; }
+/* Textarea "Mô tả ngắn" (2 dòng) — .admin-form textarea mặc định min-height:96px (dành cho textarea dài
+   hơn chỗ khác), dư hẳn ra so với "tóm tắt 1-2 câu" nên thu lại để cột trái ngắn hơn, tránh cần cuộn. */
+.rc-form-main textarea { min-height: 56px; }
+.rc-form-side {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rc-form-side .fld.rc-fld-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.rc-form-side .fld.rc-fld-fill textarea {
+  flex: 1 1 auto;
+  min-height: 260px;
+  resize: vertical;
+}
+/* CKEditor 5 thay thế <textarea> bằng khung riêng (.ck-editor, 3 lớp: .ck-editor > .ck-editor__main >
+   .ck-editor__editable — toolbar nằm ngoài .ck-editor__main nên không bị kéo dãn theo) chứ không giữ
+   nguyên phần tử textarea, nên phải kéo dãn ĐỦ CẢ 3 LỚP bằng flex:1 auto thì .ck-editor__editable (vùng
+   gõ nội dung) mới thật sự cao hết cột phải, giống ô <textarea> flex-fill cũ. */
+.rc-form-side .fld.rc-fld-fill .ck-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rc-form-side .fld.rc-fld-fill .ck-editor__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rc-form-side .fld.rc-fld-fill .ck-editor__editable {
+  flex: 1 1 auto;
+  min-height: 260px;
+  overflow-y: auto;
+}
+@media (max-width: 860px) {
+  .rc-form-grid { flex-direction: column; }
+  .rc-form-main { flex-basis: auto; width: 100%; }
+  .rc-form-side .fld.rc-fld-fill textarea,
+  .rc-form-side .fld.rc-fld-fill .ck-editor__editable { min-height: 200px; }
+}
+
+/* --- Thanh lọc Trạm Xe: phẳng như .rs-toolbar bên TicketStaff --- */
+.sd-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-bottom: 16px;
+}
+.sd-toolbar .filter-field { gap: 4px; }
+.sd-toolbar .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px; }
+.sd-toolbar .sd-field-search { flex: 1 1 260px; min-width: 200px; }
+.sd-toolbar .sd-field-region { flex: 0 1 220px; min-width: 170px; }
+/* Khung ô lọc y hệt các ô bên TicketStaff: viền 1.5px #CBCDCD, nền trắng, focus chỉ đổi viền đỏ. */
+.sd-toolbar .sd-field-search input,
+.sd-toolbar .sd-field-region select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.sd-toolbar .sd-field-search input:focus,
+.sd-toolbar .sd-field-region select:focus {
+  background: var(--white);
+  border-color: var(--red);
+  box-shadow: none;
+}
+.sd-toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
+.sd-toolbar .sd-btn { flex: 0 0 auto; height: 35px; }
+
+/* Combobox gõ-để-lọc "Khu vực"/"Trạm" ở toolbar Kết ca (admin-staff-stats.js, ssKetcaToolbarHtml) — tái
+   dùng khung .combo-input-wrap/.combo-input gốc (booking-ui/02-zone1.css, style TicketStaff) nhưng phải
+   ghi đè lại ở đây: rule ".filter-field input" (phía trên, dùng chung cho input/select thường trong mọi
+   toolbar admin) có độ đặc thù cao hơn ".combo-input" đơn lẻ nên tự lồng thêm 1 lớp viền/nền/padding lên
+   input bên trong .combo-input-wrap, thành khung lồng khung xấu nếu không ghi đè. */
+.sd-toolbar .filter-field .combo-input-wrap {
+  height: 35px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  padding: 0 10px;
+}
+.sd-toolbar .filter-field .combo-input-wrap:focus-within {
+  border-color: var(--red);
+}
+.sd-toolbar .filter-field .combo-input-wrap input.combo-input {
+  height: auto;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Thanh lọc Phòng vé dùng .sd-toolbar (khung Trạm Xe) nhưng field không có class sd-field-*
+   nên mặc định không co giãn — cân lại: ô Tìm kiếm rộng hơn, ô Ngày vừa đủ, Đặt lại đẩy sát phải.
+   .filter-field-date bị khoá cứng "max-width:190px !important" ở css/shared/booking-ui (dùng chung
+   toàn hệ thống) nên phải !important + chọn selector đặc hiệu hơn (#viewTicketOffice) mới đè được. */
+#viewTicketOffice > .sd-toolbar > .filter-field { flex: 1 1 0; min-width: 160px; }
+#viewTicketOffice > .sd-toolbar > .filter-field input { background: var(--white); }
+#viewTicketOffice > .sd-toolbar > .filter-field input:focus { background: var(--white); }
+#viewTicketOffice > .sd-toolbar > .filter-field:first-child { flex: 1.5 1 0; min-width: 220px; }
+#viewTicketOffice > .sd-toolbar > .filter-field-date { flex: 1 1 0 !important; min-width: 250px !important; max-width: 250px !important; }
+#viewTicketOffice > .sd-toolbar > .filter-reset { flex: 0 0 auto; margin-left: auto; }
+#viewTicketOffice > .sd-toolbar > .filter-reset .btn { padding: 0 22px; font-size: 13.5px; }
+
+/* Kết ca — Tổng đài/Phòng vé (admin-staff-stats.js, ssKetcaToolbarHtml) dùng chung 1 toolbar 4 ô lọc
+   (Từ ngày/Đến ngày/Khu vực/Trạm) nhưng field không có class sd-field-* nên mặc định không co giãn, dồn
+   hết về bên trái và hở 1 khoảng trống lớn trước nút "Đặt lại" — cho co giãn đều (flex:1 1 0) để lấp đủ
+   chiều ngang, khớp cách các toolbar khác trong trang admin đã làm (xem #viewTicketOffice ngay trên). */
+.ss-ketca-toolbar.sd-toolbar .filter-field { flex: 1 1 0; min-width: 160px; }
+.ss-ketca-toolbar.sd-toolbar .filter-field:nth-child(3),
+.ss-ketca-toolbar.sd-toolbar .filter-field:nth-child(4) { min-width: 190px; }
+
+/* Kết ca — Trung chuyển (admin-staff-stats.js, ssRenderKetcaTrungChuyenTab) không có bộ lọc (không có sự
+   kiện "kết ca" thật để lọc theo ngày) nên trước đây chỉ là 1 dòng chữ trơn, thấp hơn hẳn thanh lọc cao
+   35px của 2 tab Tổng đài/Phòng vé bên cạnh — đổi qua khung "thanh chức năng" cùng chiều cao/khoảng cách
+   (.ss-ketca-toolbar ở trên) để chuyển tab qua lại không bị giật bố cục. */
+.ss-ketca-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 35px;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ss-ketca-note svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--text-sub); }
+
+/* Tài khoản — 4 ô lọc (Tìm kiếm / Vai trò / Trạng thái / Trạm xe) căn ĐỀU cùng flex-basis như Trạm Xe,
+   để cả 4 ô + 2 nút "Đặt lại"/"Thêm tài khoản mới" nằm gọn chung 1 hàng thay vì rớt xuống dòng riêng. */
+#viewAccounts .sd-toolbar { gap: 8px; }
+#viewAccounts .sd-toolbar .sd-field-search,
+#viewAccounts .sd-toolbar .sd-field-region { flex: 1 1 190px; min-width: 150px; }
+
+/* Cấu hình nhân sự — ô Tìm kiếm + ô Trạng thái phân quyền căn ĐỀU, 3 nút "Tìm kiếm"/"Đặt lại"/
+   "Thêm loại nhân viên" gọn cùng 1 khối bên phải, cân đối chiều ngang như thanh lọc Tài khoản. */
+#viewStaffConfig .sd-toolbar { gap: 10px 12px; }
+#viewStaffConfig .sd-toolbar .sd-field-search,
+#viewStaffConfig .sd-toolbar .sd-field-region { flex: 1 1 220px; min-width: 170px; }
+
+/* Doanh thu (THU) / Chi phí (CHI) / Tạo yêu cầu chi — nhiều ô lọc (5-6 ô) căn ĐỀU cùng flex-basis
+   như các thanh lọc admin khác (Tài khoản, Trạm Xe) thay vì để mỗi ô co theo kích thước mặc định của
+   input/select (khiến ô cuối lẻ ra rớt xuống 1 hàng riêng cùng nút "Đặt lại"). */
+#viewAccountingThu .sd-toolbar .filter-field,
+#viewAccountingChi .sd-toolbar .filter-field,
+#viewAccountingExpenseRequests .sd-toolbar .filter-field { flex: 1 1 0; min-width: 130px; }
+#viewAccountingThu .sd-toolbar .filter-field.sd-field-search,
+#viewAccountingChi .sd-toolbar .filter-field.sd-field-search,
+#viewAccountingExpenseRequests .sd-toolbar .filter-field.sd-field-search { flex: 1.6 1 0; min-width: 190px; }
+
+/* Thống kê đại lý (2 tab "Tổng hợp theo đại lý"/"Vé và doanh thu theo phơi" — .station-subtabs dùng
+   chung với Trạm Xe, xem renderAgentStatsView() admin-agents.js): 3 ô lọc Đại lý/Từ ngày/Đến ngày
+   căn ĐỀU cùng flex-basis cho cân đối, không co theo kích thước mặc định của input/select. */
+#viewAgentStats .sd-toolbar .filter-field { flex: 1 1 0; min-width: 160px; }
+/* Mọi ô lọc (kể cả Nguồn thu/Trạng thái/Ngày/Khu vực/Trạm xe — trước đây rơi về rule ".filter-field input"
+   cao 38px, min-width 160px) đồng bộ cùng khung 35px với ô Tìm kiếm và giãn kín bề ngang ô của nó, để cả
+   hàng cân đối; nút "Đặt lại" giữ 1 dòng, luôn nằm cuối hàng (không rớt xuống dòng riêng). */
+#viewAccountingThu .sd-toolbar .filter-field input,
+#viewAccountingThu .sd-toolbar .filter-field select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  background: var(--white);
+  font-size: 12.5px;
+}
+#viewAccountingThu .sd-toolbar .filter-field input:focus,
+#viewAccountingThu .sd-toolbar .filter-field select:focus { background: var(--white); border-color: var(--red); box-shadow: none; }
+#viewAccountingThu .sd-toolbar .filter-reset { flex: 0 0 auto; margin-left: 0; }
+#viewAccountingThu .sd-toolbar .filter-reset .btn { white-space: nowrap; padding: 0 18px; }
+
+/* "Chi phí" + "Tạo yêu cầu chi" — căn giữa MỌI nội dung trong bảng (mặc định .admin-table td text-align:
+   left, xem đầu file) theo yêu cầu, kể cả các cột trước đây lệch trái/phải; ô nào có style inline riêng
+   (Giá tiền từng text-align:right, STT/Thời gian/checkbox đã center sẵn) đã sửa thẳng trong JS vì inline
+   style thắng CSS thường. */
+#viewAccountingChi .admin-table td,
+#viewAccountingExpenseRequests .admin-table td { text-align: center; }
+
+/* "Yêu cầu chi chờ duyệt" (viewAccountingChi, buildExpenseRequestsSectionHtml) — tiêu đề "Người đề
+   nghị"/"Nhóm chi phí"/"Giá tiền" bị hẹp quá nên tự xuống dòng; ép nowrap để luôn 1 dòng (cùng cách đã
+   làm cho #viewAccountingExpenseRequests) — áp cho CẢ 3 bảng trong trang Chi phí (Yêu cầu chi/Nhóm chi
+   phí/Hạng mục chi) vì tiêu đề bảng nào cũng không nên xuống dòng. */
+#viewAccountingChi .admin-table thead th { white-space: nowrap; }
+/* Các rule bên dưới CHỈ áp cho đúng bảng "Yêu cầu chi chờ duyệt" (.chi-requests-table, gắn riêng ở
+   buildExpenseRequestsSectionHtml) — không dùng #viewAccountingChi .admin-table nth-child chung chung vì
+   trang Chi phí còn 2 bảng khác (Nhóm chi phí/Hạng mục chi, xem buildChiGroupManagerHtml/
+   buildChiCategoryManagerHtml) cũng nằm trong #viewAccountingChi nhưng cột thứ tự khác hẳn — dùng nth-
+   child chung sẽ vô tình ép nowrap/đổi width nhầm cột ở 2 bảng kia. */
+/* Mã YC/Giá tiền chỉ là mã ngắn/số định dạng — ép nowrap để không tự xuống dòng (cùng cách
+   #viewAccountingExpenseRequests). Thời gian dựng y hệt cột "Thời gian" bên #viewAccountingExpenseRequests
+   (class="mono", màu var(--text-sub)) để 2 bảng đồng bộ giao diện — co hẹp lại + KHÔNG ép nowrap để phần
+   giờ (vd "07:00") tự xuống dòng riêng dưới ngày, đỡ tốn ngang. Lý do là free-text nên KHÔNG căn giữa như
+   các cột khác (xem rule căn giữa chung phía trên) — trả về căn trái cho dễ đọc đoạn dài. */
+.chi-requests-table td:nth-child(2) { white-space: nowrap; }   /* Mã YC */
+.chi-requests-table th:nth-child(3),
+.chi-requests-table td:nth-child(3) { width: 10%; }   /* Thời gian — vẫn đủ rộng để riêng phần ngày "dd/mm/yyyy" không tự vỡ dòng giữa số, +1% lấy từ Lý do */
+.chi-requests-table td:nth-child(7) { white-space: nowrap; }   /* Giá tiền */
+/* STT/Trạng thái co hẹp bớt (giảm đệm ngang, không đụng .status-badge dùng chung toàn trang admin), bù
+   qua Lý do — tiêu đề vẫn không xuống dòng nhờ đã ép nowrap ở trên. */
+.chi-requests-table th:nth-child(1),
+.chi-requests-table td:nth-child(1),
+.chi-requests-table th:nth-child(9),
+.chi-requests-table td:nth-child(9) { padding-left: 6px; padding-right: 6px; }
+.chi-requests-table th:nth-child(1),
+.chi-requests-table td:nth-child(1) { width: 2.5%; }   /* STT */
+/* Mã YC/Thao tác cũng chỉ chứa nội dung ngắn (mã/1 nút) đã nowrap sẵn — giảm đệm ngang để hẹp bớt, bù
+   qua Người đề nghị/Người nhận (tên người, cần rộng hơn số/nút ngắn). Tiêu đề nowrap sẵn ở rule chung
+   phía trên nên không lo xuống dòng dù cột hẹp lại. */
+.chi-requests-table th:nth-child(2),
+.chi-requests-table td:nth-child(2),
+.chi-requests-table th:nth-child(10),
+.chi-requests-table td:nth-child(10) { padding-left: 6px; padding-right: 6px; }
+/* Checkbox chỉ chứa 1 ô tick nhỏ, không cần đệm rộng như các cột chữ — co hẹp thêm 1 chút để nhường chỗ
+   cho Thời gian, tránh ngày "dd/mm/yyyy" bị vỡ dòng khi bảng hơi chật ngang. */
+.chi-requests-table th:nth-child(11),
+.chi-requests-table td:nth-child(11) { padding-left: 6px; padding-right: 6px; }
+.chi-requests-table th:nth-child(4),
+.chi-requests-table td:nth-child(4) { width: 11%; }   /* Người đề nghị — nới thêm, bù từ Mã YC/Thời gian/Thao tác */
+.chi-requests-table th:nth-child(6),
+.chi-requests-table td:nth-child(6) { width: 11%; }   /* Người nhận — nới thêm, bù từ Mã YC/Thời gian/Thao tác */
+.chi-requests-table th:nth-child(8),
+.chi-requests-table td:nth-child(8) { width: 13%; }   /* Lý do — bớt 2% sang Hạng mục chi, bớt thêm 1% sang Thời gian */
+.chi-requests-table th:nth-child(5),
+.chi-requests-table td:nth-child(5) { width: 18%; }   /* Hạng mục chi — +2% lấy từ Lý do (giống #viewAccountingExpenseRequests) */
+#viewAccountingChi .chi-requests-table td:nth-child(8) { text-align: left; }   /* Lý do — free-text, không cần căn giữa (phải chêm #viewAccountingChi vào để đặc hiệu hơn rule "căn giữa MỌI nội dung" ở trên — rule đó có ID nên thắng bất kể thứ tự nếu selector ở đây không có ID) */
+#viewAccountingExpenseRequests .admin-table td:nth-child(7) { text-align: left; }   /* Lý do (Tạo yêu cầu chi) — tương tự, không cần căn giữa */
+
+/* "Doanh thu theo phơi" (viewAccountingThu, renderAccountingThuView, tab tổng quan) — co hẹp STT/Biển số
+   xe/Trạng thái/Thao tác (nội dung ngắn: số thứ tự, 1 tag biển số, 1-2 badge, 1 nút), bù qua Thời
+   gian/Tuyến đường/Mã phơi. Tiêu đề ép nowrap để không xuống dòng dù cột hẹp lại (cùng cách các bảng Chi
+   phí ở trên). */
+.thu-overview-table thead th { white-space: nowrap; }
+.thu-overview-table th:nth-child(1),
+.thu-overview-table td:nth-child(1) { width: 3%; padding-left: 6px; padding-right: 6px; }   /* STT */
+.thu-overview-table th:nth-child(2),
+.thu-overview-table td:nth-child(2) { width: 8%; }    /* Mã phơi — giảm 1% bù sang Tài xế / Phụ xe */
+.thu-overview-table th:nth-child(6),
+.thu-overview-table td:nth-child(6) { width: 20%; }   /* Tài xế / Phụ xe — nới rộng theo yêu cầu */
+.thu-overview-table th:nth-child(3),
+.thu-overview-table td:nth-child(3) { width: 9%; }    /* Thời gian — nới thêm */
+.thu-overview-table th:nth-child(4),
+.thu-overview-table td:nth-child(4) { width: 16%; }   /* Tuyến đường — nới thêm */
+.thu-overview-table th:nth-child(5),
+.thu-overview-table td:nth-child(5) { padding-left: 6px; padding-right: 6px; }   /* Biển số xe — co hẹp bớt */
+.thu-overview-table th:nth-child(8),
+.thu-overview-table td:nth-child(8) { padding-left: 6px; padding-right: 6px; }   /* Trạng thái — co hẹp bớt */
+.thu-overview-table th:nth-child(9),
+.thu-overview-table td:nth-child(9) { padding-left: 6px; padding-right: 6px; }   /* Thao tác — co hẹp bớt */
+
+/* "Quản lý nhóm & hạng mục chi phí" → tab "Hạng mục chi" (buildChiCategoryManagerHtml) — tăng cột "Hạng
+   mục chi tiết" (nội dung chính, tên hạng mục có thể dài), bớt lại ở "Nhóm chi phí" (thường ngắn hơn). */
+.chi-cat-items-table th:nth-child(2),
+.chi-cat-items-table td:nth-child(2) { width: 20%; }  /* Nhóm chi phí */
+.chi-cat-items-table th:nth-child(3),
+.chi-cat-items-table td:nth-child(3) { width: 45%; }  /* Hạng mục chi tiết — tăng thêm */
+
+/* --- Khung bảng Trạm Xe: chỉ viền mảnh + bo góc, không card/bóng (như .pax-table-wrap) --- */
+.sd-table-wrap {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+/* --- Nút phẳng trong Trạm Xe (+ modal danh mục địa điểm) --- */
+#viewStations .btn,
+#viewStations .btn:hover,
+#viewStations .btn-primary,
+#viewStations .btn-primary:hover,
+.regions-modal .btn,
+.regions-modal .btn:hover,
+.row-menu-btn,
+.row-menu-btn:hover { box-shadow: none; }
+
+/* --- Cột "Thao tác": nút "Cập nhật ▾" mở dropdown nổi (gắn <body>, không bị wrap cắt) --- */
+.row-menu-btn { white-space: nowrap; }
+.row-menu-caret { font-size: 10px; opacity: 0.7; margin-left: 2px; }
+.admin-row-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  animation: modal-in 0.14s ease;
+}
+.admin-row-menu-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.admin-row-menu-item:hover { background: var(--surface-2); }
+.admin-row-menu-item.danger { color: var(--red); }
+.admin-row-menu-item.danger:hover { background: var(--red-light); }
+
+@media (max-width: 720px) {
+  .sd-toolbar .sd-field-search,
+  .sd-toolbar .sd-field-region { flex: 1 1 100%; }
+  .sd-toolbar-actions { width: 100%; margin-left: 0; }
+  .sd-toolbar-actions .sd-btn { flex: 1 1 auto; }
+}
+
+/* Transship table — fixed layout so colgroup widths are respected */
+.admin-table.shuttle-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.admin-table.shuttle-table th,
+.admin-table.shuttle-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+/* Allow hành trình cell to wrap (it has 2 lines) */
+.admin-table.shuttle-table td.col-route,
+.admin-table.shuttle-table td:nth-child(3) {
+  white-space: normal;
+}
+/* Hide the tiny connector bar between stations in table context */
+.admin-table.shuttle-table .pax-route-connector { display: none; }
+.admin-table.shuttle-table .pax-route { gap: 2px; }
+.admin-table.shuttle-table th.col-stt,
+.admin-table.shuttle-table td.col-stt {
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.admin-table.shuttle-table th.col-check,
+.admin-table.shuttle-table td.col-check {
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+/* Căn đối tỉ lệ 9 cột co giãn theo đúng lượng nội dung thật (STT 28px + checkbox 44px đã cố định ở
+   trên) — không để table-layout:fixed chia đều 1/9 cho mọi cột, làm cột "SL" thừa trống còn "Khách
+   hàng"/"Hành trình" bị bóp. table-layout:fixed nên % không cần cộng đúng 100%. */
+#viewTransship .admin-table.shuttle-table { min-width: 980px; }
+.admin-table.shuttle-table th:nth-child(2),
+.admin-table.shuttle-table td:nth-child(2) { width: 15%; }   /* Khách hàng */
+.admin-table.shuttle-table th:nth-child(3),
+.admin-table.shuttle-table td:nth-child(3) { width: 24%; }   /* Hành trình — nới thêm, bù từ SL + Ghi chú + Số ghế */
+.admin-table.shuttle-table th:nth-child(4),
+.admin-table.shuttle-table td:nth-child(4) { width: 4%; }    /* SL — giảm bớt, chỉ 1 số ngắn */
+.admin-table.shuttle-table th:nth-child(5),
+.admin-table.shuttle-table td:nth-child(5) { width: 5%; }    /* Số ghế — giảm bớt, bù cho Hành trình */
+.admin-table.shuttle-table th:nth-child(6),
+.admin-table.shuttle-table td:nth-child(6) { width: 9%; }    /* Ghi chú — giảm bớt, bù cho Hành trình/Thời gian/In lúc */
+.admin-table.shuttle-table th:nth-child(7),
+.admin-table.shuttle-table td:nth-child(7) { width: 9%; }    /* Thời gian — nới thêm */
+.admin-table.shuttle-table th:nth-child(8),
+.admin-table.shuttle-table td:nth-child(8) { width: 9%; }    /* In lúc — nới thêm */
+.admin-table.shuttle-table th:nth-child(9),
+.admin-table.shuttle-table td:nth-child(9) { width: 12%; }   /* Trung chuyển */
+.admin-table.shuttle-table th:nth-child(10),
+.admin-table.shuttle-table td:nth-child(10) { width: 10%; }  /* Phòng vé */
+
+/* "Tạo yêu cầu chi" (viewAccountingExpenseRequests, renderAccountingExpenseRequestsView) — co hẹp cột
+   "Thời gian" (chỉ hiện "dd/mm/yyyy hh:mm", không cần rộng bằng các cột chữ dài) và "Lý do" (chỉ cột
+   free-text này được phép tự xuống dòng), bù phần rộng dư sang Mã YC/Hạng mục chi (đã gộp cả Nhóm chi
+   phí vào đây, xem .chi-group-tag)/Người nhận/Giá tiền. KHÔNG dùng table-layout:fixed (từng dùng, nhưng
+   ép cứng % bất kể nội dung khiến badge "Trạng thái"/nút "Thao tác" — vốn white-space:nowrap sẵn, xem
+   .status-badge/.admin-table td.row-actions — bị cắt chữ khi 2 cột này hẹp lại): giữ table-layout auto
+   mặc định. Tiêu đề CỘT NÀO CŨNG không được xuống dòng (nowrap riêng cho thead, khác body — body vẫn cho
+   Lý do/Hạng mục chi xuống dòng bình thường). Mã YC/Giá tiền lấy giá trị từ số định dạng ngắn (không
+   phải free-text dài tuỳ ý) nên ép luôn nowrap thay vì đoán width theo % — cột luôn tự nới đúng bằng nội
+   dung dài nhất, an toàn hơn ước lượng % dễ sai khi đổi cỡ chữ/dữ liệu mẫu. */
+#viewAccountingExpenseRequests .admin-table thead th { white-space: nowrap; }
+#viewAccountingExpenseRequests .admin-table th:nth-child(1),
+#viewAccountingExpenseRequests .admin-table td:nth-child(1) { width: 2.5%; }   /* STT */
+#viewAccountingExpenseRequests .admin-table td:nth-child(2) { white-space: nowrap; }  /* Mã YC — không xuống dòng */
+#viewAccountingExpenseRequests .admin-table th:nth-child(3),
+#viewAccountingExpenseRequests .admin-table td:nth-child(3) { width: 10%; }   /* Thời gian — đủ rộng để riêng phần ngày "dd/mm/yyyy" không tự vỡ dòng giữa số, phần giờ (vd "07:00") tự xuống dòng riêng */
+#viewAccountingExpenseRequests .admin-table th:nth-child(4),
+#viewAccountingExpenseRequests .admin-table td:nth-child(4) { width: 18%; }  /* Hạng mục chi — đã gộp Nhóm chi phí (tag) + Hạng mục chi, +2% lấy từ Lý do */
+#viewAccountingExpenseRequests .admin-table th:nth-child(5),
+#viewAccountingExpenseRequests .admin-table td:nth-child(5) { width: 11%; }  /* Người nhận — nới thêm */
+#viewAccountingExpenseRequests .admin-table td:nth-child(6) { white-space: nowrap; }  /* Giá tiền — không xuống dòng */
+#viewAccountingExpenseRequests .admin-table th:nth-child(7),
+#viewAccountingExpenseRequests .admin-table td:nth-child(7) { width: 12%; }  /* Lý do — bớt 2% sang Hạng mục chi */
+/* STT/Trạng thái/Thao tác/checkbox không có nhiều chữ (số thứ tự, 1 badge, 1 nút, 1 ô tick) — giảm bớt
+   đệm ngang riêng ở bảng này (không đụng .status-badge/.btn dùng chung toàn trang admin) để cột hẹp lại
+   1 chút, tiêu đề vẫn đủ chỗ không xuống dòng nhờ đã ép nowrap ở trên. */
+#viewAccountingExpenseRequests .admin-table th:nth-child(1),
+#viewAccountingExpenseRequests .admin-table td:nth-child(1),
+#viewAccountingExpenseRequests .admin-table th:nth-child(8),
+#viewAccountingExpenseRequests .admin-table td:nth-child(8),
+#viewAccountingExpenseRequests .admin-table th:nth-child(9),
+#viewAccountingExpenseRequests .admin-table td:nth-child(9),
+#viewAccountingExpenseRequests .admin-table th:nth-child(10),
+#viewAccountingExpenseRequests .admin-table td:nth-child(10) { padding-left: 6px; padding-right: 6px; }
+
+/* Nhóm chi phí hiện dạng tag/pill nhỏ phía trên tên Hạng mục chi (cột "Hạng mục chi" đã gộp cả 2 —
+   xem buildExpenseRequestsSectionHtml/renderAccountingExpenseRequestsView, admin-accounting.js) — pill
+   trung tính (không theo trạng thái như .status-badge) vì Nhóm chi phí không phải 1 trạng thái, chỉ là
+   nhãn phân loại. */
+.chi-group-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Biển số xe (nếu có) đi kèm Hạng mục chi — pill riêng, màu trung tính khác .chi-group-tag để không lẫn
+   với nhãn Nhóm chi phí, font mono vì là mã biển số. */
+.chi-plate-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #F1F5F9;
+  color: #475569;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  background: var(--surface-2);
+}
+.admin-table-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-page-size {
+  height: 34px;
+  min-width: 72px;
+  padding: 0 10px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.admin-page-info {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.admin-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.admin-page-btn:hover:not(:disabled):not(.active) {
+  background: var(--surface-2);
+  border-color: var(--text-sub);
+}
+.admin-page-btn.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.admin-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.admin-page-ellipsis {
+  padding: 0 4px;
+  color: var(--text-sub);
+  font-weight: 700;
+}
+.admin-th-sort {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+.admin-th-sort:hover { color: var(--red); }
+
+/* BADGES & TOAST */
+.pax-info { display: flex; flex-direction: column; gap: 2px; }
+.pk-type-chip {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--red);
+}
+.status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.4; white-space: nowrap; }
+.status-badge .status-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.status-badge.chua-chi-dinh { background: #F1F5F9; color: #475569; }
+.status-badge.chua-chi-dinh .status-dot { background: #94A3B8; }
+.status-badge.da-chi-dinh { background: var(--red-light); color: var(--red); }
+.status-badge.da-chi-dinh .status-dot { background: var(--red); }
+.status-badge.dang-ban { background: #ECFDF5; color: #047857; }
+.status-badge.dang-ban .status-dot { background: #10B981; }
+.status-badge.da-khoi-hanh { background: var(--red-light); color: var(--red); }
+.status-badge.da-khoi-hanh .status-dot { background: var(--red); }
+.status-badge.da-huy { background: #F1F5F9; color: #64748B; }
+.status-badge.da-huy .status-dot { background: #64748B; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 24px 12px; z-index: 60; overflow-y: auto; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--white); border-radius: var(--radius-lg); width: 560px; max-width: 100%; padding: 0; box-shadow: var(--shadow-modal); overflow: hidden; animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes modal-in { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
+.modal.modal-wide { width: 760px; }
+/* Modal "Tạo phơi xe mới" / "Chỉnh sửa phơi xe" — khổ giống #singleModal bên TicketStaff (max-width 720). */
+.modal:has(> .trip-form) { width: 720px; max-width: calc(100vw - 32px); }
+.modal:has(> .trip-form) > .admin-form { max-height: calc(100vh - 150px); overflow-y: auto; }
+.modal.modal-fill {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, calc(100vw - 24px));
+  height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+}
+.modal.modal-fill > h3 { flex: 0 0 auto; }
+.modal.modal-fill > .admin-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;  /* không scroll form — chỉ scroll body bên trong nếu cần */
+}
+.modal > h3 { margin: 0; padding: 20px 24px 16px; font-size: 17px; font-weight: 800; color: var(--black); border-bottom: 1px solid var(--border-subtle); }
+.admin-form { padding: 20px 24px 24px; }
+.admin-form .fld { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.admin-form .fld > label { font-size: 12.5px; font-weight: 700; color: var(--text-main); }
+.admin-form .fld-row { display: flex; gap: 16px; }
+.admin-form .fld-row > .fld { flex: 1 1 0; min-width: 0; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-subtle); }
+
+/* "Search dropdown" thay cho MỌI <select> gốc bên Admin (admin-search-select.js) — <select> gốc bị ẩn
+   (.admin-ss-native), 1 input gõ-tìm chèn cạnh nó bên trong .admin-ss-wrap. Đặt .admin-ss-wrap làm flex
+   item thay cho <select> cũ trong .filter-field/.fld nên kế thừa nguyên khung layout (width/gap) sẵn có,
+   .admin-ss-input lại khớp thẳng rule "<container> input" đã có (.filter-field input, .admin-form
+   input:not(...)) nên tự có cùng height/border/font với input thường, không cần khai báo lại kích thước. */
+.admin-ss-wrap { position: relative; display: block; width: 100%; }
+.admin-ss-native { display: none !important; }
+.admin-ss-input { width: 100%; cursor: pointer; }
+.admin-ss-input.admin-ss-disabled { cursor: not-allowed; opacity: 0.6; }
+.admin-ss-dropdown {
+  position: fixed; z-index: 200; background: var(--white); border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-modal); overflow-y: auto; display: none;
+}
+.admin-ss-dropdown.open { display: block; }
+.admin-ss-option { padding: 8px 12px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; }
+.admin-ss-option:hover, .admin-ss-option.highlighted { background: var(--surface-2); }
+.admin-ss-option-disabled { color: var(--text-sub); cursor: default; opacity: 0.55; pointer-events: none; }
+.admin-ss-empty { padding: 10px 12px; font-size: 12.5px; color: var(--text-sub); }
+
+/* Khung "Phân quyền theo chức năng" trong modal Thêm/Sửa tài khoản (admin-accounts.js,
+   acPermissionsFieldHtml) — 4 nhóm quyền dạng thẻ, 2 cột trên màn rộng, 1 cột trên di động. Dùng chung
+   cho cả modal "Thêm/Sửa tài khoản" (admin-accounts.js) lẫn "Thêm/Sửa loại nhân viên"
+   (admin-staff-config.js) — cả 2 đều gọi acPermissionsFieldHtml() nên nội dung dễ CAO HƠN màn hình
+   (~25 checkbox chia 4 nhóm). Modal mặc định không giới hạn chiều cao/không tự cuộn, nên khi đó cả
+   overlay phải cuộn theo kiểu "trôi tự do" — mất luôn nút Lưu/Huỷ khỏi tầm nhìn cho tới khi cuộn hết.
+   Bắt .admin-form tự cuộn bên trong + giới hạn theo viewport (giống .modal:has(> .trip-form) đã làm)
+   để modal luôn vừa màn hình dù màn hình cao/thấp thế nào. */
+.modal:has(.acc-perm-groups) > .admin-form { max-height: calc(100vh - 150px); overflow-y: auto; }
+.acc-perm-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 620px) { .acc-perm-groups { grid-template-columns: 1fr; } }
+
+/* Modal "Thêm/Sửa thông báo tuyển dụng" (admin-recruitment.js) — form dài nhất trong Admin (nhiều
+   ô + 3 textarea) nên cùng lý do như .acc-perm-groups ở trên: bắt .admin-form tự cuộn bên trong,
+   giữ tiêu đề + nút Lưu/Huỷ luôn trong tầm nhìn dù màn hình thấp. Bản "Xem thông báo" (preview) cũng
+   dài tương tự nhưng không nằm trong .admin-form nên cuộn riêng phần thân (.rc-preview-body), giữ
+   tiêu đề + badge trạng thái cố định phía trên. */
+.modal > .admin-form.rc-form { max-height: calc(100vh - 150px); overflow-y: auto; }
+.rc-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 20px 24px 16px; border-bottom: 1px solid var(--border-subtle); }
+.rc-preview-body { padding: 20px 24px 24px; max-height: calc(100vh - 150px); overflow-y: auto; }
+
+/* .fld-row (2 ô/dòng) không có mốc responsive nào trước đây — trên màn hẹp (điện thoại) 2 input
+   160px + gap bị bóp nhỏ/tràn ngang. Xuống 1 cột/dòng ở màn hẹp, áp dụng chung cho MỌI modal admin
+   (không riêng tuyển dụng) vì đây là lỗi gốc chung của .fld-row. */
+@media (max-width: 620px) {
+  .admin-form .fld-row { flex-direction: column; gap: 0; }
+  .admin-form .fld-row > .fld { max-width: none !important; }
+}
+.acc-perm-group { border: 1px solid var(--border-gray); border-radius: var(--radius-md); background: var(--surface-2); padding: 12px 14px; }
+.acc-perm-group-head { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border-gray); }
+.acc-perm-group-head b { font-size: 13px; font-weight: 800; color: var(--black); }
+.acc-perm-group-items { display: flex; flex-direction: column; gap: 7px; }
+.acc-perm-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-main); font-weight: 600; cursor: pointer; }
+.acc-perm-check input[type="checkbox"] { width: 15px; height: 15px; flex: 0 0 auto; cursor: pointer; accent-color: var(--red); }
+
+/* Modal "Tạo/Chỉnh sửa phơi xe" — thu gọn khoảng cách giữa các thành phần cho khớp #singleModal bên
+   TicketStaff (hàng sát nhau hơn, label sát input, ô thấp hơn, nút bớt cách). Chỉ áp cho .trip-form
+   nên các modal admin khác (Trạm/Tuyến/Xe…) giữ nguyên. */
+.modal:has(> .trip-form) > h3 { padding: 14px 20px 12px; }
+.admin-form.trip-form { padding: 14px 20px 18px; }
+.admin-form.trip-form .fld { gap: 4px; margin-bottom: 10px; }
+.admin-form.trip-form .fld > label { font-size: 12px; }
+.admin-form.trip-form .fld-row { gap: 12px; }
+.admin-form.trip-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.admin-form.trip-form select { height: 34px; padding: 0 12px; }
+.admin-form.trip-form .station-pick-group { min-height: 28px; gap: 6px; }
+.admin-form.trip-form .modal-actions { margin-top: 12px; padding-top: 12px; }
+
+/* Modal "Tạo/Sửa yêu cầu chi" (admin-accounting.js) — gói 9 field còn lại (đã bỏ field "Người đề
+   nghị" ra khỏi form, chỉ còn 1 dòng chữ dưới tiêu đề) vào 4 fld-row 2 cột + 1 textarea, cùng với
+   giảm khoảng đệm/chiều cao ô như .trip-form ở trên, để cả modal luôn vừa 1 màn hình laptop thông
+   thường (~650-700px cao) mà KHÔNG cần thanh cuộn, thay vì cuộn nguyên modal (trôi mất tiêu đề/nút Lưu). */
+.modal:has(> .admin-form.er-form) > h3 { padding: 16px 24px 10px; }
+.admin-form.er-form { padding-top: 4px; }
+.admin-form.er-form .fld { gap: 4px; margin-bottom: 10px; }
+.admin-form.er-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.admin-form.er-form select { height: 34px; }
+.admin-form.er-form textarea { min-height: 52px; }
+.admin-form.er-form .modal-actions { margin-top: 10px; padding-top: 10px; }
+
+/* Pickup combobox — "Trạm có thể nhận thêm khách" */
+.pickup-combobox {
+  position: relative;
+  border: 1.5px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  min-height: 40px;
+  transition: border-color .15s;
+  cursor: text;
+}
+.pickup-combobox:focus-within {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(194,13,8,.08);
+}
+
+/* Selected tags */
+.pickup-tags { display: contents; }
+.pickup-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 10px;
+  background: var(--red-light, #FEE2E2);
+  border: 1px solid #FECACA;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  white-space: nowrap;
+}
+.pickup-tag button {
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  font-size: 14px;
+  color: var(--red);
+  cursor: pointer;
+  opacity: .6;
+  display: flex;
+  align-items: center;
+}
+.pickup-tag button:hover { opacity: 1; }
+
+/* Search input inside combobox */
+.pickup-search {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 2px 4px !important;
+  font-size: 13px !important;
+  flex: 1 1 100px;
+  min-width: 80px;
+  background: transparent;
+  color: var(--text-main);
+}
+.pickup-search::placeholder { color: var(--text-sub); }
+
+/* Dropdown — hidden by default, shown with .is-open */
+.pickup-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--white);
+  border: 1.5px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,.1);
+  z-index: 999;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.pickup-dropdown.is-open { display: block; }
+.pickup-dd-item {
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.pickup-dd-item:last-child { border-bottom: none; }
+.pickup-dd-item:hover { background: #FFF5F5; color: var(--red); }
+.pickup-dd-empty {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-sub);
+  font-style: italic;
+}
+
+.admin-form .form-section-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 10px;
+}
+.admin-form .form-toggle-grid {
+  padding: 14px 16px;
+  background: var(--bg-sub);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 20px;
+}
+.admin-form .form-toggle-grid .fld { margin-bottom: 0; }
+.admin-form .form-toggle-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.admin-form .radio-inline { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.admin-form .radio-inline label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-main);
+}
+.admin-form textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 10px 14px;
+  resize: vertical;
+  line-height: 1.45;
+}
+/* Cảnh báo trong modal admin (VD: phơi đang hủy còn ghế đã bán/giữ) — cùng tông với .warn-box bên
+   TicketStaff (shared/css/booking-ui/04-overlay-modals.css), admin.css không nạp file đó nên khai riêng. */
+.warn-box {
+  display: flex;
+  gap: 8px;
+  background: var(--red-light);
+  border: 1px solid #FBD5D4;
+  color: #B91C1C;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .admin-form .form-toggle-grid,
+  .admin-form .form-toggle-grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+.toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%) translateY(20px); background: var(--black); color: #fff; padding: 12px 24px; border-radius: 999px; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none; transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1); z-index: 90; box-shadow: var(--shadow-pop); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast svg { width: 18px; height: 18px; stroke: #34D399; fill: none; flex: 0 0 auto; }
+
+/* ===== DIRECTIONS & ROUTES MODERN VIEW STYLES ===== */
+.dir-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1100px) {
+  .dir-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.dir-stat-card {
+  padding: 18px 22px;
+  min-height: auto;
+}
+.dir-stat-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+  text-transform: uppercase;
+}
+.dir-stat-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--black);
+  letter-spacing: -0.02em;
+  margin: 6px 0 2px;
+}
+.dir-stat-sub {
+  font-size: 12px;
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.dir-tabs-card {
+  padding: 14px 20px;
+  margin-bottom: 20px;
+}
+
+.dir-tabs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dir-pills-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dir-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-gray);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.dir-pill-btn:hover {
+  background: var(--surface-2);
+  border-color: #CBD5E1;
+}
+
+.dir-pill-btn.active {
+  background: var(--red-gradient) !important;
+  border-color: transparent !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(194, 13, 8, 0.28) !important;
+}
+
+.dir-pill-btn .dir-cnt-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--text-main);
+}
+
+.dir-pill-btn.active .dir-cnt-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+.dir-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loc-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.loc-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.loc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--black);
+  margin-bottom: 12px;
+}
+
+.loc-card-head .sp-count {
+  font-size: 11px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--text-sub);
+  margin-left: 6px;
+}
+
+.chip-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-editor .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.chip-editor .chip button {
+  border: 0;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.chip-editor .chip button:hover { color: var(--red); }
+
+/* ===== PHƠI XE LIST VIEW ===== */
+.phoi-list {
+  margin-top: 16px;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.phoi-list-header {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-gray);
+  padding: 8px 16px;
+  gap: 12px;
+}
+.phoi-list-header > div {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+}
+.phoi-list-header .phoi-row-time  { width: 72px; flex-shrink: 0; }
+.phoi-list-header .phoi-row-name  { flex: 1; min-width: 0; }
+.phoi-list-header .phoi-row-actions { width: 100px; flex-shrink: 0; }
+
+.phoi-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background var(--t-fast);
+  border-left: 3px solid transparent;
+}
+.phoi-row:last-child { border-bottom: none; }
+.phoi-row:hover { background: #FFF8F8; }
+
+/* Time column */
+.phoi-row-time {
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.phoi-row-hhmm {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--black);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.phoi-row-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+/* Name + meta column */
+.phoi-row-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.phoi-row-top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.phoi-row-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+/* badge in row keeps its natural width */
+.phoi-row-top-line .status-badge {
+  flex-shrink: 0;
+}
+.phoi-row-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.phoi-row-meta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.phoi-row-meta::before {
+  content: '';
+}
+.phoi-row-meta + .phoi-row-meta::before {
+  content: '·';
+  margin-right: 6px;
+  color: var(--border-gray);
+}
+
+/* Actions column */
+.phoi-row-actions {
+  width: 100px;
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.btn-icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+/* Selectable bulk mode */
+.phoi-row-selectable { cursor: pointer; }
+.phoi-row-selectable.selected { background: #FFF0F0; }
+.phoi-row-check {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-gray);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: var(--white);
+  flex-shrink: 0;
+}
+.phoi-row-selectable.selected .phoi-row-check {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* Status left-border accent */
+.phoi-row.status-dang-ban   { border-left: 3px solid #16A34A; }
+.phoi-row.status-da-khoi-hanh { border-left: 3px solid #6B7280; }
+.phoi-row.status-chua-chi-dinh { border-left: 3px solid #F97316; }
+.phoi-row.status-da-huy     { border-left: 3px solid #EF4444; opacity: 0.6; }
+
+/* Keep trip-plate-inline style */
+.trip-plate-inline {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  padding: 1px 7px;
+  border-radius: 6px;
+  color: var(--text-main);
+  display: inline-block;
+  width: fit-content;
+}
+
+
+
+/* ===== TRANSSHIPMENT MODERN STYLES ===== */
+.pax-route {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.pax-route-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pax-route-connector {
+  width: 2px;
+  height: 8px;
+  background: var(--border-gray);
+  margin-left: 14px;
+  border-radius: 1px;
+}
+
+.pax-route-text {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* ===== QUẢN LÝ LỊCH TRÌNH (SCHEDULE MANAGEMENT) STYLES ===== */
+/* Bố cục dùng chung .sd-toolbar + .sd-table-wrap của trang Trạm Xe — không cần style riêng. */
+.sch-row-deleted {
+  opacity: 0.55;
+  background-color: var(--surface-2, #F8FAFC);
+}
+
+
+
+
+
+
+
+/* ===== DANH SÁCH VÉ — ticket list view ===== */
+.tk-list {
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-top: 16px;
+}
+
+/* Header row */
+.tk-list-header {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-gray);
+  padding: 8px 16px;
+  gap: 0;
+}
+.tk-list-header > div {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+  padding: 0 8px;
+}
+
+/* Data rows */
+.tk-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 3px solid transparent;
+  transition: background var(--t-fast);
+  min-height: 52px;
+}
+.tk-row:last-child { border-bottom: none; }
+.tk-row:hover { background: #FFF8F8; }
+.tk-row.tk-state-hold { border-left-color: #F97316; }
+.tk-row.tk-state-sold { border-left-color: #16A34A; }
+.tk-row.tk-state-other { border-left-color: var(--border-gray); }
+
+/* Column widths — shared between header and rows */
+.tk-col-time   { width: 76px;  flex-shrink: 0; padding: 10px 8px; }
+.tk-col-pax    { width: 160px; flex-shrink: 0; padding: 10px 8px; }
+.tk-col-route  { flex: 1;      min-width: 0;   padding: 10px 8px; }
+.tk-col-seat   { width: 110px; flex-shrink: 0; padding: 10px 8px; }
+.tk-col-state  { width: 100px; flex-shrink: 0; padding: 10px 8px; }
+.tk-col-meta   { width: 100px; flex-shrink: 0; padding: 10px 8px; }
+.tk-col-note   { width: 140px; flex-shrink: 0; padding: 10px 8px; overflow: hidden; }
+
+/* Time col */
+.tk-col-time { display: flex; flex-direction: column; gap: 1px; }
+.tk-time { font-size: 15px; font-weight: 800; color: var(--black); line-height: 1; }
+.tk-date { font-size: 11px; font-weight: 600; color: var(--text-sub); }
+
+/* Passenger col */
+.tk-col-pax { display: flex; flex-direction: column; gap: 1px; }
+.tk-pax-name { font-size: 13px; font-weight: 700; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-pax-phone { font-size: 11.5px; font-weight: 600; color: var(--text-sub); font-family: 'Roboto Mono', monospace; }
+
+/* Route col */
+.tk-col-route { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tk-stop { font-size: 12.5px; font-weight: 600; color: var(--text-main); white-space: nowrap; }
+.tk-stop-from { color: var(--red); }
+.tk-stop-arrow { font-size: 11px; color: var(--text-sub); flex-shrink: 0; }
+
+/* Seat + price col */
+.tk-col-seat { display: flex; flex-direction: column; gap: 3px; }
+.tk-seat-badge {
+  display: inline-block;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--black);
+  font-family: 'Roboto Mono', monospace;
+  width: fit-content;
+}
+.tk-price { font-size: 12px; font-weight: 700; color: var(--text-main); }
+
+/* State badge */
+.tk-state-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tk-state-hold { background: #FFF7ED; color: #C2410C; }
+.tk-state-sold { background: #ECFDF5; color: #047857; }
+.tk-state-other { background: var(--surface-2); color: var(--text-sub); }
+
+/* Meta col */
+.tk-col-meta { display: flex; flex-direction: column; gap: 1px; }
+.tk-staff { font-size: 12px; font-weight: 700; color: var(--black); }
+.tk-time-small { font-size: 11px; color: var(--text-sub); font-family: 'Roboto Mono', monospace; }
+
+/* Note col */
+.tk-note {
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.tk-note-empty { color: var(--text-sub); font-size: 12px; }
+
+/* Ticket list pagination */
+.tk-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 0 4px;
+  flex-wrap: wrap;
+}
+.tk-page-btn { min-width: 36px; }
+.tk-page-ellipsis {
+  padding: 0 4px;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+.tk-page-info {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+/* Ticket tabs */
+.tk-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.tk-tab {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-gray);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--t-fast);
+}
+.tk-tab:hover { background: var(--surface-2); }
+.tk-tab.active {
+  background: var(--red);
+  border-color: transparent;
+  color: #fff;
+}
+.tk-tab-count {
+  font-size: 11.5px;
+  font-weight: 800;
+  background: rgba(0,0,0,0.1);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.tk-tab.active .tk-tab-count { background: rgba(255,255,255,0.25); }
+
+
+/* ===== SƠ ĐỒ GHẾ — CARD GRID LIST ===== */
+.sl-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.sl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  transition: box-shadow var(--t-fast), transform var(--t-fast);
+}
+.sl-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(15,23,42,0.1);
+}
+
+.sl-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sl-card-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--black);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+}
+.sl-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.sl-deck-badge {
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--surface);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.sl-card-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sl-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+.sl-stat {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.sl-stat b {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--black);
+  line-height: 1;
+  display: block;
+}
+
+.sl-card-desc {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.45;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sl-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ---- Mini preview trong card ---- */
+.sl-mini-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+/* 2 tầng nằm ngang cạnh nhau */
+.sl-mini-floors {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.sl-mini-floor {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sl-mini-floor-lbl {
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  text-align: center;
+  background: #F1F5F9;
+  border-radius: 3px;
+  padding: 1px 0;
+}
+.sl-mini-grid {
+  display: grid;
+  gap: 2px;
+  grid-auto-rows: 7px;
+}
+.sl-mini-cell {
+  height: 7px;
+  border-radius: 2px;
+  background: #CBD5E1;
+  border: 1px solid #94A3B8;
+}
+.sl-mini-hidden {
+  background: transparent;
+  border-color: transparent;
+}
+/* Ghế tài xế (ghế phụ) — đứng riêng 1 hàng phía trên lưới ghế khách (KHÔNG còn là ô đầu tiên của lưới
+   ghế khách), đã có class .sl-mini-cell nên cùng kích cỡ ghế khách, chỉ đổi màu nền/viền đậm hơn để
+   phân biệt. */
+.sl-mini-driver-row {
+  margin-bottom: 2px;
+}
+.sl-mini-driver {
+  background: #1E293B;
+  border-color: #1E293B;
+}
+.sl-mini-driver.sl-mini-hidden {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* ===== SƠ ĐỒ GHẾ — EDITOR (modal fill) ===== */
+.sl-editor-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.sl-editor-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.sl-editor-legend-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.sl-editor-legend-dot.sl-normal {
+  background: #FFFFFF;
+  border: 2px solid #1E293B;
+}
+.sl-editor-legend-dot.sl-hidden-dot {
+  background: #F1F5F9;
+  border: 2px dashed #94A3B8;
+}
+.sl-editor-legend-dot.sl-driver-dot {
+  background: #F8FAFC;
+  border: 2px solid #0F172A;
+}
+
+.sl-editor-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;          /* không scroll — grid tự co */
+  padding: 4px 2px 0;
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bố cục 2 tầng nằm ngang */
+.sl-editor-floors {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .sl-editor-floors { flex-direction: column; }
+}
+
+.sl-editor-floor {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Tiêu đề tầng */
+.sl-editor-floor-label {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-main);
+  background: #F1F5F9;
+  border-radius: var(--radius-sm);
+  padding: 5px 0;
+  flex-shrink: 0;
+}
+
+/* Grid tự fill toàn bộ chiều cao còn lại */
+.sl-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: stretch;
+}
+.sl-editor-grid.sl-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+/* Ô ghế — tự co theo grid, không cần kích thước cứng */
+.sl-editor-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 2px solid #1E293B;
+  border-radius: 10px;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+/* Ghế tài xế (ghế phụ) — đứng RIÊNG 1 hàng phía trên lưới ghế khách (.sl-editor-driver-row), không còn
+   là ô đầu tiên của lưới ghế khách nữa (trước đây chiếm vị trí đáng lẽ của A1, đẩy lệch cả dãy ghế).
+   .sl-editor-driver-row dùng chung class lưới (sl-editor-grid[.sl-cols-3]) chỉ để chiều rộng ô khớp
+   đúng 1 cột của lưới ghế khách bên dưới — ép flex/chiều cao riêng (không kéo giãn theo chiều cao còn
+   lại như lưới ghế khách) + thêm khoảng cách + viền chấm để tách bạch trực quan với "ghế xe" bên dưới. */
+.sl-editor-grid.sl-editor-driver-row {
+  flex: 0 0 auto;
+  grid-auto-rows: minmax(30px, auto);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-gray, #E2E8F0);
+}
+.sl-editor-driver {
+  border-color: #0F172A;
+  background: #F8FAFC;
+}
+.sl-editor-cell:hover {
+  border-color: var(--red);
+  background: #FFF5F5;
+}
+.sl-editor-cell:active {
+  opacity: 0.75;
+}
+
+.sl-editor-cell-code {
+  font-size: clamp(8px, 1.3vw, 13px);
+  font-weight: 800;
+  color: #1E293B;
+  pointer-events: none;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.sl-cols-3 .sl-editor-cell-code {
+  font-size: clamp(7px, 1vw, 11px);
+}
+/* Tên tuỳ chỉnh — chữ đỏ để phân biệt */
+.sl-editor-cell-code.sl-custom-name {
+  color: var(--red);
+}
+.sl-editor-legend-dot.sl-custom-dot {
+  background: #FEEFEF;
+  border: 2px solid var(--red);
+}
+
+/* Input inline đổi tên */
+.sl-editor-rename-input {
+  width: 100%;
+  min-width: 0;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--red);
+  padding: 0 2px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  font-family: inherit;
+}
+
+/* Ô ẩn — nền hồng nhạt viền đứt, chữ mờ — dễ phân biệt */
+.sl-editor-cell.sl-editor-hidden {
+  background: #FEF2F2;
+  border: 2px dashed #FCA5A5;
+}
+.sl-editor-cell.sl-editor-hidden .sl-editor-cell-code {
+  color: #FCA5A5;
+  text-decoration: line-through;
+}
+.sl-editor-cell.sl-editor-hidden:hover {
+  border-color: #10B981;
+  background: #ECFDF5;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.18);
+}
+.sl-editor-cell.sl-editor-hidden:hover .sl-editor-cell-code {
+  color: #047857;
+  text-decoration: none;
+}
+
+
+/* =========================================================
+   ===== QUẢN LÝ VẬN TẢI — giao diện gốc (folder HueNghia) =====
+   Toàn bộ style cho nhóm "Quản lý vận tải" (Trạm xe / Điểm dừng / Tuyến xe / Phơi xe /
+   Quản lý giá / Trung chuyển / Danh sách vé) lấy nguyên từ bản admin trong folder HueNghia.
+   Nạp CUỐI FILE nên thắng mọi rule trùng tên ở phần "overhaul" phía trên cho đúng các màn
+   hình vận tải; các nhóm khác (Dashboard / Xe & nhân sự) giữ nguyên.
+   ========================================================= */
+
+.admin-form .fld > label .req { color: var(--red); font-weight: 800; margin-left: 1px; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5; letter-spacing: .01em; }
+.badge-on { background: #DCFCE7; color: #047857; }
+.badge-off { background: #EEF1F4; color: #475569; }
+.badge-di { background: #E0E7FF; color: #4338CA; }
+.badge-ve { background: #FEF3C7; color: #B45309; }
+
+/* ===== PHƠI XE — danh sách thẻ (.phoi-card) ===== */
+.phoi-grid-wrap {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+/* ---------------------------------------------------------------------------
+   LƯỚI THẺ PHƠI XE — mọi thẻ ĐỒNG NHẤT tuyệt đối: cùng width (grid 1fr),
+   cùng height (cố định), mọi khu vực bên trong chiều cao ổn định → footer luôn
+   thẳng hàng dù nội dung dài/ngắn. Nội dung dài bị line-clamp + ellipsis.
+   --------------------------------------------------------------------------- */
+.phoi-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);   /* mặc định: 3 phơi / hàng; thu dần theo bề rộng bên dưới */
+  gap: 14px;
+  /* KHÔNG đặt align-items → mặc định stretch: các thẻ cùng hàng tự cao bằng nhau theo thẻ cao nhất,
+     y như bên TicketStaff (thẻ cao theo nội dung, không ép chiều cao cố định). */
+}
+@media (max-width: 1040px) { .phoi-card-grid { grid-template-columns: repeat(2, 1fr); } }
+.phoi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-gray);
+  border-left: 4px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.phoi-card:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, .07); }
+.phoi-card.status-chua-chi-dinh { border-left-color: #9CA3AF; }
+.phoi-card.status-da-chi-dinh { border-left-color: #2563EB; }
+.phoi-card.status-dang-ban { border-left-color: #16A34A; }
+.phoi-card.status-da-khoi-hanh { border-left-color: #6366F1; }
+.phoi-card.status-da-huy { border-left-color: #DC2626; opacity: .7; }
+
+/* Header: giờ + biển số (1 dòng, không xuống dòng) | ngày | badge trạng thái */
+.phoi-card-top { flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; padding: 12px 8px 0 12px; }
+.phoi-card-schedule { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.phoi-card-time-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0; }
+.phoi-card-time { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.2; white-space: nowrap; flex: 0 0 auto; }
+.phoi-card-time-row .trip-plate-inline {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phoi-card-date { font-size: 11.5px; color: var(--text-sub); font-weight: 500; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phoi-card-top .status-badge { flex: 0 0 auto; }
+
+/* Tuyến — cao theo nội dung (1–2 dòng tự nhiên), không ép chiều cao như trước để khớp TicketStaff. */
+.phoi-card-name {
+  flex: 0 0 auto;
+  padding: 10px 12px 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+.phoi-card-meta {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--surface);
+}
+.phoi-card-meta-item { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
+.phoi-card-meta-item label { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; color: var(--text-sub); font-weight: 700; white-space: nowrap; }
+.phoi-card-meta-item span { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Footer — LUÔN sát đáy thẻ nhờ margin-top:auto, bất kể nội dung phía trên */
+.phoi-card-footer { flex: 0 0 auto; margin-top: auto; display: flex; gap: 8px; padding: 0 12px 12px; }
+.phoi-edit-btn,
+.phoi-sell-btn {
+  flex: 1 1 0;
+  height: auto;
+  justify-content: center;
+  gap: 5px;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+.phoi-sell-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+.phoi-route-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: none;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  z-index: 1;
+  transition: color .12s, background .12s;
+}
+.phoi-route-btn svg { width: 19px; height: 19px; }
+.phoi-route-btn:hover { color: var(--red); background: var(--surface-2); }
+.phoi-card:not(.phoi-card-selectable) .phoi-card-top { padding-right: 34px; }
+
+/* Thẻ phơi MẪU (chế độ chọn hàng loạt) — không có footer/route-btn nên thấp hơn; cao theo nội dung,
+   các thẻ cùng hàng tự bằng nhau nhờ grid stretch (giống TicketStaff). */
+.phoi-card-selectable { padding-bottom: 12px; }
+.phoi-card-selectable:hover { border-color: var(--red); }
+.phoi-card-selectable .phoi-card-top { padding-right: 34px; }
+.phoi-card-selectable .phoi-card-meta { border-bottom: 0; }
+.phoi-card-selectable.selected { border-color: var(--red); background: var(--red-light); }
+.phoi-card-select-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-sub);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.phoi-card-selectable.selected .phoi-card-select-check { border-color: var(--red); background: var(--red); }
+.phoi-card-select-check svg { width: 12px; height: 12px; }
+
+/* Nút tròn tick chọn hủy — nằm sẵn trên mỗi thẻ phơi thường (góc PHẢI, cùng vị trí với nốt tròn chọn
+   của thẻ phơi mẫu .phoi-card-select-check), chỉ hiện với phơi còn hủy được (adminTripCancelable). Đẩy
+   .phoi-route-btn (icon "Xem lộ trình") lùi sang trái để nhường đúng góc phải ngoài cùng cho nốt tick.
+   Tick vào tự hiện thanh tác vụ (Hủy / Chọn tất cả / Hủy phơi xe) — không cần bật "chế độ" riêng. */
+.phoi-card.has-cancel-check .phoi-card-top { padding-right: 66px; }
+.phoi-card.has-cancel-check .phoi-route-btn { right: 36px; }
+.phoi-cancel-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-sub);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  cursor: pointer;
+}
+.phoi-cancel-check.on { border-color: var(--red); background: var(--red); }
+.phoi-cancel-check svg { width: 12px; height: 12px; }
+.phoi-card.cancel-picked { border-color: var(--red); background: var(--red-light); }
+
+.bulk-toggle-active { background: var(--red); border-color: var(--red); color: #fff; }
+.bulk-toggle-active:hover { background: var(--red-hover); border-color: var(--red-hover); }
+/* Thanh chọn phơi mẫu — DÍNH ĐÁY MÀN HÌNH (giống .sticky-actions Zone 4 bên TicketStaff): chạy hết
+   bề ngang vùng nội dung (từ mép sidebar tới mép phải) và nằm sát đáy cửa sổ, KHÔNG bị bó trong
+   max-width/padding của .admin-main — dùng position:fixed vì .admin-main mới là khung cuộn, sticky
+   chỉ bám được tới đáy khung nội dung nên còn hở 64px padding-bottom và thụt vào 2 bên.
+   Nền trắng, viền trên, bóng hắt lên, dồn phải; hint đẩy sang trái. */
+.bulk-bar {
+  position: fixed;
+  left: var(--admin-sidebar-w);
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #fff;
+  border-top: 1px solid #CBCDCD;
+  box-shadow: 0 -6px 14px rgba(0, 0, 0, 0.06);
+  padding: 12px 18px;
+}
+/* Thanh dính đáy che mất hàng thẻ cuối → chừa chỗ trống bên dưới lưới khi đang bật chế độ chọn mẫu. */
+.phoi-grid-wrap.has-bulk-bar { padding-bottom: 84px; }
+.bulk-bar-hint { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-right: auto; }
+.bulk-bar-fields { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.bulk-bar-fields .filter-field { gap: 4px; }
+.bulk-bar-fields .filter-field label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--text-sub); }
+.bulk-bar-fields input[type="date"] {
+  min-width: 150px;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.bulk-bar-fields .btn { height: 35px; }
+@media (max-width: 640px) {
+  .bulk-bar { padding: 10px 14px; }
+  .bulk-bar-hint { flex: 1 1 100%; margin-right: 0; }
+  .bulk-bar-fields { width: 100%; }
+  .bulk-bar-fields .btn { flex: 1 1 auto; }
+  /* Thanh xuống 2–3 hàng ở màn hẹp nên cần chừa nhiều chỗ hơn cho hàng thẻ cuối. */
+  .phoi-grid-wrap.has-bulk-bar { padding-bottom: 170px; }
+}
+
+.grid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 16px;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+.grid-empty svg { width: 44px; height: 44px; opacity: .5; }
+.grid-empty p { margin: 0; font-size: 13px; }
+
+@media (max-width: 767px) {
+  .phoi-card-grid { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* "Trạm có thể nhận thêm khách" — pill checkbox */
+.station-pick-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding-top: 2px;
+}
+.station-pick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--border-gray);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.admin-form .station-pick-pill input[type="checkbox"] { width: 13px; height: 13px; margin: 0; accent-color: var(--red); cursor: pointer; }
+.station-pick-pill.checked { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.station-pick-empty { font-size: 13px; color: var(--text-sub); font-style: italic; }
+
+/* Modal lộ trình — timeline dọc */
+.route-timeline { display: flex; flex-direction: column; }
+.route-step { display: flex; gap: 12px; padding-bottom: 14px; position: relative; }
+.route-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-gray);
+}
+.route-step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  background: var(--text-sub);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.route-step.start .route-step-dot { background: #16A34A; box-shadow: 0 0 0 3px #DCFCE7; }
+.route-step.end .route-step-dot { background: var(--red); box-shadow: 0 0 0 3px var(--red-light); }
+.route-step-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; color: var(--text-sub); }
+.route-step-name { font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-top: 1px; }
+
+/* ===== TUYẾN XE / QUẢN LÝ TRẠM — 1 thanh chọn hướng + 2 cột nội dung ===== */
+#viewDirections:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: none;
+}
+.st-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 16px;
+}
+.st-right { display: flex; flex-direction: column; min-height: 0; gap: 12px; }
+/* Thanh trên Tuyến xe (1 hàng, mỗi ô nhãn phía TRÊN): Tìm tuyến — Hướng — Cập nhật hướng — + Thêm tuyến.
+   PHẲNG như .sd-toolbar bên Trạm Xe (bỏ nền/viền/bóng/padding card), canh đáy, cân đối trọn chiều ngang. */
+.st-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+.st-toolbar-spacer { display: none; }
+.st-toolbar .filter-field { gap: 4px; }
+.st-toolbar .filter-field > label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  color: var(--text-sub);
+}
+.st-search-field { flex: 1 1 220px; min-width: 180px; }   /* co giãn → lấp hết khoảng trống */
+.st-dir-field { flex: 0 1 260px; min-width: 190px; }
+.st-toolbar .filter-field > input,
+.st-toolbar .filter-field > select {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 10px;
+  border: 1.5px solid #CBCDCD;
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.st-toolbar .filter-field > select { cursor: pointer; }
+.st-toolbar .filter-field > input:focus,
+.st-toolbar .filter-field > select:focus { outline: none; border-color: var(--red); box-shadow: none; }
+.st-tb-btn { flex: 0 0 auto; height: 35px; }
+
+.st-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+.st-col .pane-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--surface);
+  font-weight: 800;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+.st-col-stations { overflow-x: hidden; overflow-y: auto; }
+.st-col-stations .pane-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 74px;
+  align-content: center;
+  padding: 8px 12px;
+  background: var(--white);
+}
+.st-col-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+.st-col-stations .st-col-body { overflow: visible; flex: 0 0 auto; }
+
+.st-stations-tools { display: flex; flex: 1 1 100%; align-items: center; gap: 8px; }
+.st-region-filter {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.st-region-filter:focus { outline: none; border-color: var(--red); box-shadow: var(--ring); }
+.st-stations-tools > .btn,
+.st-col-stations .loc-card-head > .btn { min-width: 104px; }
+.st-stations-tools > .btn { flex: 0 0 auto; height: 32px; }
+
+/* Tuyến xe = 1 cột, BẢNG HIỆN ĐỦ CHIỀU DỌC (cuộn theo trang như Trạm Xe) — bỏ khung cao cố định /
+   cuộn dọc nội bộ mà layout 2-cột cũ áp đặt. */
+#viewDirections:not([hidden]) { display: block; height: auto; }
+#viewDirections > .st-right { display: block; min-height: 0; }
+#viewDirections .st-toolbar { margin-bottom: 16px; }
+#viewDirections .st-col-routes {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+}
+.st-col-routes > .table-wrap {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow-x: auto;
+}
+.st-col-routes > .empty-state { margin: 40px auto; }
+
+.st-col-stations .loc-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.st-col-stations .loc-card + .loc-card {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--surface);
+}
+.st-col-stations .loc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 800;
+  font-size: 12.5px;
+  color: var(--text-main);
+}
+.st-col-stations .loc-card-head > span { display: inline-flex; align-items: center; gap: 8px; }
+.st-col-stations .loc-card-head .sp-count {
+  background: var(--border-gray);
+  border: 0;
+  color: var(--text-main);
+  margin-left: 0;
+}
+
+@media (max-width: 1280px) {
+  .st-workspace { grid-template-columns: 320px minmax(0, 1fr); }
+}
+@media (max-width: 980px) {
+  #viewDirections:not([hidden]) { height: auto; }
+  .st-workspace { display: block; }
+  .st-right { display: block; }
+  .st-right > .st-toolbar { margin-bottom: 12px; }
+  .st-col + .st-col,
+  .st-right { margin-top: 14px; }
+  .st-col-body,
+  .st-col-routes > .table-wrap { max-height: 60vh; }
+  .st-col-stations { overflow: visible; }
+  .st-col-stations .pane-head { position: static; }
+  .st-col-stations .st-col-body { max-height: none; }
+}
+
+/* Modal "Trạm của tuyến" + "Cập nhật danh mục địa điểm" */
+.route-stations-modal .rs-group + .rs-group {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--surface);
+}
+.route-stations-modal .chip-editor { margin-top: 6px; }
+.regions-modal .rgm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.regions-modal .rgm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-md);
+}
+.regions-modal .rgm-main { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
+.regions-modal .rgm-name { flex: 1 1 auto; min-width: 0 !important; }
+.regions-modal .rgm-name-static { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: 13px; }
+.regions-modal .rgm-count { flex: 0 0 auto; font-size: 11.5px; color: var(--text-sub); white-space: nowrap; }
+.regions-modal .rgm-act { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.regions-modal .rgm-hidden { margin-bottom: 14px; }
+.regions-modal .rgm-hidden .grp-label { margin-bottom: 6px; }
+.regions-modal .rgm-row-hidden { opacity: .75; background: var(--surface-2); margin-bottom: 6px; }
+.regions-modal .rgm-row-hidden .rgm-name-static { font-weight: 600; }
+.regions-modal .rgm-add { display: flex; align-items: center; gap: 8px; }
+.regions-modal .rgm-add > input { flex: 1 1 auto; min-width: 0 !important; }
+/* Modal "Cập nhật hướng" — hàng thêm hướng có 2 ô (tên + mã) */
+.dirs-modal .dm-add { flex-wrap: wrap; }
+.dirs-modal .dm-add > #dmNewLabel { flex: 1 1 220px; }
+.dirs-modal .dm-add > #dmNewKey { flex: 0 0 130px; }
+.dirs-modal .dm-name { font-weight: 600; }
+
+/* Chip editor (Tuyến xe + modal chọn trạm) — ghi đè bản "overhaul" */
+.chip-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  padding: 2px 0;
+}
+.chip-editor .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-gray);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--text-main);
+}
+.chip-editor .chip:has(input:checked) {
+  background: var(--red-light);
+  border-color: #e0aaa8;
+  color: var(--red);
+}
+.chip-editor .chip button {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.chip-editor .chip button:hover { background: var(--border-gray); color: var(--text-main); }
+.chip-editor .chip input[type="checkbox"] { margin: 0; }
+
+/* ===== MODAL CHỌN TRẠM (station picker) ===== */
+.sp-hint { margin: 0 0 12px; }
+.sp-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.modal.modal-fill .sp-list { flex: 1 1 auto; min-height: 140px; }
+.modal:not(.modal-fill) .sp-list { max-height: min(60vh, 520px); }
+.sp-region + .sp-region { margin-top: 18px; }
+.sp-region .grp-label { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.sp-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 17px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--border-gray);
+  color: var(--text-main);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.sp-region .chip-editor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  align-items: stretch;
+}
+.chip-editor .chip.sp-opt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  background: var(--white);
+}
+.chip-editor .chip.sp-opt:hover { border-color: #b5b7b7; }
+.chip-editor .chip.sp-opt > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.chip-editor .chip.sp-opt input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--red);
+}
+.sp-picker > .modal-actions { margin-top: 4px; padding-top: 6px; }
+@media (max-width: 620px) {
+  .sp-region .chip-editor { grid-template-columns: 1fr; }
+}
+
+/* ===== TRUNG CHUYỂN + DANH SÁCH VÉ — bảng .shuttle-table / .pax-table, nav .pk-subtabs ===== */
+.filter-reset { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 8px; margin-left: auto; }
+.filter-reset button { height: 35px; padding: 0 12px; font-size: 12px; font-weight: 600; }
+
+/* Bảng Trung chuyển giờ dùng class .admin-table (như mọi bảng admin khác) để lấy chung viền/màu/header/
+   hover — .shuttle-table ở đây (kết hợp với .admin-table.shuttle-table khai báo ở phần layout chung phía
+   trên) chỉ còn giữ các quy tắc riêng: độ rộng cột STT/checkbox, canh giữa, checkbox, hàng đang chọn. */
+.shuttle-table th.col-stt, .shuttle-table td.col-stt { width: 28px; font-weight: 600; }
+.shuttle-table td.center { text-align: center; }
+.shuttle-table th.col-action, .shuttle-table td.col-action { padding-left: 4px; padding-right: 4px; }
+.shuttle-table th.col-check, .shuttle-table td.col-check { width: 44px; }
+.shuttle-table input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--red); cursor: pointer; }
+.shuttle-table tbody tr.selected-row { background: var(--red-light); }
+
+.pk-subtabs {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  flex: 0 0 auto;
+  width: 100%;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.pk-subtab {
+  position: relative;
+  flex: 1 1 0;
+  padding: 13px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  text-align: center;
+  border: none;
+  border-left: 1px solid var(--border-gray);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: color .12s ease, background .12s ease;
+}
+.pk-subtab:first-child { border-left: none; }
+.pk-subtab.active { color: var(--red); font-weight: 700; background: rgba(194, 13, 8, 0.04); }
+.pk-subtab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--red); }
+.pk-subtab:hover:not(.active) { color: var(--red); background: rgba(194, 13, 8, 0.04); }
+.pk-subtab-count { margin-left: 5px; font-size: 12px; font-weight: 600; color: inherit; opacity: .7; }
+
+/* ===== TRUNG CHUYỂN + DANH SÁCH VÉ — bố cục PHẲNG (không panel/nền/bóng) giống trang Trạm Xe & Quản lý
+   giờ: nav tab (nếu có) + thanh lọc trong suốt + bảng trong .sd-table-wrap. ===== */
+#viewTransship .pk-subtabs {
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--border-gray);
+  margin-bottom: 14px;
+}
+/* Trung chuyển — ĐỦ 9 PHẦN (6 ô lọc + nút "Đặt lại"/"In rước"/"Rước liền") LUÔN nằm CHUNG 1 HÀNG,
+   không phần nào xuống hàng, ở bất kỳ độ rộng nào — cùng cách làm với Tổng đài (xem chú thích khối
+   #viewTicketList phía dưới): 6 ô lọc chia đều phần rộng còn lại (flex-shrink, min-width:0), 3 nút giữ
+   kích thước tự nhiên (flex:0 0 auto), ".filter-reset" dùng display:contents để 3 nút trở thành flex
+   item TRỰC TIẾP của .filter-toolbar (tính là 3 trong 9 phần) thay vì bị nhóm cố định 1 cụm riêng. */
+#viewTransship > .filter-toolbar {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+}
+#viewTransship > .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 0; gap: 4px; }
+#viewTransship > .filter-toolbar > .filter-field:first-child { flex: 1.6 1 0; }   /* ô Tìm kiếm rộng hơn */
+#viewTransship > .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+/* Dùng selector CON CHÁU (không phải "> ") vì <select> gốc bị admin-search-select.js "khoác" thêm 1
+   lớp <span class="admin-ss-wrap"><input class="admin-ss-input">...</span> chèn giữa .filter-field và
+   input hiển thị thật — chọn "> input" sẽ bỏ sót input này, để nó rơi lại rule chung ".filter-field
+   input { min-width:160px }" (không !important) và không co lại theo field, chồng lấn qua nút cạnh. */
+#viewTransship > .filter-toolbar > .filter-field .admin-ss-wrap { width: 100%; min-width: 0; }
+#viewTransship > .filter-toolbar > .filter-field input,
+#viewTransship > .filter-toolbar > .filter-field select,
+#viewTransship > .filter-toolbar .filter-select {
+  width: 100%; min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  background: var(--white);   /* ô lọc NỀN TRẮNG (không xám --surface-2) — như thanh lọc Trạm Xe */
+}
+#viewTransship > .filter-toolbar > .filter-field input:focus,
+#viewTransship > .filter-toolbar > .filter-field select:focus { background: var(--white); }
+/* .filter-field-date bị khoá cứng "flex/min-width/max-width !important" ở css/shared/booking-ui
+   (dùng chung toàn hệ thống) nên phải !important mới co giãn cùng nhịp với 5 ô lọc khác. */
+#viewTransship > .filter-toolbar > .filter-field-date { flex: 1 1 0 !important; min-width: 0 !important; max-width: none !important; }
+#viewTransship > .filter-toolbar > .filter-reset { display: contents; }
+#viewTransship > .filter-toolbar > .filter-reset > .btn { flex: 0 0 auto; white-space: nowrap; }
+
+/* Nhật ký hoạt động — 5 ô lọc + nút "Đặt lại" + "Xóa lịch sử nhật ký" chung 1 HÀNG, bố cục phẳng như
+   Trung chuyển/Tổng đài: 5 ô lọc chia đều phần rộng còn lại (ô Tìm kiếm rộng hơn), 2 nút giữ kích thước tự
+   nhiên; .filter-spacer (flex:1 1 auto) bỏ đi vì nó ăn hết chỗ trống khiến các ô lọc co về bên trái. */
+#viewActivity .filter-toolbar {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+}
+#viewActivity .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 0; gap: 4px; }
+#viewActivity .filter-toolbar > .filter-field:first-child { flex: 1.6 1 0; }   /* ô Tìm kiếm rộng hơn */
+#viewActivity .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+#viewActivity .filter-toolbar > .filter-field .admin-ss-wrap { width: 100%; min-width: 0; }
+#viewActivity .filter-toolbar > .filter-field input,
+#viewActivity .filter-toolbar > .filter-field select {
+  width: 100%; min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  background: var(--white);
+}
+#viewActivity .filter-toolbar > .filter-field input:focus,
+#viewActivity .filter-toolbar > .filter-field select:focus { background: var(--white); }
+#viewActivity .filter-toolbar > .filter-spacer { display: none; }
+#viewActivity .filter-toolbar > .btn { flex: 0 0 auto; height: 35px; white-space: nowrap; }
+
+/* Tổng đài — ĐỦ 8 PHẦN (6 ô lọc + nút "Đặt lại" + nút "Ghế hủy") LUÔN nằm CHUNG 1 HÀNG, không phần
+   nào xuống hàng, ở bất kỳ độ rộng nào: 6 ô lọc chia đều phần rộng còn lại (flex-shrink, min-width:0
+   để không bao giờ bị đẩy wrap), 2 nút giữ kích thước tự nhiên (flex:0 0 auto) để chữ không bị bóp méo.
+   ".filter-reset" dùng display:contents "tháo khung" để 2 nút bên trong trở thành flex item TRỰC TIẾP
+   của .filter-toolbar (tính là 2 trong 8 phần, cùng hàng, cùng gap với 6 ô lọc) thay vì bị nhóm cố định
+   1 cụm riêng. */
+#viewTicketList > .filter-toolbar {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+}
+#viewTicketList > .filter-toolbar > .filter-field { flex: 1 1 0; min-width: 0; gap: 4px; }
+#viewTicketList > .filter-toolbar > .filter-field:first-child { flex: 1.6 1 0; }   /* ô Tìm kiếm rộng hơn */
+#viewTicketList > .filter-toolbar > .filter-field > label { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+/* Dùng selector CON CHÁU (không phải "> ") vì <select> gốc bị admin-search-select.js "khoác" thêm 1
+   lớp <span class="admin-ss-wrap"><input class="admin-ss-input">...</span> chèn giữa .filter-field và
+   input hiển thị thật — chọn "> input" sẽ bỏ sót input này, để nó rơi lại rule chung ".filter-field
+   input { min-width:160px }" (không !important) và không co lại theo field, chồng lấn qua nút cạnh. */
+#viewTicketList > .filter-toolbar > .filter-field .admin-ss-wrap { width: 100%; min-width: 0; }
+#viewTicketList > .filter-toolbar > .filter-field input,
+#viewTicketList > .filter-toolbar > .filter-field select,
+#viewTicketList > .filter-toolbar .filter-select {
+  width: 100%; min-width: 0; height: 35px; padding: 0 10px; font-size: 12.5px;
+  background: var(--white);   /* ô lọc NỀN TRẮNG (không xám --surface-2) — như thanh lọc Trạm Xe */
+}
+#viewTicketList > .filter-toolbar > .filter-field input:focus,
+#viewTicketList > .filter-toolbar > .filter-field select:focus { background: var(--white); }
+/* .filter-field-date bị khoá cứng "flex/min-width/max-width !important" ở css/shared/booking-ui
+   (dùng chung toàn hệ thống, xem chú thích #viewTicketOffice phía trên) nên phải !important mới co
+   giãn cùng nhịp với 5 ô lọc khác — không thì nó luôn giữ 160px, đẩy lệch cân đối cả hàng. */
+#viewTicketList > .filter-toolbar > .filter-field-date { flex: 1 1 0 !important; min-width: 0 !important; max-width: none !important; }
+#viewTicketList > .filter-toolbar > .filter-reset { display: contents; }
+#viewTicketList > .filter-toolbar > .filter-reset > .btn { flex: 0 0 auto; white-space: nowrap; }
+#viewTransship .sd-table-wrap,
+#viewTicketList .sd-table-wrap { overflow-x: auto; }
+
+/* Nút "Ghế hủy" — trạng thái bật (đang xem bảng ghế hủy) tô đỏ như bên ticketstaff (.btn-action-red.active). */
+#viewTicketList .btn-action-red.active { background: var(--red); border-color: var(--red); color: #fff; }
+#viewTicketList .btn-action-red.active svg { stroke: #fff; }
+
+/* Căn cột bảng Danh sách vé cho CÂN ĐỐI trong vùng nội dung admin (hẹp hơn #historyView ticketstaff vì
+   có sidebar): min-width đủ để % cột quy ra px thoải mái (hẹp hơn thì .sd-table-wrap cuộn ngang), nới các
+   cột hay bị bẻ dòng (Giá vé / Thời gian / Nhân viên) + ép chúng 1 hàng. */
+#viewTicketList .pax-table { min-width: 1100px; }
+#viewTicketList .pax-table--history tbody td:nth-child(8),   /* Giá vé — 1 hàng */
+#viewTicketList .pax-table--history thead th:nth-child(8) { width: 8%; white-space: nowrap; }
+#viewTicketList .pax-table--history tbody td:nth-child(11),  /* Thời gian — xuống 2 dòng "ngày / giờ" */
+#viewTicketList .pax-table--history thead th:nth-child(11) { width: 9%; }
+#viewTicketList .pax-table--history tbody td:nth-child(5),   /* Hành trình — nới thêm */
+#viewTicketList .pax-table--history thead th:nth-child(5) { width: 18%; }
+#viewTicketList .pax-table--history tbody td:nth-child(2),   /* Tên phơi — giữ 17% */
+#viewTicketList .pax-table--history thead th:nth-child(2) { width: 18%; }
+#viewTicketList .pax-table--history tbody td:nth-child(3),   /* Hành khách — nới thêm cho tên dài */
+#viewTicketList .pax-table--history thead th:nth-child(3) { width: 13%; }
+#viewTicketList .pax-table--history tbody td:nth-child(4),   /* SĐT — số cố định 10 chữ số, hẹp hơn tên */
+#viewTicketList .pax-table--history thead th:nth-child(4) { width: 9%; }
+#viewTicketList .pax-table--history tbody td:nth-child(9),   /* Ghi chú — bù cho Hành trình */
+#viewTicketList .pax-table--history thead th:nth-child(9) { width: 7%; }
+#viewTicketList .pax-table--history tbody td:nth-child(10),  /* Mã NV — chỉ 2 tag ngắn (admin/NV01), thu hẹp nhường Tên phơi */
+#viewTicketList .pax-table--history thead th:nth-child(10) { width: 6.5%; }
+
+/* Sidebar thu gọn thành icon → vùng nội dung rộng thêm ra ~188px — ưu tiên phần rộng thêm đó cho 2 cột
+   quan trọng nhất bảng (Tên phơi, Hành trình) thay vì chia đều mọi cột. table-layout:fixed nên % không
+   cần cộng đúng 100% — trình duyệt tự co giãn tỉ lệ các cột theo đúng bề rộng bảng thật lúc render. */
+body.admin-sidebar-collapsed #viewTicketList .pax-table--history thead th:nth-child(2),
+body.admin-sidebar-collapsed #viewTicketList .pax-table--history tbody td:nth-child(2) { width: 22%; }
+body.admin-sidebar-collapsed #viewTicketList .pax-table--history thead th:nth-child(5),
+body.admin-sidebar-collapsed #viewTicketList .pax-table--history tbody td:nth-child(5) { width: 22%; }
+
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(8),  /* Số tiền */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(8) { white-space: nowrap; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(2),  /* Tên phơi — bớt để hàng không bẻ đôi */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(2) { width: 12%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(9),  /* Nguyên nhân — nới */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(9) { width: 13%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(10), /* Nhân viên */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(10) { width: 8%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(11), /* Thời gian — nới cho "YYYY-MM-DD HH:MM" 2 dòng gọn */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(11) { width: 10%; }
+#viewTicketList .pax-table--cancelled-all tbody td:nth-child(5),  /* Hành trình — bớt */
+#viewTicketList .pax-table--cancelled-all thead th:nth-child(5) { width: 15%; }
+
+.staff-tag-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.staff-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.staff-tag-book { background: #FFF7E0; color: #B45309; }
+.staff-tag-sell { background: var(--red-light); color: var(--red); }
+.staff-tag-empty { background: transparent; color: var(--border-gray); padding: 2px 0; }
+
+.ch-trip-link { font-weight: 700; cursor: pointer; text-decoration: underline; color: var(--text-main); transition: color .15s ease; }
+.ch-trip-link:hover { color: var(--red); }
+
+.pax-info { display: flex; flex-direction: column; gap: 3px; }
+.pax-name { font-weight: 700; color: var(--text-main); white-space: nowrap; font-size: 13.5px; }
+.pax-phone { color: var(--text-sub); white-space: nowrap; font-size: 13.5px; }
+.pk-type-chip { align-self: flex-start; margin-bottom: 1px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--red); }
+.pk-status-tag { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.pk-status-tag.status-waiting { background: #F3F4F6; color: #9CA3AF; }
+.pk-status-tag.status-enroute { background: #FFF7E0; color: #B45309; }
+.pk-status-tag.status-onboard { background: #EFF4FF; color: #1D4ED8; }
+.pk-status-tag.status-issue { background: #FEF0EF; color: #DC2626; }
+.pk-driver-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-size: 12.5px; font-weight: 600; color: var(--text-main); }
+.pk-driver-name.pk-driver-empty { color: #B0B2B3; font-style: italic; font-weight: 500; }
+.pk-driver-sub { font-size: 11.5px; font-weight: 500; color: var(--text-sub); white-space: normal; line-height: 1.3; }
+.pk-note-text { font-size: 11.5px; font-weight: 500; color: var(--red); white-space: normal; line-height: 1.3; }
+.pk-seat-link { background: transparent; border: none; padding: 2px 3px; font-size: 13px; font-weight: 700; color: var(--red); cursor: pointer; }
+.pk-seat-link:hover { text-decoration: underline; }
+.pk-seat-none { color: var(--text-sub); font-weight: 600; font-size: 11px; font-style: italic; white-space: normal; line-height: 1.2; display: inline-block; }
+
+/* Modal "Chỉ định xe rước" + "Cập nhật trạng thái" của tab Trung chuyển: markup tĩnh trong admin.html,
+   CSS COPY 100% từ ticketstaff — xem admin/admin-ts-modals.css. */
+
+/* Cột "Trung chuyển" / "Phòng vé" — ô bấm được để ghi/sửa ghi chú (port từ TicketStaff, admin có CẢ 2
+   role nên cả 2 cột đều bấm được). */
+.pk-transship-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; width: 100%; font-family: inherit; }
+.pk-transship-cell--clickable { border: 1px dashed var(--border-gray); border-radius: 6px; background: transparent; cursor: pointer; padding: 4px 6px; transition: background .12s ease, border-color .12s ease; }
+.pk-transship-cell--clickable:hover { background: var(--surface-2); border-color: var(--text-sub); }
+.pk-note-cell { width: 100%; min-height: 30px; display: flex; align-items: center; justify-content: center; padding: 5px 8px; background: transparent; border: 1px dashed var(--border-gray); border-radius: 6px; color: var(--text-sub); cursor: pointer; text-align: center; transition: background .12s ease, border-color .12s ease, color .12s ease; }
+.pk-note-cell:hover { background: var(--surface-2); border-color: var(--text-sub); color: var(--text-main); }
+.pk-note-cell svg { width: 14px; height: 14px; }
+
+/* Vạch "In rước" — 1 dòng phân cách đỏ trong bảng gộp (port từ TicketStaff pkRenderDividerRowHtml). */
+.pk-print-divider-row td { position: relative; background: rgba(194, 13, 8, 0.06); border-top: 1px dashed var(--red); border-bottom: 1px dashed var(--red); color: var(--red); font-weight: 800; font-size: 13px; text-align: center; letter-spacing: 1px; padding: 8px 12px; }
+.pk-print-divider-close { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--red); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+
+.pk-note-cell.has-note { border-style: solid; border-color: var(--red-border, #FCA5A5); }
+
+/* Thanh nổi chọn dòng trung chuyển — tái dùng khung .bulk-bar (fixed đáy). */
+.ts-action-bar .bulk-bar-fields .btn { height: 35px; }
+.ts-action-bar .btn[disabled] { opacity: .5; cursor: not-allowed; }
+/* Chừa chỗ dưới bảng khi thanh nổi hiện, tránh che mất hàng cuối. */
+#viewTransship.ts-bar-open .sd-table-wrap { padding-bottom: 72px; }
+
+#tsCalendarPanel, #tkCalendarPanel { left: 0; right: auto; width: 280px; }
+#tsCalendarPanel .cal-head b, #tkCalendarPanel .cal-head b { font-size: 13px; }
+
+/* =========================================================
+   ACCOUNTING & FINANCE MODULE STYLES — dùng chung khung phẳng (viền #CBCDCD, KHÔNG bo góc, bóng nhẹ
+   1px 3px) của các trang admin khác (Trạm Xe, Phòng vé, Nhân sự...) thay vì khung thẻ bo tròn/đổ bóng
+   đậm kiểu SaaS riêng trước đây — xem .sd-table-wrap, .st-col, .ref-card:has(.admin-table) để đối chiếu.
+   ========================================================= */
+.acct-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: var(--white);
+  padding: 16px 20px;
+  border-radius: 0;
+  border: 1px solid #CBCDCD;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.acct-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.acct-subtitle {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.acct-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.acct-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.acct-stat-card {
+  background: var(--white);
+  padding: 18px 20px;
+  border-radius: 0;
+  border: 1px solid #CBCDCD;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.acct-stat-card .stat-lbl {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+
+.acct-stat-card .stat-val {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.acct-stat-card .stat-sub {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-top: 6px;
+}
+
+.card-green { border-top: 3px solid #059669; }
+.card-red { border-top: 3px solid #DC2626; }
+.card-blue { border-top: 3px solid #2563EB; }
+.card-orange { border-top: 3px solid #D97706; }
+.card-purple { border-top: 3px solid #7C3AED; }
+
+/* 4 Signature Dashboard Colors (Red, Orange, Yellow Gold, Deep Amber) */
+.card-c1 { border-top: 4px solid var(--db-c1) !important; }
+.card-c2 { border-top: 4px solid var(--db-c2) !important; }
+.card-c3 { border-top: 4px solid var(--db-c3) !important; }
+.card-c4 { border-top: 4px solid var(--db-c4) !important; }
+
+.text-c1 { color: var(--db-c1) !important; }
+.text-c2 { color: var(--db-c2) !important; }
+.text-c3 { color: var(--db-c3) !important; }
+.text-c4 { color: var(--db-c4) !important; }
+
+.bg-c1 { background-color: var(--db-c1) !important; }
+.bg-c2 { background-color: var(--db-c2) !important; }
+.bg-c3 { background-color: var(--db-c3) !important; }
+.bg-c4 { background-color: var(--db-c4) !important; }
+
+.badge-c1 { background: var(--db-c1-soft); color: var(--db-c1); border: 1px solid rgba(194, 13, 8, 0.25); font-weight: 700; }
+.badge-c2 { background: var(--db-c2-soft); color: var(--db-c2); border: 1px solid rgba(234, 88, 12, 0.25); font-weight: 700; }
+.badge-c3 { background: var(--db-c3-soft); color: #B45309; border: 1px solid rgba(245, 158, 11, 0.35); font-weight: 700; }
+.badge-c4 { background: var(--db-c4-soft); color: #92400E; border: 1px solid rgba(217, 119, 6, 0.35); font-weight: 700; }
+
+.text-green { color: #059669 !important; }
+.text-red { color: #DC2626 !important; }
+.text-blue { color: #2563EB !important; }
+.text-orange { color: #D97706 !important; }
+.text-purple { color: #7C3AED !important; }
+.font-bold { font-weight: 700 !important; }
+
+.acct-charts-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.acct-chart-card {
+  background: var(--white);
+  border-radius: 0;
+  border: 1px solid #CBCDCD;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.acct-chart-card.flex-2 { flex: 2 1 500px; }
+.acct-chart-card.flex-1 { flex: 1 1 300px; }
+
+.chart-head h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 16px 0;
+}
+
+.acct-chart-svg {
+  width: 100%;
+  height: auto;
+}
+
+.donut-chart-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.donut-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  width: 100%;
+  font-size: 12px;
+  color: var(--text-main);
+}
+
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.bg-slate-1 { background: #334155; }
+.bg-slate-2 { background: #64748B; }
+.bg-slate-3 { background: #94A3B8; }
+.bg-slate-4 { background: #CBD5E1; }
+
+
+.acct-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* Khung ô lọc/nhập liệu y hệt .filter-field input/select (khung form dùng chung toàn bộ admin). */
+.acct-input, .acct-select {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-main);
+  outline: none;
+  transition: all var(--t-fast);
+}
+textarea.acct-input { height: auto; padding: 10px 14px; }
+
+.acct-input:focus, .acct-select:focus {
+  outline: none;
+  background: var(--white);
+  border-color: var(--red);
+  box-shadow: var(--ring);
+}
+
+/* Nút bấm y hệt hệ .btn/.btn-primary dùng chung toàn bộ admin. */
+.acct-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-gray);
+  background: var(--white);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--t-fast);
+}
+
+.acct-btn:hover {
+  background: var(--surface-2);
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.acct-btn:active { transform: translateY(1px); box-shadow: none; }
+
+.acct-btn-primary {
+  background: var(--red-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 28, 36, 0.22);
+}
+
+.acct-btn-primary:hover {
+  background: linear-gradient(135deg, #8C1E27 0%, #4D0F14 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(124, 28, 36, 0.32);
+}
+
+.btn-ic {
+  width: 16px;
+  height: 16px;
+}
+
+/* Khung bọc bảng/nội dung báo cáo — y hệt .sd-table-wrap/.st-col: KHÔNG bo góc, bóng rất nhẹ. */
+.report-box {
+  background: var(--white);
+  border-radius: 0;
+  border: 1px solid #CBCDCD;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.report-box h4 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 16px 0;
+}
+
+/* Bảng số liệu — y hệt lưới .admin-table dùng chung (viền đủ 4 cạnh #CBCDCD, header nền #F8F7F7 chữ hoa,
+   KHÔNG bo góc) thay vì bảng viền đáy/nền trắng kiểu riêng trước đây. */
+.acct-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.acct-table th,
+.acct-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #CBCDCD;
+  vertical-align: middle;
+}
+
+.acct-table th {
+  background: #F8F7F7;
+  color: #6B6E70;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  white-space: nowrap;
+}
+
+.acct-table td {
+  color: #111213;
+  white-space: nowrap;
+}
+
+.acct-table tbody tr:hover td {
+  background: #F8F7F7;
+}
+
+/* Cột nội dung dài (lý do, tên đơn vị...) — cho tự xuống dòng thay vì nowrap để bảng không bị kéo
+   rộng quá khổ .report-box rồi phải cuộn ngang mới thấy hết cột Trạng thái/Thao tác. */
+.acct-table td.cell-wrap {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+/* .badge dùng chung định nghĩa nền (pill tròn 999px) khai báo ở phần chung của admin.css —
+   ở đây chỉ khai màu theo trạng thái, KHÔNG khai lại kích thước/bo góc để tránh đè mất kiểu .badge
+   dùng ở các trang khác (Nhân sự, Phòng vé...) vì 2 khối CSS trùng tên chọn (cùng độ đặc hiệu, khối
+   nạp sau thắng). */
+.badge-success { background: #F0FDF4; color: #15803D; border: 1px solid #DCFCE7; }
+.badge-warning { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
+.badge-danger { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+.badge-info { background: #F8FAFC; color: #475569; border: 1px solid #E2E8F0; }
+.badge-tag { background: #F1F5F9; color: #334155; border: 1px solid #E2E8F0; font-weight: 500; }
+
+.acct-icon-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-gray);
+  background: #FFFFFF;
+  color: #64748B;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.acct-icon-btn:hover {
+  background: #FEF2F2;
+  color: #EF4444;
+  border-color: #FCA5A5;
+}
+
+
+.pnl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.pnl-col h5 {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-gray);
+}
+
+.pnl-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pnl-col li {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border-gray);
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.pnl-total {
+  font-weight: 800;
+  font-size: 14px !important;
+  border-bottom: none !important;
+  padding-top: 12px !important;
+}
+
+.pnl-summary-banner {
+  background: #F8F7F7;
+  border: 1px solid #CBCDCD;
+  border-radius: 0;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text-main);
+}
+
+/* 2 bộ chọn tab (kỳ báo cáo + sổ/bảng nghiệp vụ) dùng CHUNG 1 kiểu pill-group giống hệt
+   .station-subtabs/.station-subtab (Chuyến tài xế, Kết ca...) thay vì 2 kiểu tab khác nhau trước đây. */
+.acct-period-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 5px;
+  width: fit-content;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid var(--border-gray);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+.acct-btn-tab {
+  border: 0;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  white-space: nowrap;
+}
+
+.acct-btn-tab:hover:not(.active) {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-main);
+}
+
+.acct-btn-tab.active {
+  background: var(--red-gradient);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(194, 13, 8, 0.18), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+
+.acct-sub-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 5px;
+  width: fit-content;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid var(--border-gray);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.acct-sub-tab {
+  border: 0;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--t-fast);
+}
+
+.acct-sub-tab:hover:not(.active) {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-main);
+}
+
+.acct-sub-tab.active {
+  background: var(--red-gradient);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(194, 13, 8, 0.18), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+
+.acct-box-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.acct-box-head h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Tách 2 khối trong 1 trang gộp (VD: "Yêu Cầu Chi Chờ Duyệt" rồi tới "Danh Sách Phiếu Chi" cùng
+   trong viewAccountingChi) — cần khoảng cách trên rộng hơn mức acct-box-head mặc định (đứng ngay
+   sau report-box của khối trước) để không dính liền trông như 1 khối duy nhất. */
+.acct-box-head-spaced { margin-top: 28px; }
+
+/* Modal tạo/sửa phiếu — bọc nội dung y hệt padding .admin-form (20px 24px 24px), tiêu đề/footer
+   canh theo đúng khung .modal > h3 và .modal-actions dùng chung toàn admin (viền dưới/trên nhạt,
+   không tô màu đỏ riêng cho tiêu đề) để mở modal Kế toán không bị "lệch tông" so với modal Nhân sự,
+   Trạm xe... */
+/* .modal-form-box gộp cả tiêu đề (.modal-head) lẫn <form>...nút Lưu/Huỷ (.modal-foot) vào 1 khối,
+   không tách <h3> riêng như .admin-form (xem giải thích ở .rc-form/.acc-perm-groups phía trên) — mặc
+   định KHÔNG giới hạn chiều cao/không tự cuộn, nên phiếu dài (Phiếu Thu/Chi, Yêu cầu Chi, Tài sản...)
+   trên màn thấp bị .modal (overflow:hidden) cắt mất phần đầu/cuối, không cách nào cuộn để xem hết —
+   đúng lỗi "modal Tạo Phiếu Chi thiếu khúc trên/hiển thị không đủ thông tin". Ép thành flex-column giới
+   hạn theo chiều cao màn hình: tiêu đề đứng yên, chỉ phần <form> (các .er-section) tự cuộn bên trong,
+   nút Lưu/Huỷ (.modal-foot) dính đáy vùng cuộn để luôn bấm được mà không cần cuộn hết xuống. */
+.modal-form-box {
+  width: 100%;
+  padding: 20px 24px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  min-height: 0;
+}
+
+.modal-head {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 -24px 20px;
+  padding: 0 24px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-form-box > form {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-form-box > form .modal-foot {
+  position: sticky;
+  bottom: 0;
+  background: var(--white);
+  z-index: 1;
+}
+
+/* Màn hẹp (điện thoại): overlay bớt đệm dọc, modal-head/modal-foot bớt đệm ngang cho khớp, tránh
+   nút Lưu/Huỷ + tiêu đề bị bóp chật trên viền màn hình nhỏ. */
+@media (max-width: 480px) {
+  .modal-form-box { padding: 16px 16px 16px; max-height: calc(100vh - 32px); }
+  .modal-head { margin: 0 -16px 16px; padding: 0 16px 14px; }
+}
+
+.modal-head h3 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+  color: var(--black);
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-sub);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Không có dòng này, input placeholder dài (VD: "Cây xăng, Bến xe, Tên ĐL...") ép cột grid rộng
+     hơn 1fr trên màn hẹp, đẩy cả modal-form-box tràn ra ngoài .modal thay vì input tự co lại. */
+  min-width: 0;
+}
+
+.form-group.col-span-2 {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Màn hẹp (điện thoại): gộp về 1 cột thay vì ép 2 cột chật hẹp làm vỡ layout / tràn khung modal. */
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .form-group.col-span-2 { grid-column: span 1; }
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Modal "Tạo Yêu Cầu Chi Mới" — chia field thành từng khối có nền/khung riêng thay vì 1 lưới phẳng
+   đơn điệu, kèm icon tiêu đề + nhấn nổi bật ô Số tiền để dễ soát trước khi gửi duyệt. */
+.er-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.er-modal-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--red-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(124, 28, 36, 0.28);
+}
+
+.er-modal-icon svg { width: 20px; height: 20px; }
+
+.er-modal-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.er-section {
+  background: var(--bg-sub, #F8FAFC);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px 18px 4px;
+  margin-bottom: 16px;
+}
+
+.er-section .form-grid { margin-bottom: 12px; }
+
+.er-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #7C1C24;
+  margin: 0 0 12px;
+}
+
+.er-section-title svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+.er-amount-group input {
+  font-size: 17px;
+  font-weight: 800;
+  color: #B91C1C;
+}
+
+/* Biến thể xanh dùng chung cho Phiếu Thu (doanh thu) — cùng bố cục với Phiếu Chi/Yêu Cầu Chi
+   (đỏ) ở trên, chỉ đổi tông màu để phân biệt thu/chi ngay từ icon tiêu đề modal. */
+.er-modal-icon.is-thu {
+  background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.28);
+}
+
+.er-section-title.is-thu { color: #047857; }
+
+.er-amount-group.is-thu input { color: #047857; }
+
+/* Trang "Tạo yêu cầu chi" — chỉ còn 1 thẻ CTA mở form (xem/duyệt danh sách đã chuyển sang trang
+   Chi phí), nên cần 1 khối được thiết kế đủ nổi bật thay vì để trống trang. */
+.er-cta-box {
+  max-width: 560px;
+  margin: 8px auto 0;
+  padding: 32px 28px;
+  text-align: center;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.er-cta-box .er-modal-icon {
+  margin: 0 auto 16px;
+}
+
+.er-cta-box h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--black);
+  margin: 0 0 8px;
+}
+
+.er-cta-box p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  margin: 0 0 20px;
+}
+
+.er-cta-box .er-cta-pending {
+  margin: -8px 0 20px;
+  padding: 10px 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+  color: #B45309;
+  font-weight: 600;
+}
+
+.er-cta-box .acct-btn { margin: 0 auto; }
+
+/* =========================================================
+   NHÂN SỰ v2.9 — Cấu hình nhân sự / Quản lý nhân viên / Tài khoản / Thống kê / Nhật ký
+   ========================================================= */
+.modal:has(.hr-form) > .admin-form, .modal > .admin-form.hr-form { max-height: calc(100vh - 150px); overflow-y: auto; }
+.hr-note { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: #F8FAFC; border: 1px solid var(--border-gray); color: var(--text-main); font-size: 12.5px; line-height: 1.55; }
+.hr-warn { margin-top: 4px; font-size: 12px; font-weight: 600; color: #B45309; line-height: 1.4; }
+.hr-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.hr-section { border: 1px solid var(--border-gray); border-radius: 12px; padding: 14px 16px 4px; margin-bottom: 16px; background: var(--white); }
+.hr-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: -2px 0 12px; font-size: 13px; font-weight: 800; color: var(--black); }
+.hr-section-head span { font-size: 11.5px; font-weight: 600; color: var(--text-sub); }
+.hr-readonly { min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; border: 1px dashed var(--border-gray); border-radius: var(--radius-md); background: var(--surface-2); font-size: 13px; font-weight: 600; color: var(--text-main); }
+.hr-checklist { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.hr-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; }
+.hr-check input { min-width: auto !important; height: auto !important; }
+.hr-check em { font-style: normal; font-size: 11.5px; color: var(--text-sub); font-weight: 500; }
+.hr-check-group { margin-bottom: 8px; }
+.hr-check-group-title { font-size: 11.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: var(--text-sub); margin-bottom: 4px; }
+.hr-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; padding: 16px 20px 0; }
+@media (max-width: 720px) { .hr-grid-2 { grid-template-columns: 1fr; } }
+.hr-link { color: var(--red); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.hr-count-badge { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: #F59E0B; color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; }
+.station-subtab.active .hr-count-badge { background: #fff; color: var(--red); }
+.hr-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; padding: 12px 14px; border-radius: 10px; background: #F8FAFC; border: 1px solid var(--border-gray); margin-bottom: 14px; }
+.hr-summary div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.hr-summary span { font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.hr-history { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 12.5px; }
+.hr-history-row { padding: 6px 10px; border-left: 3px solid var(--border-gray); background: #F8FAFC; border-radius: 0 8px 8px 0; line-height: 1.5; }
+.hr-history-row .mono { margin-right: 8px; color: var(--text-sub); }
+.hr-mini-table th, .hr-mini-table td { padding: 6px 10px !important; font-size: 12.5px; }
+/* Bảng nhiều cột (Tài khoản, Nhân viên): giữ bề rộng tối thiểu, cuộn ngang trong .sd-table-wrap thay vì ép chữ rớt dòng. */
+.acc-table { min-width: 1320px; }
+.staff-table { min-width: 1180px; }
+.acc-table td, .staff-table td { vertical-align: top; }
+.hint-inline { font-size: 11.5px; font-weight: 500; color: var(--text-sub); line-height: 1.45; }
+.admin-form .fld > .hint-inline { display: block; }
+
+/* Modal Cập nhật tỉnh / hướng: mã tỉnh + 2 ô chọn tỉnh đi/đến nằm cùng hàng với tên */
+.regions-modal .rgm-main { flex-wrap: wrap; }
+.regions-modal .rgm-code { flex: 0 0 64px; min-width: 0 !important; text-transform: uppercase; }
+.regions-modal .dm-from, .regions-modal .dm-to { flex: 1 1 130px; min-width: 0; }
+.regions-modal .dm-via { flex: 1 1 130px; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.regions-modal .dm-add { flex-wrap: wrap; }
+.regions-modal .dm-add > select { flex: 1 1 130px; min-width: 0; }
+
+/* Cột Thứ tự: số + ▲▼ nhỏ xếp dọc; hàng tiêu đề nhóm theo tỉnh; cột audit */
+#viewStations .col-order { white-space: nowrap; width: 1%; }
+#viewStations td.col-order { text-align: left; }
+.ord-no { display: inline-block; min-width: 18px; margin-right: 4px; color: var(--text-sub); font-size: 12px; }
+.mv { display: inline-flex; flex-direction: column; vertical-align: middle; }
+.mv button, #viewStations .mv button { width: 16px; height: 11px; padding: 0; margin: 0; border: 0; background: transparent; color: var(--text-sub); font-size: 8px; line-height: 11px; cursor: pointer; box-shadow: none; }
+.mv button:hover:not(:disabled) { color: var(--text); }
+.mv button:disabled { opacity: .3; cursor: not-allowed; }
+#viewStations tr.sd-group-row td { background: var(--surface-2); padding: 6px 12px; font-size: 13px; }
+#viewStations .audit-cell { font-size: 12px; white-space: nowrap; line-height: 1.35; }
+#viewStations th.col-check, #viewStations td.col-check { width: 44px; text-align: center; padding-left: 4px; padding-right: 4px; }
+
+/* Modal chọn trạm của khung giá (Quản lý giá): lưới nhiều cột tự co theo bề rộng, danh sách dài thì cuộn. */
+.modal:has(.pf-pick) { width: 720px; max-width: calc(100vw - 24px); }
+.modal:has(.pf-pick) > .admin-form { max-height: calc(100vh - 120px); overflow-y: auto; }
+.chip-editor.pf-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; padding: 0; }
+.chip-editor.pf-pick .chip.sp-opt { min-height: 38px; }
+@media (max-width: 480px) {
+  .chip-editor.pf-pick { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+
+/* ---------- Quản lý hàng hóa (admin-cargo.js) ---------- */
+#viewCargoAdmin .cg-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+#viewCargoAdmin .cg-title { margin:0 0 2px; font-size:18px; font-weight:800; }
+#viewCargoAdmin .cg-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:16px; }
+#viewCargoAdmin .cg-card { background:var(--white,#fff); border:1px solid var(--border,#e2e8f0); border-radius:12px; padding:14px 16px; }
+#viewCargoAdmin .cg-card-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-sub); }
+#viewCargoAdmin .cg-card-total { font-size:28px; font-weight:800; line-height:1.2; margin:4px 0 10px; }
+#viewCargoAdmin .cg-card-total span { font-size:13px; font-weight:600; color:var(--text-sub); }
+#viewCargoAdmin .cg-card-split { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding-top:10px; border-top:1px solid var(--border,#e2e8f0); }
+#viewCargoAdmin .cg-card-split span { display:flex; flex-direction:column; font-size:11px; color:var(--text-sub); }
+#viewCargoAdmin .cg-card-split b { font-size:16px; color:var(--text,#0f172a); }
+#viewCargoAdmin .cg-card-total.cg-bad { color:var(--red,#c20d08); }
+#viewCargoAdmin .station-subtabs { margin-bottom:14px; }
+/* chữ đồng nhất: input/button/đơn vị trong trang dùng đúng font + cỡ của trang, không lấy mặc định trình duyệt */
+#viewCargoAdmin input, #viewCargoAdmin button, #viewCargoAdmin select { font-family:inherit; font-size:13.5px; }
+#viewCargoAdmin .cg-unit { font-size:13.5px; font-weight:600; color:var(--text-sub); }
+/* Quản lý hàng hóa — màn hình nhỏ: 5 tab tự xuống dòng, bảng giữ độ rộng tối thiểu để cuộn ngang thay vì bóp chữ */
+#viewCargoAdmin .station-subtabs { flex-wrap:wrap; max-width:100%; }
+#viewCargoAdmin .admin-table { min-width:720px; }
+@media (max-width:640px) {
+  #viewCargoAdmin .cg-grid { grid-template-columns:1fr 1fr; gap:8px; }
+  #viewCargoAdmin .cg-card { padding:12px; }
+  #viewCargoAdmin .cg-card-total { font-size:22px; }
+  #viewCargoAdmin .station-subtab { flex:1 1 auto; text-align:center; }
+}
+
+/* ===== RESPONSIVE KHUNG ADMIN (≤900px): menu thành ngăn kéo, topbar gọn, nội dung sát lề ===== */
+.admin-drawer-backdrop { display:none; }
+@media (max-width: 900px) {
+  .admin-body .topbar { padding:0 10px 0 0; gap:8px; }
+  .brand { width:auto; flex:0 0 auto; padding:0 10px; }
+  .brand-text { display:none; }
+  .topbar-divider { display:none; }
+  .admin-sidebar {
+    position:fixed; top:64px; left:0; bottom:0; z-index:50;
+    width:min(280px, 85vw); flex:none;
+    transform:translateX(-100%); transition:transform .22s ease;
+    box-shadow:none;
+  }
+  body.admin-drawer-open .admin-sidebar { transform:translateX(0); box-shadow:4px 0 24px rgba(15,23,42,.35); }
+  .admin-drawer-backdrop { position:fixed; inset:64px 0 0 0; z-index:40; background:rgba(15,23,42,.45); }
+  body.admin-drawer-open .admin-drawer-backdrop { display:block; }
+  .admin-main { padding:12px 10px 24px; }
+  .admin-view { padding:12px; }
+}
+@media (max-width: 560px) {
+  .admin-breadcrumb { display:none; }
+  #userName { display:none; }
+}
+@media (prefers-reduced-motion: reduce) { .admin-sidebar { transition:none; } }
+
+/* ===== RESPONSIVE CHUNG CHO MỌI TRANG ADMIN (≤900px) =====
+   Lỗi gốc: nhiều khung bọc bảng (.st-col-routes của Tuyến xe, .ref-card:has(.admin-table)...) không cuộn
+   được và ô td/th có `word-break` nên bảng bị ép hẹp, tiêu đề cột vỡ từng ký tự. Cách sửa chung (không phải
+   sửa từng trang): MỌI phần tử trực tiếp chứa .admin-table đều cuộn ngang, bảng giữ độ rộng tối thiểu, tiêu
+   đề không bẻ ký tự. */
+/* bảng: ≤1200px — sidebar 260px làm vùng nội dung chỉ còn ~680px ở tablet 960px nên cũng cần cuộn ngang.
+   Không áp dụng desktop để khỏi đổi hành vi tiêu đề bảng dính (sticky). */
+@media (max-width: 1200px) {
+  .admin-view :has(> table.admin-table),
+  .admin-view .ref-card:has(.admin-table) { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .admin-view table.admin-table { min-width: 680px; }
+  .admin-view .admin-table thead th { white-space: nowrap; word-break: keep-all; overflow-wrap: normal; }
+  .admin-view .admin-table td { overflow-wrap: break-word; word-break: normal; }
+}
+
+@media (max-width: 900px) {
+  /* thanh lọc / công cụ: xuống dòng thay vì bóp ô nhập */
+  .admin-view .filter-toolbar,
+  .admin-view .toolbar { flex-wrap: wrap; }
+  .admin-view .filter-toolbar > .filter-field { flex: 1 1 calc(50% - 8px); min-width: 140px; }
+  /* popup: không bao giờ rộng hơn màn hình */
+  .modal, .admin-modal-box, #adminModalBox { max-width: calc(100vw - 16px) !important; }
+}
+@media (max-width: 560px) {
+  .admin-view .filter-toolbar > .filter-field { flex: 1 1 100%; }
+  .admin-view .btn { min-height: 36px; }
+}
+
+/* Lưới nhiều cột chưa có điểm gãy riêng → điện thoại xếp 1 cột (form, phân quyền, sơ đồ ghế, nhân sự...). */
+@media (max-width: 640px) {
+  .acc-perm-groups,
+  .admin-form .form-toggle-grid, .admin-form .form-toggle-grid.cols-3,
+  .sl-editor-grid, .sl-editor-grid.sl-cols-3,
+  .pnl-grid, .form-grid, .hr-grid-2, .hr-summary,
+  .donut-legend, .ref-db-top-grid, .sp-region .chip-editor { grid-template-columns: minmax(0, 1fr) !important; }
+  /* modal rộng cố định (VD form tuyển dụng 1080px) co theo màn hình, nội dung cuộn trong modal */
+  #adminModal .modal:has(.rc-form-grid) { width: auto; max-width: calc(100vw - 16px); }
+}
+
+/* ===== BẢNG → THẺ trên màn hình nhỏ (≤1100px): không cuộn ngang =====
+   Mỗi hàng là 1 thẻ; mỗi ô 1 dòng "TÊN CỘT: giá trị" (nhãn lấy từ data-label do admin-responsive.js gắn).
+   Dùng padding-left + ::before tuyệt đối (không dùng flex/grid trên td) để ô có nội dung hỗn hợp
+   (tiêu đề đậm + mô tả + thẻ) vẫn xếp đúng, không bị tách thành nhiều cột. */
+@media (max-width: 1100px) {
+  .admin-view table:is(.admin-table, .pax-table) { display: block; min-width: 0 !important; width: 100%; border: 0; }
+  .admin-view :is(.admin-table, .pax-table) thead { display: none; }
+  .admin-view :is(.admin-table, .pax-table) tbody { display: block; }
+  .admin-view :is(.admin-table, .pax-table) tbody tr {
+    display: block; margin: 0 0 10px; padding: 4px 12px;
+    background: #fff; border: 1px solid #CBCDCD; border-radius: 10px;
+  }
+  .admin-view :is(.admin-table, .pax-table) tbody tr:hover { background: #fff; }
+  .admin-view :is(.admin-table, .pax-table) tbody td {
+    display: block; position: relative; box-sizing: border-box;
+    width: auto !important; min-width: 0 !important; max-width: none !important;
+    padding: 8px 0 8px 40%; min-height: 36px;
+    border: 0 !important; border-bottom: 1px dashed #E2E8F0 !important;
+    text-align: left !important; white-space: normal;
+  }
+  .admin-view :is(.admin-table, .pax-table) tbody td:last-child { border-bottom: 0 !important; }
+  .admin-view :is(.admin-table, .pax-table) tbody td[data-label]::before {
+    content: attr(data-label);
+    position: absolute; left: 0; top: 8px; width: 36%;
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+    color: #6B6E70; line-height: 1.3;
+  }
+  /* ô không có nhãn (ô checkbox, dòng "không có dữ liệu" colspan) → chiếm trọn chiều ngang */
+  .admin-view :is(.admin-table, .pax-table) tbody td:not([data-label]) { padding-left: 0; }
+  .admin-view :is(.admin-table, .pax-table) td.row-actions { white-space: normal; }
+  .admin-view :is(.admin-table, .pax-table) td.row-actions .btn { margin: 2px 6px 2px 0; }
+  .admin-view :is(.admin-table, .pax-table) td.col-status { text-align: left !important; }
+  /* khung bọc không còn gì để cuộn */
+  .admin-view :has(> table:is(.admin-table, .pax-table)), .admin-view .ref-card:has(.admin-table) { overflow-x: visible !important; }
+}
+
+/* ===== THANH LỌC trên màn hình nhỏ (≤1100px): ô nào cũng xuống dòng, không bóp chồng nhãn =====
+   Các trang có luật riêng theo id (#viewTicketList > .filter-toolbar { flex-wrap:nowrap }...) mức ưu tiên cao
+   hơn luật chung, nên dùng #adminMain làm tiền tố để thắng — áp dụng cho MỌI view có .filter-toolbar. */
+@media (max-width: 1100px) {
+  #adminMain .admin-view > .filter-toolbar { flex-wrap: wrap !important; gap: 10px; }
+  #adminMain .admin-view > .filter-toolbar > .filter-field,
+  #adminMain .admin-view > .filter-toolbar > .filter-field:first-child,
+  #adminMain .admin-view > .filter-toolbar > .filter-field-date { flex: 1 1 200px !important; min-width: 0 !important; max-width: none !important; }
+  #adminMain .admin-view > .filter-toolbar > .filter-reset { display: flex; flex: 1 1 100%; gap: 8px; flex-wrap: wrap; }
+  #adminMain .admin-view > .filter-toolbar > .filter-reset > .btn { flex: 1 1 auto; }
+}
+
+/* Icon trong nút không khai báo width/height (VD nút "Ghế hủy") sẽ nở theo bề rộng nút khi nút co giãn →
+   cố định 16px, không co giãn. */
+.admin-view .btn > svg:not([width]) { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* Bảng admin: ô/tiêu đề bị bẻ giữa chữ khi cột hẹp (VD bảng Trạm xe: hotline "0908 110 / 020", tiêu đề "TẠ / O").
+   Gốc: .admin-table th/td đặt overflow-wrap:anywhere + word-break:break-word cho MỌI ô → cột nào bị cột dài
+   (Địa chỉ) lấn chỗ sẽ bị bẻ từng ký tự. Tiêu đề chỉ xuống dòng ở dấu cách; ô mono (SĐT, mã) giữ 1 hàng. */
+.admin-table thead th { overflow-wrap: normal; word-break: keep-all; }
+.admin-table td.mono { white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }
