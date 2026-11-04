@@ -225,7 +225,8 @@ function buildRow(cargo, index) {
   const manifest = manifestsById[cargo.manifestId] || {};
   const catLabel = CATEGORY_LABELS[cargo.cargoCategory] || '';
   const isDone = cargo.deliveryStatus === 'da-giao';
-  const canDelete = (cargo.deliveryStatus || 'cho-giao') === 'cho-giao';
+  // Đơn trong danh sách giao hàng đều đã vào phơi → không cho xóa; chỉ đơn chưa gán phơi và còn Chờ giao mới xóa được.
+  const canDelete = (cargo.deliveryStatus || 'cho-giao') === 'cho-giao' && cargo.manifestId == null;
 
   return `
     <tr>
@@ -559,6 +560,10 @@ document.addEventListener('DOMContentLoaded', () => {
 window.deleteDeliveryOrder = function (id) {
   const cargo = allCargos.find(c => Number(c.id) === Number(id));
   if (!cargo) return;
+  if (cargo.manifestId != null) {
+    showDeliveryToast('Hàng đã vào phơi, không thể xóa');
+    return;
+  }
   if ((cargo.deliveryStatus || 'cho-giao') !== 'cho-giao') {
     showDeliveryToast('Chỉ có thể xóa đơn đang ở trạng thái Chờ giao');
     return;

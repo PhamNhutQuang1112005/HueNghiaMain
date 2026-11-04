@@ -422,10 +422,7 @@ function computeShiftStats(shift, allCargos) {
           </td>
           <td style="vertical-align: middle;"><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
           <td class="text-center" style="vertical-align: middle;">
-            <select class="status-select-box ${shift.isHandedOver ? 'handed' : 'unhanded'}" onchange="window.toggleShiftHandover(${shift.id})">
-              <option value="handed" ${shift.isHandedOver ? 'selected' : ''}>Đã giao</option>
-              <option value="unhanded" ${!shift.isHandedOver ? 'selected' : ''}>Chưa giao</option>
-            </select>
+            ${(() => { const st = shift.isChecked ? ['checked', 'Đã kiểm tra'] : shift.isHandedOver ? ['handed', 'Đã giao ca'] : ['unhanded', 'Chưa giao ca']; return `<span class="shift-pill shift-pill--${st[0]}">${st[1]}</span>`; })()}
           </td>
           <td class="text-center" style="vertical-align: middle;">
             <div class="action-icons-row">
@@ -473,7 +470,6 @@ function computeShiftStats(shift, allCargos) {
     document.getElementById('modalUnpaidAmount').value = stats.unpaidAmount.toLocaleString('vi-VN');
     document.getElementById('modalSubmittedAmount').value = stats.submittedCash != null ? stats.submittedCash.toLocaleString('vi-VN') : '';
     document.getElementById('modalDiffAmount').value = stats.diff != null ? stats.diff.toLocaleString('vi-VN') : '—';
-    document.getElementById('modalPaidCodes').value = stats.paidItems.map((c) => c.code).join(', ');
     document.getElementById('modalNoteText').value = shift.note || '';
 
     // Gõ "Số Tiền Nộp" cập nhật "Thừa Thiếu" ngay, chưa cần bấm Lưu.

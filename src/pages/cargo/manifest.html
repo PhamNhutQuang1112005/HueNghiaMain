@@ -252,10 +252,10 @@
                   <span>Kết ca</span>
                 </div>
               </a>
-              <a class="sidebar-nav-item" href="cod.html" title="Đối soát COD">
+              <a class="sidebar-nav-item" href="cod.html" title="Đối soát tiền">
                 <div class="nav-item-content">
                   <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
-                  <span>Đối soát COD</span>
+                  <span>Đối soát tiền</span>
                 </div>
               </a>
             </nav>
@@ -328,7 +328,7 @@
         </section>
 
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
-          <button type="button" id="batchReceiveAllBtn" class="primary-btn" disabled>Nhận tất cả hàng (<span id="manifestSelCount">0</span> phơi)</button>
+          <button type="button" id="batchReceiveAllBtn" class="primary-btn" disabled>Nhận tất cả hàng (<span id="manifestSelCount">0</span>&nbsp;phơi)</button>
           <button type="button" id="batchPrintManifestsBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
         </div>
         <div class="rd-stats" data-body="manifestTableBody" data-row="tr.plate-child" data-cards='[]'></div>
@@ -368,7 +368,7 @@
         </section>
 
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
-          <button type="button" id="batchReceiveVehicleBtn" class="primary-btn" disabled>Nhận xe (<span id="receiveSelCount">0</span> phơi)</button>
+          <button type="button" id="batchReceiveVehicleBtn" class="primary-btn" disabled>Nhận xe (<span id="receiveSelCount">0</span>&nbsp;phơi)</button>
           <button type="button" id="batchPrintReceiveBtn" class="ghost-btn" disabled>In phơi đã chọn</button>
         </div>
         <div class="rd-stats" data-body="receiveTableBody" data-row="tr.plate-child" data-cards='[]'></div>
@@ -445,7 +445,7 @@
         </section>
 
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0;">
-          <button type="button" id="batchAssignUnreceivedBtn" class="primary-btn" disabled>Chuyển vào phơi (<span id="unreceivedSelCount">0</span> đơn)</button>
+          <button type="button" id="batchAssignUnreceivedBtn" class="primary-btn" disabled>Chuyển vào phơi (<span id="unreceivedSelCount">0</span>&nbsp;đơn)</button>
         </div>
         <div class="rd-stats" data-body="unreceivedTableBody" data-cards='[]'></div>
         <section class="table-card">
@@ -1866,7 +1866,7 @@
                 <div style="font-family:monospace; font-weight:800; font-size:12.5px; letter-spacing:0.2em;">* ${cargo.code} *</div>
               </div>
 
-              <div style="background:#1e293b; color:white; padding:5px; border-radius:6px; text-align:center; font-weight:800; font-size:18px; margin-bottom:8px;">
+              <div style="background:none; color:#000; padding:2px 0; text-align:center; font-weight:800; font-size:24px; line-height:1.2; margin-bottom:8px;">
                 ${cargo.stationFrom} ➔ ${cargo.stationTo}
               </div>
 
@@ -1984,8 +1984,8 @@
             <td style="text-align:center;"><span class="order-count" title="Đã nhận ${scannedCount} trên tổng ${orderCount} đơn hàng">${scannedCount}/${orderCount} đơn hàng</span></td>
             <td style="text-align:center;">
               ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
-                ? `<span class="status-pill status-delivered">Đã nhận hàng</span>`
-                : `<span class="status-pill status-enroute">Chưa nhận hàng</span>`
+                ? `<span class="status-pill status-delivered">Đã nhận xe</span>`
+                : `<span class="status-pill status-enroute">Chưa nhận xe</span>`
               }
             </td>
             <td>

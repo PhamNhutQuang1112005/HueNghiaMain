@@ -80,6 +80,9 @@ function formatVnd(vnd) {
 
 const MONEY_CATS = ['cash', 'hot', 'partner_cash'];
 
+// Hàng đã vào phơi (hoặc đơn tiền đã chuyển sang Danh sách giao hàng) thì không được xóa nữa.
+function isCargoTransferred(c) { return c.manifestId != null || c.status === 'in-transit'; }
+
 function isMoneyCargo(cargo) {
   if (!cargo) return false;
   const cat = cargo.cargoCategory;
@@ -403,8 +406,7 @@ function renderManifestCombobox(filterText = '') {
   `;
 
   html += filtered.map(m => {
-    const routeText = `${m.from || (m.route ? m.route.split('➔')[0].trim() : '')} ➔ ${m.to || (m.route ? m.route.split('➔')[1].trim() : '')}`;
-    const displayText = `${m.name} (${m.plate || 'Chưa gán xe'}) — ${routeText}`;
+    const displayText = m.name || 'Phơi hàng'; // ô chọn chỉ hiện tên phơi (dòng trên của mục), không kèm biển số/tuyến
     const isSelected = String(m.id) === selectedId;
 
     return `
@@ -412,9 +414,6 @@ function renderManifestCombobox(filterText = '') {
         <div class="manifest-option-title">
           <span style="color:#000000; font-weight:700;">${escapeFn(m.name || 'Phơi hàng')}</span>
           <span class="route-pill-tag" style="color:#000000;">${escapeFn(m.plate || 'Chưa gán xe')}</span>
-        </div>
-        <div class="manifest-option-meta" style="color:#475569;">
-          <span>${escapeFn(routeText)}</span>
         </div>
       </div>
     `;
@@ -888,7 +887,7 @@ function renderTable() {
                 <button class="rowicon-btn" data-action="edit" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'edit')" title="Chỉnh sửa">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 </button>
-                <button class="rowicon-btn rowicon-btn--danger" data-action="delete" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'delete')" title="Xóa hàng hóa">
+                <button class="rowicon-btn rowicon-btn--danger" data-action="delete" data-id="${row.id}" onclick="handleCargoRowAction(event, '${row.id}', 'delete')" ${isCargoTransferred(row) ? 'disabled style="opacity:.35; cursor:not-allowed;"' : ''} title="${isCargoTransferred(row) ? 'Hàng đã vào phơi, không thể xóa' : 'Xóa hàng hóa'}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               </div>
@@ -2584,8 +2583,7 @@ function saveDeletionHistory(list) {
   } catch (e) {}
 }
 
-// Đơn tiền đã chuyển thì không được xóa nữa (đã sang Danh sách giao hàng).
-const isCargoTransferred = (c) => c.manifestId != null || c.status === 'in-transit';
+
 
 function openDeleteCargoModal(idOrIds) {
   let ids = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).map(String);
@@ -2595,9 +2593,9 @@ function openDeleteCargoModal(idOrIds) {
     showToast('🔒 Admin đã khóa xóa đơn tiền');
     items = items.filter(c => !adminLocked.includes(c));
   }
-  const locked = items.filter(c => isMoneyCargo(c) && isCargoTransferred(c));
+  const locked = items.filter(isCargoTransferred);
   if (locked.length) {
-    showToast(`⚠️ ${locked.length} đơn tiền đã chuyển, không thể xóa`);
+    showToast(`⚠️ ${locked.length} đơn đã vào phơi / đã chuyển, không thể xóa`);
     items = items.filter(c => !locked.includes(c));
   }
   if (!items.length) return;

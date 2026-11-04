@@ -196,7 +196,33 @@
           '<button class="primary-btn" data-act="reroute">Chuyển nợ qua ' + (via || 'trạm trung gian') + '</button></div>' : '') + '</div></div>';
     }
 
-    root.innerHTML = stats + steps + detail;
+    // Bảng cuối trang: các trạm đang thiếu trạm đang đứng bao nhiêu / trạm đang đứng nợ các trạm khác bao nhiêu
+    // (nợ ròng từng cặp, đã bù trừ hai chiều và trừ khoản đã trả/chuyển nợ — cùng cách tính với cột "Thiếu" ở trên).
+    var board = '';
+    if (me) {
+      var esc = function (t) { return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+      var list = [], sumGet = 0, sumPay = 0;
+      cands.forEach(function (s) {
+        var v = net(d, me, s);
+        if (!v) return;
+        var theyOwe = v < 0 ? -v : 0, iOwe = v > 0 ? v : 0;
+        sumGet += theyOwe; sumPay += iOwe;
+        list.push({ s: s, theyOwe: theyOwe, iOwe: iOwe });
+      });
+      list.sort(function (a, b) { return Math.max(b.theyOwe, b.iOwe) - Math.max(a.theyOwe, a.iOwe); });
+      var body = list.map(function (r) {
+        return '<tr class="ntx-pick" data-pick="' + esc(r.s) + '" title="Bấm để đối soát với ' + esc(r.s) + '"><td><b class="ntx-src">' + esc(r.s) + '</b></td>' +
+          '<td class="ntx-get">' + (r.theyOwe ? fmt(r.theyOwe) : '—') + '</td><td class="ntx-pay">' + (r.iOwe ? fmt(r.iOwe) : '—') + '</td></tr>';
+      }).join('');
+      board = '<div class="ntx-detail ntx-board"><div class="ntx-detail-head"><div><strong>Công nợ với các trạm khác</strong>' +
+        '<small>Nợ ròng giữa ' + esc(me) + ' và từng trạm (đã bù trừ hai chiều, đã trừ khoản đã trả) · bấm một dòng để đối soát</small></div></div>' +
+        (list.length
+          ? '<div class="ntx-scroll"><table class="ntx-table"><thead><tr><th>Trạm</th><th>Trạm đang thiếu ' + esc(me) + '</th><th>' + esc(me) + ' đang nợ trạm</th></tr></thead><tbody>' + body +
+            '<tr class="ntx-total"><td>Tổng cộng</td><td class="ntx-get">' + fmt(sumGet) + '</td><td class="ntx-pay">' + fmt(sumPay) + '</td></tr></tbody></table></div>'
+          : '<div class="ntx-empty" style="margin:16px 24px 20px;">' + esc(me) + ' không còn công nợ với trạm nào.</div>') + '</div>';
+    }
+
+    root.innerHTML = stats + steps + detail + board;
   }
 
   function addEntry(e) {
@@ -223,6 +249,8 @@
       if (ev.target.id === 'ntVia') { ui.via = ev.target.value; render(); }
     });
     panel.addEventListener('click', function (ev) {
+      var pick = ev.target.closest('tr[data-pick]');
+      if (pick) { ui.other = pick.dataset.pick; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       var btn = ev.target.closest('button[data-act]');
       if (!btn) return;
       var me = ui.me, other = ui.other, d = computeDebts(load('hueNghia_cargos'), load(KEY));

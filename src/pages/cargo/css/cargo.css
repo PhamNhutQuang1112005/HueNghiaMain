@@ -697,12 +697,12 @@ button { cursor: pointer; border: none; background: none; }
 }
 
 .sticker-route-banner {
-  background: var(--text-main);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
+  background: none;
+  color: #000000;
+  padding: 2px 0;
   text-align: center;
-  font-size: 20px;
+  font-size: 26px;
+  line-height: 1.2;
   font-weight: 800;
   margin-bottom: 12px;
 }
@@ -1512,7 +1512,7 @@ input[type=number] {
 }
 
 
-/* Dải tuyến trên tem có nền đen: rule ép chữ đen ở trên làm chữ biến mất → ép lại trắng */
+/* Dải tuyến trên tem: chữ đen to, không nền (in tem nhiệt đỡ tốn mực) */
 .cargo-sticker-card .sticker-route-banner,
 #cargoStickerPreview .sticker-route-banner,
-#printableStickerArea .sticker-route-banner { color: #ffffff !important; }
+#printableStickerArea .sticker-route-banner { color: #000000 !important; background: none !important; }

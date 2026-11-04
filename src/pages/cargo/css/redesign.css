@@ -12,7 +12,7 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 
 /* Nút */
 .rd-page .primary-btn, .rd-page .ghost-btn, .rd-page .filter-submit-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 15px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0; min-height: 38px; padding: 0 15px;
   border: 1px solid transparent; border-radius: 9px; font-size: 12.5px; font-weight: 700; white-space: nowrap; transition: .18s ease;
 }
 .rd-page .primary-btn:hover, .rd-page .ghost-btn:hover, .rd-page .filter-submit-btn:hover { transform: translateY(-1px); }
@@ -733,3 +733,26 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 .rd-page #dlvReportDetailModal .summary-form-card > div[style*="repeat(3"] > div:nth-child(n+4) { grid-column: span 2; padding: 0 !important; border: 0 !important; background: transparent !important; }
 .rd-page #dlvReportDetailModal .summary-form-card > div[style*="repeat(3"] > div:nth-child(-n+3) { padding: 0 !important; }
 .rd-page #dlvReportDetailModal .summary-form-card input.form-control-input { height: 38px; }
+
+/* Kết ca: trạng thái là NHÃN tự đổi theo hành động (lưu & giao ca → Đã giao ca; khóa → Đã kiểm tra), không còn ô chọn */
+.shift-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.shift-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+.shift-pill--unhanded { color: #8c601e; background: #fff7e8; }
+.shift-pill--handed { color: #208c61; background: #eaf8f2; }
+.shift-pill--checked { color: #316da8; background: #eef6ff; }
+
+/* Nút không dùng gap giữa các phần tử con (làm "(1)" thành "( 1 )"); chỉ icon đứng đầu mới cách chữ 8px */
+.rd-page .primary-btn > svg, .rd-page .ghost-btn > svg, .rd-page .filter-submit-btn > svg { margin-right: 8px; flex: 0 0 auto; }
+
+/* Hàng nút ở đầu trang: flex căn giữa (trước là block → các nút lệch nhau theo đường cơ sở chữ), cùng chiều cao 38px */
+.rd-page .toolbar-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.rd-page .toolbar-actions > button { margin: 0; }
+.rd-page .toolbar-actions .secondary-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; }
+
+/* Bảng công nợ với các trạm ở cuối trang Đối soát tiền */
+.ntx-board { margin-top: 18px; }
+.ntx-pick { cursor: pointer; }
+.ntx-pick:hover td { background: #fdfafa; }
+.ntx-table td.ntx-get { color: #208c61; font-weight: 700; }
+.ntx-table td.ntx-pay { color: var(--rd-red); font-weight: 700; }
+.ntx-board .ntx-total td.ntx-get, .ntx-board .ntx-total td.ntx-pay { font-weight: 800; }

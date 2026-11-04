@@ -410,10 +410,7 @@
           </td>
           <td style="vertical-align: middle;"><div class="note-truncate" title="${shift.note || ''}">${shift.note || '—'}</div></td>
           <td class="text-center" style="vertical-align: middle;">
-            <select class="status-select-box ${shift.isHandedOver ? 'handed' : 'unhanded'}" onchange="window.dlv_toggleShiftHandover(${shift.id})">
-              <option value="handed" ${shift.isHandedOver ? 'selected' : ''}>Đã giao</option>
-              <option value="unhanded" ${!shift.isHandedOver ? 'selected' : ''}>Chưa giao</option>
-            </select>
+            ${(() => { const st = shift.isChecked ? ['checked', 'Đã kiểm tra'] : shift.isHandedOver ? ['handed', 'Đã giao ca'] : ['unhanded', 'Chưa giao ca']; return `<span class="shift-pill shift-pill--${st[0]}">${st[1]}</span>`; })()}
           </td>
           <td class="text-center" style="vertical-align: middle;">
             <div class="action-icons-row">
@@ -539,7 +536,6 @@
     const totalCollectedEl = document.getElementById('dlvModalTotalCollected');
     const submittedAmountEl = document.getElementById('dlvModalSubmittedAmount');
     const diffAmountEl = document.getElementById('dlvModalDiffAmount');
-    const paidCodesEl = document.getElementById('dlvModalPaidCodes');
     const noteTextEl = document.getElementById('dlvModalNoteText');
 
     if (staffNameEl) staffNameEl.value = `${shift.staffName} (Mã NV: ${shift.staffCode || shift.staffId})`;
@@ -548,7 +544,6 @@
     if (totalCollectedEl) totalCollectedEl.value = stats.totalCollected.toLocaleString('vi-VN');
     if (submittedAmountEl) submittedAmountEl.value = stats.submittedCash != null ? stats.submittedCash.toLocaleString('vi-VN') : '';
     if (diffAmountEl) diffAmountEl.value = stats.diff != null ? stats.diff.toLocaleString('vi-VN') : '—';
-    if (paidCodesEl) paidCodesEl.value = stats.paidItems.map((c) => c.code).join(', ');
     if (noteTextEl) noteTextEl.value = shift.note || '';
 
     syncModalFormWithTablesBelow(shift);
