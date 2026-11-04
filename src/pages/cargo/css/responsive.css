@@ -812,10 +812,13 @@
 
 /* Trên 1280px: bảng tự co cột + xuống dòng để vừa khung, không cuộn ngang */
 @media (min-width: 1281px) {
-  .table-scroll { overflow-x: visible !important; }
+  .table-scroll { overflow-x: auto !important; } /* .table-card có overflow:hidden → cột cuối bị cắt nếu không cuộn được */
   .table-scroll table { width: 100% !important; min-width: 0 !important; table-layout: auto; }
   .table-scroll th { min-width: 0 !important; white-space: normal; padding: 8px 6px; }
-  .table-scroll td { padding: 8px 6px; overflow-wrap: anywhere; }
+  .table-scroll td { padding: 8px 6px; overflow-wrap: anywhere; white-space: normal !important; }
 }
+
+/* Tuyến "(đi ➔ đến)": flex làm "(", địa chỉ, mũi tên, ")" rớt thành cột rời khi xuống dòng → để chữ chảy tự nhiên, xuống dòng dưới biển số */
+.table-scroll .route-text { display: block; margin: 2px 0 0 !important; line-height: 1.4; }
 
 .table-scroll code { white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }

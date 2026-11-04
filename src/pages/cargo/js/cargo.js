@@ -67,14 +67,15 @@ function populateUnitDropdown(selectedUnit = 'cái') {
   }
 }
 
+// Các ô tiền nhập thẳng bằng đồng, tự chấm ngăn cách (attachMoneyFieldFormatter).
 function parseFeeInput(val, defaultVal = 150000) {
-  if (val === null || val === undefined || val === '') return defaultVal;
-  const num = Number(val);
-  if (isNaN(num)) return defaultVal;
-  if (num > 0 && num < 10000) {
-    return num * 1000;
-  }
-  return num;
+  const digits = String(val ?? '').replace(/\D/g, '');
+  return digits ? Number(digits) : defaultVal;
+}
+
+function formatVnd(vnd) {
+  const n = Number(vnd);
+  return n > 0 ? String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
 }
 
 const MONEY_CATS = ['cash', 'hot', 'partner_cash'];
@@ -723,7 +724,9 @@ function getFilteredData() {
       ? true
       : state.selectedCategory === 'overdue'
         ? isCargoOverdue(row)
-        : state.selectedCategory === 'returned'
+        : state.selectedCategory === 'cod'
+          ? Number(row.codAmount) > 0
+          : state.selectedCategory === 'returned'
           ? (row.status === 'returned' || itemCat === 'returned')
           : itemCat === state.selectedCategory;
 
@@ -1109,7 +1112,7 @@ function openModal(editId = null) {
       document.getElementById('receiverName').value = item.receiver || '';
       document.getElementById('receiverPhone').value = item.receiverPhone || '';
       const feeVal = Number(item.fee || 150000);
-      document.getElementById('cargoFee').value = feeVal >= 1000 ? Math.round(feeVal / 1000) : feeVal;
+      document.getElementById('cargoFee').value = formatVnd(feeVal);
       document.getElementById('cargoNote').value = item.note || '';
       const hasDimensions = !!(item.length || item.width || item.height || item.weight);
       const dimensionsCheckbox = document.getElementById('dimensionsCheckbox');
@@ -1142,7 +1145,7 @@ function openModal(editId = null) {
         const hasCod = codVal > 0;
         codCheckbox.checked = hasCod;
         if (codAmountFieldWrap) codAmountFieldWrap.style.display = hasCod ? 'flex' : 'none';
-        codInput.value = codVal >= 1000 ? Math.round(codVal / 1000) : (codVal || '');
+        codInput.value = formatVnd(codVal);
       }
 
       const pickupCheckbox = document.getElementById('pickupCheckbox');
@@ -1161,7 +1164,7 @@ function openModal(editId = null) {
         const pPaySelect = document.getElementById('pickupPaymentMethod');
         if (pPaySelect) pPaySelect.value = item.pickupPaymentMethod || 'cash';
         const pFee = Number(item.pickupFee || 0);
-        if (document.getElementById('pickupFee')) document.getElementById('pickupFee').value = pFee >= 1000 ? Math.round(pFee / 1000) : (pFee || '');
+        if (document.getElementById('pickupFee')) document.getElementById('pickupFee').value = formatVnd(pFee);
         if (document.getElementById('pickupTransferCode')) document.getElementById('pickupTransferCode').value = item.pickupTransferCode || '';
         if (typeof updatePickupPaymentVisibility === 'function') updatePickupPaymentVisibility();
       }
@@ -1174,7 +1177,7 @@ function openModal(editId = null) {
         const dPaySelect = document.getElementById('deliveryPaymentMethod');
         if (dPaySelect) dPaySelect.value = item.deliveryPaymentMethod || 'cash';
         const dFee = Number(item.deliveryFee || 0);
-        if (document.getElementById('deliveryFee')) document.getElementById('deliveryFee').value = dFee >= 1000 ? Math.round(dFee / 1000) : (dFee || '');
+        if (document.getElementById('deliveryFee')) document.getElementById('deliveryFee').value = formatVnd(dFee);
         if (document.getElementById('deliveryTransferCode')) document.getElementById('deliveryTransferCode').value = item.deliveryTransferCode || '';
         if (typeof updateDeliveryPaymentVisibility === 'function') updateDeliveryPaymentVisibility();
       }
@@ -1187,7 +1190,7 @@ function openModal(editId = null) {
     bundleForm.reset();
     document.getElementById('bundleId').value = '';
     document.getElementById('cargoQuantity').value = 1;
-    document.getElementById('cargoFee').value = 150;
+    document.getElementById('cargoFee').value = '150.000';
     populateUnitDropdown('cái');
     populateCargoStationSelects('Sài Gòn', 'Châu Đốc');
     
@@ -2135,7 +2138,7 @@ function attachMoneyFieldFormatter(el) {
   });
 }
 
-attachMoneyFieldFormatter(document.getElementById('cargoMoneyAmount'));
+['cargoMoneyAmount', 'cargoFee', 'cargoCodAmount', 'pickupFee', 'deliveryFee'].forEach(id => attachMoneyFieldFormatter(document.getElementById(id)));
 
 const codCheckboxEl = document.getElementById('codCheckbox');
 if (codCheckboxEl) {
@@ -2227,7 +2230,7 @@ if (pickupPaymentMethodSelect) pickupPaymentMethodSelect.addEventListener('chang
 
 if (pickupQrBtn) {
   pickupQrBtn.addEventListener('click', () => {
-    const feeVal = document.getElementById('pickupFee')?.value || '30000';
+    const feeVal = parseFeeInput(document.getElementById('pickupFee')?.value, 30000);
     const codeVal = pickupTransferCodeInput?.value || 'CK-38291';
     openCustomQrModal(feeVal, codeVal);
   });
@@ -2262,7 +2265,7 @@ if (deliveryPaymentMethodSelect) deliveryPaymentMethodSelect.addEventListener('c
 
 if (deliveryQrBtn) {
   deliveryQrBtn.addEventListener('click', () => {
-    const feeVal = document.getElementById('deliveryFee')?.value || '30000';
+    const feeVal = parseFeeInput(document.getElementById('deliveryFee')?.value, 30000);
     const codeVal = deliveryTransferCodeInput?.value || 'CK-74812';
     openCustomQrModal(feeVal, codeVal);
   });

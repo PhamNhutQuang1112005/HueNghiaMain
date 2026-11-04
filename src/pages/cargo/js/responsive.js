@@ -247,8 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
         target.id === 'newTotalCollected' ||
         target.id === 'modalTotalCollected' ||
         target.id === 'modalSubmittedAmount' ||
-        target.id === 'modalDiffAmount' ||
-        target.id === 'cargoCodAmount')
+        target.id === 'modalDiffAmount')
     ) {
       const rawDigits = target.value.replace(/\D/g, '');
       if (!rawDigits) {
