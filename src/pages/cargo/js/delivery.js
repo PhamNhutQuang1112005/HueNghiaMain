@@ -264,7 +264,7 @@ function buildRow(cargo, index) {
       </td>
       <td style="text-align:center;">
         <div class="action-group">
-          ${isMoneyCargo(cargo) && !isDone ? `<button class="rowicon-btn" onclick="confirmDeliveryScanItem(${cargo.id})" title="Đã giao">
+          ${!isDone ? `<button class="rowicon-btn" onclick="confirmDeliveryScanItem(${cargo.id})" title="Đã giao (tính là đã quét giao)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
           </button>` : ''}
           <button class="rowicon-btn" onclick="openDeliveryDetailModal(${cargo.id})" title="Xem chi tiết">
@@ -507,6 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cargo.pickedUpAt = nowStr();
       }
       if (newStatus === 'da-giao') {
+        cargo.deliveryScanned = true; cargo.arrivalScanned = true; // "Đã giao" = đã quét giao và đã kiểm tại trạm đến (ds chuyến xe đến đếm theo cờ này)
         cargo.codCollected = Number(document.getElementById('assignCodCollected').value || 0);
         cargo.deliveredAt = nowStr();
         cargo.deliveryFailReason = '';
@@ -521,8 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeStaff) {
           cargo.deliveredBy = activeStaff.name;
           cargo.deliveredByCode = activeStaff.code;
-          cargo.deliveredAtTimestamp = Date.now();
         }
+        cargo.deliveredAtTimestamp = Date.now();
       } else if (newStatus === 'that-bai' || newStatus === 'hen-lai') {
         cargo.deliveryFailReason = document.getElementById('assignReason').value.trim();
       }
@@ -544,11 +545,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!batchBtn) return;
   batchBtn.addEventListener('click', () => {
     const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
-    // Chỉ đơn tiền chưa giao mới giao được hàng loạt; hàng thường vẫn phải quét QR giao.
-    const todo = allCargos.filter(c => ids.includes(String(c.id)) && isMoneyCargo(c) && c.deliveryStatus !== 'da-giao');
-    if (!todo.length) return showDeliveryToast('Chưa chọn đơn tiền nào cần giao');
+    // Bấm "Đã giao" = đã quét giao: áp dụng cho cả hàng thường lẫn đơn tiền.
+    const todo = allCargos.filter(c => ids.includes(String(c.id)) && isEligibleForDelivery(c) && c.deliveryStatus !== 'da-giao');
+    if (!todo.length) return showDeliveryToast('Chưa chọn đơn nào cần giao');
     todo.forEach(c => confirmDeliveryScanItem(c.id, true));
-    showDeliveryToast(`Đã giao ${todo.length} đơn tiền${ids.length > todo.length ? ` (bỏ qua ${ids.length - todo.length} đơn khác)` : ''}`);
+    showDeliveryToast(`Đã giao ${todo.length} đơn${ids.length > todo.length ? ` (bỏ qua ${ids.length - todo.length} đơn đã giao)` : ''}`);
   });
 });
 
@@ -747,7 +748,7 @@ window.batchDeliverTripCargos = function (targetManifestId) {
   const nowTs = Date.now();
 
   eligibleCargos.forEach(cargo => {
-    cargo.deliveryScanned = true;
+    cargo.deliveryScanned = true; cargo.arrivalScanned = true; // "Đã giao" = đã quét giao và đã kiểm tại trạm đến (ds chuyến xe đến đếm theo cờ này)
     cargo.deliveryStatus = 'da-giao';
     cargo.status = 'delivered';
     cargo.statusText = 'Đã giao';
@@ -841,7 +842,7 @@ window.confirmDeliveryScanItem = function (cargoId, quiet) {
   const cargo = allCargos.find(c => Number(c.id) === Number(cargoId));
   if (!cargo) return;
 
-  cargo.deliveryScanned = true;
+  cargo.deliveryScanned = true; cargo.arrivalScanned = true; // "Đã giao" = đã quét giao và đã kiểm tại trạm đến (ds chuyến xe đến đếm theo cờ này)
   cargo.deliveryStatus = 'da-giao';
   cargo.codCollected = Number(cargo.codAmount || 0);
   cargo.deliveredAt = nowStr();
