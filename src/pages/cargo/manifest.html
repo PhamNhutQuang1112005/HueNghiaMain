@@ -68,6 +68,13 @@
             <div class="sidebar-section-title">Vận hành</div>
             <nav class="sidebar-nav">
               
+              <a class="sidebar-nav-item" href="dashboard.html" title="Tổng quan">
+                <div class="nav-item-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+                  <span>Tổng quan</span>
+                </div>
+              </a>
+
               <!-- Group 1: Nhận hàng (Accordion Group) -->
               <div class="sidebar-nav-group open" id="receiveNavGroup">
                 <a class="sidebar-nav-item nav-group-header" href="javascript:void(0)" onclick="toggleNavGroup('receiveNavGroup', event)" title="Nhận hàng">
@@ -1838,7 +1845,16 @@
 
       const stickersHtml = `
         <div class="batch-stickers-container">
-          ${manifestCargos.map((cargo) => `
+          ${manifestCargos.map((cargo) => {
+            const dims = (cargo.length || cargo.width || cargo.height) ? `${cargo.length || 0}x${cargo.width || 0}x${cargo.height || 0}cm` : '';
+            const sizeText = [cargo.weight ? `${cargo.weight}kg` : '', dims].filter(Boolean).join(' • ') || '—';
+            const catText = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng', hot: 'Tiền nóng', baga: 'Baga' }[cargo.cargoCategory] || 'Hàng hóa';
+            const payText = cargo.paymentStatus === 'free' ? 'Không thu phí'
+              : cargo.paymentStatus === 'paid' ? `Đã thanh toán (${cargo.paidMethod === 'transfer' ? (cargo.transferCode || 'Chuyển khoản') : 'Tiền mặt'})`
+              : 'Chưa thanh toán';
+            const codText = Number(cargo.codAmount) > 0 ? `${Number(cargo.codAmount).toLocaleString('vi-VN')}đ` : '';
+            const staffText = cargo.staff || cargo.staffName || cargo.receivedBy || '';
+            return `
             <div class="printable-single-sticker-page" style="page-break-after: always; break-after: page; page-break-inside: avoid; border:2px solid #000; border-radius:10px; padding:12px; background:white; width:380px; max-width:100%; margin:0 auto 20px auto; font-family:sans-serif;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
                 <strong style="color:#e53935; font-size:14px;">HUỆ NGHĨA EXPRESS</strong>
@@ -1850,18 +1866,34 @@
                 <div style="font-family:monospace; font-weight:800; font-size:12.5px; letter-spacing:0.2em;">* ${cargo.code} *</div>
               </div>
 
-              <div style="background:#1e293b; color:white; padding:5px; border-radius:6px; text-align:center; font-weight:800; font-size:14px; margin-bottom:8px;">
+              <div style="background:#1e293b; color:white; padding:5px; border-radius:6px; text-align:center; font-weight:800; font-size:18px; margin-bottom:8px;">
                 ${cargo.stationFrom} ➔ ${cargo.stationTo}
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1.3fr 1fr; gap:6px; font-size:11.5px; margin-bottom:8px;">
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">SỐ LƯỢNG</small>
+                  <strong>${formatCargoQuantity(cargo)}</strong>
+                </div>
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">CÂN NẶNG / KT</small>
+                  <strong>${sizeText}</strong>
+                </div>
+                <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
+                  <small style="color:#64748b; font-weight:800; display:block;">LOẠI HÀNG</small>
+                  <strong>${catText}</strong>
+                </div>
               </div>
 
               <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:11.5px; margin-bottom:8px;">
                 <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
-                  <small style="color:#64748b; font-weight:800; display:block;">HÀNG HÓA & SL</small>
-                  <strong>${cargo.name}</strong> <small style="color:#1d4ed8; font-weight:700;">(x${formatCargoQuantity(cargo)})</small>
+                  <small style="color:#64748b; font-weight:800; display:block;">TÊN HÀNG GỬI</small>
+                  <strong>${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
                 </div>
                 <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
-                  <small style="color:#64748b; font-weight:800; display:block;">CƯỚC PHÍ</small>
+                  <small style="color:#64748b; font-weight:800; display:block;">CƯỚC PHÍ & THANH TOÁN</small>
                   <strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
+                  <small style="display:block; color:#000; font-weight:700;">${payText}</small>
                 </div>
                 <div style="border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;">
                   <small style="color:#64748b; font-weight:800; display:block;">GỬI</small>
@@ -1871,6 +1903,7 @@
                   <small style="color:#64748b; font-weight:800; display:block;">NHẬN</small>
                   <strong>${cargo.receiver}</strong> (${cargo.receiverPhone})
                 </div>
+                ${codText ? `<div style="grid-column:1 / -1; border:1px solid #e2e8f0; padding:5px; border-radius:6px; background:#f8fafc;"><small style="color:#64748b; font-weight:800; display:block;">COD THU HỘ NGƯỜI NHẬN</small><strong style="font-size:14px;">${codText}</strong></div>` : ''}
               </div>
 
               ${cargo.pickupAddress || cargo.deliveryAddress ? `
@@ -1884,8 +1917,13 @@
                 <span>Phơi: <strong>${manifest.name} (${manifest.plate})</strong></span>
                 <span>In ngày: ${new Date().toLocaleDateString('vi-VN')}</span>
               </div>
+              <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#475569; padding-top:2px;">
+                <span>Nhận lúc: <strong>${cargo.transferTime || 'Vừa tạo'}</strong></span>
+                ${staffText ? `<span>NV: <strong>${staffText}</strong></span>` : ''}
+              </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       `;
       openPrintWindow(`Tem dán phơi ${manifest.plate}`, stickersHtml);

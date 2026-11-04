@@ -19,6 +19,10 @@
   const currentStaff = window.HNAuth ? window.HNAuth.requireLogin() : { code: '', name: 'Nhân viên', station: '' };
   if (window.HNAuth) window.HNAuth.renderUserChip(currentStaff);
 
+  // Phân quyền xem ca: nhân viên chỉ thấy/thao tác ca CỦA MÌNH; admin và kế toán (đối soát) thấy tất cả.
+  const CAN_SEE_ALL = ['admin', 'accountant'].includes(currentStaff.role);
+  const isMine = (s) => CAN_SEE_ALL || String(s.staffCode || s.staffId) === String(currentStaff.code);
+
   function loadShifts() {
     try {
       return JSON.parse(localStorage.getItem(SHIFTS_KEY) || '[]');
@@ -73,6 +77,14 @@
     return `${hh}:${mi} ${dd}-${mm}`;
   }
 
+  // Mã ca của ca tự động là mốc giờ (0h hôm nay…) nên nhiều nhân viên sẽ trùng id; cộng độ lệch 1–997ms theo mã NV để mỗi ca có id riêng
+  // (startTime giữ nguyên, chỉ id đổi nên không ảnh hưởng cách tính).
+  function staffOffset(code) {
+    let h = 0;
+    String(code == null ? '' : code).split('').forEach((ch) => { h = (h * 31 + ch.charCodeAt(0)) % 997; });
+    return h + 1;
+  }
+
   // Tự động kiểm tra & đồng bộ ca thu ngân từ danh sách hàng hóa (hueNghia_cargos)
   // và từ tài khoản NV đang đăng nhập, không bắt buộc người dùng bấm "Mở Ca Mới" thủ công.
   function autoSyncShiftsFromCargos() {
@@ -104,14 +116,34 @@
     });
     if (currentShifts.length !== beforeReset) { updated = true; }
 
-    // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu chưa có ca mở hôm nay
+    // 0c. Mã ca (id) là duy nhất: nếu có ca ĐÃ ĐÓNG và ca đang mở trùng id (do tự mở lại ca sau khi giao ca) thì bỏ ca mở thừa.
+    // (khóa theo CẢ nhân viên + id: ca của người khác trùng id không bị xóa nhầm)
+    const shiftKey = (s) => String(s.staffCode || s.staffId) + ':' + s.id;
+    const closedIds = new Set(currentShifts.filter((s) => s.endTime).map(shiftKey));
+    const beforeDup = currentShifts.length;
+    currentShifts = currentShifts.filter((s) => s.endTime || !closedIds.has(shiftKey(s)));
+    if (currentShifts.length !== beforeDup) { updated = true; }
+    // Dữ liệu cũ: các ca của NHÂN VIÊN KHÁC NHAU trùng id → đổi id các ca sau bằng độ lệch theo mã NV
+    const seenIds = new Map();
+    currentShifts.forEach((s) => {
+      const who = String(s.staffCode || s.staffId);
+      if (seenIds.has(s.id) && seenIds.get(s.id) !== who) { s.id = s.id + staffOffset(who); updated = true; }
+      seenIds.set(s.id, who);
+    });
+
+    // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu chưa có ca mở hôm nay.
+    // Mã ca = 0h hôm nay: nếu hôm nay đã có ca mang mã đó (kể cả đã giao ca) thì KHÔNG tự mở thêm — muốn ca mới phải bấm "Mở Ca Mới".
     if (currentStaff && (currentStaff.code || currentStaff.name)) {
       const code = String(currentStaff.code || '').trim();
       const name = String(currentStaff.name || '').trim().toLowerCase();
       const existingOpen = currentShifts.find(
         (s) => !s.endTime && (String(s.staffCode) === code || (name && s.staffName && s.staffName.toLowerCase() === name))
       );
-      if (!existingOpen) {
+      const todayId = (function () { const _t = new Date(); _t.setHours(0, 0, 0, 0); return _t.getTime(); })();
+      const myShiftId = todayId + staffOffset(code || currentStaff.code || '933');
+      const myCode = String(currentStaff.code || '933');
+      const justClosedToday = currentShifts.some((s) => String(s.staffCode) === myCode && s.endTime && s.endTime >= todayStart0);
+      if (!existingOpen && !justClosedToday && !currentShifts.some((s) => s.id === myShiftId && String(s.staffCode) === myCode)) {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const staffCargosToday = allCargos.filter((c) => {
@@ -127,7 +159,7 @@
         const earliestTime = (function(){ const _d = new Date(); _d.setHours(0,0,0,0); return _d.getTime(); })()
 
         const autoShift = {
-          id: earliestTime,
+          id: myShiftId,
           staffCode: currentStaff.code || '933',
           staffName: currentStaff.name || 'Nhân viên',
           station: currentStaff.station || 'Sài Gòn',
@@ -163,7 +195,7 @@
       if (!hasShift && st.cargos.length > 0) {
         const d2 = new Date(); d2.setHours(0,0,0,0); const earliestTime = d2.getTime(); // 0h hôm nay
         currentShifts.unshift({
-          id: earliestTime,
+          id: earliestTime + staffOffset(st.code),
           staffCode: st.code,
           staffName: st.name,
           station: st.station,
@@ -204,7 +236,7 @@
         return (c.id >= shift.startTime && c.id <= shift.endTime) ||
                (itemTs  >= shift.startTime && itemTs  <= shift.endTime);
       }
-      // Ca đang mở: lấy tất cả cargo của NV trong ngày (từ 0h ngày mở ca)
+      // Ca đang mở: DỒN mọi cargo của NV từ 0h ngày mở ca cho tới hiện tại — qua nhiều ngày cũng được, đến khi bấm "Lưu & Xác Nhận Giao Ca" mới chốt một lần.
       const dayStart = new Date(shift.startTime);
       dayStart.setHours(0, 0, 0, 0);
       return c.id >= dayStart.getTime() || itemTs >= dayStart.getTime();
@@ -281,6 +313,7 @@ function computeShiftStats(shift, allCargos) {
     const searchQuery = (document.getElementById('shiftSearch')?.value || '').toLowerCase().trim();
 
     const filtered = currentShifts.filter((shift) => {
+      if (!isMine(shift)) return false;
       const matchStation = stationFilter === 'all' || shift.station === stationFilter;
       let matchStatus = true;
       if (statusFilter === 'handed') matchStatus = shift.isHandedOver;
@@ -417,7 +450,7 @@ function computeShiftStats(shift, allCargos) {
   // Nộp" + "Ghi chú" là staff nhập tay lúc kết ca.
   window.openDetailReport = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
 
     selectedShiftId = shiftId;
     const modal = document.getElementById('reportDetailModal');
@@ -534,7 +567,7 @@ function computeShiftStats(shift, allCargos) {
   window.saveShiftHandoverFromModal = function () {
     if (!selectedShiftId) return;
     const shift = currentShifts.find((s) => s.id === selectedShiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
 
     const submittedVal = document.getElementById('modalSubmittedAmount')?.value || '0';
     const noteVal = document.getElementById('modalNoteText')?.value || '';
@@ -555,7 +588,7 @@ function computeShiftStats(shift, allCargos) {
 
   window.toggleShiftHandover = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
     shift.isHandedOver = !shift.isHandedOver;
     if (shift.isHandedOver && !shift.endTime) shift.endTime = Date.now();
     saveShifts(currentShifts);
@@ -565,7 +598,7 @@ function computeShiftStats(shift, allCargos) {
 
   window.toggleShiftCheck = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
     shift.isChecked = !shift.isChecked;
     saveShifts(currentShifts);
     renderShiftsTable();
@@ -659,7 +692,7 @@ function computeShiftStats(shift, allCargos) {
 
   window.deleteShift = function (shiftId) {
     const shift = currentShifts.find((s) => String(s.id) === String(shiftId));
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
 
     pendingDeleteShiftId = shiftId;
     const staffNameEl = document.getElementById('deleteStaffName');

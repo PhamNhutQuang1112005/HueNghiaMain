@@ -702,7 +702,7 @@ button { cursor: pointer; border: none; background: none; }
   padding: 8px 12px;
   border-radius: 8px;
   text-align: center;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   margin-bottom: 12px;
 }
@@ -744,6 +744,26 @@ button { cursor: pointer; border: none; background: none; }
   padding-top: 8px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* Dải thông tin đơn hàng (số lượng / cân nặng / loại hàng) và dòng phụ ở chân tem */
+.sticker-info-strip {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sticker-info-strip > div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: var(--surface-2);
+}
+.sticker-info-strip .sticker-val { font-size: 12.5px; }
+.sticker-footer-sub {
+  border-top: 0;
+  padding-top: 2px;
+  margin-top: 2px;
 }
 
 /* Đồng bộ font biên lai/tem dán với trang Tổng đài (ticketstaff.html dùng Inter làm font chính,
@@ -1491,3 +1511,8 @@ input[type=number] {
   margin-bottom: 2px;
 }
 
+
+/* Dải tuyến trên tem có nền đen: rule ép chữ đen ở trên làm chữ biến mất → ép lại trắng */
+.cargo-sticker-card .sticker-route-banner,
+#cargoStickerPreview .sticker-route-banner,
+#printableStickerArea .sticker-route-banner { color: #ffffff !important; }

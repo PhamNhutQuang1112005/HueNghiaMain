@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cập nhật mục cuối breadcrumb theo tên bộ lọc trạng thái đang chọn (Tất cả/Hàng hóa/Tiền
   // thưởng/Tiền nóng/Baga) — giữ nguyên tiêu đề trang mặc định khi đang ở "Tất cả".
-  const FILTER_BC_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng gửi tiền thường', hot: 'Tiền nóng', baga: 'Baga' };
+  const FILTER_BC_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng gửi tiền thường', hot: 'Tiền nóng', baga: 'Baga', cod: 'Đơn COD', overdue: 'Hàng quá hạn' };
   const bcCurrentEl = document.querySelector('.page-breadcrumb .bc-current');
   const defaultBcLabel = bcCurrentEl ? bcCurrentEl.textContent : '';
   function updateFilterBreadcrumb(val) {
@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (urlFilter === 'overdue') {
     document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
     document.getElementById('overdueNavItem')?.classList.add('active');
+    updateFilterBreadcrumb('overdue');
   } else if ((isCargoPage || isDeliveryPage) && activeCategory) {
     const targetSelector = isDeliveryPage ? '#deliverySubmenu .status-option' : '#cargoSubmenu .status-option';
     const targetOptions = document.querySelectorAll(targetSelector);

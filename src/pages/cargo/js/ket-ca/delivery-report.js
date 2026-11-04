@@ -16,6 +16,10 @@
   const currentStaff = window.HNAuth ? window.HNAuth.requireLogin() : { code: '', name: 'Nhân viên', station: '' };
   if (window.HNAuth) window.HNAuth.renderUserChip(currentStaff);
 
+  // Phân quyền xem ca: nhân viên chỉ thấy/thao tác ca CỦA MÌNH; admin và kế toán (đối soát) thấy tất cả.
+  const CAN_SEE_ALL = ['admin', 'accountant'].includes(currentStaff.role);
+  const isMine = (s) => CAN_SEE_ALL || String(s.staffCode || s.staffId) === String(currentStaff.code);
+
   function loadShifts() {
     try {
       return JSON.parse(localStorage.getItem(SHIFTS_KEY) || '[]');
@@ -98,10 +102,41 @@
     return c.deliveryStatus === 'da-giao';
   }
 
+  // Đơn chỉ thuộc ca giao hàng của NGƯỜI THẬT SỰ BẤM "Đã giao" (deliveredByCode). Chưa giao / giao thất bại / hẹn lại thì không thuộc ca nào.
+  function isDeliveredBy(c, code, name) {
+    if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived || c.deliveryStatus !== 'da-giao') return false;
+    const by = String(c.deliveredByCode || '').trim();
+    if (by) return !!code && by === String(code).trim();
+    return !!name && String(c.deliveredBy || '').trim().toLowerCase() === String(name).trim().toLowerCase();
+  }
+
+  // Mã ca của ca tự động là mốc giờ (0h hôm nay…) nên nhiều nhân viên sẽ trùng id; cộng độ lệch 1–997ms theo mã NV để mỗi ca có id riêng
+  // (startTime giữ nguyên, chỉ id đổi nên không ảnh hưởng cách tính).
+  function staffOffset(code) {
+    let h = 0;
+    String(code == null ? '' : code).split('').forEach((ch) => { h = (h * 31 + ch.charCodeAt(0)) % 997; });
+    return h + 1;
+  }
+
   // Tự động kiểm tra & đồng bộ ca giao hàng từ danh sách hàng hóa (hueNghia_cargos)
   function autoSyncShiftsFromCargos() {
     const allCargos = loadCargos();
     let updated = false;
+
+    // 0c. Mã ca (id) là duy nhất: nếu có ca ĐÃ ĐÓNG và ca đang mở trùng id (do tự mở lại ca sau khi giao ca) thì bỏ ca mở thừa.
+    // (khóa theo CẢ nhân viên + id: ca của người khác trùng id không bị xóa nhầm)
+    const shiftKey = (s) => String(s.staffCode || s.staffId) + ':' + s.id;
+    const closedIds = new Set(currentShifts.filter((s) => s.endTime).map(shiftKey));
+    const beforeDup = currentShifts.length;
+    currentShifts = currentShifts.filter((s) => s.endTime || !closedIds.has(shiftKey(s)));
+    if (currentShifts.length !== beforeDup) { updated = true; }
+    // Dữ liệu cũ: các ca của NHÂN VIÊN KHÁC NHAU trùng id → đổi id các ca sau bằng độ lệch theo mã NV
+    const seenIds = new Map();
+    currentShifts.forEach((s) => {
+      const who = String(s.staffCode || s.staffId);
+      if (seenIds.has(s.id) && seenIds.get(s.id) !== who) { s.id = s.id + staffOffset(who); updated = true; }
+      seenIds.set(s.id, who);
+    });
 
     // 1. Tự động tạo/mở ca cho nhân viên đang đăng nhập nếu có đơn giao
     if (currentStaff && (currentStaff.code || currentStaff.name)) {
@@ -111,17 +146,15 @@
         (s) => !s.endTime && (String(s.staffCode || s.staffId) === code || (name && s.staffName && s.staffName.toLowerCase() === name))
       );
 
-      const staffCargos = allCargos.filter((c) => {
-        if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived) return false;
-        const cCode = String(c.deliveryStaffCode || c.deliveredByCode || c.staffCode || c.staff || '').trim();
-        const cStaff = String(c.deliveryStaff || c.deliveredBy || c.staff || '').trim().toLowerCase();
-        return (code && cCode === code) || (name && cStaff.includes(name));
-      });
+      const staffCargos = allCargos.filter((c) => isDeliveredBy(c, code, name));
 
-      if (!existingOpen && staffCargos.length > 0) {
-        const earliestTime = Math.min(...staffCargos.map((c) => c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id));
+      const earliestTime = staffCargos.length
+        ? Math.min(...staffCargos.map((c) => c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id))
+        : null;
+      // Mã ca = giờ đơn sớm nhất: đã có ca mang mã này (kể cả đã giao ca) thì không tự mở lại ca trùng.
+      if (!existingOpen && staffCargos.length > 0 && !currentShifts.some((s) => s.id === earliestTime + staffOffset(code) && String(s.staffCode || s.staffId) === code)) {
         const autoShift = {
-          id: earliestTime,
+          id: earliestTime + staffOffset(code),
           staffCode: currentStaff.code || '883',
           staffId: currentStaff.code || '883',
           staffName: currentStaff.name || 'NV Giao Hàng',
@@ -141,9 +174,10 @@
     // 2. Tự động tạo ca cho các NV giao hàng khác có đơn hàng
     const staffMap = {};
     allCargos.forEach((c) => {
-      if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived) return;
-      const sCode = String(c.deliveredByCode || c.deliveryStaffCode || c.staffCode || c.staff || '883').trim();
-      const sName = c.deliveredBy || c.deliveryStaff || c.staff || currentStaff.name || 'NV Giao Hàng';
+      if (c.deliveryStatus !== 'da-giao' || !c.isScanned || c.status === 'unreceived' || c.isUnreceived) return;
+      const sCode = String(c.deliveredByCode || '').trim();
+      if (!sCode) return;
+      const sName = c.deliveredBy || currentStaff.name || 'NV Giao Hàng';
       const sStation = c.stationTo || c.stationFrom || c.station || currentStaff.station || 'Sài Gòn';
       if (!staffMap[sCode]) {
         staffMap[sCode] = { code: sCode, name: sName, station: sStation, cargos: [] };
@@ -158,7 +192,7 @@
       if (!hasShift && st.cargos.length > 0) {
         const earliestTime = Math.min(...st.cargos.map((c) => c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id));
         currentShifts.unshift({
-          id: earliestTime,
+          id: earliestTime + staffOffset(st.code),
           staffCode: st.code,
           staffId: st.code,
           staffName: st.name,
@@ -179,38 +213,24 @@
     }
   }
 
-  // Toàn bộ hàng hóa thuộc ca giao hàng này (bao gồm cả đơn TR đã giao và đơn CT chưa giao)
+  // Toàn bộ hàng hóa thuộc ca giao hàng này = các đơn nhân viên của ca đã bấm "Đã giao".
+  // Ca đang mở: dồn mọi đơn đã giao từ 0h ngày mở ca đến hiện tại; ca đã đóng: đơn giao trong khoảng [bắt đầu, kết thúc].
   function getShiftCargoItems(shift, allCargos) {
     const cargos = allCargos || loadCargos();
     const shiftCode = String(shift.staffCode || shift.staffId || '').trim();
-    const shiftName = String(shift.staffName || '').trim().toLowerCase();
+    const shiftName = String(shift.staffName || '').trim();
+    const startMs = typeof shift.startTime === 'number' ? shift.startTime : new Date(shift.startTime).getTime();
+    const dayStart = new Date(startMs || Date.now());
+    dayStart.setHours(0, 0, 0, 0);
 
     return cargos.filter((c) => {
-      if (!c.isScanned || c.status === 'unreceived' || c.isUnreceived) return false;
-
-      const cCode = String(c.deliveryStaffCode || c.deliveredByCode || c.staffCode || c.staff || '').trim();
-      const cStaff = String(c.deliveryStaff || c.deliveredBy || c.staff || '').trim().toLowerCase();
-
-      const matchStaff =
-        (shiftCode && (cCode === shiftCode || cCode.includes(shiftCode))) ||
-        (shiftName && (cStaff === shiftName || cStaff.includes(shiftName))) ||
-        (!shiftCode && !shiftName);
-
-      if (!matchStaff) return false;
-
-      const itemTimestamp = c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id;
-
+      if (!isDeliveredBy(c, shiftCode, shiftName)) return false;
+      const t = c.deliveredAtTimestamp || c.transferredAt || c.receivedAtTimestamp || c.id;
       if (shift.endTime) {
-        const startMs = typeof shift.startTime === 'number' ? shift.startTime : new Date(shift.startTime).getTime();
         const endMs = typeof shift.endTime === 'number' ? shift.endTime : new Date(shift.endTime).getTime();
-        return (c.id >= startMs && c.id <= endMs) ||
-               (itemTimestamp >= startMs && itemTimestamp <= endMs);
+        return t >= startMs && t <= endMs;
       }
-
-      const startMs = typeof shift.startTime === 'number' ? shift.startTime : new Date(shift.startTime).getTime();
-      const shiftDateObj = new Date(startMs || Date.now());
-      shiftDateObj.setHours(0, 0, 0, 0);
-      return c.id >= shiftDateObj.getTime() || itemTimestamp >= shiftDateObj.getTime() || c.deliveryStatus != null;
+      return t >= dayStart.getTime();
     });
   }
 
@@ -283,6 +303,7 @@
 
     // Loại bỏ các ca trống không có đơn hàng nào
     const validShifts = currentShifts.filter((shift) => {
+      if (!isMine(shift)) return false;
       const stats = computeShiftStats(shift, allCargos);
       return stats.items.length > 0;
     });
@@ -497,7 +518,7 @@
 
   window.dlv_openDetailReport = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
 
     selectedShiftId = shiftId;
     const modal = document.getElementById('dlvReportDetailModal');
@@ -543,7 +564,7 @@
   window.dlv_saveShiftHandoverFromModal = function () {
     if (!selectedShiftId) return;
     const shift = currentShifts.find((s) => s.id === selectedShiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
 
     const submittedVal = document.getElementById('dlvModalSubmittedAmount')?.value || '0';
     const noteVal = document.getElementById('dlvModalNoteText')?.value || '';
@@ -563,7 +584,7 @@
 
   window.dlv_toggleShiftHandover = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
     shift.isHandedOver = !shift.isHandedOver;
     saveShifts(currentShifts);
     renderShiftsTable();
@@ -572,7 +593,7 @@
 
   window.dlv_toggleShiftCheck = function (shiftId) {
     const shift = currentShifts.find((s) => s.id === shiftId);
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
     shift.isChecked = !shift.isChecked;
     saveShifts(currentShifts);
     renderShiftsTable();
@@ -607,7 +628,7 @@
 
   window.dlv_deleteShift = function (shiftId) {
     const shift = currentShifts.find((s) => String(s.id) === String(shiftId));
-    if (!shift) return;
+    if (!shift || !isMine(shift)) return;
 
     pendingDeleteShiftId = shiftId;
     const staffNameEl = document.getElementById('dlvDeleteStaffName');

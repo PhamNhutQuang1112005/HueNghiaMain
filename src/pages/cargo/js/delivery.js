@@ -293,9 +293,26 @@ function updateBatchAssignButton() {
   if (btn) btn.style.display = checkboxes.length > 0 ? 'inline-flex' : 'none';
 }
 
+// Tiêu đề trang theo mục lọc loại hàng đang chọn ở sidebar
+const DELIVERY_TITLES = {
+  all: 'Danh sách giao hàng',
+  goods: 'Danh sách giao hàng hóa',
+  cash: 'Danh sách giao tiền thường',
+  partner_cash: 'Danh sách giao bạn hàng',
+  hot: 'Danh sách giao tiền nóng',
+  cod: 'Danh sách giao đơn COD'
+};
+
+function updateDeliveryTitle() {
+  const h1 = document.querySelector('.toolbar h1');
+  const checked = document.querySelector('input[name="deliveryStateFilter"]:checked');
+  if (h1) h1.textContent = DELIVERY_TITLES[checked ? checked.value : 'all'] || DELIVERY_TITLES.all;
+}
+
 function renderTable() {
   const tbody = document.getElementById('deliveryTableBody');
   if (!tbody) return;
+  updateDeliveryTitle();
   const rows = getFilteredList();
   tbody.innerHTML = rows.length
     ? rows.map((c, i) => buildRow(c, i)).join('')

@@ -761,6 +761,19 @@ function getFilteredData() {
 // Icon vuông cột Hàng hóa (giao diện redesign) — chỉ trang trí
 const RD_BOX_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg>';
 
+// Tiêu đề trang theo mục đang chọn (khớp tên mục trong sidebar)
+const CATEGORY_TITLES = {
+  all: 'Danh sách nhận hàng',
+  goods: 'Danh sách hàng hóa',
+  cash: 'Danh sách tiền thường',
+  partner_cash: 'Danh sách bạn hàng',
+  hot: 'Danh sách tiền nóng',
+  baga: 'Danh sách Baga xe khách',
+  cod: 'Danh sách đơn COD',
+  overdue: 'Danh sách hàng quá hạn',
+  returned: 'Danh sách hàng trả về'
+};
+
 /* Render bang gop 8 cot thong tin tinh te & sach se */
 function renderTable() {
   if (!cargoTableBody) return;
@@ -778,13 +791,8 @@ function renderTable() {
   const isDelivery = window.location.pathname.includes('delivery.html');
   const eyebrow = document.querySelector('.toolbar .eyebrow');
   const mainH1 = document.querySelector('.toolbar h1');
-  if (state.selectedCategory === 'baga') {
-    if (eyebrow) eyebrow.textContent = isDelivery ? 'Giao hàng' : 'Nhận hàng';
-    if (mainH1) mainH1.textContent = 'Danh sách Baga xe khách';
-  } else {
-    if (eyebrow) eyebrow.textContent = isDelivery ? 'Giao hàng' : 'Nhận hàng';
-    if (mainH1) mainH1.textContent = isDelivery ? 'Danh sách giao hàng' : 'Danh sách hàng hóa';
-  }
+  if (eyebrow) eyebrow.textContent = isDelivery ? 'Giao hàng' : 'Nhận hàng';
+  if (mainH1) mainH1.textContent = isDelivery ? 'Danh sách giao hàng' : (CATEGORY_TITLES[state.selectedCategory] || CATEGORY_TITLES.all);
 
   const rows = getFilteredData();
   state.manifests = loadManifests();
@@ -1732,6 +1740,16 @@ function openPrintStickerModal(cargoId) {
   const manifest = state.manifests.find(m => String(m.id) === String(cargo.manifestId));
   const printArea = document.getElementById('printableStickerArea');
 
+  // Thông tin đơn hàng hiển thị trên tem
+  const STICKER_CATS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng', hot: 'Tiền nóng', baga: 'Baga' };
+  const dims = (cargo.length || cargo.width || cargo.height) ? `${cargo.length || 0}x${cargo.width || 0}x${cargo.height || 0}cm` : '';
+  const sizeText = [cargo.weight ? `${cargo.weight}kg` : '', dims].filter(Boolean).join(' • ') || '—';
+  const payText = cargo.paymentStatus === 'free' ? 'Không thu phí'
+    : cargo.paymentStatus === 'paid' ? `Đã thanh toán (${cargo.paidMethod === 'transfer' ? (cargo.transferCode || 'Chuyển khoản') : 'Tiền mặt'})`
+    : 'Chưa thanh toán';
+  const codText = Number(cargo.codAmount) > 0 ? `${Number(cargo.codAmount).toLocaleString('vi-VN')}đ` : '';
+  const stickerStaff = cargo.staff || cargo.staffName || cargo.receivedBy || '';
+
   const htmlContent = `
     <div class="cargo-sticker-card printable-single-sticker-page">
       <div class="sticker-header">
@@ -1750,6 +1768,12 @@ function openPrintStickerModal(cargoId) {
         ${manifest ? manifest.from : (cargo.stationFrom || 'Chưa gán')} ➔ ${manifest ? manifest.to : (cargo.stationTo || 'Chưa gán')}
       </div>
 
+      <div class="sticker-info-strip">
+        <div><span class="sticker-label">Số lượng</span><div class="sticker-val">${formatCargoQuantity(cargo)}</div></div>
+        <div><span class="sticker-label">Cân nặng / KT</span><div class="sticker-val">${sizeText}</div></div>
+        <div><span class="sticker-label">Loại hàng</span><div class="sticker-val">${STICKER_CATS[cargo.cargoCategory] || 'Hàng hóa'}</div></div>
+      </div>
+
       <div class="sticker-grid">
         <div class="sticker-box">
           <span class="sticker-label">Tên hàng gửi</span>
@@ -1759,9 +1783,10 @@ function openPrintStickerModal(cargoId) {
           <span class="sticker-label">Cước phí & Thanh toán</span>
           <div class="sticker-val">
             <strong>${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong>
-            <small style="display:block; color:#000000; font-weight:700;">(Đã thanh toán)</small>
+            <small style="display:block; color:#000000; font-weight:700;">${payText}</small>
           </div>
         </div>
+        ${codText ? `<div class="sticker-box" style="grid-column:1 / -1;"><span class="sticker-label">COD thu hộ người nhận</span><div class="sticker-val"><strong style="font-size:16px;">${codText}</strong></div></div>` : ''}
         <div class="sticker-box">
           <span class="sticker-label">Người gửi</span>
           <div class="sticker-val">
@@ -1791,6 +1816,10 @@ function openPrintStickerModal(cargoId) {
       <div class="sticker-footer">
         <span>Phơi: <strong>${manifest ? manifest.name + ' (' + manifest.plate + ')' : 'Chưa gán phơi'}</strong></span>
         <span>In ngày: ${new Date().toLocaleDateString('vi-VN')}</span>
+      </div>
+      <div class="sticker-footer sticker-footer-sub">
+        <span>Nhận lúc: <strong>${cargo.transferTime || 'Vừa tạo'}</strong></span>
+        ${stickerStaff ? `<span>NV: <strong>${stickerStaff}</strong></span>` : ''}
       </div>
     </div>
   `;
