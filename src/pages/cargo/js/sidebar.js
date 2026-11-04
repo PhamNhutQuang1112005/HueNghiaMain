@@ -98,7 +98,10 @@
       if (!head || !menu) return;
       var r = head.getBoundingClientRect();
       var h = menu.offsetHeight || 300;
-      menu.style.setProperty('--fly-x', Math.round(aside.getBoundingClientRect().right + 8) + 'px');
+      var w = menu.offsetWidth || 230;
+      // cạnh phải sidebar + 8px; màn hình hẹp (menu trượt) thì lùi vào trong để không bị cắt mép phải
+      var x = Math.max(8, Math.min(aside.getBoundingClientRect().right + 8, window.innerWidth - w - 8));
+      menu.style.setProperty('--fly-x', Math.round(x) + 'px');
       menu.style.setProperty('--fly-y', Math.max(8, Math.min(r.top, window.innerHeight - h - 8)) + 'px');
     }
     function closeAll(except) {

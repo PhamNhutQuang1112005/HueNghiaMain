@@ -598,3 +598,21 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 .rd-page .ntx-card .ntx-tile { display: none; }        /* ô "Công nợ với các trạm" (bước 1) và "Nợ ròng cần thanh toán" (bước 2) */
 .rd-page .ntx-steps > .ntx-card:first-child .ntx-more { display: none; } /* "Xem nợ theo nguồn tiền và từng trạm" (bảng chi tiết bên dưới đã có) */
 .rd-page .ntx-steps { margin-top: 4px; }
+@media (max-width: 480px) { .app-shell .app-sidebar .sidebar-subgroup > .sidebar-submenu { width: min(230px, calc(100vw - 16px)); } }
+
+/* Điện thoại (menu trượt có transform nên position: fixed bị cắt theo khung menu): danh sách lọc quay về dạng xổ trong menu */
+@media (max-width: 768px) {
+  .app-shell .app-sidebar .sidebar-subgroup > .sidebar-submenu {
+    position: static; width: auto; margin: 2px 0 6px 18px !important; padding: 0 0 0 8px !important;
+    border-left: 1px solid rgba(255, 255, 255, .16) !important; border-radius: 0; background: transparent; box-shadow: none;
+    transform: none; display: none;
+  }
+  .app-shell .app-sidebar .sidebar-subgroup.open > .sidebar-submenu { display: block; }
+  .app-shell .app-sidebar .sidebar-submenu .status-option { color: rgba(255, 255, 255, .82); padding: 9px 10px; font-size: 13.5px; }
+  .app-shell .app-sidebar .sidebar-submenu .status-option:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+  .app-shell .app-sidebar .sidebar-submenu .status-option.active { color: #fff; background: rgba(255, 255, 255, .16); }
+  .app-shell .app-sidebar .sidebar-submenu .status-option .status-dot-icon,
+  .app-shell .app-sidebar .sidebar-submenu .status-option:not(.active):hover .status-dot-icon { color: rgba(255, 255, 255, .75) !important; }
+  .app-shell .app-sidebar .sidebar-submenu .status-option.active .status-dot-icon,
+  .app-shell .app-sidebar .sidebar-submenu .status-option.active:hover .status-dot-icon { color: #fff !important; }
+}
