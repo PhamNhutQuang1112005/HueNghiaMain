@@ -616,3 +616,23 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
   .app-shell .app-sidebar .sidebar-submenu .status-option.active .status-dot-icon,
   .app-shell .app-sidebar .sidebar-submenu .status-option.active:hover .status-dot-icon { color: #fff !important; }
 }
+
+/* Thẻ tài khoản ở chân sidebar đã bỏ (thông tin trạm nằm ở thẻ đầu sidebar); ẩn phòng khi còn trang cache cũ */
+.rd-sidebar-foot { display: none !important; }
+
+/* Chuyến xe đến: tên phơi đỏ nhỏ dưới biển số, dòng giờ xuất bến */
+.rd-page .rd-phoi-code { margin-top: 2px; color: var(--rd-red); font-size: 11.5px; font-weight: 700; letter-spacing: .2px; }
+.rd-page .rd-time-line { color: #252e3b; font-size: 13px; }
+.rd-page .rd-time-line b { font-weight: 700; }
+.rd-page .rd-time-line span { color: #87909e; font-size: 12px; }
+#receiveTableBody .rd-people { max-width: none; }
+#receiveTableBody .rd-people span { flex-wrap: nowrap; white-space: nowrap; }
+#receiveTableBody .rd-people i { width: 20px; font-size: 8.5px; border-radius: 6px; }
+
+/* Tên phơi ("Xe : 64855 điểm đi->điểm đến 12h") là nội dung chính: chữ đen, không xám nhạt như dòng phụ */
+#cargoTableBody .rd-item-body > div[style*="color:#475569"] { color: #1f2937 !important; font-size: 12.5px !important; font-weight: 600 !important; line-height: 1.4; }
+.rd-page .rd-phoi-code { color: #1f2937; font-size: 12.5px; font-weight: 600; letter-spacing: 0; line-height: 1.4; }
+
+/* Nút hàng loạt ở Hàng chưa giao: gọn như các nút hàng loạt khác, nhạt khi chưa chọn đơn nào */
+.rd-page #batchAssignUnreceivedBtn { min-height: 34px; font-size: 12px; box-shadow: none; }
+.rd-page #batchAssignUnreceivedBtn:disabled { opacity: .5; transform: none; cursor: default; }

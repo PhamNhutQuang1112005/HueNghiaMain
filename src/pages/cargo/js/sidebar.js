@@ -1,4 +1,4 @@
-/* Sidebar redesign: chia nhóm Vận hành / Tài chính, badge COD, khu tài khoản cố định ở chân sidebar.
+/* Sidebar redesign: chia nhóm Vận hành / Tài chính, badge COD, thẻ trạm ở đầu sidebar.
    Chỉ sắp xếp lại / thêm phần tử trang trí — giữ nguyên các phần tử gốc (id, href, radio lọc) mà responsive.js và cargo.js đang dùng. */
 (function () {
   'use strict';
@@ -65,25 +65,6 @@
         badge.title = pending + ' đơn COD chờ đối soát';
         cod.appendChild(badge);
       }
-    }
-
-    // Khu tài khoản + chi nhánh cố định ở chân sidebar (nằm ngoài vùng cuộn)
-    if (!aside.querySelector('.rd-sidebar-foot')) {
-      var staff = window.HNAuth && window.HNAuth.getCurrentStaff ? window.HNAuth.getCurrentStaff() : null;
-      var name = (staff && staff.name) || 'Tài khoản';
-      var station = (staff && staff.station) || 'Chưa chọn chi nhánh';
-      var foot = document.createElement('div');
-      foot.className = 'rd-sidebar-foot';
-      var avatar = document.createElement('span');
-      avatar.className = 'rd-foot-avatar';
-      avatar.textContent = name.trim().charAt(0).toUpperCase() || '?';
-      var info = document.createElement('div');
-      info.className = 'rd-foot-info';
-      var n = document.createElement('strong'); n.textContent = name;
-      var st = document.createElement('small'); st.textContent = station;
-      info.appendChild(n); info.appendChild(st);
-      foot.appendChild(avatar); foot.appendChild(info);
-      aside.appendChild(foot);
     }
   }
 
