@@ -807,7 +807,7 @@ window.processDeliveryQrScanInput = function () {
 
   const cargo = allCargos.find(c =>
     (c.code || '').toLowerCase() === code ||
-    (c.code || '').toLowerCase().includes(code)
+    (c.code || '').sIncludes(code)
   );
 
   const container = document.getElementById('deliveryScanResultArea');

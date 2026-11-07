@@ -743,15 +743,19 @@ function getFilteredData() {
       matchesDirection = fromMatch && toMatch;
     }
 
-    const matchesSearch = !searchText || [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.stationFrom, row.stationTo, row.staff].some((val) => (val || '').toLowerCase().includes(searchText));
-    const matchesFrom = from === 'all' || (row.stationFrom || '').toLowerCase().includes(from.toLowerCase());
-    const matchesTo = to === 'all' || (row.stationTo || '').toLowerCase().includes(to.toLowerCase());
+    const matchesSearch = !searchText || [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.stationFrom, row.stationTo, row.staff].some((val) => (val || '').sIncludes(searchText));
+    const matchesFrom = from === 'all' || (row.stationFrom || '').sIncludes(from.toLowerCase());
+    const matchesTo = to === 'all' || (row.stationTo || '').sIncludes(to.toLowerCase());
 
     const rowTime = row.transferTime || '';
-    const matchesDate = !dateVal || 
-      rowTime.includes(dateFormatted) || 
-      rowTime.includes(dateVal) || 
-      (isTodaySelected && (rowTime.includes('Vừa tạo') || rowTime.includes(todayFormatted)));
+    // So khớp ngày/tháng theo SỐ (chịu được "7/11" lẫn "07/11", "07-11", "2026-11-07"), không so chuỗi.
+    const dm = rowTime.match(/(\d{4})-(\d{1,2})-(\d{1,2})/) || rowTime.match(/(\d{1,2})[\/.-](\d{1,2})/);
+    const rowDay = dm ? (dm[3] ? +dm[3] : +dm[1]) : null;
+    const rowMon = dm ? (dm[3] ? +dm[2] : +dm[2]) : null;
+    const selParts = dateVal.split('-');
+    const matchesDate = !dateVal ||
+      (dm && selParts.length === 3 && rowDay === +selParts[2] && rowMon === +selParts[1]) ||
+      (isTodaySelected && rowTime.includes('Vừa tạo'));
 
     return matchesCategory && matchesDirection && matchesSearch && matchesFrom && matchesTo && matchesDate;
   });
@@ -3388,7 +3392,7 @@ window.processCargoScanTransferInput = function () {
 
   const cargo = state.data.find(c =>
     (c.code || '').toLowerCase() === rawCode ||
-    (c.code || '').toLowerCase().includes(rawCode) ||
+    (c.code || '').sIncludes(rawCode) ||
     (c.baga && (c.baga.code || '').toLowerCase() === rawCode)
   );
 

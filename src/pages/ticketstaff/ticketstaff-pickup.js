@@ -997,9 +997,9 @@ function pkRenderPaxTable() {
     // nhân "tìm không được" mà không phải do sai chính tả.
     if (pkFilterState.search) {
       const kw = pkFilterState.search.toLowerCase();
-      const matchName = p.name && p.name.toLowerCase().includes(kw);
-      const matchPhone = p.phone && p.phone.toLowerCase().includes(kw);
-      const matchTicket = p.assigned?.seat && String(p.assigned.seat).toLowerCase().includes(kw);
+      const matchName = p.name && p.name.sIncludes(kw);
+      const matchPhone = p.phone && p.phone.sIncludes(kw);
+      const matchTicket = p.assigned?.seat && String(p.assigned.seat).sIncludes(kw);
       return !!(matchName || matchPhone || matchTicket);
     }
     // Khách cũ lưu từ trước khi có cột "date" (chưa có trường này) luôn hiện, không bị lọc theo ngày —
@@ -1270,9 +1270,9 @@ function pkGetTransshipRows(selectedDateStr, filterState, skipSeatKeys) {
     if (!kw && filterState.fromStation !== 'all' && m.firstStop !== filterState.fromStation) return false;
     if (!kw && filterState.toStation !== 'all' && m.lastStop !== filterState.toStation) return false;
     if (!kw) return true;
-    return (m.customerName && m.customerName.toLowerCase().includes(kw))
-      || (m.phone && String(m.phone).toLowerCase().includes(kw))
-      || r.seatCodes.some(c => String(c).toLowerCase().includes(kw));
+    return (m.customerName && m.customerName.sIncludes(kw))
+      || (m.phone && String(m.phone).sIncludes(kw))
+      || r.seatCodes.some(c => String(c).sIncludes(kw));
   });
 }
 
@@ -1485,8 +1485,8 @@ function pkRenderTripList() {
   // Ẩn "phơi mẫu" (isTemplate) — danh sách modal "Chỉ định xe" phải trùng đúng tập chuyến ở Zone 1.
   const filtered = (allTripsMeta || []).filter(t =>
     !t.isTemplate && t.status !== 'Đã hủy' && (!kw ||
-      t.time.toLowerCase().includes(kw) || (t.plate && t.plate.toLowerCase().includes(kw)) ||
-      t.route.toLowerCase().includes(kw) || (t.vehicleType && t.vehicleType.toLowerCase().includes(kw)))
+      t.time.sIncludes(kw) || (t.plate && t.plate.sIncludes(kw)) ||
+      t.route.sIncludes(kw) || (t.vehicleType && t.vehicleType.sIncludes(kw)))
   );
 
   if (filtered.length === 0) {

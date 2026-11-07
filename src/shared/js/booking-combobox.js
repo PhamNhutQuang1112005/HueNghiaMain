@@ -60,7 +60,7 @@ function initDatalistCombobox(inputId, datalistId, emptyMessage, optionsFn) {
   function openDropdown(filterText) {
     const all = getOptionValues();
     const query = (filterText || '').trim().toLowerCase();
-    renderOptions(query ? all.filter(o => o.toLowerCase().includes(query)) : all);
+    renderOptions(query ? all.filter(o => o.sIncludes(query)) : all);
     positionDropdown();
     ensureDropdown().classList.add('open');
   }

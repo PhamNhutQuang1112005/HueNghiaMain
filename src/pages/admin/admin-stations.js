@@ -40,7 +40,7 @@ function renderDirectionsView() {
   var rq = ROUTE_FILTER.trim().toLowerCase();
   var shownRoutes = rq
     ? selRoutes.filter(function (r) {
-        return [r.label, r.abbr, (r.pickupStations || []).join(' ')].filter(Boolean).join(' ').toLowerCase().indexOf(rq) !== -1;
+        return [r.label, r.abbr, (r.pickupStations || []).join(' ')].filter(Boolean).join(' ').sIndexOf(rq) !== -1;
       })
     : selRoutes;
 

@@ -746,7 +746,7 @@ var APPROVAL_STATUS = { pending: ['Chờ duyệt', 'da-chi-dinh'], approved: ['�
 
 function acApprovalMatches(ap, f) {
   var kw = (f.search || '').toLowerCase();
-  if (kw && (ap.username + ' ' + acNameOf(ap.username)).toLowerCase().indexOf(kw) === -1) return false;
+  if (kw && (ap.username + ' ' + acNameOf(ap.username)).sIndexOf(kw) === -1) return false;
   if (f.status && ap.status !== f.status) return false;
   var day = new Date(ap.requestedAt); var iso = day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0') + '-' + String(day.getDate()).padStart(2, '0');
   if (f.dateFrom && iso < f.dateFrom) return false;
@@ -851,7 +851,7 @@ function acApplyReject(e, id) {
 
 function acRenderDevicesTab() {
   var kw = (APPROVAL_FILTERS.search || '').toLowerCase();
-  var list = AuthLog.getDevices().filter(function (d) { return !kw || (d.username + ' ' + acNameOf(d.username)).toLowerCase().indexOf(kw) !== -1; })
+  var list = AuthLog.getDevices().filter(function (d) { return !kw || (d.username + ' ' + acNameOf(d.username)).sIndexOf(kw) !== -1; })
     .sort(function (a, b) { return b.lastSeenAt - a.lastSeenAt; });
   var rows = list.map(function (d, i) {
     var live = AuthLog.getSessions().some(function (s) { return s.deviceId === d.id && !s.revokedAt; });

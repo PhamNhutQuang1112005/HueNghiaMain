@@ -245,8 +245,8 @@ function updatePhFilterTimeOptions(searchVal, dirVal, routeVal, staffVal) {
   if (!sel) return;
   const base = (_allPassengerHistoryRaw || []).filter(r => {
     if (searchVal) {
-      const matchName = r.name && r.name.toLowerCase().includes(searchVal);
-      const matchPhone = r.phone && r.phone.toLowerCase().includes(searchVal);
+      const matchName = r.name && r.name.sIncludes(searchVal);
+      const matchPhone = r.phone && r.phone.sIncludes(searchVal);
       if (!matchName && !matchPhone) return false;
     }
     if (phSelectedDateStr && r.date !== phSelectedDateStr) return false;
@@ -282,8 +282,8 @@ function renderPassengerHistoryTable() {
 
   const filtered = (_allPassengerHistoryRaw || []).filter(r => {
     if (searchVal) {
-      const matchName = r.name && r.name.toLowerCase().includes(searchVal);
-      const matchPhone = r.phone && r.phone.toLowerCase().includes(searchVal);
+      const matchName = r.name && r.name.sIncludes(searchVal);
+      const matchPhone = r.phone && r.phone.sIncludes(searchVal);
       if (!matchName && !matchPhone) return false;
     }
     if (phSelectedDateStr && r.date !== phSelectedDateStr) return false;

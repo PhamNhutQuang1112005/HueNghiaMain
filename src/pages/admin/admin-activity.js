@@ -225,7 +225,7 @@ function actRenderSessionsTab() {
   var devMap = {}; devices.forEach(function (d) { devMap[d.id] = d; });
   var kw = f.search.toLowerCase();
   var list = AuthLog.getSessions().slice().reverse().filter(function (s) {
-    if (kw && (s.username + ' ' + actNameOf(s.username)).toLowerCase().indexOf(kw) === -1) return false;
+    if (kw && (s.username + ' ' + actNameOf(s.username)).sIndexOf(kw) === -1) return false;
     if (f.device && s.deviceId !== f.device) return false;
     if (f.reason === '__live__' ? s.revokedAt : (f.reason && s.revokeReason !== f.reason)) return false;
     return actDateOk(s.createdAt, f.dateFrom, f.dateTo);
@@ -293,7 +293,7 @@ function actRenderEventsTab() {
   AuthLog.getDevices().forEach(function (d) { devMap[d.id] = d; });
   var kw = f.search.toLowerCase();
   var list = AuthLog.getEvents().slice().reverse().filter(function (e) {
-    if (kw && (e.username || '').toLowerCase().indexOf(kw) === -1) return false;
+    if (kw && (e.username || '').sIndexOf(kw) === -1) return false;
     if (f.type && e.eventType !== f.type) return false;
     return actDateOk(e.ts, f.dateFrom, f.dateTo);
   });

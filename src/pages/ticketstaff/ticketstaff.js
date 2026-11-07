@@ -983,7 +983,7 @@ function tsRenderColFilterList(keyword) {
   const list = document.getElementById('tsColFilterList');
   if (!list) return;
   const kw = (keyword || '').toLowerCase();
-  const values = kw ? tsColFilterCtx.allValues.filter(v => v.toLowerCase().includes(kw)) : tsColFilterCtx.allValues;
+  const values = kw ? tsColFilterCtx.allValues.filter(v => v.sIncludes(kw)) : tsColFilterCtx.allValues;
   list.innerHTML = values.length ? values.map(v => {
     const idx = tsColFilterCtx.allValues.indexOf(v);
     const checked = tsColFilterCtx.checkedSet.has(v);
@@ -4849,10 +4849,10 @@ function applyFilters() {
     const vehicleTypeStr = (bankMeta && bankMeta.vehicleType) || t.vehicleType || '';
 
     if (fName) {
-      const matchName = timeStr.toLowerCase().includes(fName) ||
-        routeStr.toLowerCase().includes(fName) ||
-        plateStr.toLowerCase().includes(fName) ||
-        vehicleTypeStr.toLowerCase().includes(fName);
+      const matchName = timeStr.sIncludes(fName) ||
+        routeStr.sIncludes(fName) ||
+        plateStr.sIncludes(fName) ||
+        vehicleTypeStr.sIncludes(fName);
       let abbr = '';
       if (typeof ROUTES_CFG === 'object' && ROUTES_CFG) {
         Object.keys(ROUTES_CFG).forEach(k => {
@@ -4864,7 +4864,7 @@ function applyFilters() {
       }
       const timeFormatted = timeStr ? timeStr.replace(':', 'h') : '';
       const suggestedName = `${abbr} ${timeFormatted}`.trim().toLowerCase();
-      const customNameMatches = t.name ? t.name.toLowerCase().includes(fName) : suggestedName.includes(fName);
+      const customNameMatches = t.name ? t.name.sIncludes(fName) : suggestedName.sIncludes(fName);
 
       if (!matchName && !customNameMatches) return false;
     }

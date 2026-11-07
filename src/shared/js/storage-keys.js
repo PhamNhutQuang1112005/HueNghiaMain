@@ -88,3 +88,11 @@ const HN_ACCOUNTING_EXPENSE_REQUESTS_KEY = 'hn_accounting_expense_requests_v1';
 const HN_ACCOUNTING_CHI_CATEGORIES_KEY = 'hn_accounting_chi_categories_v1';
 const HN_ACCOUNTING_CHI_GROUPS_KEY = 'hn_accounting_chi_groups_v1';
 const HN_ACCOUNTING_THU_APPROVED_KEY = 'hn_accounting_thu_approved_v1';
+
+/* Tìm kiếm không phân biệt hoa/thường và dấu (vd "sai gon" khớp "Sài Gòn"). Dùng thay cho .toLowerCase().includes/indexOf. */
+(function () {
+  var fold = function (s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase(); };
+  window.vnFold = fold;
+  Object.defineProperty(String.prototype, 'sIncludes', { value: function (q) { return fold(this).indexOf(fold(q)) !== -1; }, configurable: true });
+  Object.defineProperty(String.prototype, 'sIndexOf', { value: function (q) { return fold(this).indexOf(fold(q)); }, configurable: true });
+})();

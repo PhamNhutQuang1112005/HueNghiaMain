@@ -82,7 +82,7 @@ function ssRenderDriverTripsTab() {
 
   var byDate = !!(f.dateFrom || f.dateTo);   // dữ liệu gán trung chuyển của demo chưa có ngày nên không lọc ngày được
   var rows = FleetStore.getStaff()
-    .filter(function (s) { return !kw || ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.phone || '')).toLowerCase().indexOf(kw) !== -1; })
+    .filter(function (s) { return !kw || ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.phone || '')).sIndexOf(kw) !== -1; })
     .map(function (s) {
       var lineTrips = ssCountLineTrips('driver', s.name, f.dateFrom, f.dateTo);
       var shuttleLegs = byDate ? 0 : ssCountShuttleLegs(s.name);
@@ -119,7 +119,7 @@ function ssRenderHelperTripsTab() {
   var kw = f.search.toLowerCase();
 
   var rows = FleetStore.getStaff()
-    .filter(function (s) { return !kw || ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.phone || '')).toLowerCase().indexOf(kw) !== -1; })
+    .filter(function (s) { return !kw || ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.phone || '')).sIndexOf(kw) !== -1; })
     .map(function (s) { return { staff: s, lineTrips: ssCountLineTrips('helper', s.name, f.dateFrom, f.dateTo) }; })
     .filter(function (r) { return r.lineTrips > 0 || (hrCrewRole(r.staff.role) === 'helper' && hrStaffStatus(r.staff) === 'working'); })
     .sort(function (a, b) { return b.lineTrips - a.lineTrips; });

@@ -360,7 +360,7 @@ function searchCustomerByPhone(query) {
 
   const isMatch = (p, n, t) => isPhone
     ? (p || '').replace(/[\s.\-]/g, '').replace(/^\+84/, '0').includes(normPhone)
-    : (n && normalizeSearchText(n).includes(normText)) || (t && t.toLowerCase().includes(normText));
+    : (n && normalizeSearchText(n).includes(normText)) || (t && t.sIncludes(normText));
 
   // Tìm kiếm lịch sử từ thanh tìm kiếm header chỉ lấy phơi đang có trong ngày (tripSeatBank), không lấy
   // dữ liệu lịch sử quá khứ (CUSTOMER_HISTORY_DATA) theo yêu cầu — trước đây có gộp cả 2 nguồn. Muốn xem

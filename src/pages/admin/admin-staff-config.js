@@ -135,7 +135,7 @@ function scRenderTypesTab() {
     if (f.usage === 'active' && !r.active) return false;
     if (f.usage === 'inactive' && r.active) return false;
     if (f.crew && (r.crewRole || '') !== (f.crew === '__none__' ? '' : f.crew)) return false;
-    if (kw && (r.label + ' ' + r.key).toLowerCase().indexOf(kw) === -1) return false;
+    if (kw && (r.label + ' ' + r.key).sIndexOf(kw) === -1) return false;
     return true;
   });
 

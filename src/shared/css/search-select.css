@@ -1,0 +1,27 @@
+/* Search dropdown dùng chung (search-select.js) — <select> gốc bị ẩn, input gõ-tìm mang lại class của select. */
+.app-ss-wrap { position: relative; display: block; width: 100%; }
+.app-ss-native { display: none !important; }
+.app-ss-input { display: block; width: 100%; box-sizing: border-box; cursor: pointer; background-image: none; }
+.app-ss-input.app-ss-disabled { cursor: not-allowed; opacity: 0.6; }
+.app-ss-dropdown {
+  display: none; position: fixed; z-index: 100000; overflow-y: auto;
+  background: var(--surface, #fff); border: 1px solid var(--border, #d0d5dd); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+}
+.app-ss-dropdown.open { display: block; }
+.app-ss-option { padding: 8px 12px; font-size: 13px; font-weight: 600; color: var(--text-main, #101828); cursor: pointer; }
+.app-ss-option:hover, .app-ss-option.highlighted { background: var(--surface-2, #f2f4f7); }
+.app-ss-option-disabled { opacity: .55; cursor: default; pointer-events: none; }
+.app-ss-empty { padding: 10px 12px; font-size: 12.5px; color: var(--text-sub, #667085); }
+/* Icon kính lúp báo hiệu ô này gõ để tìm được */
+.app-ss-wrap::after {
+  content: ""; position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; margin-top: -8px;
+  pointer-events: none; opacity: .55;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.app-ss-input { padding-right: 36px !important; }
+.app-ss-wrap.app-ss-off::after { display: none; }
+/* Kiểu mặc định (specificity 0) cho select gốc không có style riêng; CSS của trang vẫn đè được. */
+:where(.app-ss-input) { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px; min-height: 36px; font: inherit; font-size: 14px; color: inherit; background-color: #fff; outline: 0; }
+:where(.app-ss-input):focus { border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,.25); }
+.app-ss-wrap.app-ss-off { display: contents; }

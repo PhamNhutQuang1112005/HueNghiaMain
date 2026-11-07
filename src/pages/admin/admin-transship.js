@@ -201,7 +201,7 @@ function renderTransshipView() {
   var list = byTab.filter(function (r) {
     if (f.search) {
       var kw = f.search.toLowerCase();
-      if (((r.name || '') + ' ' + (r.phone || '') + ' ' + (r.seatStr || '')).toLowerCase().indexOf(kw) === -1) return false;
+      if (((r.name || '') + ' ' + (r.phone || '') + ' ' + (r.seatStr || '')).sIndexOf(kw) === -1) return false;
     }
     if (selectedDate && r.date && r.date !== selectedDate) return false;
     if (f.fromStation && r.fromStation !== f.fromStation) return false;
@@ -452,7 +452,7 @@ function adminTsAssignRenderTripList() {
   var trips = getTrips().filter(function (t) {
     if (!t || t.isTemplate) return false;
     if (!kw) return true;
-    return ((t.time || '') + ' ' + (t.route || '') + ' ' + (t.name || '') + ' ' + (t.plate || '') + ' ' + (t.vehicleType || '')).toLowerCase().indexOf(kw) !== -1;
+    return ((t.time || '') + ' ' + (t.route || '') + ' ' + (t.name || '') + ' ' + (t.plate || '') + ' ' + (t.vehicleType || '')).sIndexOf(kw) !== -1;
   });
   // Xếp Y CHANG zone1SortByDeparture: phơi còn bán được lên trên, phơi đã khoá (đỏ) xuống cuối; trong
   // từng nhóm sắp theo giờ khởi hành tăng dần.

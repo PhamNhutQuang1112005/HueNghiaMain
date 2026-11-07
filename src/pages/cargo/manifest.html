@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/manifest.css" />
   <link rel="stylesheet" href="css/redesign.css" />
   <link rel="stylesheet" href="css/responsive.css" />
+<link rel="stylesheet" href="../../shared/css/search-select.css?v=1">
 </head>
 <body class="rd-page">
   <div class="app-shell">
@@ -508,6 +509,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <span style="font-size:14px; font-weight:700; color:#1e293b;">Điểm đi <strong style="color:var(--primary);">*</strong></span>
               <div style="display:flex; align-items:center; gap:8px;">
+                <input type="text" id="departureSearchInput" placeholder="Tìm trạm đi..." style="padding:4px 10px; font-size:12.5px; border:1px solid #cbd5e1; border-radius:6px; outline:none; width:150px; background:white; font-weight:500;" />
                 <button type="button" id="selectAllDeparturesBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; font-weight:700; color:#1d4ed8; border:1px solid #bfdbfe; background:#eff6ff;">Chọn tất cả</button>
                 <button type="button" id="deselectAllDeparturesBtn" class="ghost-btn" style="padding:4px 10px; font-size:12px; border-radius:6px; color:#64748b; border:1px solid #e2e8f0; background:#f8fafc;">Bỏ chọn</button>
               </div>
@@ -1045,10 +1047,19 @@
       const labels = document.querySelectorAll('#destinationStationsContainer label');
       labels.forEach(lbl => {
         const text = lbl.textContent.toLowerCase();
-        lbl.style.display = text.includes(q) ? 'flex' : 'none';
+        lbl.style.display = text.sIncludes(q) ? 'flex' : 'none';
       });
     }
 
+    const departureSearchInput = document.getElementById('departureSearchInput');
+    if (departureSearchInput) {
+      departureSearchInput.addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        document.querySelectorAll('#departureStationsContainer label').forEach(l => {
+          l.style.display = l.textContent.sIncludes(q) ? 'flex' : 'none';
+        });
+      });
+    }
     const destinationSearchInput = document.getElementById('destinationSearchInput');
     if (destinationSearchInput) {
       destinationSearchInput.addEventListener('input', (e) => filterDestinationStationList(e.target.value));
@@ -1159,7 +1170,7 @@
       const t = String(text || '').toLowerCase(), n = (t.match(/\d+/) || [])[0];
       const list = window.HueNghiaStations.VEHICLE_TYPES;
       const cand = list.filter(v => n && v.includes(' ' + n + ' '));
-      return cand.find(v => v.toLowerCase().includes('limousine') === t.includes('limousine')) || cand[0] || list[1];
+      return cand.find(v => v.sIncludes('limousine') === t.includes('limousine')) || cand[0] || list[1];
     }
     // Chọn hướng giống bên bán vé (FleetStore.getDirections); 'all' = mọi hướng
     let reuseDir = 'all';
@@ -1936,15 +1947,22 @@
       const fromVal = document.getElementById('filterFrom').value;
       const toVal = document.getElementById('filterTo').value;
       const plateVal = document.getElementById('filterPlate').value.trim().toLowerCase();
+      const dateVal = (document.getElementById('filterDate') || {}).value || '';
+      // Ngày tạo phơi = mốc thời gian nằm trong id (Date.now() lúc tạo); id nhỏ (dữ liệu mẫu) thì không có ngày.
+      const createdDay = (row) => {
+        if (!(Number(row.id) > 1e12)) return '';
+        const d = new Date(Number(row.id));
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
 
       const rows = manifestData.filter((row) => {
-        const matchesName = !nameVal || row.name.toLowerCase().includes(nameVal);
-        const matchesSearch = !searchVal || [row.name, row.plate, row.driver, row.helper, row.from, row.to, row.staff, row.route].some((val) => (val || '').toLowerCase().includes(searchVal));
+        const matchesName = !nameVal || row.name.sIncludes(nameVal);
+        const matchesSearch = !searchVal || [row.name, row.plate, row.driver, row.helper, row.from, row.to, row.staff, row.route].some((val) => (val || '').sIncludes(searchVal));
         const matchesFrom = fromVal === 'all' || row.from === fromVal || row.route.includes(fromVal);
         const matchesTo = toVal === 'all' || row.to === toVal || row.route.includes(toVal);
-        const matchesPlate = !plateVal || row.plate.toLowerCase().includes(plateVal);
+        const matchesPlate = !plateVal || row.plate.sIncludes(plateVal);
 
-        return matchesName && matchesSearch && matchesFrom && matchesTo && matchesPlate;
+        return matchesName && matchesSearch && matchesFrom && matchesTo && matchesPlate && (!dateVal || createdDay(row) === dateVal);
       });
 
       // Gom theo biển số: mỗi xe 1 dòng tiêu đề sổ xuống, các phơi (tuyến) nằm trong.
@@ -1954,7 +1972,7 @@
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(r);
       });
-      const filtering = !!(nameVal || searchVal || plateVal || fromVal !== 'all' || toVal !== 'all');
+      const filtering = !!(nameVal || searchVal || plateVal || dateVal || fromVal !== 'all' || toVal !== 'all');
       const allCargos = loadCargos();
       const rowHtml = (row, index, key, open) => {
           const driverInfo = parseDriverDetails(row.driver);
@@ -1966,8 +1984,7 @@
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
-              <strong style="font-size:15px; color:#0f172a;">${row.plate}</strong>
-              <span class="route-text" style="font-size:12.5px; margin-left:4px;">(<strong>${row.from}</strong> <span style="color:var(--primary);">➔</span> <strong>${row.to}</strong>)</span>
+              <strong style="font-size:15px; color:#0f172a;">${row.from} - ${row.to} (${row.plate})</strong>
             </td>
             <td>
               <strong>${driverInfo.name}</strong><br>
@@ -2376,9 +2393,9 @@
       let filtered = manifests;
       if (query) {
         filtered = filtered.filter(m => 
-          (m.name || '').toLowerCase().includes(query) ||
-          (m.plate || '').toLowerCase().includes(query) ||
-          (m.driver || '').toLowerCase().includes(query)
+          (m.name || '').sIncludes(query) ||
+          (m.plate || '').sIncludes(query) ||
+          (m.driver || '').sIncludes(query)
         );
       }
 
@@ -2603,7 +2620,7 @@
 
       const targetCargo = manifestCargos.find(c => 
         (c.code || '').toLowerCase() === rawCode ||
-        (c.code || '').toLowerCase().includes(rawCode) ||
+        (c.code || '').sIncludes(rawCode) ||
         (c.baga && (c.baga.code || '').toLowerCase() === rawCode)
       );
 
@@ -2776,10 +2793,10 @@
 
       if (query) {
         filtered = filtered.filter(c => 
-          (c.code || '').toLowerCase().includes(query) ||
-          (c.name || '').toLowerCase().includes(query) ||
-          (c.receiver || '').toLowerCase().includes(query) ||
-          (c.receiverPhone || '').toLowerCase().includes(query)
+          (c.code || '').sIncludes(query) ||
+          (c.name || '').sIncludes(query) ||
+          (c.receiver || '').sIncludes(query) ||
+          (c.receiverPhone || '').sIncludes(query)
         );
       }
 
@@ -2958,10 +2975,10 @@
 
       if (query) {
         filtered = filtered.filter(c => 
-          (c.code || '').toLowerCase().includes(query) ||
-          (c.name || '').toLowerCase().includes(query) ||
-          (c.receiver || '').toLowerCase().includes(query) ||
-          (c.receiverPhone || '').toLowerCase().includes(query)
+          (c.code || '').sIncludes(query) ||
+          (c.name || '').sIncludes(query) ||
+          (c.receiver || '').sIncludes(query) ||
+          (c.receiverPhone || '').sIncludes(query)
         );
       }
 
@@ -3399,7 +3416,7 @@
       const filtered = deletedList.filter(item => {
         if (!q) return true;
         const text = `${item.name} ${item.plate} ${item.route} ${item.driver} ${item.deleteReason} ${item.deletedBy}`.toLowerCase();
-        return text.includes(q);
+        return text.sIncludes(q);
       });
 
       if (!filtered.length) {
@@ -3490,5 +3507,6 @@
   </script>
 <script src="js/redesign.js"></script>
 <script src="js/sidebar.js"></script>
+<script src="../../shared/js/search-select.js?v=1"></script>
 </body>
 </html>

@@ -21,7 +21,7 @@ function renderAgentSetupView() {
   var kw = AGENT_SETUP_SEARCH.toLowerCase();
   var all = AgentStore.getAll();
   var list = all.filter(function (a) {
-    return !kw || ((a.code || '') + ' ' + a.name + ' ' + (a.phone || '')).toLowerCase().indexOf(kw) !== -1;
+    return !kw || ((a.code || '') + ' ' + a.name + ' ' + (a.phone || '')).sIndexOf(kw) !== -1;
   });
   var rows = list.length ? list.map(function (a, i) {
     return '<tr>' +

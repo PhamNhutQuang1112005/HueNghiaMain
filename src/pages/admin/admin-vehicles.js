@@ -16,9 +16,9 @@ function renderVehiclesView() {
   var filtered = all.filter(function (v) {
     if (f.search) {
       var kw = f.search.toLowerCase();
-      var matchPlate = (v.plate || '').toLowerCase().indexOf(kw) !== -1;
-      var matchType = (v.vehicleType || '').toLowerCase().indexOf(kw) !== -1;
-      var matchNote = (v.note || '').toLowerCase().indexOf(kw) !== -1;
+      var matchPlate = (v.plate || '').sIndexOf(kw) !== -1;
+      var matchType = (v.vehicleType || '').sIndexOf(kw) !== -1;
+      var matchNote = (v.note || '').sIndexOf(kw) !== -1;
       if (!matchPlate && !matchType && !matchNote) return false;
     }
     if (f.scope && v.scope !== f.scope) return false;

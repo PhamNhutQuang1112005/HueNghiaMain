@@ -44,8 +44,8 @@ function renderVehicleCategoriesView() {
     if (!x) return false;
     if (f.search) {
       var kw = f.search.toLowerCase();
-      var matchName = (x.name || '').toLowerCase().indexOf(kw) !== -1;
-      var matchContent = (x.content || '').toLowerCase().indexOf(kw) !== -1;
+      var matchName = (x.name || '').sIndexOf(kw) !== -1;
+      var matchContent = (x.content || '').sIndexOf(kw) !== -1;
       if (!matchName && !matchContent) return false;
     }
     if (f.isPassenger === 'true' && !x.isPassenger) return false;

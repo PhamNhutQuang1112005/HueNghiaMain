@@ -140,9 +140,9 @@ function renderSeatLayoutsView() {
     if (!x) return false;
     if (f.search) {
       var kw = f.search.toLowerCase();
-      if ((x.name || '').toLowerCase().indexOf(kw) === -1 &&
+      if ((x.name || '').sIndexOf(kw) === -1 &&
           String(x.seats || '').indexOf(kw) === -1 &&
-          (x.content || '').toLowerCase().indexOf(kw) === -1) return false;
+          (x.content || '').sIndexOf(kw) === -1) return false;
     }
     if (f.isDoubleDeck === 'true'  && !x.isDoubleDeck) return false;
     if (f.isDoubleDeck === 'false' &&  x.isDoubleDeck) return false;

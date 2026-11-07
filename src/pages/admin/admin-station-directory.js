@@ -32,7 +32,7 @@ function renderStationsView() {
     if (STATION_DIR_REGION && s.region !== STATION_DIR_REGION) return false;
     if (!q) return true;
     var hay = [s.name, s.code, s.address].filter(Boolean).join(' ').toLowerCase();
-    return hay.indexOf(q) !== -1;
+    return hay.sIncludes(q);
   });
 
   var stationById = {};
@@ -43,7 +43,7 @@ function renderStationsView() {
     if (STATION_DIR_REGION && (!station || station.region !== STATION_DIR_REGION)) return false;
     if (!q) return true;
     var hay = [stop.name, stop.code, stop.address, stop.hotline, station && station.name].filter(Boolean).join(' ').toLowerCase();
-    return hay.indexOf(q) !== -1;
+    return hay.sIncludes(q);
   });
 
   // Hiển thị theo tỉnh (đúng thứ tự trên quãng đường): tiêu đề tỉnh → các trạm trong tỉnh theo thứ tự ưu tiên.

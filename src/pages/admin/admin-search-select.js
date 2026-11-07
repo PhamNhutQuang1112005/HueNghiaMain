@@ -116,7 +116,7 @@
       if (selectEl.disabled) return;
       var all = optionEntries(selectEl);
       var q = (filterText || '').trim().toLowerCase();
-      var filtered = q ? all.filter(function (o) { return (o.label || '').toLowerCase().indexOf(q) !== -1; }) : all;
+      var filtered = q ? all.filter(function (o) { return (o.label || '').sIndexOf(q) !== -1; }) : all;
       renderOptions(filtered);
       positionDropdown();
       ensureDropdown().classList.add('open');

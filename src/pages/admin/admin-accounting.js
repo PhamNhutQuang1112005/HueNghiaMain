@@ -897,11 +897,11 @@
     if (THU_SEARCH_KW) {
       var kw = THU_SEARCH_KW.toLowerCase();
       vList = vList.filter(function (v) {
-        return (v.id || '').toLowerCase().indexOf(kw) !== -1 ||
-          (v.source || '').toLowerCase().indexOf(kw) !== -1 ||
-          (v.route || '').toLowerCase().indexOf(kw) !== -1 ||
-          (v.plate || '').toLowerCase().indexOf(kw) !== -1 ||
-          (v.driver || '').toLowerCase().indexOf(kw) !== -1;
+        return (v.id || '').sIndexOf(kw) !== -1 ||
+          (v.source || '').sIndexOf(kw) !== -1 ||
+          (v.route || '').sIndexOf(kw) !== -1 ||
+          (v.plate || '').sIndexOf(kw) !== -1 ||
+          (v.driver || '').sIndexOf(kw) !== -1;
       });
     }
 
@@ -1872,7 +1872,7 @@
     var kw = EXP_REQ_F.kw.toLowerCase();
     var list = all.filter(function (r) {
       if (EXP_REQ_STATUS_FILTER === 'all' ? r.status === 'Đã hủy' : r.status !== EXP_REQ_STATUS_FILTER) return false;
-      if (kw && (r.requester || '').toLowerCase().indexOf(kw) === -1 && (r.id || '').toLowerCase().indexOf(kw) === -1 && (r.payee || '').toLowerCase().indexOf(kw) === -1) return false;
+      if (kw && (r.requester || '').sIndexOf(kw) === -1 && (r.id || '').sIndexOf(kw) === -1 && (r.payee || '').sIndexOf(kw) === -1) return false;
       if (EXP_REQ_F.date && String(r.date || '').slice(0, 10) !== EXP_REQ_F.date) return false;
       if (EXP_REQ_F.station !== 'all' && r.station !== EXP_REQ_F.station) return false;
       if (EXP_REQ_F.category !== 'all' && r.category !== EXP_REQ_F.category) return false;
@@ -2032,7 +2032,7 @@
       if (f.status !== 'all' && r.status !== f.status) return false;
       if (f.category !== 'all' && r.category !== f.category) return false;
       if (f.date && String(r.date || '').slice(0, 10) !== f.date) return false;
-      if (kw && (r.id || '').toLowerCase().indexOf(kw) === -1 && (r.payee || '').toLowerCase().indexOf(kw) === -1 && (r.reason || '').toLowerCase().indexOf(kw) === -1) return false;
+      if (kw && (r.id || '').sIndexOf(kw) === -1 && (r.payee || '').sIndexOf(kw) === -1 && (r.reason || '').sIndexOf(kw) === -1) return false;
       return true;
     });
 

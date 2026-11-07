@@ -35,6 +35,7 @@
       line-height: 1.35;
     }
   </style>
+<link rel="stylesheet" href="../../shared/css/search-select.css?v=1">
 </head>
 <body class="rd-page rd-no-stt">
   <div class="app-shell">
@@ -432,8 +433,19 @@
 
       const searchTxt = (searchInput?.value || '').toLowerCase().trim();
 
+      const dateVal = (document.getElementById('filterDate') || {}).value || '';
+      const sel = dateVal.split('-');
+      const onDate = (row) => {
+        const m = String(row.returnedAt || row.transferTime || '').match(/(\d{1,2})[\/.-](\d{1,2})/);
+        return !!m && +m[1] === +sel[2] && +m[2] === +sel[1];
+      };
+      const fromVal = (document.getElementById('filterFrom') || {}).value || 'all';
+      const toVal = (document.getElementById('filterTo') || {}).value || 'all';
       const filtered = returnedCargos.filter(row => {
-        return [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.returnReason, row.stationFrom, row.stationTo].some(val => (val || '').toLowerCase().includes(searchTxt));
+        if (dateVal && !onDate(row)) return false;
+        if (fromVal !== 'all' && !(row.stationFrom || '').sIncludes(fromVal)) return false;
+        if (toVal !== 'all' && !(row.stationTo || '').sIncludes(toVal)) return false;
+        return [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.returnReason, row.stationFrom, row.stationTo].some(val => (val || '').sIncludes(searchTxt));
       });
 
       if (!tableBody) return;
@@ -510,6 +522,14 @@
     });
 
     if (searchInput) searchInput.addEventListener('input', renderReturnedTable);
+    ['filterDate', 'filterFrom', 'filterTo'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', renderReturnedTable);
+    });
+    if (window.HueNghiaStations) {
+      HueNghiaStations.populateStationDropdowns(document.getElementById('filterFrom'), 'all', true, 'Tất cả trạm gửi');
+      HueNghiaStations.populateStationDropdowns(document.getElementById('filterTo'), 'all', true, 'Tất cả trạm nhận');
+    }
 
     function deleteReturnedCargo(id) {
       if (confirm('Bạn có chắc chắn muốn xóa đơn hàng trả về này?')) {
@@ -586,5 +606,6 @@
   <script src="js/responsive.js"></script>
 <script src="js/redesign.js"></script>
 <script src="js/sidebar.js"></script>
+<script src="../../shared/js/search-select.js?v=1"></script>
 </body>
 </html>

@@ -335,10 +335,10 @@ function computeShiftStats(shift, allCargos) {
       const matchSearch =
         !searchQuery ||
         String(shift.id).includes(searchQuery) ||
-        (shift.staffName || '').toLowerCase().includes(searchQuery) ||
-        String(shift.staffCode || '').toLowerCase().includes(searchQuery) ||
-        (shift.station || '').toLowerCase().includes(searchQuery) ||
-        (shift.note || '').toLowerCase().includes(searchQuery);
+        (shift.staffName || '').sIncludes(searchQuery) ||
+        String(shift.staffCode || '').sIncludes(searchQuery) ||
+        (shift.station || '').sIncludes(searchQuery) ||
+        (shift.note || '').sIncludes(searchQuery);
 
       return matchStation && matchStatus && matchDate && matchSearch;
     });

@@ -34,8 +34,8 @@ function renderRecruitmentView() {
     if (!p) return false;
     if (f.search) {
       var kw = f.search.toLowerCase();
-      var matchTitle = (p.title || '').toLowerCase().indexOf(kw) !== -1;
-      var matchExcerpt = (p.excerpt || '').toLowerCase().indexOf(kw) !== -1;
+      var matchTitle = (p.title || '').sIndexOf(kw) !== -1;
+      var matchExcerpt = (p.excerpt || '').sIndexOf(kw) !== -1;
       if (!matchTitle && !matchExcerpt) return false;
     }
     if (f.category && p.category !== f.category) return false;

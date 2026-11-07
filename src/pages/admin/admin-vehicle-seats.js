@@ -113,9 +113,9 @@ function renderVehicleSeatsView() {
     if (!x) return false;
     if (f.search) {
       var kw = f.search.toLowerCase();
-      var matchName = (x.name || '').toLowerCase().indexOf(kw) !== -1;
-      var matchContent = (x.content || '').toLowerCase().indexOf(kw) !== -1;
-      var matchFloor = getSeatFloorLabel(x.floor).toLowerCase().indexOf(kw) !== -1;
+      var matchName = (x.name || '').sIndexOf(kw) !== -1;
+      var matchContent = (x.content || '').sIndexOf(kw) !== -1;
+      var matchFloor = getSeatFloorLabel(x.floor).sIndexOf(kw) !== -1;
       if (!matchName && !matchContent && !matchFloor) return false;
     }
     if (f.floor && String(x.floor) !== f.floor) return false;

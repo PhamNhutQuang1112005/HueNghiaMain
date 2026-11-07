@@ -174,7 +174,7 @@ function renderTicketListView() {
   var list = all.filter(function (r) {
     if (f.search) {
       var kw = f.search.toLowerCase();
-      if (((r.name || '') + ' ' + (r.phone || '')).toLowerCase().indexOf(kw) === -1) return false;
+      if (((r.name || '') + ' ' + (r.phone || '')).sIndexOf(kw) === -1) return false;
     }
     if (selectedDate && r.date !== selectedDate) return false;
     if (f.direction && tkRouteDirectionId(r.route) !== f.direction) return false;
