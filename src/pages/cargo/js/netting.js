@@ -63,6 +63,7 @@
   var ui = { me: (staff && staff.station) || '', other: '', via: '' };
   var KIND_LABEL = { cash: 'Tiền thường', hot: 'Tiền nóng', cod: 'Thu hộ (COD)' };
 
+  function escH(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   function load(k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } }
   function stationList() { return typeof getStations === 'function' ? getStations() : []; }
 
@@ -226,7 +227,17 @@
           : '<div class="ntx-empty" style="margin:16px 24px 20px;">' + esc(me) + ' không còn công nợ với trạm nào.</div>') + '</div>';
     }
 
-    root.innerHTML = stats + steps + detail + board;
+    // Từng đơn thu hộ đã giao: "<trạm nhận> nợ <trạm gửi> <số tiền> (đơn <mã>)"; lọc theo trạm đang chọn (không chọn = tất cả)
+    var codRows = cargos.filter(function (c) {
+      return c.status === 'delivered' && Number(c.codAmount) > 0 && (!me || sk(c.stationFrom) === sk(me) || sk(c.stationTo) === sk(me));
+    }).map(function (c) {
+      return '<tr><td><b class="ntx-src">' + escH(c.code || c.id) + '</b></td><td>' + escH(c.stationTo) + ' nợ ' + escH(c.stationFrom) + '</td><td class="ntx-pay">' + fmt(c.codAmount) + '</td></tr>';
+    }).join('');
+    var codList = '<div class="ntx-detail ntx-board"><div class="ntx-detail-head"><div><strong>Thu hộ (COD) đã giao</strong><small>Mỗi đơn thu hộ đã giao là một khoản nợ giữa trạm nhận và trạm gửi</small></div></div>' +
+      (codRows ? '<div class="ntx-scroll"><table class="ntx-table"><thead><tr><th>Đơn</th><th>Công nợ</th><th>Số tiền</th></tr></thead><tbody>' + codRows + '</tbody></table></div>'
+        : '<div class="ntx-empty" style="margin:16px 24px 20px;">Chưa có đơn thu hộ nào đã giao.</div>') + '</div>';
+
+    root.innerHTML = stats + steps + detail + board + codList;
   }
 
   function addEntry(e) {
