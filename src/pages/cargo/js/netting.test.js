@@ -20,6 +20,12 @@ assert.strictEqual(net(re, 'A', 'B'), 0);
 assert.strictEqual(net(re, 'A', 'C'), 5000000);
 assert.strictEqual(net(re, 'C', 'B'), 5000000);
 
+// Đơn tách khi chuyển phơi (đơn gốc giữ COD, đơn tách codAmount 0): chỉ tính 1 lần
+assert.strictEqual(net(computeDebts([
+  { code: 'X', codAmount: 500000, status: 'delivered', stationFrom: 'SG', stationTo: 'CD' },
+  { code: 'X.12', codAmount: 0, status: 'delivered', stationFrom: 'SG', stationTo: 'CD' }
+], []), 'CD', 'SG'), 500000);
+
 // COD đã giao: B thu hộ => B nợ A
 const cod = computeDebts([{ codAmount: 700, status: 'delivered', stationFrom: 'A', stationTo: 'B' }], []);
 assert.strictEqual(net(cod, 'B', 'A'), 700);
@@ -46,3 +52,7 @@ assert.deepStrictEqual(breakdown([
   { moneyAmount: '4', cargoCategory: 'hot', stationFrom: 'C', stationTo: 'A' }
 ], 'A'), { cash: [10, 0], hot: [0, 4], cod: [0, 0] });
 console.log('ok all-stations');
+
+// Tên trạm lệch tiền tố "Trạm ": đơn ghi "Châu Đốc", ô chọn ghi "Trạm Châu Đốc" vẫn phải ra COD
+assert.strictEqual(net(computeDebts([{ codAmount: 500000, status: 'delivered', stationFrom: 'Sài Gòn', stationTo: 'Châu Đốc' }], []), 'Trạm Châu Đốc', 'Sài Gòn'), 500000);
+console.log('ok station-name');

@@ -13,6 +13,9 @@
 
   var KEY = 'hueNghia_stationNetting';
 
+  // "Châu Đốc" (đơn/phơi) và "Trạm Châu Đốc" (danh mục trạm) là cùng một trạm: so khớp bỏ tiền tố "Trạm ", không phân biệt hoa thường.
+  function sk(n) { return String(n || '').trim().toLowerCase().replace(/^trạm\s+/, ''); }
+
   // Gọi fn(loại, trạm nợ, trạm được nợ, số tiền) cho từng đơn: 'cash' tiền thường (gồm bạn hàng), 'hot' tiền nóng, 'cod' thu hộ.
   function eachDebt(cargos, fn) {
     cargos.forEach(function (c) {
@@ -26,8 +29,8 @@
   function breakdown(cargos, x, y) {
     var b = { cash: [0, 0], hot: [0, 0], cod: [0, 0] };
     eachDebt(cargos, function (kind, debtor, creditor, v) {
-      if (debtor === x && (!y || creditor === y)) b[kind][0] += v;
-      else if (creditor === x && (!y || debtor === y)) b[kind][1] += v;
+      if (sk(debtor) === sk(x) && (!y || sk(creditor) === sk(y))) b[kind][0] += v;
+      else if (sk(creditor) === sk(x) && (!y || sk(debtor) === sk(y))) b[kind][1] += v;
     });
     return b;
   }
@@ -35,6 +38,7 @@
   function computeDebts(cargos, entries) {
     var d = {};
     function add(x, y, v) {
+      x = sk(x); y = sk(y);
       if (!x || !y || x === y) return;
       d[x] = d[x] || {};
       d[x][y] = (d[x][y] || 0) + v;
@@ -46,7 +50,7 @@
     });
     return d;
   }
-  function owe(d, x, y) { return (d[x] && d[x][y]) || 0; }
+  function owe(d, x, y) { x = sk(x); y = sk(y); return (d[x] && d[x][y]) || 0; }
   // > 0: x nợ y; < 0: y nợ x
   function net(d, x, y) { return owe(d, x, y) - owe(d, y, x); }
 

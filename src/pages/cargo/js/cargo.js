@@ -189,8 +189,11 @@ function syncCargosWithManifests(cargos) {
         cargo.stationFrom = manifest.from || (manifest.route ? manifest.route.split('→')[0].trim() : (cargo.stationFrom || 'Chưa gán'));
         cargo.stationTo = manifest.to || (manifest.route ? manifest.route.split('→')[1].trim() : (cargo.stationTo || 'Chưa gán'));
       }
-      cargo.status = 'in-transit';
-      cargo.statusText = 'Đã chuyển';
+      // Đơn đã giao/hoàn/chưa nhận giữ nguyên: ép về in-transit sẽ xoá "delivered" làm mất COD khỏi đối soát giữa trạm.
+      if (!['delivered', 'returned', 'unreceived'].includes(cargo.status)) {
+        cargo.status = 'in-transit';
+        cargo.statusText = 'Đã chuyển';
+      }
       cargo.scanned = true;
     } else {
       cargo.stationFrom = cargo.stationFrom || 'Chưa gán';
@@ -1579,6 +1582,8 @@ if (transferForm) {
           quantity: qtyToTransfer,
           originalQuantity: origQty,
           fee: 0, // Đơn mới tách ra có cước phí = 0đ
+          codAmount: 0, // Thu hộ / tiền gửi chỉ nằm ở đơn gốc, không thì đối soát giữa trạm bị cộng 2 lần
+          moneyAmount: 0,
           paymentStatus: 'free',
           manifestId: manifestId,
           stationFrom: stFrom,
