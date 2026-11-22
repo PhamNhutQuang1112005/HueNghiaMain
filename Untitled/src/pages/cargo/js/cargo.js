@@ -832,7 +832,10 @@ function renderTable() {
             </td>
             <td>
               <div class="rd-route"><strong>${fromSt}</strong><span class="rd-route-arrow">➔</span><strong>${toSt}</strong></div>
-              <div style="font-size:13px; color:#64748b; margin-top:3px;">${row.transferTime || 'Vừa tạo'} • NV: ${row.staff || 'Nhiên'}</div>
+            </td>
+            <td style="vertical-align:middle;">
+              <div style="font-size:13px; color:#0f172a; font-weight:600;">${row.transferTime || 'Vừa tạo'}</div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:3px;">NV: ${row.staff || 'Nhiên'}</div>
             </td>
             <td>
               <div class="rd-people">
@@ -888,7 +891,7 @@ function renderTable() {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+    : '<tr><td colspan="10" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
 
   updateBatchTransferButton();
 }

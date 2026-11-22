@@ -257,7 +257,6 @@ function buildRow(cargo, index) {
           : `<div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: —</div>`
         }
         <div class="rd-route" style="margin-top:2px;"><strong>${cargo.stationFrom || manifest.from || '—'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || manifest.to || '—'}</strong></div>
-        <div style="font-size:11px; color:#64748b; margin-top:2px;">Đến trạm: ${manifest.arrivedAt || '—'}</div>
       </td>
       <td>
         <div class="rd-people">
@@ -270,6 +269,10 @@ function buildRow(cargo, index) {
         <div style="font-size:11.5px; color:#475569;">Cước: <strong style="color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong></div>
         ${Number(cargo.codAmount || 0) > 0 ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">COD cần thu: <strong style="color:#0f172a;">${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</strong></div>` : ''}
         ${isDone && Number(cargo.codCollected || 0) > 0 ? `<div style="margin-top:3px;"><span class="mini-tag" style="color:#15803d; border-color:#86efac; background:#f0fdf4;">Đã thu: ${Number(cargo.codCollected).toLocaleString('vi-VN')}đ</span></div>` : ''}
+      </td>
+      <td style="vertical-align:middle;">
+        <div style="font-size:11.5px; color:#475569; white-space:nowrap;">Nhận: <strong style="color:#0f172a;">${cargo.transferTime || '—'}</strong></div>
+        <div style="font-size:11.5px; color:#475569; margin-top:4px; white-space:nowrap;">Giao: <strong style="color:#0f172a;">${cargo.deliveredAt || cargo.pickedUpAt || '—'}</strong></div>
       </td>
       <td style="text-align:center;">
         ${statusBadgeHtml(cargo)}
@@ -329,7 +332,7 @@ function renderTable() {
   const rows = getFilteredList();
   tbody.innerHTML = rows.length
     ? rows.map((c, i) => buildRow(c, i)).join('')
-    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
+    : '<tr><td colspan="10" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
 
   document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBatchAssignButton));
   const selectAll = document.getElementById('selectAllCheckbox');
