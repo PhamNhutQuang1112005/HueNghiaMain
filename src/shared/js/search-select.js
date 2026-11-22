@@ -160,15 +160,22 @@
     input.addEventListener('focus', function () { input.select(); openDropdown(''); });
     input.addEventListener('click', function () { if (!isOpen()) { input.select(); openDropdown(''); } });
     input.addEventListener('input', function () { openDropdown(input.value); });
+    // Hiển thị nhãn của item đang được highlight vào ô input (preview khi dùng phím mũi tên).
+    function previewHighlighted() {
+      if (highlightedIndex >= 0 && currentOptions[highlightedIndex]) {
+        input.value = currentOptions[highlightedIndex].label;
+      }
+    }
+
     input.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (!isOpen()) { openDropdown(input.value); return; }
-        if (currentOptions.length) { highlightedIndex = (highlightedIndex + 1) % currentOptions.length; updateHighlight(); }
+        if (currentOptions.length) { highlightedIndex = (highlightedIndex + 1) % currentOptions.length; updateHighlight(); previewHighlighted(); }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (!isOpen()) { openDropdown(input.value); return; }
-        if (currentOptions.length) { highlightedIndex = (highlightedIndex - 1 + currentOptions.length) % currentOptions.length; updateHighlight(); }
+        if (currentOptions.length) { highlightedIndex = (highlightedIndex - 1 + currentOptions.length) % currentOptions.length; updateHighlight(); previewHighlighted(); }
       } else if (e.key === 'Enter') {
         // input thường (không phải select) bấm Enter trong <form> sẽ tự submit — chặn luôn, chỉ chọn
         // dòng đang tô sáng nếu dropdown đang mở.

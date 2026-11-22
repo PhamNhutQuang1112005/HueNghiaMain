@@ -158,10 +158,12 @@ let quickCodFilter = false;
 function getFilters() {
   return {
     date: (document.getElementById('filterDeliveryDate') || {}).value || '',
+    stationFrom: (document.getElementById('filterStationFrom') || {}).value || 'all',
     status: (document.getElementById('filterDeliveryStatus') || {}).value || 'all',
     stationTo: (document.getElementById('filterStationTo') || {}).value || 'all',
     staff: (document.getElementById('filterDeliveryStaff') || {}).value || 'all',
     category: quickCodFilter ? 'cod' : ((document.getElementById('filterDeliveryCategory') || {}).value || 'all'),
+    phone: ((document.getElementById('filterDeliveryPhone') || {}).value || '').trim().toLowerCase(),
     search: ((document.getElementById('globalSearch') || {}).value || '').trim().toLowerCase()
   };
 }
@@ -180,6 +182,7 @@ function getFilteredList() {
   const f = getFilters();
   return allCargos.filter(c => {
     if (!isEligibleForDelivery(c)) return false;
+    if (f.stationFrom !== 'all' && c.stationFrom !== f.stationFrom) return false;
     if (f.status !== 'all' && (c.deliveryStatus || 'cho-giao') !== f.status) return false;
     if (f.stationTo !== 'all' && c.stationTo !== f.stationTo) return false;
     if (f.staff !== 'all' && c.deliveryStaff !== f.staff) return false;
@@ -191,8 +194,11 @@ function getFilteredList() {
       if (rd !== f.date) return false;
     }
     if (f.search) {
-      const hay = [c.code, c.name, c.receiver, c.receiverPhone].join(' ').toLowerCase();
+      const hay = [c.code, c.name, c.sender, c.senderPhone, c.receiver, c.receiverPhone, c.stationFrom, c.stationTo].join(' ').toLowerCase();
       if (!hay.includes(f.search)) return false;
+    }
+    if (f.phone) {
+      if (!(c.senderPhone || '').toLowerCase().includes(f.phone) && !(c.receiverPhone || '').toLowerCase().includes(f.phone)) return false;
     }
     return true;
   }).sort((a, b) => Number(b.id) - Number(a.id));
@@ -237,10 +243,13 @@ function buildRow(cargo, index) {
         <div class="rd-item">
           <span class="rd-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg></span>
           <div class="rd-item-body">
-            <strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:11.5px; font-weight:700; color:#64748b;">(${formatCargoQuantity(cargo)})</span>
+            <strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
             ${catLabel ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${catLabel}</div>` : ''}
           </div>
         </div>
+      </td>
+      <td style="text-align:center; vertical-align:middle;">
+        <span style="display:inline-block; font-size:14px; font-weight:800; color:#0f172a; background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 10px; white-space:nowrap;">${formatCargoQuantity(cargo)}</span>
       </td>
       <td>
         <div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: ${manifest.plate || '—'}</div>
@@ -656,10 +665,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (stationToEl && window.HueNghiaStations) {
     window.HueNghiaStations.populateStationDropdowns(stationToEl, 'all', true, 'Tất cả trạm nhận');
   }
+  const stationFromEl = document.getElementById('filterStationFrom');
+  if (stationFromEl && window.HueNghiaStations) {
+    window.HueNghiaStations.populateStationDropdowns(stationFromEl, 'all', true, 'Tất cả trạm gửi');
+  }
 
   renderTable();
 
-  const filterIds = ['filterDeliveryDate', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory'];
+  const filterIds = ['filterDeliveryDate', 'filterStationFrom', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory', 'filterDeliveryPhone'];
   filterIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', renderTable);

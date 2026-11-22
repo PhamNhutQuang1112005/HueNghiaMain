@@ -234,9 +234,16 @@ const urlFilter = urlParams.get('filter');
 // scope input theo đúng nhóm của trang đang mở, nếu không 2 nhóm sẽ đọc/ghi đè lẫn nhau.
 const isDeliveryPage = window.location.pathname.includes('delivery.html');
 const categoryStorageKey = isDeliveryPage ? 'hueNghia_selectedDeliveryCategory' : 'hueNghia_selectedCategory';
-const savedCategory = urlFilter || localStorage.getItem(categoryStorageKey) || 'all';
+// 'overdue' là filter tạm từ URL, không lưu vào localStorage để không ảnh hưởng lần vào trang sau
+const _storedCategory = localStorage.getItem(categoryStorageKey) || 'all';
+// Nếu localStorage đang giữ 'overdue' từ session cũ, reset về 'all'
+const savedCategory = (urlFilter && urlFilter !== 'overdue') ? urlFilter : (_storedCategory === 'overdue' ? 'all' : _storedCategory);
+// selectedCategory dùng để filter bảng: nếu URL có filter=overdue thì dùng 'overdue', còn lại dùng savedCategory
+const initialCategory = urlFilter || savedCategory;
 
-localStorage.setItem(categoryStorageKey, savedCategory);
+if (urlFilter !== 'overdue') {
+  localStorage.setItem(categoryStorageKey, savedCategory);
+}
 
 // Nhân viên đang đăng nhập (src/auth/session.js + FleetStore.getStaff(), cầu nối ở js/auth-bridge.js)
 // — mọi hàng hóa tạo mới đều đóng dấu bằng mã/tên NV THẬT này, không hard-code 'Bạn'/'Nhiên' nữa.
@@ -246,7 +253,7 @@ if (window.HNAuth) window.HNAuth.renderUserChip(currentStaff);
 const state = {
   manifests: loadManifests(),
   data: loadCargos(),
-  selectedCategory: savedCategory
+  selectedCategory: initialCategory
 };
 
 let currentDetailCargoId = null;
@@ -467,7 +474,32 @@ function initManifestComboboxEvents() {
   const hiddenInput = document.getElementById('targetManifestSelect');
 
   if (searchInput && dropdownMenu) {
+    // Track index item đang được highlight khi dùng phím mũi tên — -1 nghĩa là chưa highlight item nào.
+    let highlightedIndex = -1;
+
+    function getItems() {
+      return Array.from(dropdownMenu.querySelectorAll('.manifest-option-item'));
+    }
+
+    function updateHighlight() {
+      getItems().forEach((el, i) => {
+        const active = i === highlightedIndex;
+        el.classList.toggle('highlighted', active);
+        if (active) el.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    // Hiển thị tên item đang highlight vào ô tìm kiếm (preview khi dùng phím mũi tên), giữ nguyên
+    // hidden input cho đến khi Enter được bấm để xác nhận chọn.
+    function previewHighlighted() {
+      const items = getItems();
+      if (highlightedIndex >= 0 && items[highlightedIndex]) {
+        searchInput.value = items[highlightedIndex].dataset.text || '';
+      }
+    }
+
     const showMenu = () => {
+      highlightedIndex = -1;
       renderManifestCombobox(searchInput.value);
       dropdownMenu.classList.add('open');
       positionManifestDropdown();
@@ -479,7 +511,41 @@ function initManifestComboboxEvents() {
       if (hiddenInput && !searchInput.value) {
         hiddenInput.value = '';
       }
+      highlightedIndex = -1;
       showMenu();
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      const items = getItems();
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!dropdownMenu.classList.contains('open')) { showMenu(); return; }
+        if (items.length) {
+          highlightedIndex = (highlightedIndex + 1) % items.length;
+          updateHighlight();
+          previewHighlighted();
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!dropdownMenu.classList.contains('open')) { showMenu(); return; }
+        if (items.length) {
+          highlightedIndex = (highlightedIndex - 1 + items.length) % items.length;
+          updateHighlight();
+          previewHighlighted();
+        }
+      } else if (e.key === 'Enter') {
+        if (dropdownMenu.classList.contains('open') && highlightedIndex >= 0 && items[highlightedIndex]) {
+          e.preventDefault();
+          items[highlightedIndex].click();
+          highlightedIndex = -1;
+        }
+      } else if (e.key === 'Escape') {
+        if (dropdownMenu.classList.contains('open')) {
+          e.preventDefault();
+          dropdownMenu.classList.remove('open');
+          highlightedIndex = -1;
+        }
+      }
     });
 
     if (dropdownToggle) {
@@ -487,6 +553,7 @@ function initManifestComboboxEvents() {
         e.stopPropagation();
         if (dropdownMenu.classList.contains('open')) {
           dropdownMenu.classList.remove('open');
+          highlightedIndex = -1;
         } else {
           showMenu();
           searchInput.focus();
@@ -504,6 +571,7 @@ function initManifestComboboxEvents() {
       const wrapper = document.getElementById('manifestComboboxWrapper');
       if (wrapper && !wrapper.contains(e.target)) {
         dropdownMenu.classList.remove('open');
+        highlightedIndex = -1;
       }
     });
   }
@@ -675,8 +743,10 @@ function getFilteredData() {
   const filterDirectionEl = document.getElementById('filterDirection');
   const filterFromEl = document.getElementById('filterFrom');
   const filterToEl = document.getElementById('filterTo');
+  const filterPhoneEl = document.getElementById('filterPhone');
 
   const searchText = globalSearchEl ? globalSearchEl.value.trim().toLowerCase() : '';
+  const phoneText = filterPhoneEl ? filterPhoneEl.value.trim().toLowerCase() : '';
   const dateVal = filterDateEl ? filterDateEl.value : '';
   const dirVal = filterDirectionEl ? filterDirectionEl.value : 'all';
   const from = filterFromEl ? filterFromEl.value : 'all';
@@ -744,6 +814,7 @@ function getFilteredData() {
     }
 
     const matchesSearch = !searchText || [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.stationFrom, row.stationTo, row.staff].some((val) => (val || '').sIncludes(searchText));
+    const matchesPhone = !phoneText || (row.senderPhone || '').sIncludes(phoneText) || (row.receiverPhone || '').sIncludes(phoneText);
     const matchesFrom = from === 'all' || (row.stationFrom || '').sIncludes(from.toLowerCase());
     const matchesTo = to === 'all' || (row.stationTo || '').sIncludes(to.toLowerCase());
 
@@ -757,7 +828,7 @@ function getFilteredData() {
       (dm && selParts.length === 3 && rowDay === +selParts[2] && rowMon === +selParts[1]) ||
       (isTodaySelected && rowTime.includes('Vừa tạo'));
 
-    return matchesCategory && matchesDirection && matchesSearch && matchesFrom && matchesTo && matchesDate;
+    return matchesCategory && matchesDirection && matchesSearch && matchesPhone && matchesFrom && matchesTo && matchesDate;
   });
 }
 
@@ -795,7 +866,15 @@ function renderTable() {
   const eyebrow = document.querySelector('.toolbar .eyebrow');
   const mainH1 = document.querySelector('.toolbar h1');
   if (eyebrow) eyebrow.textContent = isDelivery ? 'Giao hàng' : 'Nhận hàng';
-  if (mainH1) mainH1.textContent = isDelivery ? 'Danh sách giao hàng' : (CATEGORY_TITLES[state.selectedCategory] || CATEGORY_TITLES.all);
+  if (mainH1) {
+    if (isDelivery) {
+      mainH1.textContent = 'Danh sách giao hàng';
+    } else if (urlFilter === 'overdue') {
+      mainH1.textContent = 'Danh sách hàng quá hạn (>3 ngày)';
+    } else {
+      mainH1.textContent = CATEGORY_TITLES[state.selectedCategory] || 'Danh sách nhận hàng';
+    }
+  }
 
   const rows = getFilteredData();
   state.manifests = loadManifests();
@@ -834,12 +913,15 @@ function renderTable() {
               <div class="rd-item">
                 <span class="rd-item-icon">${RD_BOX_ICON}</span>
                 <div class="rd-item-body">
-                  <strong class="cargo-name">${(row.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:13px; font-weight:600; color:#64748b;">(${formatCargoQuantity(row)})</span>
+                  <strong class="cargo-name">${(row.name || '').replace(/🧳/g, '').trim()}</strong>
                   ${manifestInfo}
                   ${dimBadge}
                   ${row.delayReason ? `<div style="margin-top:3px;"><span style="display:inline-block; font-size:13px; color:#be123c; font-weight:600; background:#fff1f2; border:1px solid #fecdd3; padding:2px 7px; border-radius:4px;" title="${row.delayReason}">Lý do hoãn: ${row.delayReason}</span></div>` : ''}
                 </div>
               </div>
+            </td>
+            <td style="text-align:center; vertical-align:middle;">
+              <span style="display:inline-block; font-size:14px; font-weight:800; color:#0f172a; background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 10px; white-space:nowrap;">${formatCargoQuantity(row)}</span>
             </td>
             <td>
               <div class="rd-route"><strong>${fromSt}</strong><span class="rd-route-arrow">➔</span><strong>${toSt}</strong></div>
@@ -1488,7 +1570,7 @@ if (bundleForm) {
       };
       state.data.unshift(newRecord);
       // Xóa mọi bộ lọc đang bật để hàng vừa tạo luôn hiện trong danh sách
-      ['globalSearch', 'filterDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      ['globalSearch', 'filterDate', 'filterPhone'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
       ['filterDirection', 'filterFrom', 'filterTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
       const allOpt = statusOptions.find(i => i.value === 'all');
       if (allOpt) {
@@ -1638,7 +1720,7 @@ document.querySelectorAll('input[name="paymentPaid"]').forEach(radio => {
 
 if (momoBtn) momoBtn.addEventListener('click', () => showToast('Mã QR MoMo đã được khởi tạo'));
 
-['globalSearch', 'filterDate', 'filterDirection', 'filterFrom', 'filterTo', 'filterStatus'].forEach((id) => {
+['globalSearch', 'filterDate', 'filterDirection', 'filterFrom', 'filterTo', 'filterStatus', 'filterPhone'].forEach((id) => {
   const el = document.getElementById(id);
   if (el) {
     if (id === 'filterDirection') {
@@ -3298,6 +3380,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mainH1) mainH1.textContent = 'Danh sách Baga xe khách';
     if (newBagaBtn) newBagaBtn.style.display = 'inline-flex';
     if (newOrderBtn) newOrderBtn.style.display = 'none';
+  } else if (urlFilterNow === 'overdue') {
+    const eyebrow = document.querySelector('.toolbar .eyebrow');
+    const mainH1 = document.querySelector('.toolbar h1');
+    if (eyebrow) eyebrow.textContent = 'Nhận hàng';
+    if (mainH1) mainH1.textContent = 'Danh sách hàng quá hạn (>3 ngày)';
+    if (newBagaBtn) newBagaBtn.style.display = 'none';
+    if (newOrderBtn) newOrderBtn.style.display = 'inline-flex';
   } else {
     if (isDelivery) {
       const eyebrow = document.querySelector('.toolbar .eyebrow');
