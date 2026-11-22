@@ -252,7 +252,10 @@ function buildRow(cargo, index) {
         <span style="display:inline-block; font-size:14px; font-weight:800; color:#0f172a; background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 10px; white-space:nowrap;">${formatCargoQuantity(cargo)}</span>
       </td>
       <td>
-        <div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: ${manifest.plate || '—'}</div>
+        ${manifest.id
+          ? `<a href="manifest.html?tab=manifests&manifestId=${manifest.id}" title="Xem danh sách phơi chuyến xe này" style="font-weight:700; color:#2563eb; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Xe: ${manifest.plate || manifest.name || '—'}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
+          : `<div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: —</div>`
+        }
         <div class="rd-route" style="margin-top:2px;"><strong>${cargo.stationFrom || manifest.from || '—'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || manifest.to || '—'}</strong></div>
         <div style="font-size:11px; color:#64748b; margin-top:2px;">Đến trạm: ${manifest.arrivedAt || '—'}</div>
       </td>

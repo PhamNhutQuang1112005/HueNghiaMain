@@ -1982,7 +1982,7 @@
           const orderCount = manifestCargos.length;
           const scannedCount = manifestCargos.filter(c => c.isScanned).length; // đã quét nhận lên xe
           return `
-          <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
+          <tr class="plate-child" data-grp="${key}" data-manifest-id="${row.id}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
@@ -3550,12 +3550,32 @@
     // Check URL query parameters for active tab
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab');
+    const targetManifestId = urlParams.get('manifestId');
     const manifestsEntryGrouped = initialTab === 'manifests';
     if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests' || initialTab === 'unreceived' || initialTab === 'missing')) {
       switchManifestTab(initialTab);
     } else {
       renderManifestTable();
       renderManifestBreadcrumb('manifests');
+    }
+
+    // Scroll & highlight phơi được link tới từ trang giao hàng
+    if (targetManifestId) {
+      setTimeout(() => {
+        const targetRow = manifestTableBody.querySelector(`tr[data-manifest-id="${targetManifestId}"]`);
+        if (targetRow) {
+          // Mở nhóm nếu đang bị ẩn
+          if (targetRow.hidden) {
+            const grpKey = targetRow.dataset.grp;
+            const groupHead = manifestTableBody.querySelector(`.plate-group[data-grp="${grpKey}"]`);
+            if (groupHead) groupHead.click();
+          }
+          targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetRow.style.transition = 'background 0.3s';
+          targetRow.style.background = '#fef9c3';
+          setTimeout(() => { targetRow.style.background = ''; }, 2500);
+        }
+      }, 150);
     }
 
     if (initialTab === 'receive') {
