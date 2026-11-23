@@ -121,7 +121,7 @@ button { cursor: pointer; border: none; background: none; }
 
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(160px, 1.2fr) minmax(170px, 1.3fr) minmax(170px, 1.3fr) auto;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.2fr) minmax(140px, 1.3fr) minmax(140px, 1.3fr) minmax(130px, 1fr) minmax(130px, 1fr) auto;
   gap: 12px;
   align-items: flex-end;
 }

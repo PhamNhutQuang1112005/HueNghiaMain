@@ -164,6 +164,8 @@ function getFilters() {
     staff: (document.getElementById('filterDeliveryStaff') || {}).value || 'all',
     category: quickCodFilter ? 'cod' : ((document.getElementById('filterDeliveryCategory') || {}).value || 'all'),
     phone: ((document.getElementById('filterDeliveryPhone') || {}).value || '').trim().toLowerCase(),
+    sender: ((document.getElementById('filterDeliverySender') || {}).value || '').trim(),
+    receiver: ((document.getElementById('filterDeliveryReceiver') || {}).value || '').trim(),
     search: ((document.getElementById('globalSearch') || {}).value || '').trim().toLowerCase()
   };
 }
@@ -182,9 +184,9 @@ function getFilteredList() {
   const f = getFilters();
   return allCargos.filter(c => {
     if (!isEligibleForDelivery(c)) return false;
-    if (f.stationFrom !== 'all' && c.stationFrom !== f.stationFrom) return false;
+    if (f.stationFrom !== 'all' && !(c.stationFrom || '').sIncludes(f.stationFrom)) return false;
     if (f.status !== 'all' && (c.deliveryStatus || 'cho-giao') !== f.status) return false;
-    if (f.stationTo !== 'all' && c.stationTo !== f.stationTo) return false;
+    if (f.stationTo !== 'all' && !(c.stationTo || '').sIncludes(f.stationTo)) return false;
     if (f.staff !== 'all' && c.deliveryStaff !== f.staff) return false;
     if (f.category === 'cod') {
       if (!(Number(c.codAmount) > 0)) return false;
@@ -200,6 +202,8 @@ function getFilteredList() {
     if (f.phone) {
       if (!(c.senderPhone || '').toLowerCase().includes(f.phone) && !(c.receiverPhone || '').toLowerCase().includes(f.phone)) return false;
     }
+    if (f.sender && !(c.sender || '').sIncludes(f.sender)) return false;
+    if (f.receiver && !(c.receiver || '').sIncludes(f.receiver)) return false;
     return true;
   }).sort((a, b) => Number(b.id) - Number(a.id));
 }
@@ -285,9 +289,6 @@ function buildRow(cargo, index) {
           </button>` : ''}
           <button class="rowicon-btn" onclick="openDeliveryDetailModal(${cargo.id})" title="Xem chi tiết">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-          <button class="rowicon-btn" onclick="openAssignDeliveryModal(${cargo.id})" title="Cập nhật giao hàng">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           ${canDelete ? `<button class="rowicon-btn rowicon-btn--danger" onclick="deleteDeliveryOrder(${cargo.id})" title="Xóa">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -475,7 +476,13 @@ window.openAssignDeliveryModal = function (id) {
   if (staffInput) staffInput.value = cargo.deliveryStaff || cargo.staff || 'NV Giao Hàng';
   const staffPhoneInput = document.getElementById('assignStaffPhone');
   if (staffPhoneInput) staffPhoneInput.value = cargo.deliveryStaffPhone || '';
-  document.getElementById('assignStatus').value = cargo.deliveryStatus || 'cho-giao';
+  const statusSelect = document.getElementById('assignStatus');
+  statusSelect.value = cargo.deliveryStatus || 'cho-giao';
+  const isLocked = cargo.deliveryStatus === 'da-giao';
+  statusSelect.disabled = isLocked;
+  statusSelect.style.opacity = isLocked ? '0.6' : '';
+  statusSelect.style.cursor = isLocked ? 'not-allowed' : '';
+  statusSelect.title = isLocked ? 'Đơn đã giao, không thể thay đổi trạng thái' : '';
   document.getElementById('assignCodCollected').value = cargo.codCollected || cargo.codAmount || '';
   document.getElementById('assignReason').value = cargo.deliveryFailReason || '';
   updateAssignFormVisibility();
@@ -678,10 +685,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderTable();
 
-  const filterIds = ['filterDeliveryDate', 'filterStationFrom', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory', 'filterDeliveryPhone'];
+  const filterIds = ['filterDeliveryDate', 'filterStationFrom', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory', 'filterDeliveryPhone', 'filterDeliverySender', 'filterDeliveryReceiver'];
   filterIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('change', renderTable);
+    if (el) {
+      el.addEventListener('change', renderTable);
+      el.addEventListener('input', renderTable);
+    }
   });
 
   // Tab lọc nhanh ở sidebar (Tất cả/Hàng hóa/Tiền thường/Tiền nóng) chỉ đổi UI/URL

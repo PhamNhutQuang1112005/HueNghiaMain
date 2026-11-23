@@ -744,9 +744,13 @@ function getFilteredData() {
   const filterFromEl = document.getElementById('filterFrom');
   const filterToEl = document.getElementById('filterTo');
   const filterPhoneEl = document.getElementById('filterPhone');
+  const filterSenderEl = document.getElementById('filterSender');
+  const filterReceiverEl = document.getElementById('filterReceiver');
 
   const searchText = globalSearchEl ? globalSearchEl.value.trim().toLowerCase() : '';
   const phoneText = filterPhoneEl ? filterPhoneEl.value.trim().toLowerCase() : '';
+  const senderText = filterSenderEl ? filterSenderEl.value.trim() : '';
+  const receiverText = filterReceiverEl ? filterReceiverEl.value.trim() : '';
   const dateVal = filterDateEl ? filterDateEl.value : '';
   const dirVal = filterDirectionEl ? filterDirectionEl.value : 'all';
   const from = filterFromEl ? filterFromEl.value : 'all';
@@ -815,6 +819,8 @@ function getFilteredData() {
 
     const matchesSearch = !searchText || [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.stationFrom, row.stationTo, row.staff].some((val) => (val || '').sIncludes(searchText));
     const matchesPhone = !phoneText || (row.senderPhone || '').sIncludes(phoneText) || (row.receiverPhone || '').sIncludes(phoneText);
+    const matchesSender = !senderText || (row.sender || '').sIncludes(senderText);
+    const matchesReceiver = !receiverText || (row.receiver || '').sIncludes(receiverText);
     const matchesFrom = from === 'all' || (row.stationFrom || '').sIncludes(from.toLowerCase());
     const matchesTo = to === 'all' || (row.stationTo || '').sIncludes(to.toLowerCase());
 
@@ -828,7 +834,7 @@ function getFilteredData() {
       (dm && selParts.length === 3 && rowDay === +selParts[2] && rowMon === +selParts[1]) ||
       (isTodaySelected && rowTime.includes('Vừa tạo'));
 
-    return matchesCategory && matchesDirection && matchesSearch && matchesPhone && matchesFrom && matchesTo && matchesDate;
+    return matchesCategory && matchesDirection && matchesSearch && matchesPhone && matchesSender && matchesReceiver && matchesFrom && matchesTo && matchesDate;
   });
 }
 
@@ -1723,7 +1729,7 @@ document.querySelectorAll('input[name="paymentPaid"]').forEach(radio => {
 
 if (momoBtn) momoBtn.addEventListener('click', () => showToast('Mã QR MoMo đã được khởi tạo'));
 
-['globalSearch', 'filterDate', 'filterDirection', 'filterFrom', 'filterTo', 'filterStatus', 'filterPhone'].forEach((id) => {
+['globalSearch', 'filterDate', 'filterDirection', 'filterFrom', 'filterTo', 'filterStatus', 'filterPhone', 'filterSender', 'filterReceiver'].forEach((id) => {
   const el = document.getElementById(id);
   if (el) {
     if (id === 'filterDirection') {
