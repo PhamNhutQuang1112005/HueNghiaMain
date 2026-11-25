@@ -797,12 +797,56 @@
 @media (max-width: 1280px) {
   .table-scroll tbody tr[hidden], table.cargo-table tbody tr[hidden] { display: none !important; }
 }
+
+/* Danh sách giao hàng: giữ mỗi đơn thành một thẻ đầy đủ trên tablet/mobile. */
+@media (max-width: 1280px) {
+  .rd-page:has(#deliveryTableBody) .table-scroll tbody {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody > tr {
+    min-width: 0;
+  }
+
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody td[data-label] {
+    min-width: 0 !important;
+  }
+
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-people {
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-people span {
+    max-width: 100%;
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-route,
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-route strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody .action-group {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
 /* Màn hình rất hẹp: nhãn nằm trên giá trị, canh trái — không còn chồng chữ */
 @media (max-width: 520px) {
   .table-scroll tbody td, table.cargo-table tbody td { flex-direction: column; align-items: stretch; gap: 2px; text-align: left !important; }
   .table-scroll tbody td::before, table.cargo-table tbody td::before { flex: none; max-width: 100%; }
   .table-scroll .td-val .mini-tag-row { justify-content: flex-start; }
   .table-scroll tbody td[data-label=""] { align-items: flex-end; }
+  .rd-page:has(#deliveryTableBody) #deliveryTableBody td[data-label=""] {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
 
 /* Nhãn/giá trị được phép xuống dòng (một số ô gốc đặt nowrap) */

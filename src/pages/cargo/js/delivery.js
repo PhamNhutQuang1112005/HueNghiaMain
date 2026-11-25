@@ -240,10 +240,10 @@ function buildRow(cargo, index) {
 
   return `
     <tr>
-      <td style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${cargo.id}" /></td>
-      <td style="text-align:center;"><strong>${index + 1}</strong></td>
-      <td style="text-align:center;"><code>${cargo.code}</code></td>
-      <td>
+      <td data-label="" style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${cargo.id}" /></td>
+      <td data-label="STT" style="text-align:center;"><strong>${index + 1}</strong></td>
+      <td data-label="Mã đơn" style="text-align:center;"><code>${cargo.code}</code></td>
+      <td data-label="Hàng hóa">
         <div class="rd-item">
           <span class="rd-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg></span>
           <div class="rd-item-body">
@@ -252,37 +252,37 @@ function buildRow(cargo, index) {
           </div>
         </div>
       </td>
-      <td style="text-align:center; vertical-align:middle;">
+      <td data-label="Số lượng" style="text-align:center; vertical-align:middle;">
         <span class="cargo-quantity-badge">${formatCargoQuantity(cargo)}</span>
       </td>
-      <td>
+      <td data-label="Chuyến xe">
         ${manifest.id
           ? `<a href="manifest.html?tab=manifests&manifestId=${manifest.id}" title="Xem danh sách phơi chuyến xe này" style="font-weight:700; color:#2563eb; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Xe: ${manifest.plate || manifest.name || '—'}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
           : `<div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: —</div>`
         }
         <div class="rd-route" style="margin-top:2px;"><strong>${cargo.stationFrom || manifest.from || '—'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || manifest.to || '—'}</strong></div>
       </td>
-      <td>
+      <td data-label="Người gửi / Người nhận">
         <div class="rd-people">
           <span><i title="Người gửi">G</i><strong>${cargo.sender || '—'}</strong> (${cargo.senderPhone || ''})</span>
           <span><i title="Người nhận">N</i><strong>${cargo.receiver || '—'}</strong> (${cargo.receiverPhone || ''})</span>
         </div>
         ${cargo.deliveryAddress ? `<div style="font-size:12px; color:#87909e; margin-top:3px;">Giao: ${cargo.deliveryAddress}</div>` : ''}
       </td>
-      <td>
+      <td data-label="COD & Cước">
         <div style="font-size:11.5px; color:#475569;">Cước: <strong style="color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong></div>
         ${Number(cargo.codAmount || 0) > 0 ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">COD cần thu: <strong style="color:#0f172a;">${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</strong></div>` : ''}
         ${isDone && Number(cargo.codCollected || 0) > 0 ? `<div style="margin-top:3px;"><span class="mini-tag" style="color:#15803d; border-color:#86efac; background:#f0fdf4;">Đã thu: ${Number(cargo.codCollected).toLocaleString('vi-VN')}đ</span></div>` : ''}
       </td>
-      <td style="vertical-align:middle;">
+      <td data-label="Thời gian" style="vertical-align:middle;">
         <div style="font-size:11.5px; color:#475569; white-space:nowrap;">Nhận: <strong style="color:#0f172a;">${cargo.transferTime || '—'}</strong></div>
         <div style="font-size:11.5px; color:#475569; margin-top:4px; white-space:nowrap;">Giao: <strong style="color:#0f172a;">${cargo.deliveredAt || cargo.pickedUpAt || '—'}</strong></div>
       </td>
-      <td style="text-align:center;">
+      <td data-label="Trạng thái" style="text-align:center;">
         ${statusBadgeHtml(cargo)}
         ${cargo.deliveryFailReason && (cargo.deliveryStatus === 'that-bai' || cargo.deliveryStatus === 'hen-lai') ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;" title="${cargo.deliveryFailReason}">${cargo.deliveryFailReason}</div>` : ''}
       </td>
-      <td style="text-align:center;">
+      <td data-label="Hành động" style="text-align:center;">
         <div class="action-group">
           ${!isDone ? `<button class="rowicon-btn" onclick="confirmDeliveryScanItem(${cargo.id})" title="Đã giao (tính là đã quét giao)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
