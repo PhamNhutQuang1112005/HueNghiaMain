@@ -96,3 +96,22 @@ const HN_ACCOUNTING_THU_APPROVED_KEY = 'hn_accounting_thu_approved_v1';
   Object.defineProperty(String.prototype, 'sIncludes', { value: function (q) { return fold(this).indexOf(fold(q)) !== -1; }, configurable: true });
   Object.defineProperty(String.prototype, 'sIndexOf', { value: function (q) { return fold(this).indexOf(fold(q)); }, configurable: true });
 })();
+
+// Dọn dữ liệu cũ: trước đây khi chuyển MỘT PHẦN số lượng lên phơi, đơn tách ra (mã "<mã gốc>.NN") sao chép
+// luôn codAmount/moneyAmount của đơn gốc → đối soát COD / cấn trừ giữa trạm bị cộng 2 lần.
+// Đơn gốc giữ tiền, đơn tách về 0 (giống cước phí). Chạy lại nhiều lần không sao.
+(function () {
+  try {
+    var list = JSON.parse(localStorage.getItem('hueNghia_cargos') || '[]');
+    if (!Array.isArray(list)) return;
+    var codes = {};
+    list.forEach(function (c) { if (c && c.code) codes[c.code] = true; });
+    var changed = false;
+    list.forEach(function (c) {
+      var m = c && /^(.+)\.\d{2}$/.exec(c.code || '');
+      if (!m || !codes[m[1]] || Number(c.fee) !== 0) return;
+      if (Number(c.codAmount) > 0 || Number(c.moneyAmount) > 0) { c.codAmount = 0; c.moneyAmount = 0; changed = true; }
+    });
+    if (changed) localStorage.setItem('hueNghia_cargos', JSON.stringify(list));
+  } catch (e) { /* dữ liệu hỏng: để trang tự xử lý như cũ */ }
+})();

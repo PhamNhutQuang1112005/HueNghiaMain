@@ -106,7 +106,12 @@ function isManifestArrived(manifest) {
 /* Hiển thị tất cả hàng hóa đã nhận sang Danh sách giao hàng (loại trừ hàng chưa nhận từ phơi) */
 function isEligibleForDelivery(cargo) {
   if (!cargo) return false;
+<<<<<<< HEAD
   return !!cargo.isScanned && cargo.status !== 'unreceived' && !cargo.isUnreceived;
+=======
+  const received = cargo.isScanned || (cargo.manifestId && cargo.arrivalScanned);
+  return !!received && cargo.status !== 'unreceived' && !cargo.isUnreceived;
+>>>>>>> 44bccc67561808d9a529132047a6478506a1f9be
 }
 
 /* Gán mặc định "Chờ giao" cho các đơn vừa đủ điều kiện giao mà chưa từng được khởi tạo
@@ -533,7 +538,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cargo.codCollected = Number(document.getElementById('assignCodCollected').value || 0);
         cargo.deliveredAt = nowStr();
         cargo.deliveryFailReason = '';
-        // Đồng bộ field dùng chung để Đối soát COD (cod.js) tự nhận đơn đã giao.
         cargo.status = 'delivered';
         cargo.statusText = 'Đã giao';
         cargo.paymentStatus = 'paid';
@@ -546,8 +550,16 @@ document.addEventListener('DOMContentLoaded', () => {
           cargo.deliveredByCode = activeStaff.code;
         }
         cargo.deliveredAtTimestamp = Date.now();
-      } else if (newStatus === 'that-bai' || newStatus === 'hen-lai') {
-        cargo.deliveryFailReason = document.getElementById('assignReason').value.trim();
+      } else {
+        if (cargo.status === 'delivered') {
+          cargo.status = newStatus === 'da-hoan' ? 'returned' : 'in-transit';
+          cargo.statusText = DELIVERY_STATUS_DEFS[newStatus].label;
+          cargo.deliveryScanned = false;
+          cargo.codCollected = 0;
+        }
+        if (newStatus === 'that-bai' || newStatus === 'hen-lai') {
+          cargo.deliveryFailReason = document.getElementById('assignReason').value.trim();
+        }
       }
 
       saveCargos(allCargos);
@@ -873,7 +885,7 @@ window.processDeliveryQrScanInput = function () {
 
 window.confirmDeliveryScanItem = function (cargoId, quiet) {
   const cargo = allCargos.find(c => Number(c.id) === Number(cargoId));
-  if (!cargo) return;
+  if (!isEligibleForDelivery(cargo) || cargo.deliveryStatus === 'da-giao') return;
 
   cargo.deliveryScanned = true; cargo.arrivalScanned = true; // "Đã giao" = đã quét giao và đã kiểm tại trạm đến (ds chuyến xe đến đếm theo cờ này)
   cargo.deliveryStatus = 'da-giao';

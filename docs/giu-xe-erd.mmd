@@ -1,0 +1,73 @@
+erDiagram
+    %% ERD logic cho module giu xe, chuan hoa tu object localStorage hn_admin_parking_v1.
+    %% Tien luu trong cac bang la VND; giao dien nhan phan nghin va nhan 1000 truoc khi luu.
+    %% Snapshot gia duoc sao chep vao phieu luc nhan xe; no khong FK toi cau hinh hien hanh.
+
+    PARKING_RATE_CONFIG ||--o{ PARKING_CONFIG_WEEKDAY : defines
+    PARKING_RATE_CONFIG ||--o{ PARKING_CONFIG_BAND : defines
+    PARKING_TICKET ||--|| TICKET_RATE_SNAPSHOT : captures_at_checkin
+    TICKET_RATE_SNAPSHOT ||--|{ TICKET_WEEKDAY_RATE_SNAPSHOT : contains
+    TICKET_RATE_SNAPSHOT ||--o{ TICKET_BAND_SNAPSHOT : contains
+
+    PARKING_RATE_CONFIG {
+        int config_id PK "Singleton row for current rates"
+        bigint default_daily_rate_vnd "Default daily price"
+        int monthly_discount_percent "Applied from 30 billed days"
+    }
+
+    PARKING_CONFIG_WEEKDAY {
+        int config_id PK, FK
+        int weekday PK "0 Sunday through 6 Saturday"
+        bigint daily_rate_vnd "NULL means use default price"
+    }
+
+    PARKING_CONFIG_BAND {
+        int band_id PK
+        int config_id FK
+        int band_order "Preserves rule priority at shared boundaries"
+        int from_day "Start boundary"
+        int through_day "Inclusive end boundary"
+        bigint daily_rate_vnd "Price applied to every billed day in this band"
+    }
+
+    PARKING_TICKET {
+        varchar ticket_code PK "GX-..."
+        varchar vehicle_type
+        varchar license_plate "Required for motorbike/car; otherwise optional"
+        varchar customer_name "Optional"
+        varchar phone "Optional"
+        varchar note "Optional"
+        bigint received_at_epoch_ms
+        bigint checkout_at_epoch_ms "NULL while vehicle is parked"
+        int charged_days "NULL until checkout"
+        bigint subtotal_vnd "NULL until checkout"
+        bigint discount_vnd "NULL until checkout"
+        bigint total_vnd "NULL until checkout"
+    }
+
+    TICKET_RATE_SNAPSHOT {
+        varchar ticket_code PK, FK
+        bigint default_daily_rate_vnd
+        int monthly_discount_percent
+    }
+
+    TICKET_WEEKDAY_RATE_SNAPSHOT {
+        varchar ticket_code PK, FK
+        int weekday PK "0 Sunday through 6 Saturday"
+        bigint daily_rate_vnd "NULL means use snapshot default"
+    }
+
+    TICKET_BAND_SNAPSHOT {
+        int snapshot_band_id PK
+        varchar ticket_code FK
+        int band_order
+        int from_day "Start boundary"
+        int through_day "Inclusive end boundary"
+        bigint daily_rate_vnd
+    }
+
+    %% Business rules:
+    %% 1. Priority: duration band > weekday price > default price; monthly discount is applied last.
+    %% 2. Duration bands connect at a shared boundary, e.g. 1-15 then 15-30. The earlier band owns day 15.
+    %% 3. A matching duration-band price applies to the whole stay, not just days inside that band.
+    %% 4. Ticket status is derived: checkout_at_epoch_ms NULL = parked; otherwise returned.

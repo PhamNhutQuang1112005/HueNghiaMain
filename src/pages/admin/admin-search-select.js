@@ -38,6 +38,7 @@
 
   function enhanceSelect(selectEl) {
     if (!selectEl || selectEl.tagName !== 'SELECT' || selectEl[ENHANCED_PROP] || selectEl.multiple) return;
+    if (selectEl.hasAttribute('data-native-select')) return;
     selectEl[ENHANCED_PROP] = true;
 
     var wrap = document.createElement('span');
