@@ -798,40 +798,108 @@
   .table-scroll tbody tr[hidden], table.cargo-table tbody tr[hidden] { display: none !important; }
 }
 
-/* Danh sách giao hàng: giữ mỗi đơn thành một thẻ đầy đủ trên tablet/mobile. */
-@media (max-width: 1280px) {
-  .rd-page:has(#deliveryTableBody) .table-scroll tbody {
-    grid-template-columns: minmax(0, 1fr) !important;
+/* Giao hàng chuyển thành thẻ sớm hơn vì sidebar làm hẹp vùng bảng trên laptop. */
+@media (max-width: 1450px) {
+  .delivery-table-scroll {
+    overflow-x: visible !important;
   }
 
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody > tr {
-    min-width: 0;
-  }
-
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody td[data-label] {
+  .delivery-table-scroll .delivery-table {
+    display: block;
+    width: 100% !important;
     min-width: 0 !important;
   }
 
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-people {
+  .delivery-table-scroll .delivery-table thead {
+    display: none;
+  }
+
+  .delivery-table-scroll .delivery-table tbody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px;
+  }
+
+  .delivery-table-scroll .delivery-table tbody tr {
+    display: block;
+    min-width: 0;
+    margin: 0;
+    padding: 4px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 8px 0 !important;
+    border: 0 !important;
+    border-bottom: 1px dashed #e2e8f0 !important;
+    text-align: right !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 34%;
+    max-width: 34%;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td[data-label=""]::before {
+    display: none;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td[data-label=""] {
+    justify-content: flex-end;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td[data-label="STT"] {
+    display: none;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td[colspan] {
+    display: block;
+    text-align: center !important;
+  }
+
+  .delivery-table-scroll .delivery-table tbody td[colspan]::before {
+    display: none;
+  }
+
+  .delivery-table-scroll #deliveryTableBody .rd-people {
     min-width: 0;
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-people span {
+  .delivery-table-scroll #deliveryTableBody .rd-people span {
     max-width: 100%;
     flex-wrap: wrap;
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-route,
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody .rd-route strong {
+  .delivery-table-scroll #deliveryTableBody .rd-route,
+  .delivery-table-scroll #deliveryTableBody .rd-route strong {
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody .action-group {
+  .delivery-table-scroll #deliveryTableBody .action-group {
     flex-wrap: wrap;
     justify-content: flex-end;
   }
@@ -843,7 +911,7 @@
   .table-scroll tbody td::before, table.cargo-table tbody td::before { flex: none; max-width: 100%; }
   .table-scroll .td-val .mini-tag-row { justify-content: flex-start; }
   .table-scroll tbody td[data-label=""] { align-items: flex-end; }
-  .rd-page:has(#deliveryTableBody) #deliveryTableBody td[data-label=""] {
+  .delivery-table-scroll .delivery-table tbody td[data-label=""] {
     flex-direction: row;
     justify-content: flex-end;
   }
