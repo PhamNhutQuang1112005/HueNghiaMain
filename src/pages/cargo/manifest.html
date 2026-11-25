@@ -440,7 +440,8 @@
               <thead>
                 <tr>
                   <th style="width:45px; text-align:center;">STT</th>
-                  <th>Mã đơn & Tên hàng</th>
+                  <th style="width:110px; text-align:center;">Mã đơn</th>
+                  <th>Tên hàng</th>
                   <th>Phơi xe & Tuyến đường</th>
                   <th>Người gửi ➔ Người nhận</th>
                   <th>Cước phí & COD</th>
@@ -2839,7 +2840,7 @@
       }
 
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có hàng thiếu trong danh sách chuyến xe đi.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">Không có hàng thiếu trong danh sách chuyến xe đi.</td></tr>`;
         return;
       }
 
@@ -2854,10 +2855,8 @@
         return `
           <tr>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
-            <td>
-              <strong class="cargo-name">${cargo.name || 'Hàng hóa'}</strong><br>
-              <code>${cargo.code || ''}</code>
-            </td>
+            <td style="text-align:center;"><code>${cargo.code || ''}</code></td>
+            <td><strong class="cargo-name">${cargo.name || 'Hàng hóa'}</strong></td>
             <td>
               <div style="font-weight:700; color:#1e293b;">${manifestText}</div>
               <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || manifest?.from || '---'} ➔ ${cargo.stationTo || manifest?.to || '---'}</small>
@@ -2886,13 +2885,6 @@
                 <button type="button" class="rowicon-btn" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Bổ sung và nhận hàng" aria-label="Bổ sung và nhận hàng" style="width:30px; height:30px; color:#16a34a;">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M20 6L9 17l-5-5"/>
-                  </svg>
-                </button>
-                <button type="button" class="rowicon-btn" onclick="markCargoReturned(${cargo.id})" title="Chuyển vào danh sách hàng trả về" aria-label="Trả hàng về" style="width:30px; height:30px; color:#c2410c;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M3 10h11a4 4 0 0 1 0 8H8"/>
-                    <path d="m7 6-4 4 4 4"/>
-                    <path d="M19 4v4M17 6h4"/>
                   </svg>
                 </button>
               </div>
