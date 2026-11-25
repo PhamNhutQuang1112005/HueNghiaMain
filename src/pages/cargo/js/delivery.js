@@ -107,7 +107,8 @@ function isManifestArrived(manifest) {
 function isEligibleForDelivery(cargo) {
   if (!cargo) return false;
   const received = cargo.isScanned || (cargo.manifestId && cargo.arrivalScanned);
-  return !!received && cargo.status !== 'unreceived' && !cargo.isUnreceived;
+  return !!received && cargo.status !== 'unreceived' && cargo.status !== 'returned' &&
+    cargo.deliveryStatus !== 'da-hoan' && !cargo.isUnreceived;
 }
 
 /* Gán mặc định "Chờ giao" cho các đơn vừa đủ điều kiện giao mà chưa từng được khởi tạo
@@ -234,7 +235,8 @@ window.toggleRowActionMenu = function (event, id) {
 function buildRow(cargo, index) {
   const manifest = manifestsById[cargo.manifestId] || {};
   const catLabel = CATEGORY_LABELS[cargo.cargoCategory] || '';
-  const isDone = cargo.deliveryStatus === 'da-giao';
+  const isDone = cargo.deliveryStatus === 'da-giao' || cargo.status === 'delivered' || cargo.statusText === 'Đã giao';
+  const canReturn = !isDone && cargo.status !== 'returned' && cargo.deliveryStatus !== 'da-hoan';
   // Đơn trong danh sách giao hàng đều đã vào phơi → không cho xóa; chỉ đơn chưa gán phơi và còn Chờ giao mới xóa được.
   const canDelete = (cargo.deliveryStatus || 'cho-giao') === 'cho-giao' && cargo.manifestId == null;
 
@@ -288,6 +290,9 @@ function buildRow(cargo, index) {
         <div class="action-group">
           ${!isDone ? `<button class="rowicon-btn" onclick="confirmDeliveryScanItem(${cargo.id})" title="Đã giao (tính là đã quét giao)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
+          </button>` : ''}
+          ${canReturn ? `<button class="rowicon-btn" onclick="returnDeliveryOrder(${cargo.id})" title="Trả hàng về danh sách Hàng trả về" aria-label="Trả hàng về" style="color:#c2410c;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-2"/></svg>
           </button>` : ''}
           <button class="rowicon-btn" onclick="openDeliveryDetailModal(${cargo.id})" title="Xem chi tiết">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -584,6 +589,37 @@ document.addEventListener('DOMContentLoaded', () => {
     showDeliveryToast(`Đã giao ${todo.length} đơn${ids.length > todo.length ? ` (bỏ qua ${ids.length - todo.length} đơn đã giao)` : ''}`);
   });
 });
+
+/* ---------------------------------------------------------
+   TRẢ HÀNG VỀ DANH SÁCH HÀNG TRẢ VỀ
+   --------------------------------------------------------- */
+window.returnDeliveryOrder = function (id) {
+  const cargo = allCargos.find(c => Number(c.id) === Number(id));
+  if (!cargo) return;
+  if (cargo.deliveryStatus === 'da-giao' || cargo.status === 'delivered' || cargo.statusText === 'Đã giao') {
+    showDeliveryToast('Đơn đã giao không thể trả hàng về.');
+    return;
+  }
+  if (cargo.status === 'returned' || cargo.deliveryStatus === 'da-hoan') return;
+
+  const reason = window.prompt(
+    `Xác nhận trả hàng về danh sách Hàng trả về:\n[${cargo.code}] - ${cargo.name}.\n\nNhập lý do trả hàng:`,
+    'Có vấn đề khi vận chuyển'
+  );
+  if (reason === null) return;
+
+  cargo.status = 'returned';
+  cargo.statusText = 'Hàng trả về';
+  cargo.deliveryStatus = 'da-hoan';
+  cargo.returnReason = reason.trim() || 'Có vấn đề khi vận chuyển';
+  cargo.returnedAt = nowStr();
+  cargo.deliveryScanned = false;
+
+  saveCargos(allCargos);
+  renderTable();
+  updateBatchAssignButton();
+  showDeliveryToast('Đã chuyển hàng vào danh sách Hàng trả về.');
+};
 
 /* ---------------------------------------------------------
    XÓA ĐƠN GIAO (chỉ khi đang Chờ giao)

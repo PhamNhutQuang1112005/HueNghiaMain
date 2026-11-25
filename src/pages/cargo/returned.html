@@ -34,6 +34,117 @@
       margin-top: 2px;
       line-height: 1.35;
     }
+    .returned-table-scroll {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden !important;
+    }
+    .returned-table-scroll .returned-table {
+      width: 100% !important;
+      min-width: 0 !important;
+      table-layout: fixed !important;
+    }
+    .returned-table th,
+    .returned-table td {
+      box-sizing: border-box;
+      padding: 10px 8px;
+      vertical-align: middle;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .returned-table th {
+      line-height: 1.25;
+      text-align: left;
+    }
+    .returned-table-scroll .returned-table th {
+      min-width: 0 !important;
+      white-space: normal !important;
+    }
+    .returned-table th:nth-child(1),
+    .returned-table th:nth-child(2),
+    .returned-table th:nth-child(4),
+    .returned-table th:nth-child(5),
+    .returned-table th:nth-child(11),
+    .returned-table th:nth-child(12),
+    .returned-table td:nth-child(1),
+    .returned-table td:nth-child(2),
+    .returned-table td:nth-child(4),
+    .returned-table td:nth-child(5),
+    .returned-table td:nth-child(11),
+    .returned-table td:nth-child(12) {
+      text-align: center;
+    }
+    .returned-table .rd-item,
+    .returned-table .rd-item-body {
+      min-width: 0;
+    }
+    .returned-table .returned-item-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      min-width: 0;
+    }
+    .returned-table .returned-item-info .cargo-name {
+      display: block;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .returned-code {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: #fff1f2;
+      color: #be123c;
+      font-size: 11.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .returned-table .rd-people {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .returned-table .rd-people span {
+      min-width: 0;
+      max-width: 100%;
+      flex-wrap: wrap;
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .rd-people strong {
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .reason-box {
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .reason-box small {
+      display: inline-block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .returned-manifest {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .returned-badge {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .returned-table .returned-action-group {
+      justify-content: center;
+      gap: 4px;
+    }
+    .returned-table .returned-action-group .rowicon-btn {
+      width: 28px !important;
+      height: 28px;
+      padding: 0 !important;
+    }
   </style>
 <link rel="stylesheet" href="../../shared/css/search-select.css?v=1">
 </head>
@@ -314,21 +425,36 @@
 
       <div class="rd-stats" data-body="returnedTableBody" data-page-size="10" data-cards='[["Tổng đơn trả về","","box","red"]]'></div>
       <section class="table-card">
-        <div class="table-scroll">
-          <table id="returnedCargoTable" style="min-width: 1280px;">
+        <div class="table-scroll returned-table-scroll">
+          <table id="returnedCargoTable" class="returned-table">
+            <colgroup>
+              <col style="width:3%" />
+              <col style="width:3%" />
+              <col style="width:9%" />
+              <col style="width:7%" />
+              <col style="width:6%" />
+              <col style="width:16%" />
+              <col style="width:6%" />
+              <col style="width:6%" />
+              <col style="width:19%" />
+              <col style="width:11%" />
+              <col style="width:8%" />
+              <col style="width:6%" />
+            </colgroup>
             <thead>
               <tr>
-                <th style="width: 32px; text-align: center;"><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
-                <th style="width: 38px; text-align: center;">STT</th>
-                <th style="width: 13%; min-width: 130px;">Thông tin hàng hóa</th>
-                <th style="width: 85px; text-align: center; white-space: nowrap;">Số lượng</th>
-                <th style="width: 16%; min-width: 150px;">Người gửi / Người nhận</th>
-                <th style="width: 9%; min-width: 95px; white-space: nowrap;">Điểm đi</th>
-                <th style="width: 9%; min-width: 95px; white-space: nowrap;">Điểm đến</th>
-                <th style="width: 18%; min-width: 180px;">Lý do & Thời gian trả</th>
-                <th style="width: 12%; min-width: 120px;">Phơi xe trả về</th>
-                <th style="width: 110px; text-align: center; white-space: nowrap;">Trạng thái</th>
-                <th style="width: 110px; text-align: center; white-space: nowrap;">Hành động</th>
+                <th><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
+                <th>STT</th>
+                <th>Thông tin hàng hóa</th>
+                <th>Mã đơn</th>
+                <th>Số lượng</th>
+                <th>Người gửi / Người nhận</th>
+                <th>Điểm đi</th>
+                <th>Điểm đến</th>
+                <th>Lý do & Thời gian trả</th>
+                <th>Phơi xe trả về</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
               </tr>
             </thead>
             <tbody id="returnedTableBody">
@@ -450,41 +576,45 @@
             const manifestText = manifest ? `📦 ${manifest.name}` : 'Chưa gán phơi';
             return `
               <tr style="background:#fff1f2;">
-                <td style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${row.id}" /></td>
-                <td style="text-align:center;"><strong>${index + 1}</strong></td>
-                <td>
+                <td data-label="" style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${row.id}" /></td>
+                <td data-label="STT" style="text-align:center;"><strong>${index + 1}</strong></td>
+                <td data-label="Thông tin hàng hóa">
                   <div class="rd-item">
                     <span class="rd-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg></span>
-                    <div class="rd-item-body">
-                      <strong class="cargo-name" style="color:#9f1239;">${row.name}</strong><br>
-                      <code>${row.code}</code>
+                    <div class="rd-item-body returned-item-info">
+                      <strong class="cargo-name" style="color:#9f1239;">${row.name}</strong>
                     </div>
                   </div>
                 </td>
-                <td style="text-align:center; font-weight:700;">${formatCargoQuantity(row)}</td>
-                <td>
+                <td data-label="Mã đơn" style="text-align:center;"><span class="returned-code">${row.code}</span></td>
+                <td data-label="Số lượng" style="text-align:center; font-weight:700;">${formatCargoQuantity(row)}</td>
+                <td data-label="Người gửi / Người nhận">
                   <div class="rd-people">
                     <span><i title="Người gửi">G</i><strong>${row.sender}</strong> (${row.senderPhone})</span>
                     <span><i title="Người nhận">N</i><strong>${row.receiver}</strong> (${row.receiverPhone})</span>
                   </div>
                 </td>
-                <td><strong>${row.stationFrom || '—'}</strong></td>
-                <td><strong>${row.stationTo || '—'}</strong></td>
-                <td>
+                <td data-label="Điểm đi"><strong>${row.stationFrom || '—'}</strong></td>
+                <td data-label="Điểm đến"><strong>${row.stationTo || '—'}</strong></td>
+                <td data-label="Lý do & Thời gian trả">
                   <div class="reason-box">
                     <strong>Lý do:</strong> ${row.returnReason || 'Có vấn đề khi vận chuyển'}<br>
                     <small style="color:#881337; font-weight:600;">⏱ ${row.returnedAt || row.transferTime || 'Vừa cập nhật'}</small>
                   </div>
                 </td>
-                <td><small style="color:#1d4ed8; font-weight:700;">${manifestText}</small></td>
-                <td style="text-align:center;"><span class="returned-badge">⚠️ Hàng trả về</span></td>
-                <td style="text-align:center; white-space:nowrap;">
-                  <button class="btn-delete" style="padding:4px 8px; font-size:12px;" onclick="deleteReturnedCargo(${row.id})">Xóa</button>
+                <td data-label="Phơi xe trả về"><small class="returned-manifest" style="color:#1d4ed8; font-weight:700;">${manifestText}</small></td>
+                <td data-label="Trạng thái"><span class="returned-badge">⚠️ Hàng trả về</span></td>
+                <td data-label="Hành động">
+                  <div class="action-group returned-action-group">
+                    <button type="button" class="rowicon-btn rowicon-btn--danger" onclick="deleteReturnedCargo(${row.id})" title="Xóa hàng trả về" aria-label="Xóa hàng trả về">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             `;
           }).join('')
-        : '<tr><td colspan="11" style="text-align:center;padding:32px;color:#991b1b;font-weight:600;">Hiện tại không có đơn hàng nào bị trả về.</td></tr>';
+        : '<tr><td colspan="12" style="text-align:center;padding:32px;color:#991b1b;font-weight:600;">Hiện tại không có đơn hàng nào bị trả về.</td></tr>';
 
       updateBatchButtonState();
     }
