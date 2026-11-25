@@ -158,10 +158,14 @@ let quickCodFilter = false;
 function getFilters() {
   return {
     date: (document.getElementById('filterDeliveryDate') || {}).value || '',
+    stationFrom: (document.getElementById('filterStationFrom') || {}).value || 'all',
     status: (document.getElementById('filterDeliveryStatus') || {}).value || 'all',
     stationTo: (document.getElementById('filterStationTo') || {}).value || 'all',
     staff: (document.getElementById('filterDeliveryStaff') || {}).value || 'all',
     category: quickCodFilter ? 'cod' : ((document.getElementById('filterDeliveryCategory') || {}).value || 'all'),
+    phone: ((document.getElementById('filterDeliveryPhone') || {}).value || '').trim().toLowerCase(),
+    sender: ((document.getElementById('filterDeliverySender') || {}).value || '').trim(),
+    receiver: ((document.getElementById('filterDeliveryReceiver') || {}).value || '').trim(),
     search: ((document.getElementById('globalSearch') || {}).value || '').trim().toLowerCase()
   };
 }
@@ -180,8 +184,9 @@ function getFilteredList() {
   const f = getFilters();
   return allCargos.filter(c => {
     if (!isEligibleForDelivery(c)) return false;
+    if (f.stationFrom !== 'all' && !(c.stationFrom || '').sIncludes(f.stationFrom)) return false;
     if (f.status !== 'all' && (c.deliveryStatus || 'cho-giao') !== f.status) return false;
-    if (f.stationTo !== 'all' && c.stationTo !== f.stationTo) return false;
+    if (f.stationTo !== 'all' && !(c.stationTo || '').sIncludes(f.stationTo)) return false;
     if (f.staff !== 'all' && c.deliveryStaff !== f.staff) return false;
     if (f.category === 'cod') {
       if (!(Number(c.codAmount) > 0)) return false;
@@ -191,9 +196,14 @@ function getFilteredList() {
       if (rd !== f.date) return false;
     }
     if (f.search) {
-      const hay = [c.code, c.name, c.receiver, c.receiverPhone].join(' ').toLowerCase();
+      const hay = [c.code, c.name, c.sender, c.senderPhone, c.receiver, c.receiverPhone, c.stationFrom, c.stationTo].join(' ').toLowerCase();
       if (!hay.includes(f.search)) return false;
     }
+    if (f.phone) {
+      if (!(c.senderPhone || '').toLowerCase().includes(f.phone) && !(c.receiverPhone || '').toLowerCase().includes(f.phone)) return false;
+    }
+    if (f.sender && !(c.sender || '').sIncludes(f.sender)) return false;
+    if (f.receiver && !(c.receiver || '').sIncludes(f.receiver)) return false;
     return true;
   }).sort((a, b) => Number(b.id) - Number(a.id));
 }
@@ -237,15 +247,20 @@ function buildRow(cargo, index) {
         <div class="rd-item">
           <span class="rd-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9 5-9-5"/><path d="m3.3 7 8.7-5 8.7 5v10L12 22l-8.7-5Z"/><path d="M12 13v9"/></svg></span>
           <div class="rd-item-body">
-            <strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong> <span style="font-size:11.5px; font-weight:700; color:#64748b;">(${formatCargoQuantity(cargo)})</span>
+            <strong class="cargo-name">${(cargo.name || '').replace(/🧳/g, '').trim()}</strong>
             ${catLabel ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${catLabel}</div>` : ''}
           </div>
         </div>
       </td>
+      <td style="text-align:center; vertical-align:middle;">
+        <span style="display:inline-block; font-size:14px; font-weight:800; color:#0f172a; background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 10px; white-space:nowrap;">${formatCargoQuantity(cargo)}</span>
+      </td>
       <td>
-        <div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: ${manifest.plate || '—'}</div>
+        ${manifest.id
+          ? `<a href="manifest.html?tab=manifests&manifestId=${manifest.id}" title="Xem danh sách phơi chuyến xe này" style="font-weight:700; color:#2563eb; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Xe: ${manifest.plate || manifest.name || '—'}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
+          : `<div style="font-weight:700; color:#0f172a; font-size:12.5px;">Xe: —</div>`
+        }
         <div class="rd-route" style="margin-top:2px;"><strong>${cargo.stationFrom || manifest.from || '—'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || manifest.to || '—'}</strong></div>
-        <div style="font-size:11px; color:#64748b; margin-top:2px;">Đến trạm: ${manifest.arrivedAt || '—'}</div>
       </td>
       <td>
         <div class="rd-people">
@@ -259,6 +274,10 @@ function buildRow(cargo, index) {
         ${Number(cargo.codAmount || 0) > 0 ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">COD cần thu: <strong style="color:#0f172a;">${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</strong></div>` : ''}
         ${isDone && Number(cargo.codCollected || 0) > 0 ? `<div style="margin-top:3px;"><span class="mini-tag" style="color:#15803d; border-color:#86efac; background:#f0fdf4;">Đã thu: ${Number(cargo.codCollected).toLocaleString('vi-VN')}đ</span></div>` : ''}
       </td>
+      <td style="vertical-align:middle;">
+        <div style="font-size:11.5px; color:#475569; white-space:nowrap;">Nhận: <strong style="color:#0f172a;">${cargo.transferTime || '—'}</strong></div>
+        <div style="font-size:11.5px; color:#475569; margin-top:4px; white-space:nowrap;">Giao: <strong style="color:#0f172a;">${cargo.deliveredAt || cargo.pickedUpAt || '—'}</strong></div>
+      </td>
       <td style="text-align:center;">
         ${statusBadgeHtml(cargo)}
         ${cargo.deliveryFailReason && (cargo.deliveryStatus === 'that-bai' || cargo.deliveryStatus === 'hen-lai') ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;" title="${cargo.deliveryFailReason}">${cargo.deliveryFailReason}</div>` : ''}
@@ -270,9 +289,6 @@ function buildRow(cargo, index) {
           </button>` : ''}
           <button class="rowicon-btn" onclick="openDeliveryDetailModal(${cargo.id})" title="Xem chi tiết">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-          <button class="rowicon-btn" onclick="openAssignDeliveryModal(${cargo.id})" title="Cập nhật giao hàng">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           ${canDelete ? `<button class="rowicon-btn rowicon-btn--danger" onclick="deleteDeliveryOrder(${cargo.id})" title="Xóa">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -317,7 +333,7 @@ function renderTable() {
   const rows = getFilteredList();
   tbody.innerHTML = rows.length
     ? rows.map((c, i) => buildRow(c, i)).join('')
-    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
+    : '<tr><td colspan="10" style="text-align:center;padding:24px;color:#6b7280;">Chưa có hàng hóa trong danh sách giao hàng.</td></tr>';
 
   document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBatchAssignButton));
   const selectAll = document.getElementById('selectAllCheckbox');
@@ -460,7 +476,13 @@ window.openAssignDeliveryModal = function (id) {
   if (staffInput) staffInput.value = cargo.deliveryStaff || cargo.staff || 'NV Giao Hàng';
   const staffPhoneInput = document.getElementById('assignStaffPhone');
   if (staffPhoneInput) staffPhoneInput.value = cargo.deliveryStaffPhone || '';
-  document.getElementById('assignStatus').value = cargo.deliveryStatus || 'cho-giao';
+  const statusSelect = document.getElementById('assignStatus');
+  statusSelect.value = cargo.deliveryStatus || 'cho-giao';
+  const isLocked = cargo.deliveryStatus === 'da-giao';
+  statusSelect.disabled = isLocked;
+  statusSelect.style.opacity = isLocked ? '0.6' : '';
+  statusSelect.style.cursor = isLocked ? 'not-allowed' : '';
+  statusSelect.title = isLocked ? 'Đơn đã giao, không thể thay đổi trạng thái' : '';
   document.getElementById('assignCodCollected').value = cargo.codCollected || cargo.codAmount || '';
   document.getElementById('assignReason').value = cargo.deliveryFailReason || '';
   updateAssignFormVisibility();
@@ -663,13 +685,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (stationToEl && window.HueNghiaStations) {
     window.HueNghiaStations.populateStationDropdowns(stationToEl, 'all', true, 'Tất cả trạm nhận');
   }
+  const stationFromEl = document.getElementById('filterStationFrom');
+  if (stationFromEl && window.HueNghiaStations) {
+    window.HueNghiaStations.populateStationDropdowns(stationFromEl, 'all', true, 'Tất cả trạm gửi');
+  }
 
   renderTable();
 
-  const filterIds = ['filterDeliveryDate', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory'];
+  const filterIds = ['filterDeliveryDate', 'filterStationFrom', 'filterDeliveryStatus', 'filterStationTo', 'filterDeliveryStaff', 'filterDeliveryCategory', 'filterDeliveryPhone', 'filterDeliverySender', 'filterDeliveryReceiver'];
   filterIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('change', renderTable);
+    if (el) {
+      el.addEventListener('change', renderTable);
+      el.addEventListener('input', renderTable);
+    }
   });
 
   // Tab lọc nhanh ở sidebar (Tất cả/Hàng hóa/Tiền thường/Tiền nóng) chỉ đổi UI/URL

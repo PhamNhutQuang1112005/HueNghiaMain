@@ -9,7 +9,7 @@
 /* filter-grid mặc định (cargo.css) có 5 track cho 4 filter + nút Lọc của trang Nhận hàng;
    trang Giao hàng có 5 filter + nút Lọc = 6 ô, cần thêm 1 track. */
 .filter-grid--delivery {
-  grid-template-columns: minmax(130px, 1fr) minmax(150px, 1.1fr) minmax(150px, 1.1fr) minmax(150px, 1.1fr) minmax(140px, 1fr) auto;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(130px, 1.1fr) minmax(130px, 1.1fr) minmax(130px, 1.1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
 }
 @media (max-width: 1100px) {
   .filter-grid--delivery {

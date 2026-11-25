@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="css/responsive.css" />
 <link rel="stylesheet" href="../../shared/css/search-select.css?v=1">
 </head>
-<body class="rd-page rd-no-stt">
+<body class="rd-page">
   <div class="app-shell">
     <!-- Top Header (Chứa Logo Huệ Nghĩa + Ô tìm kiếm căn trái + User Chip) -->
     <header class="page-header">
@@ -267,7 +267,6 @@
           <div>
             <p class="eyebrow">Giao hàng</p>
             <h1>Danh sách giao hàng</h1>
-            <p class="page-sub">Theo dõi và cập nhật các đơn hàng cần giao đến người nhận.</p>
           </div>
           <div class="toolbar-actions" style="display:flex; align-items:center; gap:10px;">
             <button type="button" class="primary-btn" id="batchAssignBtn" style="display:none;">Đã giao (<span id="selectedCount">0</span>)</button>
@@ -283,6 +282,12 @@
           <label>
             <span>Ngày giao</span>
             <input type="date" id="filterDeliveryDate" />
+          </label>
+          <label>
+            <span>Trạm gửi</span>
+            <select id="filterStationFrom">
+              <option value="all">Tất cả trạm gửi</option>
+            </select>
           </label>
           <label>
             <span>Trạng thái giao hàng</span>
@@ -339,6 +344,18 @@
               <option value="baga">Baga</option>
             </select>
           </label>
+          <label>
+            <span>Người gửi</span>
+            <input type="text" id="filterDeliverySender" placeholder="Tìm tên người gửi..." />
+          </label>
+          <label>
+            <span>Người nhận</span>
+            <input type="text" id="filterDeliveryReceiver" placeholder="Tìm tên người nhận..." />
+          </label>
+          <label>
+            <span>SĐT người gửi / nhận</span>
+            <input type="text" id="filterDeliveryPhone" placeholder="Nhập số điện thoại..." />
+          </label>
           <div class="filter-submit-wrap">
             <button type="button" class="filter-submit-btn" id="applyFilterBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -358,9 +375,11 @@
                 <th style="width: 36px; text-align: center;">STT</th>
                 <th style="width: 100px; text-align: center;">Mã đơn</th>
                 <th style="min-width: 160px;">Hàng hóa</th>
+                <th style="width: 80px; text-align: center; white-space: nowrap;">Số lượng</th>
                 <th style="min-width: 160px;">Chuyến xe</th>
                 <th style="min-width: 170px;">Người gửi / Người nhận</th>
                 <th style="min-width: 140px;">COD & Cước</th>
+                <th style="min-width: 130px; white-space: nowrap;">Thời gian</th>
                 <th style="width: 130px; text-align: center;">Trạng thái</th>
                 <th style="width: 150px; text-align: center;">Hành động</th>
               </tr>

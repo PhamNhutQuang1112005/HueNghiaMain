@@ -141,15 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Cập nhật mục cuối breadcrumb theo tên bộ lọc trạng thái đang chọn (Tất cả/Hàng hóa/Tiền
-  // thưởng/Tiền nóng/Baga) — giữ nguyên tiêu đề trang mặc định khi đang ở "Tất cả".
-  const FILTER_BC_LABELS = { goods: 'Hàng hóa', cash: 'Tiền thường', partner_cash: 'Bạn hàng gửi tiền thường', hot: 'Tiền nóng', baga: 'Baga', cod: 'Đơn COD', overdue: 'Hàng quá hạn' };
-  const bcCurrentEl = document.querySelector('.page-breadcrumb .bc-current');
-  const defaultBcLabel = bcCurrentEl ? bcCurrentEl.textContent : '';
-  function updateFilterBreadcrumb(val) {
-    if (!bcCurrentEl) return;
-    bcCurrentEl.textContent = FILTER_BC_LABELS[val] || defaultBcLabel;
-  }
+  // Breadcrumb giữ nguyên tên trang, không đổi theo filter đang chọn.
+  function updateFilterBreadcrumb(val) { /* không làm gì */ }
 
   // Sync radio button status options if clicked in sidebar or main area
   const urlFilter = new URLSearchParams(window.location.search).get('filter');

@@ -676,12 +676,16 @@ function getFilteredData() {
   const filterDirectionEl = document.getElementById('filterDirection');
   const filterFromEl = document.getElementById('filterFrom');
   const filterToEl = document.getElementById('filterTo');
+  const filterSenderEl = document.getElementById('filterSender');
+  const filterReceiverEl = document.getElementById('filterReceiver');
 
   const searchText = globalSearchEl ? globalSearchEl.value.trim().toLowerCase() : '';
   const dateVal = filterDateEl ? filterDateEl.value : '';
   const dirVal = filterDirectionEl ? filterDirectionEl.value : 'all';
   const from = filterFromEl ? filterFromEl.value : 'all';
   const to = filterToEl ? filterToEl.value : 'all';
+  const senderText = filterSenderEl ? filterSenderEl.value.trim() : '';
+  const receiverText = filterReceiverEl ? filterReceiverEl.value.trim() : '';
   
   let dateFormatted = '';
   const now = new Date();
@@ -745,6 +749,8 @@ function getFilteredData() {
     }
 
     const matchesSearch = !searchText || [row.name, row.code, row.sender, row.senderPhone, row.receiver, row.receiverPhone, row.stationFrom, row.stationTo, row.staff].some((val) => (val || '').toLowerCase().includes(searchText));
+    const matchesSender = !senderText || (row.sender || '').toLowerCase().includes(senderText.toLowerCase());
+    const matchesReceiver = !receiverText || (row.receiver || '').toLowerCase().includes(receiverText.toLowerCase());
     const matchesFrom = from === 'all' || (row.stationFrom || '').toLowerCase().includes(from.toLowerCase());
     const matchesTo = to === 'all' || (row.stationTo || '').toLowerCase().includes(to.toLowerCase());
 
@@ -754,7 +760,7 @@ function getFilteredData() {
       rowTime.includes(dateVal) || 
       (isTodaySelected && (rowTime.includes('Vừa tạo') || rowTime.includes(todayFormatted)));
 
-    return matchesCategory && matchesDirection && matchesSearch && matchesFrom && matchesTo && matchesDate;
+    return matchesCategory && matchesDirection && matchesSearch && matchesSender && matchesReceiver && matchesFrom && matchesTo && matchesDate;
   });
 }
 
@@ -832,7 +838,10 @@ function renderTable() {
             </td>
             <td>
               <div class="rd-route"><strong>${fromSt}</strong><span class="rd-route-arrow">➔</span><strong>${toSt}</strong></div>
-              <div style="font-size:13px; color:#64748b; margin-top:3px;">${row.transferTime || 'Vừa tạo'} • NV: ${row.staff || 'Nhiên'}</div>
+            </td>
+            <td style="vertical-align:middle;">
+              <div style="font-size:13px; color:#0f172a; font-weight:600;">${row.transferTime || 'Vừa tạo'}</div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:3px;">NV: ${row.staff || 'Nhiên'}</div>
             </td>
             <td>
               <div class="rd-people">
@@ -888,7 +897,7 @@ function renderTable() {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+    : '<tr><td colspan="10" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
 
   updateBatchTransferButton();
 }
@@ -1627,7 +1636,7 @@ document.querySelectorAll('input[name="paymentPaid"]').forEach(radio => {
 
 if (momoBtn) momoBtn.addEventListener('click', () => showToast('Mã QR MoMo đã được khởi tạo'));
 
-['globalSearch', 'filterDate', 'filterDirection', 'filterFrom', 'filterTo', 'filterStatus'].forEach((id) => {
+['globalSearch', 'filterDate', 'filterDirection', 'filterFrom', 'filterTo', 'filterStatus', 'filterSender', 'filterReceiver'].forEach((id) => {
   const el = document.getElementById(id);
   if (el) {
     if (id === 'filterDirection') {

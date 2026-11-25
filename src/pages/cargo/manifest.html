@@ -280,9 +280,8 @@
         <section class="toolbar">
           <div class="toolbar-head">
             <div>
-              <p class="eyebrow">Quản lý phơi</p>
-              <h1>Danh sách phơi hàng</h1>
-            <p class="page-sub">Quản lý các phơi hàng theo từng xe và tuyến.</p>
+              <p class="eyebrow">Nhận hàng</p>
+              <h1>Danh sách chuyến xe đi</h1>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <button type="button" class="ghost-btn" id="filterBtn">Lọc</button>
@@ -362,7 +361,6 @@
             <div>
               <p class="eyebrow">Vận chuyển & Nhập bến</p>
               <h1>Danh sách chuyến xe đến</h1>
-              <p class="page-sub">Nhấn "Nhận xe" để xác nhận xe vào bến & chuyển các đơn sang danh sách giao hàng.</p>
             </div>
             <input type="text" id="searchReceiveManifest" oninput="renderReceiveTable()" placeholder="Tìm biển số, tên phơi, tài xế..." style="padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius-md); font-size:13.5px; width:260px;" />
           </div>
@@ -402,7 +400,6 @@
             <div>
               <p class="eyebrow" style="color:#2563eb;">Trả hàng cho khách</p>
               <h1>Danh sách giao hàng</h1>
-              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Nhấn <strong>"Giao hàng"</strong> để hoàn tất & tự động in Biên lai cho khách hàng.</p>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <input type="text" id="searchDeliveryCargo" oninput="renderDeliveryTable()" placeholder="Tìm mã đơn, tên hàng, SĐT người nhận..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
@@ -437,10 +434,15 @@
             <div>
               <p class="eyebrow" id="unreceivedEyebrow">Vận chuyển & Hàng chưa nhận</p>
               <h1 id="unreceivedTitle">Danh sách hàng chưa giao</h1>
-              <p class="page-sub">Các đơn hàng có trong phơi xe xuất bến nhưng chưa quét/chưa nhận khi xe cập bến. Nhấn dấu tích ở cột hành động khi đơn hàng cập bến sau.</p>
-            </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <input type="text" id="searchUnreceivedCargo" oninput="renderUnreceivedTable()" placeholder="Tìm mã đơn, tên hàng, biển số xe..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
+              <div style="display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;">
+                <input type="text" id="searchUnreceivedCargo" oninput="renderUnreceivedTable()" placeholder="Tìm mã đơn, tên hàng, SĐT người gửi/nhận..." style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; width:280px; height:36px;" />
+                <select id="filterUnreceivedFrom" onchange="renderUnreceivedTable()" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:white; height:36px; min-width:150px;">
+                  <option value="all">Tất cả trạm gửi</option>
+                </select>
+                <select id="filterUnreceivedTo" onchange="renderUnreceivedTable()" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:white; height:36px; min-width:150px;">
+                  <option value="all">Tất cả trạm nhận</option>
+                </select>
+              </div>
             </div>
           </div>
         </section>
@@ -1985,7 +1987,7 @@
           const orderCount = manifestCargos.length;
           const scannedCount = manifestCargos.filter(c => c.isScanned).length; // đã quét nhận lên xe
           return `
-          <tr class="plate-child" data-grp="${key}" ${open ? '' : 'hidden'}>
+          <tr class="plate-child" data-grp="${key}" data-manifest-id="${row.id}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
             <td style="text-align:center;"><strong>${index + 1}</strong></td>
             <td>
@@ -2322,6 +2324,29 @@
       const btnManifests = document.getElementById('tabManifestsBtn');
       const btnReceive = document.getElementById('tabReceiveBtn');
       const btnDelivery = document.getElementById('tabDeliveryBtn');
+
+      // Cập nhật eyebrow + h1 theo tab đang xem
+      const tabTitles = {
+        manifests: { eyebrow: 'Nhận hàng', h1: 'Danh sách chuyến xe đi' },
+        receive:   { eyebrow: 'Vận chuyển & Nhập bến', h1: 'Danh sách chuyến xe đến' },
+        delivery:  { eyebrow: 'Trả hàng cho khách', h1: 'Danh sách giao hàng' },
+        unreceived:{ eyebrow: 'Vận chuyển & Hàng chưa nhận', h1: 'Danh sách hàng chưa giao' },
+        missing:   { eyebrow: 'Chuyến xe đi & Thiếu hàng', h1: 'Hàng thiếu trong danh sách chuyến xe đi' }
+      };
+      const tt = tabTitles[tabName];
+      if (tt) {
+        const ew = document.querySelector('#viewManifestsSection .eyebrow, #viewReceiveSection .eyebrow, #viewDeliverySection .eyebrow, #viewUnreceivedSection .eyebrow, .toolbar .eyebrow');
+        const h1s = document.querySelectorAll('.toolbar h1, #viewManifestsSection h1, #viewReceiveSection h1, #viewDeliverySection h1, #viewUnreceivedSection h1');
+        // Cập nhật eyebrow và h1 của section đang hiện
+        const sectionId = { manifests: 'viewManifestsSection', receive: 'viewReceiveSection', delivery: 'viewDeliverySection', unreceived: 'viewUnreceivedSection', missing: 'viewUnreceivedSection' }[tabName];
+        const sec = document.getElementById(sectionId);
+        if (sec) {
+          const secEw = sec.querySelector('.eyebrow');
+          const secH1 = sec.querySelector('h1');
+          if (secEw && tabName !== 'unreceived' && tabName !== 'missing') secEw.textContent = tt.eyebrow;
+          if (secH1 && tabName !== 'unreceived' && tabName !== 'missing') secH1.textContent = tt.h1;
+        }
+      }
 
       const secManifests = document.getElementById('viewManifestsSection');
       const secReceive = document.getElementById('viewReceiveSection');
@@ -2785,6 +2810,8 @@
       const cargos = loadCargos();
       const tbody = document.getElementById('unreceivedTableBody');
       const query = (document.getElementById('searchUnreceivedCargo')?.value || '').toLowerCase().trim();
+      const filterFrom = (document.getElementById('filterUnreceivedFrom')?.value || 'all');
+      const filterTo = (document.getElementById('filterUnreceivedTo')?.value || 'all');
 
       if (!tbody) return;
 
@@ -2795,12 +2822,31 @@
 
       let filtered = cargos.filter(missing ? isCargoMissing : isCargoUnreceived);
 
+      // Điền option trạm gửi/nhận động từ đúng danh sách đơn đang hiển thị (trước khi lọc thêm).
+      const fillSelect = (selId, label, valFn) => {
+        const el = document.getElementById(selId);
+        if (!el) return;
+        const cur = el.value;
+        const vals = [...new Set(filtered.map(valFn).filter(Boolean))].sort();
+        el.innerHTML = `<option value="all">${label}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+        el.value = vals.includes(cur) ? cur : 'all';
+      };
+      fillSelect('filterUnreceivedFrom', 'Tất cả trạm gửi', c => c.stationFrom);
+      fillSelect('filterUnreceivedTo', 'Tất cả trạm nhận', c => c.stationTo);
+
+      if (filterFrom !== 'all') filtered = filtered.filter(c => (c.stationFrom || '') === filterFrom);
+      if (filterTo !== 'all') filtered = filtered.filter(c => (c.stationTo || '') === filterTo);
+
       if (query) {
-        filtered = filtered.filter(c => 
+        filtered = filtered.filter(c =>
           (c.code || '').sIncludes(query) ||
           (c.name || '').sIncludes(query) ||
+          (c.sender || '').sIncludes(query) ||
+          (c.senderPhone || '').sIncludes(query) ||
           (c.receiver || '').sIncludes(query) ||
-          (c.receiverPhone || '').sIncludes(query)
+          (c.receiverPhone || '').sIncludes(query) ||
+          (c.stationFrom || '').sIncludes(query) ||
+          (c.stationTo || '').sIncludes(query)
         );
       }
 
@@ -2844,6 +2890,9 @@
                 <button type="button" class="btn-receive-all" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Bổ sung &amp; Nhận hàng: chọn phơi rồi nhận bổ sung đơn này" aria-label="Bổ sung và nhận hàng">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 </button>
+                ${missing ? `<button type="button" class="rowicon-btn" onclick="removeFromMissing(${cargo.id})" title="Gỡ khỏi danh sách hàng thiếu — đơn trở về Nhận hàng" aria-label="Gỡ khỏi hàng thiếu" style="color:#d97706;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+                </button>` : ''}
               </div>
             </td>
           </tr>
@@ -2909,6 +2958,24 @@
     }
 
     window.receiveSingleUnreceivedCargo = function(cargoId) { openAssignPhoiModal([cargoId]); };
+
+    // Gỡ đơn khỏi danh sách hàng thiếu: hủy gán phơi xe → đơn trở về ds nhận hàng (cargo.html).
+    window.removeFromMissing = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+      const code = cargo.code || cargoId;
+      if (!confirm(`Gỡ đơn "${code}" khỏi danh sách hàng thiếu?\nĐơn sẽ trở về danh sách Nhận hàng và cần được xếp vào phơi lại.`)) return;
+      cargo.manifestId = null;
+      cargo.status = '';
+      cargo.statusText = '';
+      cargo.isScanned = false;
+      saveCargos(cargos);
+      selectedUnreceivedIds.delete(Number(cargoId));
+      showToast(`↩ Đã gỡ ${code} về danh sách nhận hàng.`);
+      renderUnreceivedTable();
+      updateTabBadges();
+    };
 
     window.confirmAssignPhoi = function() {
       const phoiId = document.getElementById('assignPhoiSelect').value;
@@ -3488,12 +3555,32 @@
     // Check URL query parameters for active tab
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab');
+    const targetManifestId = urlParams.get('manifestId');
     const manifestsEntryGrouped = initialTab === 'manifests';
     if (initialTab && (initialTab === 'receive' || initialTab === 'delivery' || initialTab === 'manifests' || initialTab === 'unreceived' || initialTab === 'missing')) {
       switchManifestTab(initialTab);
     } else {
       renderManifestTable();
       renderManifestBreadcrumb('manifests');
+    }
+
+    // Scroll & highlight phơi được link tới từ trang giao hàng
+    if (targetManifestId) {
+      setTimeout(() => {
+        const targetRow = manifestTableBody.querySelector(`tr[data-manifest-id="${targetManifestId}"]`);
+        if (targetRow) {
+          // Mở nhóm nếu đang bị ẩn
+          if (targetRow.hidden) {
+            const grpKey = targetRow.dataset.grp;
+            const groupHead = manifestTableBody.querySelector(`.plate-group[data-grp="${grpKey}"]`);
+            if (groupHead) groupHead.click();
+          }
+          targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetRow.style.transition = 'background 0.3s';
+          targetRow.style.background = '#fef9c3';
+          setTimeout(() => { targetRow.style.background = ''; }, 2500);
+        }
+      }, 150);
     }
 
     if (initialTab === 'receive') {

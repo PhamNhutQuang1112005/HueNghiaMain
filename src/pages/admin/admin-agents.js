@@ -150,14 +150,14 @@ function renderAgentStatsView() {
     return '<option value="' + esc(a.id) + '"' + (a.id === f.agentId ? ' selected' : '') + '>' + esc(a.name) + '</option>';
   }).join('');
 
-  var summaryRows = Object.keys(byAgent).map(function (id) {
+  var summaryRows = Object.keys(byAgent).map(function (id, i) {
     var g = byAgent[id];
-    return '<tr><td><b>' + esc(g.name || '—') + '</b></td>' +
+    return '<tr><td class="num">' + (i + 1) + '</td><td><b>' + esc(g.name || '—') + '</b></td>' +
       '<td class="mono" style="text-align:center;">' + g.trips + '</td>' +
       '<td class="mono" style="text-align:center;">' + g.tickets + '</td>' +
       '<td class="mono" style="text-align:center;">' + g.sold + '</td>' +
       '<td style="text-align:right; font-weight:800;">' + fmtMoney(g.revenue) + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" class="empty-state">Chưa có vé nào của đại lý.</td></tr>';
+  }).join('') || '<tr><td colspan="6" class="empty-state">Chưa có vé nào của đại lý.</td></tr>';
 
   var detailRows = rows.map(function (r, i) {
     var t = r.trip;
@@ -182,7 +182,7 @@ function renderAgentStatsView() {
   var tabContent = currentTab === 'summary'
     ? '<div class="sd-section-block">' +
         '<div class="sd-table-wrap"><table class="admin-table">' +
-          '<thead><tr><th>Đại lý</th><th style="text-align:center;">Số phơi</th><th style="text-align:center;">Số vé</th><th style="text-align:center;">Vé đã bán</th><th style="text-align:right;">Doanh thu</th></tr></thead>' +
+          '<thead><tr><th class="num">STT</th><th>Đại lý</th><th style="text-align:center;">Số phơi</th><th style="text-align:center;">Số vé</th><th style="text-align:center;">Vé đã bán</th><th style="text-align:right;">Doanh thu</th></tr></thead>' +
           '<tbody>' + summaryRows + '</tbody></table></div>' +
       '</div>'
     : '<div class="sd-section-block">' +
