@@ -442,8 +442,8 @@
                   <th style="width:45px; text-align:center;">STT</th>
                   <th style="width:110px; text-align:center;">Mã đơn</th>
                   <th>Tên hàng</th>
-                  <th>Phơi xe & Tuyến đường</th>
                   <th>Người gửi ➔ Người nhận</th>
+                  <th>Phơi xe & Tuyến đường</th>
                   <th>Cước phí & COD</th>
                   <th style="text-align:center;">Trạng thái</th>
                   <th style="text-align:center;">Hành động</th>
@@ -2858,12 +2858,12 @@
             <td style="text-align:center;"><code>${cargo.code || ''}</code></td>
             <td><strong class="cargo-name">${cargo.name || 'Hàng hóa'}</strong></td>
             <td>
-              <div style="font-weight:700; color:#1e293b;">${manifestText}</div>
-              <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || manifest?.from || '---'} ➔ ${cargo.stationTo || manifest?.to || '---'}</small>
-            </td>
-            <td>
               <div style="font-weight:600; color:#1e293b;">${cargo.sender || ''} <small style="color:var(--text-muted);">(${cargo.senderPhone || ''})</small></div>
               <div style="font-weight:700; color:#0f172a;">➔ ${cargo.receiver || ''} <small style="color:var(--text-muted);">(${cargo.receiverPhone || ''})</small></div>
+            </td>
+            <td>
+              <div style="font-weight:700; color:#1e293b;">${manifestText}</div>
+              <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || manifest?.from || '---'} ➔ ${cargo.stationTo || manifest?.to || '---'}</small>
             </td>
             <td>
               <strong>${feeStr}</strong>${codStr}

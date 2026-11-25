@@ -274,25 +274,9 @@
 
         <div class="filter-grid filter-grid--delivery">
           <label>
-            <span>Ngày giao</span>
-            <input type="date" id="filterDeliveryDate" />
-          </label>
-          <label>
             <span>Trạm gửi</span>
             <select id="filterStationFrom">
               <option value="all">Tất cả trạm gửi</option>
-            </select>
-          </label>
-          <label>
-            <span>Trạng thái giao hàng</span>
-            <select id="filterDeliveryStatus">
-              <option value="all">Tất cả trạng thái</option>
-              <option value="cho-giao">Chờ giao</option>
-              <option value="dang-giao">Đang giao</option>
-              <option value="da-giao">Đã giao</option>
-              <option value="that-bai">Giao không thành công</option>
-              <option value="hen-lai">Hẹn giao lại</option>
-              <option value="da-hoan">Đã hoàn</option>
             </select>
           </label>
           <label>
@@ -328,17 +312,6 @@
             </select>
           </label>
           <label>
-            <span>Loại hàng</span>
-            <select id="filterDeliveryCategory">
-              <option value="all">Tất cả loại hàng</option>
-              <option value="goods">Hàng hóa</option>
-              <option value="cash">Tiền thường</option>
-              <option value="partner_cash">Bạn hàng gửi tiền thường</option>
-              <option value="hot">Tiền nóng</option>
-              <option value="baga">Baga</option>
-            </select>
-          </label>
-          <label>
             <span>Người gửi</span>
             <input type="text" id="filterDeliverySender" placeholder="Tìm tên người gửi..." />
           </label>
@@ -349,6 +322,33 @@
           <label>
             <span>SĐT người gửi / nhận</span>
             <input type="text" id="filterDeliveryPhone" placeholder="Nhập số điện thoại..." />
+          </label>
+          <label>
+            <span>Ngày giao</span>
+            <input type="date" id="filterDeliveryDate" />
+          </label>
+          <label>
+            <span>Trạng thái giao hàng</span>
+            <select id="filterDeliveryStatus">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="cho-giao">Chờ giao</option>
+              <option value="dang-giao">Đang giao</option>
+              <option value="da-giao">Đã giao</option>
+              <option value="that-bai">Giao không thành công</option>
+              <option value="hen-lai">Hẹn giao lại</option>
+              <option value="da-hoan">Đã hoàn</option>
+            </select>
+          </label>
+          <label>
+            <span>Loại hàng</span>
+            <select id="filterDeliveryCategory">
+              <option value="all">Tất cả loại hàng</option>
+              <option value="goods">Hàng hóa</option>
+              <option value="cash">Tiền thường</option>
+              <option value="partner_cash">Bạn hàng gửi tiền thường</option>
+              <option value="hot">Tiền nóng</option>
+              <option value="baga">Baga</option>
+            </select>
           </label>
           <div class="filter-submit-wrap">
             <button type="button" class="filter-submit-btn" id="applyFilterBtn">
