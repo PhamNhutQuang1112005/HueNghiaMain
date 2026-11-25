@@ -125,7 +125,6 @@
       card('Chờ chuyển vào phơi', d.waitSend.length, d.overdue.length ? d.overdue.length + ' đơn quá hạn' : 'Không có đơn quá hạn', 'clock', 'amber', 'cargo.html'),
       card('Xe sắp đến trạm', d.arriving.length, d.inbound.length + ' phơi đi tới trạm', 'truck', 'blue', 'manifest.html?tab=receive'),
       card('Chờ giao tại trạm', d.waitDeliver.length, 'COD cần thu ' + money(d.codOwed), 'check', 'green', 'delivery.html'),
-      card('Hàng chưa giao', d.unreceived.length, 'Có trong phơi nhưng chưa quét', 'alert', 'red', 'manifest.html?tab=unreceived'),
       card('COD đã thu', money(d.codCollected), d.delivered.length + ' đơn đã giao', 'cash', 'green', 'cod.html')
     ].join('');
 
@@ -138,7 +137,6 @@
 
     var todo = [];
     d.overdue.forEach(function (c) { todo.push({ c: c, tag: 'Quá hạn', cls: 'late', href: 'cargo.html?filter=overdue' }); });
-    d.unreceived.forEach(function (c) { todo.push({ c: c, tag: 'Chưa nhận từ phơi', cls: 'warn', href: 'manifest.html?tab=unreceived' }); });
     d.waitDeliver.filter(function (c) { return Number(c.codAmount) > 0; }).forEach(function (c) { todo.push({ c: c, tag: 'COD ' + money(c.codAmount), cls: 'info', href: 'delivery.html' }); });
     $('dashTodo').innerHTML = listRows(todo.slice(0, 6).map(function (t) {
       return '<a class="dash-row" href="' + t.href + '"><div><strong>' + esc(t.c.code) + ' · ' + esc((t.c.name || '').replace(/🧳/g, '').trim()) + '</strong>' +

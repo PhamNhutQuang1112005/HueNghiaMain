@@ -2382,13 +2382,14 @@
 
 .phoi-card-meta {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 8px 6px;
   padding: 10px 12px;
   margin-top: 8px;
   border-top: 1px solid var(--surface);
 }
 
-.phoi-card-meta-item { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
+.phoi-card-meta-item { display: flex; flex-direction: column; gap: 2px; flex: 1 1 calc(33% - 6px); min-width: 0; }
 .phoi-card-meta-item label { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; color: var(--text-sub); font-weight: 700; }
 .phoi-card-meta-item span { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

@@ -106,7 +106,6 @@ function isManifestArrived(manifest) {
 /* Hiển thị tất cả hàng hóa đã nhận sang Danh sách giao hàng (loại trừ hàng chưa nhận từ phơi) */
 function isEligibleForDelivery(cargo) {
   if (!cargo) return false;
-  // Chỉ hàng đã quét QR nhận hàng mới vào danh sách giao; chưa quét thì nằm ở "Hàng chưa giao".
   return !!cargo.isScanned && cargo.status !== 'unreceived' && !cargo.isUnreceived;
 }
 

@@ -11,7 +11,7 @@ Bán vé / Quản trị.
 src/pages/cargo/
 ├─ cargo.html       Nhập hàng, danh sách lô hàng, lập vận đơn Baga
 ├─ delivery.html    Giao hàng, gán hàng vào phơi xe
-├─ manifest.html    Quản lý phơi hàng (tạo phơi, đặt lại từ phơi cũ), xe đến, hàng chưa giao
+├─ manifest.html    Quản lý phơi hàng (tạo phơi, đặt lại từ phơi cũ) và xe đến
 ├─ cod.html         Đối soát tiền thu hộ (COD) giữa các chi nhánh
 ├─ returned.html    Hàng trả về, chuyển lại vào phơi khác
 ├─ ket-ca.html      Kết ca: báo cáo nhận hàng + giao hàng theo ca, trên 1 trang

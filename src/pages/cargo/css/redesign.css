@@ -419,7 +419,9 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 
 .rd-page .plate-group { background: #fafbfb; }
 .rd-page .plate-group:hover { background: #f4f5f7; }
-.rd-page .plate-group td { padding: 10px 17px; border-top: 1px solid #eceef0; }
+.rd-page .plate-group td { padding: 12px 6px; border-top: 1px solid #eceef0; vertical-align: middle !important; }
+.rd-page .plate-group td:first-child { padding-left: 14px; }
+.rd-page .plate-group td:last-child { padding-right: 10px; }
 .rd-page .plate-group .pg-plate { font-size: 14px; font-weight: 800; color: var(--rd-ink); }
 .rd-page .plate-group .pg-chevron { color: #8a93a2; }
 .rd-page .plate-group .pg-count { padding: 2px 9px; color: var(--rd-red); background: #fff0f0; font-size: 11px; }
@@ -480,7 +482,6 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 .app-shell .app-sidebar .group-children .sidebar-nav-item .nav-item-content { gap: 8px; }
 
 /* =========================================================
-   HÀNG CHƯA GIAO / HÀNG THIẾU (manifest.html, #unreceivedTableBody) — cùng kiểu bảng giao hàng
    ========================================================= */
 #unreceivedTableBody .cargo-name { font-size: 13.5px; font-weight: 700; color: #252e3b; }
 #unreceivedTableBody .rd-people { max-width: none; }
@@ -633,7 +634,7 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 #cargoTableBody .rd-item-body > div[style*="color:#475569"] { color: #1f2937 !important; font-size: 12.5px !important; font-weight: 600 !important; line-height: 1.4; }
 .rd-page .rd-phoi-code { color: #1f2937; font-size: 12.5px; font-weight: 600; letter-spacing: 0; line-height: 1.4; }
 
-/* Nút hàng loạt ở Hàng chưa giao: gọn như các nút hàng loạt khác, nhạt khi chưa chọn đơn nào */
+/* Nút hàng loạt ở danh sách hàng thiếu: gọn như các nút hàng loạt khác, nhạt khi chưa chọn đơn nào */
 .rd-page #batchAssignUnreceivedBtn { min-height: 34px; font-size: 12px; box-shadow: none; }
 .rd-page #batchAssignUnreceivedBtn:disabled { opacity: .5; transform: none; cursor: default; }
 

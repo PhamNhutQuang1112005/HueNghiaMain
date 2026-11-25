@@ -445,7 +445,9 @@ table {
 .plate-group { cursor: pointer; background: #f1f5f9; transition: background .15s; }
 .plate-group:hover { background: #e8eef7; }
 .plate-group:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-.plate-group td { padding: 10px 14px; border-top: 1px solid var(--border); }
+.plate-group td { padding: 10px 6px; border-top: 1px solid var(--border); vertical-align: middle !important; }
+.plate-group td:first-child { padding-left: 14px; }
+.plate-group td:last-child { padding-right: 10px; }
 .plate-group.open td { border-bottom: 1px solid var(--border); }
 .plate-group .pg-chevron { display: inline-flex; vertical-align: middle; margin-right: 8px; color: var(--primary); transition: transform .2s ease; }
 .plate-group.open .pg-chevron { transform: rotate(90deg); }
@@ -458,3 +460,7 @@ table {
 .plate-group .pg-del { margin-left: 10px; display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 3px 10px; border: 1px solid #fca5a5; border-radius: 999px; background: #fff; color: #b91c1c; font-size: 12px; font-weight: 700; cursor: pointer; vertical-align: middle; transition: background .15s, color .15s; }
 .plate-group .pg-del:hover { background: #b91c1c; color: #fff; }
 .plate-group .pg-del:focus-visible { outline: 2px solid #b91c1c; outline-offset: 2px; }
+
+/* Thông tin chung của nhóm xe (tài xế, loại xe, phụ xe, giờ, nhân viên) hiển thị trên dòng biển số */
+.plate-group .pg-meta-group { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-left: 12px; vertical-align: middle; }
+.plate-group .pg-meta-item { display: inline-flex; align-items: center; font-size: 12px; color: #4b5563; font-weight: 600; padding: 2px 8px; background: #f1f5f9; border-radius: 999px; white-space: nowrap; gap: 2px; }

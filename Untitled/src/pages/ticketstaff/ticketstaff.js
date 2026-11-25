@@ -4940,6 +4940,17 @@ function renderTable(trips) {
       emptyCount = totalCount;
     }
 
+    // Thông tin bổ sung: tài xế, phụ xe, tổng hàng (ghế đã bán/đặt), tổng tiền
+    const driverName = (plan && plan.driver) || '—';
+    const helperName = (plan && plan.helper) || '—';
+    const allPlanSeats = plan
+      ? [...(plan.down || []), ...(plan.up || []), ...(plan.subSeats || []), ...(plan.extraSeats || [])]
+      : [];
+    const bookedCount = allPlanSeats.filter(s => ['sold', 'hold', 'free', 'cargo'].includes(s.state)).length;
+    const totalRevenue = allPlanSeats
+      .filter(s => ['sold', 'hold', 'cargo'].includes(s.state))
+      .reduce((sum, s) => sum + (s.price || 0), 0);
+
     let formattedDate = '';
     if (t.date && typeof t.date === 'string') {
       const parts = t.date.split('-');
@@ -5032,8 +5043,24 @@ function renderTable(trips) {
           <span>${(plan && plan.vehicleType) || t.vehicleType || '—'}</span>
         </div>
         <div class="phoi-card-meta-item">
+          <label>Tài xế</label>
+          <span>${driverName}</span>
+        </div>
+        <div class="phoi-card-meta-item">
+          <label>Phụ xe</label>
+          <span>${helperName}</span>
+        </div>
+        <div class="phoi-card-meta-item">
           <label>Ghế trống</label>
           <span>${emptyCount}/${totalCount}</span>
+        </div>
+        <div class="phoi-card-meta-item">
+          <label>Tổng hàng</label>
+          <span>${bookedCount} ghế</span>
+        </div>
+        <div class="phoi-card-meta-item">
+          <label>Tổng tiền</label>
+          <span>${totalRevenue.toLocaleString('vi-VN')}đ</span>
         </div>
         <div class="phoi-card-meta-item">
           <label>Giá vé</label>
