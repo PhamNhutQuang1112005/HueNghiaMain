@@ -1136,12 +1136,6 @@ body {
   padding-right: 14px !important;
 }
 
-@media (max-width: 1750px) {
-  .delivery-table-scroll .delivery-table {
-    min-width: 1300px !important;
-  }
-}
-
 .delivery-table-scroll #deliveryTableBody td {
   overflow-wrap: anywhere;
 }

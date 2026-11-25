@@ -1,0 +1,137 @@
+erDiagram
+    %% Customer portal extension for Hue Nghia; existing business entities are reused.
+    region ||--o{ station : contains
+    station ||--o{ trip : "origin (from_station_id)"
+    station ||--o{ trip : "destination (to_station_id)"
+    direction ||--o{ trip : serves
+    route |o--o{ trip : "display route (route_id)"
+    vehicle_type ||--o{ trip : uses
+    trip ||--|{ trip_stop : ordered_stops
+    station ||--o{ trip_stop : served_at
+    trip ||--|{ trip_seat : has_seats
+    ticket |o--o{ trip_seat : reserves
+    customer |o--o{ ticket : books
+    customer ||--o{ customer_auth : owns
+    users |o--o{ recruitment_post : "publishes (created_by)"
+
+    region {
+        bigint region_id PK
+        varchar code UK
+        varchar name UK
+        boolean active
+        int sort_order
+    }
+
+    station {
+        bigint station_id PK
+        varchar code UK
+        varchar name UK
+        bigint region_id FK
+        text address
+        boolean active
+        int sort_order
+    }
+
+    direction {
+        bigint direction_id PK
+        bigint from_region_id FK
+        bigint to_region_id FK
+        boolean active
+    }
+
+    route {
+        bigint route_id PK
+        bigint direction_id FK
+        varchar label
+        boolean active
+    }
+
+    trip {
+        bigint trip_id PK
+        date trip_date
+        time departure_time
+        bigint direction_id FK
+        bigint route_id FK
+        bigint from_station_id FK
+        bigint to_station_id FK
+        bigint vehicle_type_id FK
+        int base_price
+        varchar status "open | cancelled"
+        boolean is_template
+    }
+
+    trip_stop {
+        bigint trip_stop_id PK
+        bigint trip_id FK
+        bigint station_id FK
+        int stop_order "UNIQUE (trip_id, stop_order)"
+        time arrival_time
+        time departure_time
+        boolean pickup_enabled
+        boolean dropoff_enabled
+    }
+
+    trip_seat {
+        bigint trip_seat_id PK
+        bigint trip_id FK
+        varchar seat_code
+        varchar floor_type
+        boolean is_hidden
+        int price
+        bigint ticket_id FK "nullable when seat is free"
+    }
+
+    ticket {
+        bigint ticket_id PK
+        bigint trip_id FK
+        bigint customer_id FK
+        varchar ticket_no
+        varchar status "hold | sold | cancelled | transferred"
+        varchar customer_name
+        varchar phone
+        bigint from_station_id FK
+        bigint to_station_id FK
+        int unit_price
+        timestamptz hold_expires_at
+    }
+
+    customer {
+        bigint customer_id PK
+        varchar full_name
+        varchar primary_phone UK
+        varchar email
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    customer_auth {
+        bigint customer_auth_id PK
+        bigint customer_id FK
+        uuid auth_user_id UK "FK to auth.users if using Supabase Auth"
+        varchar login_provider "password | google | phone"
+        boolean is_active
+        timestamptz linked_at
+    }
+
+    users {
+        uuid user_id PK
+        bigint employee_id FK
+        citext username UK
+        boolean is_active
+    }
+
+    recruitment_post {
+        bigint recruitment_post_id PK
+        varchar title
+        text summary
+        text content
+        varchar department
+        varchar work_location
+        varchar employment_type
+        timestamptz published_at
+        timestamptz expires_at
+        varchar status "draft | published | closed"
+        bigint created_by FK "users.user_id"
+        timestamptz created_at
+        timestamptz updated_at
+    }
