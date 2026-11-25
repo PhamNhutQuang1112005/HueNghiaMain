@@ -138,7 +138,7 @@
     }
     .returned-table .returned-action-group {
       justify-content: center;
-      gap: 4px;
+      gap: 3px;
     }
     .returned-table .returned-action-group .rowicon-btn {
       width: 28px !important;
@@ -433,13 +433,13 @@
               <col style="width:9%" />
               <col style="width:7%" />
               <col style="width:6%" />
-              <col style="width:16%" />
+              <col style="width:15%" />
               <col style="width:6%" />
               <col style="width:6%" />
-              <col style="width:19%" />
+              <col style="width:18%" />
               <col style="width:11%" />
               <col style="width:8%" />
-              <col style="width:6%" />
+              <col style="width:8%" />
             </colgroup>
             <thead>
               <tr>
@@ -606,6 +606,9 @@
                 <td data-label="Trạng thái"><span class="returned-badge">⚠️ Hàng trả về</span></td>
                 <td data-label="Hành động">
                   <div class="action-group returned-action-group">
+                    <button type="button" class="rowicon-btn" onclick="restoreReturnedCargo(${row.id})" title="Gỡ khỏi hàng trả về và đưa về danh sách nhận hàng" aria-label="Gỡ về danh sách nhận hàng" style="color:#15803d;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h12"/><path d="m9 6-6 6 6 6"/><path d="M13 6h4a4 4 0 0 1 4 4v8h-8"/></svg>
+                    </button>
                     <button type="button" class="rowicon-btn rowicon-btn--danger" onclick="deleteReturnedCargo(${row.id})" title="Xóa hàng trả về" aria-label="Xóa hàng trả về">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
                     </button>
@@ -663,6 +666,37 @@
         renderReturnedTable();
         showToast('Đã xóa đơn hàng trả về');
       }
+    }
+
+    function restoreReturnedCargo(id) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(id));
+      if (!cargo || (cargo.status !== 'returned' && cargo.statusText !== 'Hàng trả về')) return;
+      if (!confirm(`Gỡ đơn ${cargo.code || ''} khỏi danh sách Hàng trả về và đưa về danh sách nhận hàng?`)) return;
+
+      cargo.manifestId = null;
+      cargo.isScanned = false;
+      cargo.arrivalScanned = false;
+      cargo.isUnreceived = false;
+      cargo.status = 'pending';
+      cargo.statusText = 'Chưa chuyển';
+      cargo.receiveTime = 'Chưa nhận';
+      cargo.deliveryStatus = 'cho-giao';
+      cargo.deliveryScanned = false;
+      if (cargo.cargoCategory === 'returned') cargo.cargoCategory = 'goods';
+
+      [
+        'scanned', 'scannedAt', 'scannedBy', 'scannedByCode',
+        'receivedAt', 'receivedAtTimestamp', 'receivedBy', 'receivedByCode',
+        'pickedUpAt', 'deliveredAt', 'deliveredAtTimestamp', 'deliveredBy', 'deliveredByCode',
+        'deliveryFailReason', 'deliveryStaff', 'deliveryStaffPhone',
+        'returnReason', 'returnedAt'
+      ].forEach(key => delete cargo[key]);
+      cargo.codCollected = 0;
+
+      saveCargos(cargos);
+      renderReturnedTable();
+      showToast(`Đã gỡ đơn ${cargo.code || ''} và đưa về danh sách nhận hàng.`);
     }
 
     function openTransferModalForCargo(cargoId) {
