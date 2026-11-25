@@ -786,12 +786,6 @@
       CARGOS: 'hueNghia_cargos'
     };
 
-    // Xóa sạch phơi/hàng cũ 1 lần (bản v5): từ giờ phơi hàng được tạo từ phơi xe vé
-    if (!localStorage.getItem('hueNghia_cargo_clean_test_v5')) {
-      [STORAGE_KEYS.MANIFESTS, STORAGE_KEYS.CARGOS, 'hueNghia_deleted_manifests', 'cargo_deletion_history'].forEach(k => localStorage.setItem(k, '[]'));
-      localStorage.setItem('hueNghia_cargo_clean_test_v5', 'true');
-    }
-
     const defaultManifests = [];
 
     function loadManifests() {
@@ -822,8 +816,6 @@
       localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify(data));
     }
 
-<<<<<<< HEAD
-=======
     // Cứ đã gán vào phơi mà chưa quét QR là tính "chưa giao" ngay, không cần đợi bấm Nhận xe/Xác nhận.
     // Thiếu hàng = đã gán vào phơi xe đi nhưng chưa quét lên xe
     function isCargoMissing(c) {
@@ -832,8 +824,6 @@
     function isCargoUnreceived(c) {
       return !c.isScanned && !c.arrivalScanned && c.status !== 'delivered' && c.status !== 'returned';
     }
-
->>>>>>> 44bccc67561808d9a529132047a6478506a1f9be
     let manifestData = loadManifests();
     let currentDetailManifestId = null;
 
@@ -2761,12 +2751,8 @@
 
       if (!tbody) return;
 
-<<<<<<< HEAD
-      // Hàng đã nhận lên xe (isScanned) là hiện ở đây, không cần chuyến xe đã "Đã nhận xe".
+      // Hàng đã quét lên xe hoặc đã xác nhận nhận tại trạm đến mới hiện ở danh sách giao hàng.
       const mMap = Object.fromEntries(manifests.map(m => [m.id, m]));
-=======
-      // Hiện kiện đã quét lên xe hoặc đã xác nhận nhận tại trạm đến.
->>>>>>> 44bccc67561808d9a529132047a6478506a1f9be
       let filtered = cargos.filter(c => {
         if (!c.manifestId) return false;
         if (isCargoUnreceived(c, mMap)) return false;

@@ -632,6 +632,87 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 
 /* Tên phơi ("Xe : 64855 điểm đi->điểm đến 12h") là nội dung chính: chữ đen, không xám nhạt như dòng phụ */
 #cargoTableBody .rd-item-body > div[style*="color:#475569"] { color: #1f2937 !important; font-size: 12.5px !important; font-weight: 600 !important; line-height: 1.4; }
+
+/* Danh sách hàng hóa: giữ bảng vừa khung, không tạo thanh cuộn ngang */
+.rd-page:has(#cargoTableBody) .table-scroll {
+  overflow-x: hidden !important;
+}
+
+.rd-page:has(#cargoTableBody) .table-scroll table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+
+.rd-page:has(#cargoTableBody) .table-scroll th,
+.rd-page:has(#cargoTableBody) .table-scroll td {
+  min-width: 0 !important;
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.rd-page:has(#cargoTableBody) .table-scroll th {
+  font-size: 10px !important;
+  line-height: 1.25;
+  letter-spacing: .15px;
+}
+
+.rd-page:has(#cargoTableBody) .table-scroll td {
+  font-size: 12px !important;
+  line-height: 1.35;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-item {
+  min-width: 0;
+  gap: 6px;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-item-icon {
+  display: none;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .cargo-name,
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-route,
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-people,
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-fee-sub {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-route {
+  line-height: 1.35;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-route-arrow {
+  display: inline;
+  margin: 0 3px;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-people span {
+  flex-wrap: wrap;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rd-people strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .action-group {
+  flex-wrap: nowrap;
+  gap: 1px;
+}
+
+.rd-page:has(#cargoTableBody) #cargoTableBody .rowicon-btn {
+  width: 23px;
+  height: 23px;
+  min-width: 23px;
+  padding: 0;
+}
 .rd-page .rd-phoi-code { color: #1f2937; font-size: 12.5px; font-weight: 600; letter-spacing: 0; line-height: 1.4; }
 
 /* Nút hàng loạt ở danh sách hàng thiếu: gọn như các nút hàng loạt khác, nhạt khi chưa chọn đơn nào */

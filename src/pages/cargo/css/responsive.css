@@ -822,3 +822,198 @@
 .table-scroll .route-text { display: block; margin: 2px 0 0 !important; line-height: 1.4; }
 
 .table-scroll code { white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }
+
+/* =========================================================
+   Responsive thống nhất cho toàn bộ trang module hàng hóa
+   ========================================================= */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-main,
+.app-main > main,
+.rd-page main,
+.rd-page .toolbar,
+.rd-page .table-card,
+.rd-page .table-container-card,
+.rd-page .ket-ca-panel,
+.rd-page .dash-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.filter-grid,
+.rd-page .filter-grid {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.rd-stats-grid,
+.dash-cards,
+.dash-grid,
+.dash-grid.dash-three,
+.ket-ca-summary,
+.ntx-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.rd-tabbar,
+.rd-pager,
+.table-toolbar,
+.toolbar-actions,
+.toolbar-head,
+.filter-grid,
+.dash-panel header,
+.dash-row {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+@media (max-width: 1280px) {
+  .rd-stats-grid,
+  .dash-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rd-page .toolbar,
+  .rd-page .ket-ca-panel,
+  .rd-page .table-card,
+  .rd-page .table-container-card {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .rd-page .toolbar-head,
+  .rd-page .toolbar-actions,
+  .ket-ca-toolbar,
+  .table-toolbar,
+  .dash-station {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .rd-stats-grid,
+  .dash-cards,
+  .dash-grid,
+  .dash-grid.dash-three,
+  .ket-ca-summary,
+  .ntx-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rd-tabbar,
+  .rd-pager,
+  .table-header-bar,
+  .table-toolbar,
+  .ket-ca-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .rd-tabs {
+    max-width: 100%;
+  }
+
+  .dash-row {
+    align-items: flex-start;
+  }
+
+  .modal-card,
+  .modal-card-custom,
+  .transfer-modal-card {
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .modal-card form,
+  .modal-card-custom form,
+  .modal-body-custom,
+  .modal-form {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .rd-page .toolbar {
+    padding: 0 2px;
+  }
+
+  .rd-page .toolbar h1 {
+    font-size: 22px;
+  }
+
+  .rd-stats-grid,
+  .dash-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .rd-stat,
+  .dash-card,
+  .ntx-card,
+  .ket-ca-summary > *,
+  .summary-card {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .filter-grid,
+  .rd-page .filter-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rd-page .toolbar-actions,
+  .toolbar-actions,
+  .ket-ca-toolbar,
+  .table-toolbar {
+    width: 100%;
+  }
+
+  .rd-page .toolbar-actions > *,
+  .toolbar-actions > *,
+  .ket-ca-toolbar > * {
+    max-width: 100%;
+  }
+
+  .rd-tabbar {
+    padding: 10px 12px;
+  }
+
+  .rd-tabs {
+    width: 100%;
+  }
+
+  .rd-tabs button {
+    flex: 0 0 auto;
+  }
+
+  .modal-card,
+  .modal-card-custom,
+  .transfer-modal-card {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .modal-card [style*="display:flex"],
+  .modal-card [style*="display: flex"],
+  .modal-card-custom [style*="display:flex"],
+  .modal-card-custom [style*="display: flex"] {
+    flex-wrap: wrap;
+  }
+
+  .action-group,
+  .rd-page .action-group {
+    justify-content: flex-end;
+  }
+
+  .dash-row {
+    gap: 6px;
+  }
+
+  .dash-row strong,
+  .dash-row small {
+    overflow-wrap: anywhere;
+  }
+}

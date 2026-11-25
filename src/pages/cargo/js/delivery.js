@@ -106,12 +106,8 @@ function isManifestArrived(manifest) {
 /* Hiển thị tất cả hàng hóa đã nhận sang Danh sách giao hàng (loại trừ hàng chưa nhận từ phơi) */
 function isEligibleForDelivery(cargo) {
   if (!cargo) return false;
-<<<<<<< HEAD
-  return !!cargo.isScanned && cargo.status !== 'unreceived' && !cargo.isUnreceived;
-=======
   const received = cargo.isScanned || (cargo.manifestId && cargo.arrivalScanned);
   return !!received && cargo.status !== 'unreceived' && !cargo.isUnreceived;
->>>>>>> 44bccc67561808d9a529132047a6478506a1f9be
 }
 
 /* Gán mặc định "Chờ giao" cho các đơn vừa đủ điều kiện giao mà chưa từng được khởi tạo

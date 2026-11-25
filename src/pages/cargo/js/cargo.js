@@ -138,15 +138,6 @@ function formatCargoQuantity(cargo) {
 
 const defaultCargos = [];
 
-// Tự động xóa sạch dữ liệu hàng hóa cũ để test tính năng mới
-if (!localStorage.getItem("hueNghia_cargo_clean_test_v5")) {
-  localStorage.setItem(STORAGE_KEYS.CARGOS, JSON.stringify([]));
-  localStorage.setItem(STORAGE_KEYS.MANIFESTS, JSON.stringify([]));
-  localStorage.setItem("cargo_deletion_history", JSON.stringify([]));
-  localStorage.setItem("hueNghia_deleted_manifests", JSON.stringify([]));
-  localStorage.setItem("hueNghia_cargo_clean_test_v5", "true");
-}
-
 
 function loadManifests() {
   const saved = localStorage.getItem(STORAGE_KEYS.MANIFESTS);
@@ -1001,7 +992,7 @@ function renderTable() {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="10" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
+    : '<tr><td colspan="11" style="text-align:center;padding:24px;color:#6b7280;">Không có dữ liệu phù hợp.</td></tr>';
 
   updateBatchTransferButton();
 }
