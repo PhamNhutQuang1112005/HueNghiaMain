@@ -798,6 +798,10 @@
   .table-scroll tbody tr[hidden], table.cargo-table tbody tr[hidden] { display: none !important; }
 }
 
+.delivery-table-scroll .delivery-table {
+  table-layout: fixed;
+}
+
 .delivery-table-scroll .delivery-trip-info {
   min-width: 0;
   max-width: 100%;
@@ -843,133 +847,12 @@
   overflow-wrap: anywhere;
 }
 
-@media (min-width: 1451px) {
-  .delivery-table-scroll .delivery-table {
-    table-layout: fixed;
-  }
-}
-
-/* Giao hàng chuyển thành thẻ sớm hơn vì sidebar làm hẹp vùng bảng trên laptop. */
-@media (max-width: 1450px) {
-  .delivery-table-scroll {
-    overflow-x: visible !important;
-  }
-
-  .delivery-table-scroll .delivery-table {
-    display: block;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  .delivery-table-scroll .delivery-table thead {
-    display: none;
-  }
-
-  .delivery-table-scroll .delivery-table tbody {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 10px;
-  }
-
-  .delivery-table-scroll .delivery-table tbody tr {
-    display: block;
-    min-width: 0;
-    margin: 0;
-    padding: 4px 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    background: #fff;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    width: auto !important;
-    min-width: 0 !important;
-    padding: 8px 0 !important;
-    border: 0 !important;
-    border-bottom: 1px dashed #e2e8f0 !important;
-    text-align: right !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td:last-child {
-    border-bottom: 0 !important;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td::before {
-    content: attr(data-label);
-    flex: 0 0 34%;
-    max-width: 34%;
-    color: #64748b;
-    font-size: 12px;
-    font-weight: 700;
-    text-align: left;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td[data-label=""]::before {
-    display: none;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td[data-label=""] {
-    justify-content: flex-end;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td[data-label="STT"] {
-    display: none;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td[colspan] {
-    display: block;
-    text-align: center !important;
-  }
-
-  .delivery-table-scroll .delivery-table tbody td[colspan]::before {
-    display: none;
-  }
-
-  .delivery-table-scroll #deliveryTableBody .rd-people {
-    min-width: 0;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .delivery-table-scroll #deliveryTableBody .rd-people span {
-    max-width: 100%;
-    flex-wrap: wrap;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .delivery-table-scroll #deliveryTableBody .rd-route,
-  .delivery-table-scroll #deliveryTableBody .rd-route strong {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .delivery-table-scroll #deliveryTableBody .delivery-trip-info {
-    flex: 1 1 0;
-  }
-
-  .delivery-table-scroll #deliveryTableBody .action-group {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-}
-
 /* Màn hình rất hẹp: nhãn nằm trên giá trị, canh trái — không còn chồng chữ */
 @media (max-width: 520px) {
   .table-scroll tbody td, table.cargo-table tbody td { flex-direction: column; align-items: stretch; gap: 2px; text-align: left !important; }
   .table-scroll tbody td::before, table.cargo-table tbody td::before { flex: none; max-width: 100%; }
   .table-scroll .td-val .mini-tag-row { justify-content: flex-start; }
   .table-scroll tbody td[data-label=""] { align-items: flex-end; }
-  .delivery-table-scroll .delivery-table tbody td[data-label=""] {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
 }
 
 /* Nhãn/giá trị được phép xuống dòng (một số ô gốc đặt nowrap) */
@@ -1182,5 +1065,79 @@ body {
   .dash-row strong,
   .dash-row small {
     overflow-wrap: anywhere;
+  }
+}
+
+/* Danh sách giao hàng luôn giữ bố cục bảng ngang; màn hẹp cuộn trong khung riêng. */
+.delivery-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.delivery-table-scroll .delivery-table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed;
+}
+
+.delivery-table-scroll .delivery-table thead {
+  display: table-header-group !important;
+}
+
+.delivery-table-scroll .delivery-table tbody {
+  display: table-row-group !important;
+}
+
+.delivery-table-scroll .delivery-table tbody tr {
+  display: table-row !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.delivery-table-scroll .delivery-table tbody tr[hidden] {
+  display: none !important;
+}
+
+.delivery-table-scroll .delivery-table tbody td {
+  display: table-cell !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 8px 6px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #eceef0 !important;
+  text-align: left;
+  vertical-align: middle;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.delivery-table-scroll .delivery-table tbody td::before {
+  display: none !important;
+  content: none !important;
+}
+
+.delivery-table-scroll .delivery-table tbody td[data-label="STT"] {
+  display: table-cell !important;
+}
+
+.delivery-table-scroll #deliveryTableBody td[data-label="Thời gian"] {
+  padding-right: 28px !important;
+}
+
+.delivery-table-scroll #deliveryTableBody td[data-label="Trạng thái"] {
+  padding-left: 28px !important;
+  padding-right: 14px !important;
+}
+
+@media (max-width: 1750px) {
+  .delivery-table-scroll .delivery-table {
+    min-width: 1300px !important;
   }
 }
