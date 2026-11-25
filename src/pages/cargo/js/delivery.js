@@ -212,9 +212,9 @@ function statusBadgeHtml(cargo) {
   const def = DELIVERY_STATUS_DEFS[cargo.deliveryStatus] || DELIVERY_STATUS_DEFS['cho-giao'];
   // Quét QR giao hàng độc lập với quét QR nhận hàng (isScanned bên manifest).
   // Hàng tiền (tiền thường/tiền nóng/bạn hàng) không quét mã → không hiện trạng thái quét.
-  const scan = isMoneyCargo(cargo) ? '' : cargo.deliveryScanned
-    ? '<div style="font-size:10.5px; color:#15803d; margin-top:3px;">✓ Đã quét QR giao</div>'
-    : '<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Chưa quét</div>';
+  const scan = !isMoneyCargo(cargo) && !cargo.deliveryScanned
+    ? '<div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Chưa quét</div>'
+    : '';
   return `<span class="status-pill ${def.cls}">${def.label}</span>${scan}`;
 }
 
@@ -274,7 +274,7 @@ function buildRow(cargo, index) {
       <td data-label="COD & Cước">
         <div style="font-size:11.5px; color:#475569;">Cước: <strong style="color:#0f172a;">${Number(cargo.fee || 0).toLocaleString('vi-VN')}đ</strong></div>
         ${Number(cargo.codAmount || 0) > 0 ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">COD cần thu: <strong style="color:#0f172a;">${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</strong></div>` : ''}
-        ${isDone && Number(cargo.codCollected || 0) > 0 ? `<div style="margin-top:3px;"><span class="mini-tag" style="color:#15803d; border-color:#86efac; background:#f0fdf4;">Đã thu: ${Number(cargo.codCollected).toLocaleString('vi-VN')}đ</span></div>` : ''}
+        ${isDone && Number(cargo.codCollected || 0) > 0 ? `<div style="margin-top:3px;"><span class="mini-tag" style="color:#15803d; border-color:#86efac; background:#f0fdf4;">Đã thu</span></div>` : ''}
       </td>
       <td data-label="Thời gian" style="vertical-align:middle;">
         <div style="font-size:11.5px; color:#475569; white-space:nowrap;">Nhận: <strong style="color:#0f172a;">${cargo.transferTime || '—'}</strong></div>
