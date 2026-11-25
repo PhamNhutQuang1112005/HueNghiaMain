@@ -795,6 +795,9 @@
       </div>
 
       <!-- Modal Footer -->
+      <div id="scanReceiveValidation" role="alert" style="display:none; padding:0 24px 12px; color:#b91c1c; font-size:13px; font-weight:700;">
+        Vui lòng nhận ít nhất 1 đơn hàng lên xe trước khi xác nhận.
+      </div>
       <div class="modal-actions" style="justify-content: space-between; margin-top: 0; padding: 16px 24px;">
         <button type="button" class="ghost-btn" onclick="closeReceiveScanModal()">Đóng</button>
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -1958,6 +1961,9 @@
           const manifestCargos = allCargos.filter(c => Number(c.manifestId) === row.id);
           const orderCount = manifestCargos.length;
           const scannedCount = manifestCargos.filter(c => c.isScanned).length; // đã quét nhận lên xe
+          const isVehicleReceived = row.status === 'received' || row.statusText === 'Đã nhận xe' || row.status === 'delivered';
+          const isGoodsLoaded = row.status === 'loaded' || row.statusText === 'Đã nhận hàng';
+          const manifestStatusText = isVehicleReceived ? 'Đã nhận xe' : (isGoodsLoaded ? 'Đã nhận hàng' : 'Chưa nhận xe');
           return `
           <tr class="plate-child" data-grp="${key}" data-manifest-id="${row.id}" ${open ? '' : 'hidden'}>
             <td style="text-align:center;"><input type="checkbox" class="row-select" data-id="${row.id}" ${selectedManifestIds.has(row.id) ? 'checked' : ''} /></td>
@@ -1979,10 +1985,7 @@
             </td>
             <td style="text-align:center;"><span class="order-count" title="Đã nhận ${scannedCount} trên tổng ${orderCount} đơn hàng">${scannedCount}/${orderCount} đơn hàng</span></td>
             <td style="text-align:center;">
-              ${(row.status === 'received' || row.status === 'loaded' || row.status === 'delivered')
-                ? `<span class="status-pill status-delivered">Đã nhận xe</span>`
-                : `<span class="status-pill status-enroute">Chưa nhận xe</span>`
-              }
+              <span class="status-pill ${isVehicleReceived || isGoodsLoaded ? 'status-delivered' : 'status-enroute'}">${manifestStatusText}</span>
             </td>
             <td>
               <div class="action-group">
@@ -2534,6 +2537,8 @@
 
       const modal = document.getElementById('receiveScanModal');
       if (modal) modal.classList.add('open');
+      const validationEl = document.getElementById('scanReceiveValidation');
+      if (validationEl) validationEl.style.display = 'none';
 
       renderScanCargoTable();
 
@@ -2572,6 +2577,8 @@
       if (scaEl) scaEl.textContent = scannedCount;
       if (unsEl) unsEl.textContent = unscannedCount;
       if (cnfEl) cnfEl.textContent = scannedCount;
+      const validationEl = document.getElementById('scanReceiveValidation');
+      if (validationEl && scannedCount > 0) validationEl.style.display = 'none';
       const barEl = document.getElementById('scanProgressBar');
       if (barEl) barEl.style.width = (totalCount ? scannedCount * 100 / totalCount : 0) + '%';
 
@@ -2700,6 +2707,13 @@
       const cargos = loadCargos();
       const manifest = manifests.find(m => Number(m.id) === Number(manifestId));
       if (!manifest) return;
+
+      const manifestCargos = cargos.filter(c => Number(c.manifestId) === Number(manifestId));
+      if (mode === 'depart' && !manifestCargos.some(c => currentScanMap[c.id])) {
+        const validationEl = document.getElementById('scanReceiveValidation');
+        if (validationEl) validationEl.style.display = 'block';
+        return;
+      }
 
       let scannedCount = 0;
       let unreceivedCount = 0;

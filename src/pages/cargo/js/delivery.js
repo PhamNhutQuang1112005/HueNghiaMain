@@ -264,7 +264,7 @@ function buildRow(cargo, index) {
           <div class="rd-route"><strong>${cargo.stationFrom || manifest.from || '—'}</strong><span class="rd-route-arrow">➔</span><strong>${cargo.stationTo || manifest.to || '—'}</strong></div>
         </div>
       </td>
-      <td data-label="Người gửi / Người nhận">
+      <td data-label="Người gửi / nhận">
         <div class="rd-people">
           <span><i title="Người gửi">G</i><strong>${cargo.sender || '—'}</strong> (${cargo.senderPhone || ''})</span>
           <span><i title="Người nhận">N</i><strong>${cargo.receiver || '—'}</strong> (${cargo.receiverPhone || ''})</span>
