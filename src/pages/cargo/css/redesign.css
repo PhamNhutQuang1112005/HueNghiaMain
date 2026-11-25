@@ -692,29 +692,28 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 }
 
 .cargo-quantity-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 4px 8px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 8px;
+  padding: 3px 8px;
+  border: 1px solid #d7dde6;
+  border-radius: 7px;
   color: #0f172a;
   background: #f1f5f9;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 12px !important;
+  font-weight: 700;
   line-height: 1.25;
   text-align: center;
   white-space: nowrap;
-  overflow-wrap: normal;
-  word-break: keep-all;
   font-variant-numeric: tabular-nums;
 }
 
-.rd-page:has(#cargoTableBody) .table-scroll th:nth-child(5),
-.rd-page:has(#cargoTableBody) .table-scroll td:nth-child(5),
-.rd-page:has(#cargoTableBody) .table-scroll col:nth-child(5) {
-  width: 110px !important;
-  min-width: 110px !important;
+.rd-page:has(#cargoTableBody) #cargoTableBody .cargo-quantity-badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .rd-page:has(#cargoTableBody) #cargoTableBody .rd-people span {
@@ -726,31 +725,6 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 .rd-page:has(#cargoTableBody) #cargoTableBody .rd-people strong {
   white-space: normal;
   overflow-wrap: anywhere;
-}
-
-.rd-page .qty-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 3px 8px;
-  border: 1px solid #d7dde6;
-  border-radius: 7px;
-  background: #f4f6f9;
-  color: #1e293b;
-  font-size: 12px !important;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.25;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.rd-page:has(#cargoTableBody) #cargoTableBody .qty-pill {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: normal;
 }
 
 .rd-page:has(#cargoTableBody) #cargoTableBody .action-group {
@@ -767,23 +741,19 @@ body.rd-page { --rd-red: #bd181b; --rd-ink: #192231; --rd-muted: #697386; --rd-l
 
 .rd-page:has(#cargoTableBody) .table-scroll th:nth-child(10),
 .rd-page:has(#cargoTableBody) .table-scroll td:nth-child(10) {
-  width: 135px !important;
-  min-width: 135px !important;
   text-align: center;
   white-space: nowrap;
 }
 
 .rd-page:has(#cargoTableBody) .table-scroll th:nth-child(11),
 .rd-page:has(#cargoTableBody) .table-scroll td:nth-child(11) {
-  width: 180px !important;
-  min-width: 180px !important;
   text-align: center;
   white-space: nowrap;
 }
 
 .rd-page:has(#cargoTableBody) #cargoTableBody .minimal-status-badge {
   max-width: 100%;
-  padding: 5px 10px;
+  padding: 5px 9px;
   line-height: 1.25;
 }
 .rd-page .rd-phoi-code { color: #1f2937; font-size: 12.5px; font-weight: 600; letter-spacing: 0; line-height: 1.4; }

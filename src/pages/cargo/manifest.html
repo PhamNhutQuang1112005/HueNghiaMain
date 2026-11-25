@@ -419,6 +419,41 @@
         </section>
       </div>
 
+      <!-- SECTION 4: DANH SACH HANG THIEU -->
+      <div id="viewUnreceivedSection" style="display:none;">
+        <section class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <p class="eyebrow" style="color:#d97706;" id="unreceivedEyebrow">Chuyến xe đi & Thiếu hàng</p>
+              <h1 id="unreceivedTitle">Hàng thiếu trong danh sách chuyến xe đi</h1>
+              <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Danh sách đơn hàng đã gán vào phơi xe đi nhưng chưa quét/chưa nhận khi xe cập bến.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <input type="text" id="searchUnreceivedCargo" oninput="renderUnreceivedTable()" placeholder="Tìm mã đơn, tên hàng, biển số xe..." style="padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; width:280px;" />
+            </div>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:45px; text-align:center;">STT</th>
+                  <th>Mã đơn & Tên hàng</th>
+                  <th>Phơi xe & Tuyến đường</th>
+                  <th>Người gửi ➔ Người nhận</th>
+                  <th>Cước phí & COD</th>
+                  <th style="text-align:center;">Trạng thái</th>
+                  <th style="text-align:center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="unreceivedTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
 
 
   <!-- Popup Tạo / Sửa Phơi Hàng -->
@@ -607,6 +642,34 @@
         <button type="button" class="primary-btn" onclick="printReceiptNow()" style=" display:flex; align-items:center; gap:6px;">
           <span>In biên lai</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nhập lý do gỡ khỏi hàng thiếu -->
+  <div class="modal-overlay" id="removeMissingCargoModal">
+    <div class="modal-card" style="width:min(520px,94%); padding:22px 26px;">
+      <div class="modal-head" style="border-bottom:1px solid #fee2e2; padding-bottom:12px; margin-bottom:16px;">
+        <div>
+          <h2 style="font-size:18px; font-weight:800; margin:0; color:#dc2626;">Gỡ khỏi danh sách hàng thiếu</h2>
+          <span style="font-size:12.5px; color:#64748b;">Nhập lý do bắt buộc để lưu vào đơn hàng</span>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeRemoveMissingCargoModal()">✕</button>
+      </div>
+
+      <div id="removeMissingCargoInfo" style="background:#fef2f2; border:1px solid #fca5a5; padding:12px; border-radius:8px; margin-bottom:16px; font-size:13.5px; font-weight:700; color:#1e293b;"></div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:18px;">
+        <label style="font-size:13.5px; font-weight:700; color:#1e293b;">
+          Lý do gỡ <strong style="color:#dc2626;">*</strong>
+        </label>
+        <textarea id="removeMissingCargoReason" rows="4" placeholder="Nhập lý do gỡ khỏi hàng thiếu..." style="width:100%; box-sizing:border-box; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13.5px; outline:none; font-family:inherit; resize:vertical;"></textarea>
+        <small id="removeMissingCargoError" style="color:#dc2626; font-weight:700; display:none;">Vui lòng nhập lý do gỡ khỏi hàng thiếu.</small>
+      </div>
+
+      <div class="modal-actions" style="margin-top:0; padding-top:0; border-top:none;">
+        <button type="button" class="ghost-btn" onclick="closeRemoveMissingCargoModal()">Hủy</button>
+        <button type="button" class="primary-btn" onclick="confirmRemoveMissingCargo()">Xác nhận gỡ</button>
       </div>
     </div>
   </div>
@@ -2743,6 +2806,164 @@
       updateTabBadges();
     };
 
+    window.renderUnreceivedTable = function() {
+      const manifests = loadManifests();
+      const cargos = loadCargos();
+      const tbody = document.getElementById('unreceivedTableBody');
+      const query = (document.getElementById('searchUnreceivedCargo')?.value || '').toLowerCase().trim();
+      if (!tbody) return;
+
+      let filtered = cargos.filter(isCargoMissing);
+      if (query) {
+        filtered = filtered.filter(c =>
+          (c.code || '').toLowerCase().includes(query) ||
+          (c.name || '').toLowerCase().includes(query) ||
+          (c.receiver || '').toLowerCase().includes(query) ||
+          (c.receiverPhone || '').toLowerCase().includes(query) ||
+          (c.plate || '').toLowerCase().includes(query)
+        );
+      }
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Không có hàng thiếu trong danh sách chuyến xe đi.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((cargo, index) => {
+        const manifest = manifests.find(m => Number(m.id) === Number(cargo.manifestId));
+        const manifestText = manifest ? `${manifest.name || manifest.plate || 'Phơi xe'} (${manifest.plate || 'Không có biển số'})` : 'Chưa gán phơi xe';
+        const feeStr = Number(cargo.fee || 0).toLocaleString('vi-VN') + 'đ';
+        const codStr = Number(cargo.codAmount || 0) > 0
+          ? `<br><small style="color:#7c3aed; font-weight:700;">COD: ${Number(cargo.codAmount).toLocaleString('vi-VN')}đ</small>`
+          : '';
+
+        return `
+          <tr>
+            <td style="text-align:center;"><strong>${index + 1}</strong></td>
+            <td>
+              <strong class="cargo-name">${cargo.name || 'Hàng hóa'}</strong><br>
+              <code>${cargo.code || ''}</code>
+            </td>
+            <td>
+              <div style="font-weight:700; color:#1e293b;">${manifestText}</div>
+              <small style="color:#64748b;">Tuyến: ${cargo.stationFrom || manifest?.from || '---'} ➔ ${cargo.stationTo || manifest?.to || '---'}</small>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#1e293b;">${cargo.sender || ''} <small style="color:var(--text-muted);">(${cargo.senderPhone || ''})</small></div>
+              <div style="font-weight:700; color:#0f172a;">➔ ${cargo.receiver || ''} <small style="color:var(--text-muted);">(${cargo.receiverPhone || ''})</small></div>
+            </td>
+            <td>
+              <strong>${feeStr}</strong>${codStr}
+            </td>
+            <td style="text-align:center;">
+              <span style="background:#fef3c7; color:#b45309; border:1px solid #fde047; font-weight:800; font-size:12px; padding:3px 10px; border-radius:12px; display:inline-block;">Chưa nhận từ phơi</span>
+            </td>
+            <td style="text-align:center;">
+              <div class="action-group" style="justify-content:center; gap:4px;">
+                <button type="button" class="rowicon-btn rowicon-btn--danger" onclick="removeMissingCargo(${cargo.id})" title="Gỡ khỏi hàng thiếu và đưa về danh sách nhận hàng" aria-label="Gỡ khỏi hàng thiếu" style="width:30px; height:30px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 6h18"/>
+                    <path d="M8 6V4h8v2"/>
+                    <path d="M19 6l-1 14H6L5 6"/>
+                    <path d="M10 11v5M14 11v5"/>
+                    <path d="m9 3 1-1h4l1 1"/>
+                  </svg>
+                </button>
+                <button type="button" class="rowicon-btn" onclick="receiveSingleUnreceivedCargo(${cargo.id})" title="Bổ sung và nhận hàng" aria-label="Bổ sung và nhận hàng" style="width:30px; height:30px; color:#16a34a;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    let pendingRemoveMissingCargoId = null;
+
+    window.removeMissingCargo = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+
+      pendingRemoveMissingCargoId = Number(cargoId);
+      const info = document.getElementById('removeMissingCargoInfo');
+      const input = document.getElementById('removeMissingCargoReason');
+      const error = document.getElementById('removeMissingCargoError');
+      if (info) info.textContent = `${cargo.code || ''} — ${cargo.name || 'Hàng hóa'}`;
+      if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 50);
+      }
+      if (error) error.style.display = 'none';
+      document.getElementById('removeMissingCargoModal')?.classList.add('open');
+    };
+
+    window.closeRemoveMissingCargoModal = function() {
+      pendingRemoveMissingCargoId = null;
+      document.getElementById('removeMissingCargoModal')?.classList.remove('open');
+    };
+
+    window.confirmRemoveMissingCargo = function() {
+      if (!pendingRemoveMissingCargoId) return;
+
+      const input = document.getElementById('removeMissingCargoReason');
+      const error = document.getElementById('removeMissingCargoError');
+      const reason = (input?.value || '').trim();
+      if (!reason) {
+        if (error) error.style.display = 'block';
+        input?.focus();
+        return;
+      }
+
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(pendingRemoveMissingCargoId));
+      if (!cargo) {
+        closeRemoveMissingCargoModal();
+        return;
+      }
+
+      cargo.manifestId = null;
+      cargo.isScanned = false;
+      cargo.arrivalScanned = false;
+      cargo.isUnreceived = false;
+      cargo.status = 'pending';
+      cargo.statusText = 'Chưa chuyển';
+      cargo.deliveryStatus = 'cho-giao';
+      cargo.missingRemovalReason = reason;
+      cargo.missingRemovedAt = Date.now();
+      delete cargo.scannedAt;
+      delete cargo.scannedBy;
+      delete cargo.scannedByCode;
+      delete cargo.receivedAt;
+      delete cargo.receivedAtTimestamp;
+      delete cargo.receivedBy;
+      delete cargo.receivedByCode;
+
+      saveCargos(cargos);
+      closeRemoveMissingCargoModal();
+      showToast(`Đã gỡ đơn ${cargo.code || ''} khỏi hàng thiếu và đưa về danh sách nhận hàng`);
+      renderUnreceivedTable();
+      updateTabBadges();
+    };
+
+    window.receiveSingleUnreceivedCargo = function(cargoId) {
+      const cargos = loadCargos();
+      const cargo = cargos.find(c => Number(c.id) === Number(cargoId));
+      if (!cargo) return;
+
+      cargo.status = 'in-transit';
+      cargo.statusText = 'Chờ giao';
+      cargo.isScanned = true;
+      cargo.arrivalScanned = true;
+      saveCargos(cargos);
+      showToast(`Đã nhận bổ sung đơn ${cargo.code || ''}`);
+      renderUnreceivedTable();
+      updateTabBadges();
+    };
+
     window.renderDeliveryTable = function() {
       const manifests = loadManifests();
       const cargos = loadCargos();
@@ -2761,10 +2982,10 @@
 
       if (query) {
         filtered = filtered.filter(c => 
-          (c.code || '').sIncludes(query) ||
-          (c.name || '').sIncludes(query) ||
-          (c.receiver || '').sIncludes(query) ||
-          (c.receiverPhone || '').sIncludes(query)
+          (c.code || '').toLowerCase().includes(query) ||
+          (c.name || '').toLowerCase().includes(query) ||
+          (c.receiver || '').toLowerCase().includes(query) ||
+          (c.receiverPhone || '').toLowerCase().includes(query)
         );
       }
 
