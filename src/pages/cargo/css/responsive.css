@@ -1141,3 +1141,46 @@ body {
     min-width: 1300px !important;
   }
 }
+
+.delivery-table-scroll #deliveryTableBody td {
+  overflow-wrap: anywhere;
+}
+
+.delivery-table-scroll #deliveryTableBody .cargo-name,
+.delivery-table-scroll #deliveryTableBody .rd-item-body,
+.delivery-table-scroll #deliveryTableBody .delivery-trip-info,
+.delivery-table-scroll #deliveryTableBody .rd-route,
+.delivery-table-scroll #deliveryTableBody .rd-people,
+.delivery-table-scroll #deliveryTableBody td[data-label="COD & Cước"] > div,
+.delivery-table-scroll #deliveryTableBody td[data-label="Thời gian"] > div {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.delivery-table-scroll #deliveryTableBody .rd-people span {
+  max-width: 100%;
+  flex-wrap: wrap;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.delivery-table-scroll #deliveryTableBody .rd-people strong {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.delivery-table-scroll #deliveryTableBody .status-pill {
+  max-width: 100%;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.delivery-table-scroll #deliveryTableBody .mini-tag {
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
