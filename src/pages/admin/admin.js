@@ -161,6 +161,7 @@ var VIEW_RENDERERS = {
   viewVehicleCategories: function () { renderVehicleCategoriesView(); },
   viewVehicles: function () { renderVehiclesView(); },
   viewCargoAdmin: function () { renderCargoAdminView(); },
+  viewParking: function () { renderParkingView(); },
   viewAccountingThu: function () { renderAccountingThuView(); },
   viewAccountingChi: function () { renderAccountingChiView(); },
   viewAccountingExpenseRequests: function () { renderAccountingExpenseRequestsView(); },
@@ -192,6 +193,7 @@ function adminRequire(key) {
   return false;
 }
 function adminCanView(view) {
+  if (view === 'viewParking') return Auth.isAdmin();
   var need = ADMIN_VIEW_PERMS[view];
   return !need || Auth.hasAnyPermission(need);
 }
@@ -233,6 +235,7 @@ var ADMIN_BREADCRUMB_MAP = {
   viewCustomers: { group: 'Quản lý vận tải', label: 'Khách hàng' },
   viewVehicles: { group: 'Thiết lập vận tải', label: 'Quản lý xe' },
   viewCargoAdmin: { group: 'Hàng hóa', label: 'Quản lý hàng hóa' },
+  viewParking: { group: null, label: 'Giữ xe' },
   viewVehicleCategories: { group: 'Thiết lập vận tải', label: 'Loại xe' },
   viewSeatLayouts: { group: 'Thiết lập vận tải', label: 'Sơ đồ ghế' },
   viewVehicleSeats: { group: 'Thiết lập vận tải', label: 'Ghế xe' },

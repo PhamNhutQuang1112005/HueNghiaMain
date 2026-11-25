@@ -910,7 +910,7 @@
       return !!c.manifestId && isCargoUnreceived(c);
     }
     function isCargoUnreceived(c) {
-      return !c.isScanned && c.status !== 'delivered' && c.status !== 'returned';
+      return !c.isScanned && !c.arrivalScanned && c.status !== 'delivered' && c.status !== 'returned';
     }
 
     let manifestData = loadManifests();
@@ -1604,8 +1604,13 @@
       const target = cargos.find(c => c.id === cargoId);
       if (target) {
         target.manifestId = null;
-        target.stationFrom = 'Chưa gán';
-        target.stationTo = 'Chưa gán';
+        if (Number(target.codAmount) > 0) {
+          target.stationFrom = target.orderStationFrom ?? target.stationFrom;
+          target.stationTo = target.orderStationTo ?? target.stationTo;
+        } else {
+          target.stationFrom = 'Chưa gán';
+          target.stationTo = 'Chưa gán';
+        }
         target.status = 'pending';
         target.statusText = 'Chờ xử lý';
         saveCargos(cargos);
@@ -2631,24 +2636,16 @@
         const nowTs = Date.now();
         const nowStr = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
 
-        if (currentScanMode === 'arrive') {
-          targetCargo.arrivalScanned = true;
-        } else {
-        targetCargo.isScanned = true;
-        targetCargo.scannedBy = sName;
-        targetCargo.scannedByCode = sCode;
-        targetCargo.scannedAt = nowTs;
-        targetCargo.receivedBy = sName;
-        targetCargo.receivedByCode = sCode;
-        targetCargo.receivedAtTimestamp = nowTs;
-        targetCargo.receivedAt = nowStr;
-        }
-
-        const allCargosList = loadCargos();
-        const mainIdx = allCargosList.findIndex(c => Number(c.id) === Number(targetCargo.id));
-        if (mainIdx !== -1) {
-          allCargosList[mainIdx] = targetCargo;
-          saveCargos(allCargosList);
+        if (currentScanMode === 'depart') {
+          targetCargo.isScanned = true;
+          targetCargo.scannedBy = sName;
+          targetCargo.scannedByCode = sCode;
+          targetCargo.scannedAt = nowTs;
+          targetCargo.receivedBy = sName;
+          targetCargo.receivedByCode = sCode;
+          targetCargo.receivedAtTimestamp = nowTs;
+          targetCargo.receivedAt = nowStr;
+          saveCargos(cargos);
         }
 
         if (currentScanMap[targetCargo.id]) {
@@ -2684,8 +2681,15 @@
       cargos.forEach(c => {
         if (mode === 'arrive') {
           if (Number(c.manifestId) === Number(manifestId)) {
-            c.arrivalScanned = !!currentScanMap[c.id];
-            if (c.arrivalScanned) scannedCount++;
+            if (c.status !== 'delivered' || !c.arrivalScanned) c.arrivalScanned = !!currentScanMap[c.id];
+            if (c.arrivalScanned) {
+              c.isUnreceived = false;
+              if (c.status === 'unreceived') {
+                c.status = 'in_transit';
+                c.statusText = 'Chờ giao';
+              }
+              scannedCount++;
+            }
           }
         } else if (Number(c.manifestId) === Number(manifestId)) {
           if (currentScanMap[c.id]) {
@@ -2700,7 +2704,7 @@
             c.receivedAtTimestamp = nowTs;
             c.receivedAt = now;
             scannedCount++;
-          } else if (c.status !== 'delivered' && c.deliveryStatus !== 'da-giao') {
+          } else if (!c.arrivalScanned && c.status !== 'delivered' && c.deliveryStatus !== 'da-giao') {
             c.isScanned = false;
             c.isUnreceived = true;
             c.status = 'unreceived';
@@ -2966,7 +2970,7 @@
 
       if (!tbody) return;
 
-      // Hàng đã nhận lên xe (isScanned) là hiện ở đây, không cần chuyến xe đã "Đã nhận xe".
+      // Hiện kiện đã quét lên xe hoặc đã xác nhận nhận tại trạm đến.
       let filtered = cargos.filter(c => {
         if (!c.manifestId) return false;
         if (isCargoUnreceived(c)) return false;
@@ -3035,6 +3039,7 @@
 
       cargo.status = 'delivered';
       cargo.statusText = 'Đã giao';
+      cargo.deliveryStatus = 'da-giao';
       cargo.deliveredAt = `${new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}`;
 
       saveCargos(cargos);

@@ -16,12 +16,26 @@
   // "Châu Đốc" (đơn/phơi) và "Trạm Châu Đốc" (danh mục trạm) là cùng một trạm: so khớp bỏ tiền tố "Trạm ", không phân biệt hoa thường.
   function sk(n) { return String(n || '').trim().toLowerCase().replace(/^trạm\s+/, ''); }
 
+  function codDebt(c) {
+    var amount = Number(c.codAmount);
+    if (!Number.isFinite(amount) || amount <= 0 || c.status !== 'delivered' || !c.manifestId ||
+        c.isUnreceived || !(c.arrivalScanned || c.isScanned)) return null;
+    var creditor = c.orderStationFrom ?? c.stationFrom;
+    var debtor = c.orderStationTo ?? c.stationTo;
+    var from = sk(creditor), to = sk(debtor);
+    if (!from || !to || from === to || from === 'chưa gán' || to === 'chưa gán') return null;
+    // Dữ liệu cũ có thể đã lưu cả nhóm trạm của phơi thay cho một trạm trên đơn.
+    if ((c.orderStationFrom == null && from.includes(',')) || (c.orderStationTo == null && to.includes(','))) return null;
+    return { debtor: debtor, creditor: creditor, amount: amount };
+  }
+
   // Gọi fn(loại, trạm nợ, trạm được nợ, số tiền) cho từng đơn: 'cash' tiền thường (gồm bạn hàng), 'hot' tiền nóng, 'cod' thu hộ.
   function eachDebt(cargos, fn) {
     cargos.forEach(function (c) {
       // có số tiền gửi là đơn tiền (đơn cũ có thể lưu nhầm cargoCategory = 'goods')
       if (Number(c.moneyAmount) > 0) fn(c.cargoCategory === 'hot' ? 'hot' : 'cash', c.stationFrom, c.stationTo, Number(c.moneyAmount));
-      if (c.status === 'delivered' && Number(c.codAmount) > 0) fn('cod', c.stationTo, c.stationFrom, Number(c.codAmount));
+      var cod = codDebt(c);
+      if (cod) fn('cod', cod.debtor, cod.creditor, cod.amount);
     });
   }
 
@@ -99,13 +113,13 @@
   function render() {
     var root = document.getElementById('nettingPanel');
     if (!root) return;
-    var entries = load(KEY), d = computeDebts(load('hueNghia_cargos'), entries), all = stationList();
+    var entries = load(KEY), cargos = load('hueNghia_cargos'), d = computeDebts(cargos, entries), all = stationList();
     var me = ui.me;
     var cands = all.filter(function (s) { return s !== me; });
     if (cands.indexOf(ui.other) < 0) ui.other = '';
     var other = ui.other;
     if (ui.via === me || ui.via === other) ui.via = '';
-    var via = ui.via, cargos = load('hueNghia_cargos');
+    var via = ui.via;
 
     var toPay = 0, toGet = 0, totalDebt = 0, totalGet0 = 0, d0 = computeDebts(cargos, []);
     var perStation = '';
@@ -151,12 +165,11 @@
 
     var n = 0;
     if (me && other) n = net(d, me, other);
-    var tile2 = !(me && other)
+    var pairBalance = !(me && other)
       ? '<div class="ntx-empty">' + (me ? 'Chọn trạm cần đối soát.' : 'Chọn trạm đang đối soát trước.') + '</div>'
-      : '<div class="ntx-tile ' + (n ? 'ntx-tile-red' : '') + '"><span>Nợ ròng cần thanh toán</span><strong>' + (n ? fmt(Math.abs(n)) : '0đ') + '</strong>' +
-        '<div class="ntx-tile-foot"><span>' + (n ? (n > 0 ? me : other) + ' nợ' : 'Đã cấn trừ hết') + '</span><b>' + (n ? (n > 0 ? other : me) : '') + '</b></div></div>';
+      : '<p class="nt-adj"><strong>' + escH(pairText(me, other, n)) + '</strong></p>';
     var step2 = '<div class="ntx-card">' + stepHead(2, 'Trạm cần đối soát', 'Chi nhánh nhận công nợ', 'ntx-red') +
-      stationSelect('ntOther', 'Trạm cần đối soát', '— Chọn trạm —', cands, other, true) + tile2 + '</div>';
+      stationSelect('ntOther', 'Trạm cần đối soát', '— Chọn trạm —', cands, other, true) + pairBalance + '</div>';
 
     var viaBody = '<div class="ntx-empty">Chọn trạm đối soát và trạm cần đối soát trước.</div>';
     if (me && other) {
@@ -227,13 +240,11 @@
           : '<div class="ntx-empty" style="margin:16px 24px 20px;">' + esc(me) + ' không còn công nợ với trạm nào.</div>') + '</div>';
     }
 
-    // Từng đơn thu hộ đã giao: "<trạm nhận> nợ <trạm gửi> <số tiền> (đơn <mã>)"; lọc theo trạm đang chọn (không chọn = tất cả)
-    var codRows = cargos.filter(function (c) {
-      return c.status === 'delivered' && Number(c.codAmount) > 0 && (!me || sk(c.stationFrom) === sk(me) || sk(c.stationTo) === sk(me));
-    }).map(function (c) {
-      return '<tr><td><b class="ntx-src">' + escH(c.code || c.id) + '</b></td><td>' + escH(c.stationTo) + ' nợ ' + escH(c.stationFrom) + '</td><td class="ntx-pay">' + fmt(c.codAmount) + '</td></tr>';
+    var codRows = cargos.map(function (c) {
+      var cod = codDebt(c);
+      return cod ? '<tr><td><b class="ntx-src">' + escH(c.code || c.id) + '</b></td><td>' + escH(cod.debtor) + ' nợ ' + escH(cod.creditor) + '</td><td class="ntx-pay">' + fmt(cod.amount) + '</td></tr>' : '';
     }).join('');
-    var codList = '<div class="ntx-detail ntx-board"><div class="ntx-detail-head"><div><strong>Thu hộ (COD) đã giao</strong><small>Mỗi đơn thu hộ đã giao là một khoản nợ giữa trạm nhận và trạm gửi</small></div></div>' +
+    var codList = '<div class="ntx-detail ntx-board"><div class="ntx-detail-head"><div><strong>Thu hộ (COD) đã giao</strong><small>Đơn đã giao của tất cả các trạm</small></div></div>' +
       (codRows ? '<div class="ntx-scroll"><table class="ntx-table"><thead><tr><th>Đơn</th><th>Công nợ</th><th>Số tiền</th></tr></thead><tbody>' + codRows + '</tbody></table></div>'
         : '<div class="ntx-empty" style="margin:16px 24px 20px;">Chưa có đơn thu hộ nào đã giao.</div>') + '</div>';
 
@@ -282,5 +293,12 @@
       }
     });
     render();
+  });
+
+  window.addEventListener('storage', function (event) {
+    if (!event.key || event.key === 'hueNghia_cargos' || event.key === KEY) render();
+  });
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) render();
   });
 })();

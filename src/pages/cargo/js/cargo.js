@@ -160,6 +160,17 @@ function loadManifests() {
   return [];
 }
 
+function syncCargoStations(cargo, manifest = {}) {
+  if (Number(cargo.codAmount) > 0) {
+    cargo.stationFrom = cargo.orderStationFrom ?? cargo.stationFrom;
+    cargo.stationTo = cargo.orderStationTo ?? cargo.stationTo;
+    return;
+  }
+  const [routeFrom, routeTo] = String(manifest.route || '').split(/[→➔]/).map(station => station.trim());
+  cargo.stationFrom = manifest.from || routeFrom || cargo.stationFrom || 'Chưa gán';
+  cargo.stationTo = manifest.to || routeTo || cargo.stationTo || 'Chưa gán';
+}
+
 function syncCargosWithManifests(cargos) {
   if (!Array.isArray(cargos)) return cargos;
   const manifests = loadManifests();
@@ -185,10 +196,7 @@ function syncCargosWithManifests(cargos) {
 
     if (cargo.manifestId) {
       const manifest = manifests.find(m => String(m.id) === String(cargo.manifestId));
-      if (manifest) {
-        cargo.stationFrom = manifest.from || (manifest.route ? manifest.route.split('→')[0].trim() : (cargo.stationFrom || 'Chưa gán'));
-        cargo.stationTo = manifest.to || (manifest.route ? manifest.route.split('→')[1].trim() : (cargo.stationTo || 'Chưa gán'));
-      }
+      if (manifest) syncCargoStations(cargo, manifest);
       // Đơn đã giao/hoàn/chưa nhận giữ nguyên: ép về in-transit sẽ xoá "delivered" làm mất COD khỏi đối soát giữa trạm.
       if (!['delivered', 'returned', 'unreceived'].includes(cargo.status)) {
         cargo.status = 'in-transit';
@@ -1414,6 +1422,8 @@ if (bundleForm) {
         target.moneyAmount = (formData.get('moneyAmount') || '').replace(/\D/g, '');
         target.stationFrom = stFrom;
         target.stationTo = stTo;
+        target.orderStationFrom = stFrom;
+        target.orderStationTo = stTo;
         Object.assign(target, cargoRouteFields(formData.get('cargoRoute')));
         target.sender = formData.get('senderName');
         target.senderPhone = formData.get('senderPhone');
@@ -1462,6 +1472,8 @@ if (bundleForm) {
         receiverPhone: formData.get('receiverPhone'),
         stationFrom: stFrom,
         stationTo: stTo,
+        orderStationFrom: stFrom,
+        orderStationTo: stTo,
         ...cargoRouteFields(formData.get('cargoRoute')),
         fee: parseFeeInput(formData.get('fee'), 150000),
         note: formData.get('note') || '',
@@ -1530,9 +1542,6 @@ if (transferForm) {
       showToast(`⚠️ Xe ${targetManifest.plate} đã nhận xe rồi, không thể thêm hàng vào phơi này nữa!`);
       return;
     }
-    const stFrom = targetManifest ? (targetManifest.from || targetManifest.route.split('→')[0].trim()) : 'Chưa gán';
-    const stTo = targetManifest ? (targetManifest.to || targetManifest.route.split('→')[1].trim()) : 'Chưa gán';
-
     ids.forEach(id => {
       const item = state.data.find(row => row.id === id);
       if (!item) return;
@@ -1548,8 +1557,7 @@ if (transferForm) {
       if (qtyToTransfer >= totalQty) {
         // Transfer all quantity
         item.manifestId = manifestId;
-        item.stationFrom = stFrom;
-        item.stationTo = stTo;
+        syncCargoStations(item, targetManifest);
         item.status = 'in-transit';
         item.statusText = 'Đã chuyển';
         item.scanned = true;
@@ -1586,8 +1594,6 @@ if (transferForm) {
           moneyAmount: 0,
           paymentStatus: 'free',
           manifestId: manifestId,
-          stationFrom: stFrom,
-          stationTo: stTo,
           status: 'in-transit',
           statusText: 'Đã chuyển',
           scanned: true,
@@ -1599,6 +1605,7 @@ if (transferForm) {
           receivedAtTimestamp: Date.now()
         };
 
+        syncCargoStations(transferredItem, targetManifest);
         newItemsToAdd.push(transferredItem);
         count += qtyToTransfer;
       }
@@ -3407,12 +3414,8 @@ window.processCargoScanTransferInput = function () {
     return;
   }
 
-  const stFrom = targetManifest.from || (targetManifest.route ? targetManifest.route.split('→')[0].trim() : 'Chưa gán');
-  const stTo = targetManifest.to || (targetManifest.route ? targetManifest.route.split('→')[1].trim() : 'Chưa gán');
-
   cargo.manifestId = manifestId;
-  cargo.stationFrom = stFrom;
-  cargo.stationTo = stTo;
+  syncCargoStations(cargo, targetManifest);
   cargo.status = 'in-transit';
   cargo.statusText = 'Đã chuyển';
   cargo.scanned = true;
