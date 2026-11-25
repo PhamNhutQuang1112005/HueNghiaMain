@@ -331,50 +331,25 @@
           </div>
 
           <form id="parkingRates" class="parking-card" aria-labelledby="parkingRatesTitle" hidden>
-            <h2 id="parkingRatesTitle">Bảng giá giữ xe</h2>
-            <p class="parking-help">Bảng giá dùng chung cho các loại xe. Mỗi 24 giờ bắt đầu tính một ngày. Giá mới áp dụng cho xe nhận sau khi lưu.</p>
-            <p class="parking-help">&#431;u ti&#234;n 1: gi&#225; theo kho&#7843;ng ng&#224;y; &#431;u ti&#234;n 2: gi&#225; theo th&#7913;; &#431;u ti&#234;n 3: gi&#225; m&#7863;c &#273;&#7883;nh. Gi&#7843;m gi&#225; th&#225;ng &#225;p d&#7909;ng sau c&#249;ng.</p>
+            <h2 id="parkingRatesTitle">B&#7843;ng gi&#225; gi&#7919; xe</h2>
+            <p class="parking-help">M&#7895;i 24 gi&#7901; b&#7855;t &#273;&#7847;u t&#237;nh m&#7897;t ng&#224;y. M&#7895;i kho&#7843;ng &#225;p d&#7909;ng gi&#225; cho to&#224;n b&#7897; th&#7901;i gian g&#7917;i; m&#7913;c gi&#7843;m &#273;&#432;&#7907;c tr&#7915; m&#7897;t l&#7847;n v&#224;o t&#7893;ng ph&#237;.</p>
             <fieldset class="parking-rate-section" aria-describedby="parkingBandHelp">
-              <legend>&#431;u ti&#234;n 1: Gi&#225; theo kho&#7843;ng ng&#224;y</legend>
-              <p class="parking-help" id="parkingBandHelp">Kho&#7843;ng ng&#224;y &#273;&#432;&#7907;c ch&#7885;n theo t&#7893;ng s&#7889; ng&#224;y g&#7917;i v&#224; &#225;p d&#7909;ng gi&#225; cho to&#224;n b&#7897; th&#7901;i gian g&#7917;i. Kho&#7843;ng ti&#7871;p theo t&#7921; n&#7889;i t&#7915; m&#7889;c k&#7871;t th&#250;c kho&#7843;ng tr&#432;&#7899;c (v&#237; d&#7909;: 1&#8211;15, ti&#7871;p theo 15&#8211;30). Ng&#224;y &#273;&#250;ng m&#7889;c chung thu&#7897;c kho&#7843;ng tr&#432;&#7899;c.</p>
+              <legend>&#431;u ti&#234;n 1: Gi&#225; v&#224; gi&#7843;m theo kho&#7843;ng ng&#224;y</legend>
+              <p class="parking-help" id="parkingBandHelp">Kho&#7843;ng &#273;&#7847;u ti&#234;n b&#7855;t &#273;&#7847;u t&#7915; ng&#224;y 1. Kho&#7843;ng ti&#7871;p theo t&#7921; n&#7889;i t&#7915; m&#7889;c k&#7871;t th&#250;c kho&#7843;ng tr&#432;&#7899;c. Gi&#225; t&#237;nh theo &#273;/ng&#224;y; gi&#7843;m gi&#225; l&#224; s&#7889; ti&#7873;n tr&#7915; cho c&#7843; l&#432;&#7907;t g&#7917;i.</p>
               <div id="parkingBands"></div>
-              <button type="button" class="btn btn-sm" id="parkingAddBand">+ Thêm khoảng ngày</button>
+              <button type="button" class="btn btn-sm" id="parkingAddBand">+ Th&#234;m kho&#7843;ng ng&#224;y</button>
             </fieldset>
-            <fieldset class="parking-rate-section" aria-describedby="parkingWeekdayHelp">
-              <legend>&#431;u ti&#234;n 2: Gi&#225; theo th&#7913;</legend>
-              <p class="parking-help" id="parkingWeekdayHelp">Tính theo thứ bắt đầu của từng ngày gửi, theo giờ Việt Nam. Để trống để dùng giá mặc định.</p>
-              <div class="parking-weekdays" id="parkingWeekdays"></div>
-            </fieldset>
-            <p class="parking-help">&#7882; c&#225;c &#244; gi&#225; c&#243; h&#7853;u t&#7889; 000 &#273;, ch&#7881; c&#7847;n nh&#7853;p ph&#7847;n h&#224;ng ngh&#236;n. V&#237; d&#7909;: nh&#7853;p 10 t&#432;&#417;ng &#273;&#432;&#417;ng 10.000 &#273;.</p>
-            <div class="parking-rate-fields">
-              <div class="filter-field parking-field">
-                <label for="parkingDailyRate">&#431;u ti&#234;n 3: Gi&#225; m&#7863;c &#273;&#7883;nh (&#273;/ng&#224;y)</label>
-                <div class="parking-money-input"><input type="number" id="parkingDailyRate" name="dailyRate" min="0" max="999999.999" step="0.001" required /><span class="parking-money-suffix" aria-hidden="true">000</span></div>
-              </div>
-              <div class="filter-field parking-field">
-                <label for="parkingMonthlyDiscount">Sau khi t&#237;nh ph&#237;: gi&#7843;m t&#7915; 30 ng&#224;y (%)</label>
-                <input type="number" id="parkingMonthlyDiscount" name="monthlyDiscount" min="0" max="100" step="1" placeholder="0" />
-              </div>
-            </div>
+            <p class="parking-help">C&#225;c &#244; ti&#7873;n c&#243; h&#7853;u t&#7889; 000 &#273;, ch&#7881; c&#7847;n nh&#7853;p ph&#7847;n h&#224;ng ngh&#236;n. V&#237; d&#7909;: nh&#7853;p 10 t&#432;&#417;ng &#273;&#432;&#417;ng 10.000 &#273;.</p>
             <fieldset class="parking-rate-section">
               <legend>T&#237;nh th&#7917; ph&#237;</legend>
               <div class="parking-rate-fields parking-preview">
-                <div class="filter-field parking-field">
-                  <label for="parkingPreviewDate">Ng&#224;y b&#7855;t &#273;&#7847;u</label>
-                  <input type="date" id="parkingPreviewDate" />
-                </div>
-                <div class="filter-field parking-field">
-                  <label for="parkingPreviewDays">S&#7889; ng&#224;y</label>
-                  <input type="number" id="parkingPreviewDays" min="1" max="36500" step="1" value="1" />
-                </div>
+                <div class="filter-field parking-field"><label for="parkingPreviewDate">Ng&#224;y b&#7855;t &#273;&#7847;u</label><input type="date" id="parkingPreviewDate" /></div>
+                <div class="filter-field parking-field"><label for="parkingPreviewDays">S&#7889; ng&#224;y</label><input type="number" id="parkingPreviewDays" min="1" max="36500" step="1" value="1" /></div>
                 <output id="parkingPreviewTotal" class="parking-preview-total" aria-live="polite"></output>
               </div>
             </fieldset>
             <p id="parkingRatesNotice" class="parking-notice" role="status" hidden></p>
-            <div class="parking-actions">
-              <button type="button" class="btn" id="parkingReloadRates">Nạp giá đã lưu</button>
-              <button type="submit" class="btn btn-primary">Lưu bảng giá</button>
-            </div>
+            <div class="parking-actions"><button type="button" class="btn" id="parkingReloadRates">N&#7841;p gi&#225; &#273;&#227; l&#432;u</button><button type="submit" class="btn btn-primary">L&#432;u b&#7843;ng gi&#225;</button></div>
           </form>
 
           <dialog id="parkingCheckout" class="parking-dialog" aria-labelledby="parkingCheckoutTitle">
@@ -612,3 +587,4 @@
   <script src="admin/admin-search-select.js?v=2"></script>
 </body>
 </html>
+

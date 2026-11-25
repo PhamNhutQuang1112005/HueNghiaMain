@@ -19,10 +19,6 @@ const parkingAdmin = (() => {
     timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit'
   });
   const { quote, prepareRates, dayMs, normalizePlate } = ParkingPricing;
-  const listOfWeekdays = [
-    [1, 'Thứ hai'], [2, 'Thứ ba'], [3, 'Thứ tư'], [4, 'Thứ năm'],
-    [5, 'Thứ sáu'], [6, 'Thứ bảy'], [0, 'Chủ nhật']
-  ];
   let ratesBaseline;
   let nextBandId = 0;
   let selectedCheckout;
@@ -155,20 +151,13 @@ const parkingAdmin = (() => {
   }
 
   function readRatesForm() {
-    const valueOf = id => {
-      const input = $(id);
-      if (!input) throw new Error('Thi\u1ebfu \u00f4 thi\u1ebft l\u1eadp gi\u00e1: ' + id);
-      return input.value;
-    };
     const rateInDong = value => value === '' ? '' : String(Number(value) * 1000);
     return prepareRates({
-      dailyRate: rateInDong(valueOf('parkingDailyRate')),
-      monthlyDiscount: valueOf('parkingMonthlyDiscount'),
-      weekdayRates: Array.from({ length: 7 }, (_, index) => rateInDong(valueOf(`parkingWeekday${index}`))),
       bands: Array.from(bands.children, row => ({
         from: valueOfBand(row, 'from'),
         through: valueOfBand(row, 'through'),
-        rate: rateInDong(valueOfBand(row, 'rate'))
+        rate: rateInDong(valueOfBand(row, 'rate')),
+        discount: rateInDong(valueOfBand(row, 'discount'))
       }))
     });
   }
@@ -197,16 +186,16 @@ const parkingAdmin = (() => {
     const row = document.createElement('div');
     row.className = 'parking-band';
     row.innerHTML = [
-      ['from', 'Từ ngày', 1, 36500], ['through', 'Đến ngày', 1, 36500], ['rate', 'Giá (đ/ngày)', 0, 999999999]
+      ['from', 'T\u1eeb ng\u00e0y', 1, 36500], ['through', '\u0110\u1ebfn ng\u00e0y', 1, 36500], ['rate', 'Gi\u00e1 (\u0111/ng\u00e0y)', 0, 999999999], ['discount', 'Gi\u1ea3m (\u0111/l\u01b0\u1ee3t)', 0, 999999999]
     ].map(([field, label, min, max]) => `<div class="filter-field parking-field">
         <label for="parkingBand-${id}-${field}">${label}</label>
-        <div class="parking-money-input"><input type="number" id="parkingBand-${id}-${field}" data-rate="${field}" min="${min}" max="${field === 'rate' ? 999999.999 : max}" step="${field === 'rate' ? '0.001' : '1'}" ${field === 'from' ? 'readonly aria-readonly="true"' : ''} required />${field === 'rate' ? '<span class="parking-money-suffix" aria-hidden="true">000</span>' : ''}</div>
+        <div class="parking-money-input"><input type="number" id="parkingBand-${id}-${field}" data-rate="${field}" min="${min}" max="${field === 'rate' || field === 'discount' ? 999999.999 : max}" step="${field === 'rate' || field === 'discount' ? '0.001' : '1'}" ${field === 'from' ? 'readonly aria-readonly="true"' : ''} required />${field === 'rate' || field === 'discount' ? '<span class="parking-money-suffix" aria-hidden="true">000</span>' : ''}</div>
       </div>`).join('') + '<button type="button" class="btn btn-danger btn-sm parking-remove-band">Xóa khoảng</button>';
     bands.append(row);
     row.querySelectorAll('[data-rate]').forEach(input => {
       const value = band?.[input.dataset.rate];
       if (input.dataset.rate === 'from') input.value = value ?? linkedStart;
-      else input.value = input.dataset.rate === 'rate' && value != null ? Number(value) / 1000 : value ?? '';
+      else input.value = (input.dataset.rate === 'rate' || input.dataset.rate === 'discount') && value != null ? Number(value) / 1000 : input.dataset.rate === 'discount' ? '0' : value ?? '';
     });
     row.querySelector('button').addEventListener('click', () => {
       row.remove();
@@ -225,14 +214,8 @@ const parkingAdmin = (() => {
     try {
       const { rates } = readStore();
       ratesBaseline = JSON.stringify(rates);
-      $('parkingDailyRate').value = rates?.dailyRate == null ? '' : rates.dailyRate / 1000;
-      $('parkingMonthlyDiscount').value = rates?.monthlyDiscount ?? '';
-      listOfWeekdays.forEach(([index]) => {
-        const rate = rates?.weekdayRates[index];
-        $(`parkingWeekday${index}`).value = rate == null ? '' : rate / 1000;
-      });
       bands.replaceChildren();
-      rates?.bands.forEach(band => addBand(band));
+      if (Array.isArray(rates?.bands)) rates.bands.forEach(band => addBand(band));
       syncBandStarts();
       setNotice(ratesNotice);
       renderPreview();
@@ -464,10 +447,6 @@ const parkingAdmin = (() => {
     else if (ratesBaseline === undefined) loadRates();
   }
 
-  $('parkingWeekdays').innerHTML = listOfWeekdays.map(([index, label]) => `<div class="filter-field parking-field">
-    <label for="parkingWeekday${index}">${label}</label>
-    <div class="parking-money-input"><input type="number" id="parkingWeekday${index}" name="weekday${index}" min="0" max="999999.999" step="0.001" /><span class="parking-money-suffix" aria-hidden="true">000</span></div>
-  </div>`).join('');
   $('parkingPreviewDate').value = isoDate.format(Date.now());
   $('parkingType').addEventListener('change', updatePlateRequired);
   $('parkingJournalButton').addEventListener('click', () => showPanel(true));
@@ -490,3 +469,4 @@ const parkingAdmin = (() => {
 })();
 
 function renderParkingView() { parkingAdmin.render(); }
+
