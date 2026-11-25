@@ -929,7 +929,7 @@ function renderTable() {
               </div>
             </td>
             <td style="text-align:center; vertical-align:middle;">
-              <span style="display:inline-block; font-size:14px; font-weight:800; color:#0f172a; background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 10px; white-space:nowrap;">${formatCargoQuantity(row)}</span>
+              <span class="cargo-quantity-badge">${formatCargoQuantity(row)}</span>
             </td>
             <td>
               <div class="rd-route"><strong>${fromSt}</strong><span class="rd-route-arrow">➔</span><strong>${toSt}</strong></div>
